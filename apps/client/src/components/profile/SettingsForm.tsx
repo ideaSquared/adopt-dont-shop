@@ -10,7 +10,7 @@ import React, { useState } from 'react';
 import * as styles from './SettingsForm.css';
 
 // Adopter-only settings. Notifications, security and appearance live in the
-// shared AccountSettings tabs (@adopt-dont-shop/lib.account).
+// shared AccountSettings sections (@adopt-dont-shop/lib.account).
 interface UserSettings {
   privacy: {
     profileVisibility: 'public' | 'private';

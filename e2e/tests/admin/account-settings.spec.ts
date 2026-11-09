@@ -1,7 +1,6 @@
-import type { Page } from '@playwright/test';
-
 import { test, expect } from '../../fixtures';
 import { canSignIn, createThrowawayAdmin } from '../../helpers/accounts';
+import { openSettingsSection, settingsRow } from '../../helpers/account-settings';
 import { dismissCookieBannerWhenShown } from '../../helpers/cookie-banner';
 import { openAccountContext } from '../../helpers/cross-app-sessions';
 import { confirmEmailChangeFromLink } from '../../helpers/email-change';
@@ -19,40 +18,36 @@ import { URLS } from '../../playwright.config';
 // docker-compose.e2e.yml), and the delete test here erases from the same
 // docker-side IP as the client and rescue account-settings specs.
 
-// Inactive tab panels stay mounted (hidden); role queries skip hidden
-// elements, so this is the panel the user is looking at.
-const activePanel = (page: Page) => page.getByRole('tabpanel');
-
-const openTab = async (page: Page, tab: string): Promise<void> => {
-  await page.goto('/account');
-  await page.getByRole('tab', { name: tab, exact: true }).click();
-};
-
 test.describe('admin account settings', () => {
-  test('shows the same settings tabs as the other apps, with notifications loaded', async ({
-    page,
-  }) => {
+  test('lists every setting with its current value, all closed', async ({ page }) => {
     await page.goto('/account');
 
     await expect(page.getByRole('heading', { name: 'Account Settings' })).toBeVisible();
-    await expect(page.getByRole('tab')).toHaveText([
+    await expect(
+      page.getByRole('list', { name: 'Account settings' }).getByRole('heading')
+    ).toHaveText([
+      'Your details',
+      'Email',
+      'Password',
+      'Two-factor sign-in',
       'Notifications',
-      'Security',
-      'Appearance',
-      'Account',
+      'Theme',
     ]);
-    // The Email channel's label (CheckboxInput hides the real <input>).
-    await expect(page.getByRole('tabpanel').getByText('Email', { exact: true })).toBeVisible();
+    // Notification preferences load into the row's summary.
+    await expect(settingsRow(page, 'Notifications')).toContainText(/Email (on|off)/);
+    await expect(page.getByLabel('New email')).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Delete account…' })).toBeVisible();
   });
 
-  test('the Account tab offers details, email change and delete', async ({ page }) => {
+  test('a Change button opens just that setting', async ({ page }) => {
     await page.goto('/account');
-    await page.getByRole('tab', { name: 'Account', exact: true }).click();
-    const panel = page.getByRole('tabpanel');
 
-    await expect(panel.getByLabel('First name')).toBeVisible();
-    await expect(panel.getByLabel('New email')).toBeVisible();
-    await expect(panel.getByRole('button', { name: 'Delete account…' })).toBeVisible();
+    const details = await openSettingsSection(page, 'Your details');
+    await expect(details.getByLabel('First name')).toBeVisible();
+
+    await openSettingsSection(page, 'Email');
+    await expect(page.getByLabel('New email')).toBeVisible();
+    await expect(page.getByLabel('First name')).toBeHidden();
   });
 
   test('changing the password signs the admin out; only the new password works', async ({
@@ -66,13 +61,12 @@ test.describe('admin account settings', () => {
       const page = await context.newPage();
       // The fixed cookie banner covers buttons at the bottom of the page.
       await dismissCookieBannerWhenShown(page);
-      await openTab(page, 'Security');
-      await activePanel(page).getByLabel('Current password').fill(admin.password);
-      await activePanel(page)
-        .getByLabel(/^new password/i)
-        .fill(newPassword);
-      await activePanel(page).getByLabel('Confirm new password').fill(newPassword);
-      await activePanel(page).getByRole('button', { name: 'Change password' }).click();
+      await page.goto('/account');
+      const password = await openSettingsSection(page, 'Password');
+      await password.getByLabel('Current password').fill(admin.password);
+      await password.getByLabel(/^new password/i).fill(newPassword);
+      await password.getByLabel('Confirm new password').fill(newPassword);
+      await password.getByRole('button', { name: 'Change password' }).click();
 
       // Changing the password ends every session, this one included.
       await expect(page).toHaveURL(/\/login/);
@@ -94,11 +88,12 @@ test.describe('admin account settings', () => {
       const page = await context.newPage();
       // The fixed cookie banner covers buttons at the bottom of the page.
       await dismissCookieBannerWhenShown(page);
-      await openTab(page, 'Account');
-      await activePanel(page).getByLabel('New email').fill(newEmail);
-      await activePanel(page).getByLabel('Current password').fill(admin.password);
-      await activePanel(page).getByRole('button', { name: 'Send confirmation link' }).click();
-      await expect(activePanel(page).getByText(`Check your inbox at ${newEmail}`)).toBeVisible();
+      await page.goto('/account');
+      const email = await openSettingsSection(page, 'Email');
+      await email.getByLabel('New email').fill(newEmail);
+      await email.getByLabel('Current password').fill(admin.password);
+      await email.getByRole('button', { name: 'Send confirmation link' }).click();
+      await expect(email.getByText(`Check your inbox at ${newEmail}`)).toBeVisible();
 
       // Nothing changes until the link is followed.
       expect(await canSignIn(admin.email, admin.password)).toBe(true);
@@ -122,8 +117,8 @@ test.describe('admin account settings', () => {
       const page = await context.newPage();
       // The fixed cookie banner covers buttons at the bottom of the page.
       await dismissCookieBannerWhenShown(page);
-      await openTab(page, 'Account');
-      await activePanel(page).getByRole('button', { name: 'Delete account…' }).click();
+      await page.goto('/account');
+      await page.getByRole('button', { name: 'Delete account…' }).click();
       const dialog = page.getByRole('dialog');
       await dialog.getByLabel('Current password').fill(admin.password);
       await dialog.getByRole('button', { name: 'Delete my account' }).click();

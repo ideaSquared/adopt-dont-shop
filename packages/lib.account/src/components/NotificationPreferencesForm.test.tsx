@@ -65,12 +65,21 @@ describe('NotificationPreferencesForm', () => {
     renderForm();
 
     expect(await screen.findByRole('checkbox', { name: /^email/i })).toBeChecked();
-    expect(screen.getByRole('checkbox', { name: /^push/i })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /^browser alerts/i })).not.toBeChecked();
     expect(screen.getByRole('checkbox', { name: /pet matches/i })).not.toBeChecked();
     expect(screen.getByRole('checkbox', { name: /rescue updates/i })).toBeChecked();
     expect(screen.getByLabelText(/quiet hours start/i)).toHaveValue('22:00');
     expect(screen.getByLabelText(/quiet hours end/i)).toHaveValue('07:00');
     expect(screen.getByRole('combobox', { name: /timezone/i })).toHaveTextContent(/uk time/i);
+  });
+
+  it('tucks quiet hours and timezone under "More options" so the form starts short', async () => {
+    renderForm();
+
+    const moreOptions = (await screen.findByText('More options')).closest('details');
+    expect(moreOptions).not.toHaveAttribute('open');
+    expect(moreOptions).toContainElement(screen.getByLabelText(/quiet hours start/i));
+    expect(moreOptions).toContainElement(screen.getByRole('combobox', { name: /timezone/i }));
   });
 
   it('offers no email digest setting — digest emails do not read these preferences', async () => {
@@ -80,19 +89,18 @@ describe('NotificationPreferencesForm', () => {
     expect(screen.queryByRole('combobox', { name: /digest/i })).not.toBeInTheDocument();
   });
 
-  it('keeps SMS switched off and explains why — there is no SMS provider (ADS-1325)', async () => {
+  it('offers no SMS option — there is no SMS provider behind it (ADS-1325)', async () => {
     renderForm();
 
-    const sms = await screen.findByRole('checkbox', { name: /^sms/i });
-    expect(sms).toBeDisabled();
-    expect(screen.getByText(/sms notifications are not available yet/i)).toBeInTheDocument();
+    await screen.findByRole('checkbox', { name: /^email/i });
+    expect(screen.queryByRole('checkbox', { name: /sms/i })).not.toBeInTheDocument();
   });
 
   it('saves every change the user made', async () => {
     const user = userEvent.setup();
     renderForm();
 
-    await user.click(await screen.findByRole('checkbox', { name: /^push/i }));
+    await user.click(await screen.findByRole('checkbox', { name: /^browser alerts/i }));
     await user.click(screen.getByRole('checkbox', { name: /^messages/i }));
     await user.click(saveButton());
 
@@ -111,7 +119,7 @@ describe('NotificationPreferencesForm', () => {
     vi.mocked(updateNotificationPreferences).mockReturnValue(new Promise(() => undefined));
     renderForm();
 
-    await user.click(await screen.findByRole('checkbox', { name: /^push/i }));
+    await user.click(await screen.findByRole('checkbox', { name: /^browser alerts/i }));
     await user.click(saveButton());
     await waitFor(() => expect(saveButton()).toBeDisabled());
 
@@ -147,6 +155,17 @@ describe('NotificationPreferencesForm', () => {
     expect(updateNotificationPreferences).not.toHaveBeenCalled();
   });
 
+  it('unfolds "More options" when quiet hours need fixing, so the error is visible', async () => {
+    const user = userEvent.setup();
+    renderForm();
+
+    await user.clear(await screen.findByLabelText(/quiet hours end/i));
+    await user.click(saveButton());
+
+    await screen.findByText(/set both a start and end time/i);
+    expect(screen.getByText('More options').closest('details')).toHaveAttribute('open');
+  });
+
   it('ties the quiet-hours error to the empty field so screen readers announce it there', async () => {
     const user = userEvent.setup();
     renderForm();
@@ -165,7 +184,7 @@ describe('NotificationPreferencesForm', () => {
     vi.mocked(fetchNotificationPreferences).mockResolvedValue({ ...SAVED, smsEnabled: true });
     renderForm();
 
-    await user.click(await screen.findByRole('checkbox', { name: /^push/i }));
+    await user.click(await screen.findByRole('checkbox', { name: /^browser alerts/i }));
     await user.click(saveButton());
 
     await waitFor(() =>
@@ -188,13 +207,13 @@ describe('NotificationPreferencesForm', () => {
     renderForm(client);
 
     // Stale copy renders first; the user edits push before the refetch lands.
-    await user.click(await screen.findByRole('checkbox', { name: /^push/i }));
+    await user.click(await screen.findByRole('checkbox', { name: /^browser alerts/i }));
     resolveFetch({ ...SAVED, emailEnabled: false });
 
     await waitFor(() =>
       expect(screen.getByRole('checkbox', { name: /^email/i })).not.toBeChecked()
     );
-    expect(screen.getByRole('checkbox', { name: /^push/i })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /^browser alerts/i })).toBeChecked();
   });
 
   it('keeps the saved timezone selectable after the user picks another one', async () => {
@@ -230,12 +249,12 @@ describe('NotificationPreferencesForm', () => {
     vi.mocked(updateNotificationPreferences).mockRejectedValue(new Error('Network down'));
     renderForm();
 
-    await user.click(await screen.findByRole('checkbox', { name: /^push/i }));
+    await user.click(await screen.findByRole('checkbox', { name: /^browser alerts/i }));
     await user.click(saveButton());
 
     const alert = await screen.findByRole('alert');
     expect(within(alert).getByText(/could not save your notification preferences/i)).toBeVisible();
-    expect(screen.getByRole('checkbox', { name: /^push/i })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /^browser alerts/i })).toBeChecked();
   });
 
   it('tells the user when preferences cannot be loaded', async () => {

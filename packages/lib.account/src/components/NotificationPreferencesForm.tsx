@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Alert,
   Button,
@@ -25,7 +25,7 @@ type FlagField = { key: FlagKey; label: string; description: string };
 
 const CHANNELS: ReadonlyArray<FlagField> = [
   { key: 'emailEnabled', label: 'Email', description: 'Send notifications to your inbox' },
-  { key: 'pushEnabled', label: 'Push', description: 'Show notifications in your browser' },
+  { key: 'pushEnabled', label: 'Browser alerts', description: 'Pop-up alerts in your browser' },
 ];
 
 const CATEGORIES: ReadonlyArray<FlagField> = [
@@ -72,6 +72,7 @@ const PreferencesEditor = ({ saved }: EditorProps) => {
   // every field the user hasn't touched.
   const [edits, setEdits] = useState<Partial<NotificationPreferences>>({});
   const [quietHoursError, setQuietHoursError] = useState<string | undefined>();
+  const moreOptionsRef = useRef<HTMLDetailsElement>(null);
   const update = useUpdateNotificationPreferences();
   const draft: NotificationPreferences = { ...saved, ...edits };
 
@@ -95,6 +96,10 @@ const PreferencesEditor = ({ saved }: EditorProps) => {
     const parsed = QuietHoursSchema.safeParse(draft);
     if (!parsed.success) {
       setQuietHoursError(parsed.error.issues[0]?.message);
+      // The error sits inside "More options"; unfold it or the user never sees it.
+      if (moreOptionsRef.current) {
+        moreOptionsRef.current.open = true;
+      }
       return;
     }
     // ADS-1325: the backend rejects any save that enables SMS, so a legacy
@@ -120,15 +125,8 @@ const PreferencesEditor = ({ saved }: EditorProps) => {
     <form className={styles.form} onSubmit={handleSubmit} noValidate>
       <FormSection title='Channels' description='How we reach you.'>
         <div className={styles.fieldStack}>
+          {/* ADS-1325: no SMS option — there is no SMS provider behind it. */}
           {CHANNELS.map(renderFlag)}
-          {/* ADS-1325: SMS has no provider behind it and the backend rejects
-              enabling it. Shown disabled, with the reason, rather than hidden. */}
-          <CheckboxInput
-            label='SMS'
-            description='SMS notifications are not available yet'
-            checked={false}
-            disabled
-          />
         </div>
       </FormSection>
 
@@ -136,37 +134,41 @@ const PreferencesEditor = ({ saved }: EditorProps) => {
         <div className={styles.fieldStack}>{CATEGORIES.map(renderFlag)}</div>
       </FormSection>
 
-      <FormSection
-        title='Quiet hours'
-        description='Pause push and email notifications overnight. Leave both empty to turn quiet hours off.'
-      >
-        <div className={styles.quietHoursGrid}>
-          <FormField label='Quiet hours start' htmlFor='quiet-hours-start' error={startError}>
-            <Input
-              id='quiet-hours-start'
-              type='time'
-              value={draft.quietHoursStart}
-              onChange={e => changeQuietHours({ quietHoursStart: e.target.value })}
-            />
-          </FormField>
-          <FormField label='Quiet hours end' htmlFor='quiet-hours-end' error={endError}>
-            <Input
-              id='quiet-hours-end'
-              type='time'
-              value={draft.quietHoursEnd}
-              onChange={e => changeQuietHours({ quietHoursEnd: e.target.value })}
-            />
-          </FormField>
-        </div>
-        <SelectInput
-          label='Timezone'
-          data-testid='notification-timezone'
-          value={draft.timezone}
-          options={timezoneOptions(saved.timezone)}
-          onChange={value => change({ timezone: singleValue(value) })}
-          fullWidth
-        />
-      </FormSection>
+      {/* Rarely changed, so folded away to keep the form short. */}
+      <details ref={moreOptionsRef} className={styles.moreOptions}>
+        <summary className={styles.moreOptionsToggle}>More options</summary>
+        <FormSection
+          title='Quiet hours'
+          description='Pause browser alerts and emails overnight. Leave both empty to turn quiet hours off.'
+        >
+          <div className={styles.quietHoursGrid}>
+            <FormField label='Quiet hours start' htmlFor='quiet-hours-start' error={startError}>
+              <Input
+                id='quiet-hours-start'
+                type='time'
+                value={draft.quietHoursStart}
+                onChange={e => changeQuietHours({ quietHoursStart: e.target.value })}
+              />
+            </FormField>
+            <FormField label='Quiet hours end' htmlFor='quiet-hours-end' error={endError}>
+              <Input
+                id='quiet-hours-end'
+                type='time'
+                value={draft.quietHoursEnd}
+                onChange={e => changeQuietHours({ quietHoursEnd: e.target.value })}
+              />
+            </FormField>
+          </div>
+          <SelectInput
+            label='Timezone'
+            data-testid='notification-timezone'
+            value={draft.timezone}
+            options={timezoneOptions(saved.timezone)}
+            onChange={value => change({ timezone: singleValue(value) })}
+            fullWidth
+          />
+        </FormSection>
+      </details>
 
       <div className={styles.actions}>
         <Button type='submit' isLoading={update.isPending} disabled={update.isPending}>

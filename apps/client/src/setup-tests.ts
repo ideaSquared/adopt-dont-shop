@@ -68,7 +68,6 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   normalTheme: {},
   darkTheme: {},
   ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
-  ThemeToggle: () => React.createElement('button', { type: 'button' }, 'Theme'),
   useTheme: () => ({
     theme: {},
     themeMode: 'normal',

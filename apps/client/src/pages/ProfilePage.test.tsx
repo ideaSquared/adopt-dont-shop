@@ -57,29 +57,29 @@ vi.mock('@/services', async () => {
   };
 });
 
-// The shared tabs are covered in lib.account; this stub keeps the page's own
-// "Privacy & data" tab reachable.
+// The shared sections are covered in lib.account; this stub keeps the page's
+// own "Privacy & data" section reachable.
 vi.mock('@adopt-dont-shop/lib.account', () => ({
   AccountSettings: ({
     value,
     onChange,
-    extraTabs = [],
+    extraSections = [],
     showAccountDetails = true,
   }: {
     value: string;
     onChange: (id: string) => void;
-    extraTabs?: ReadonlyArray<{ id: string; label: string; content: React.ReactNode }>;
+    extraSections?: ReadonlyArray<{ id: string; label: string; content: React.ReactNode }>;
     showAccountDetails?: boolean;
   }) => (
     <div>
-      <p>Account settings tab: {value}</p>
+      <p>Open settings section: {value || 'none'}</p>
       {showAccountDetails && <p>Shared details form</p>}
-      {extraTabs.map(tab => (
-        <button key={tab.id} role='tab' onClick={() => onChange(tab.id)}>
-          {tab.label}
+      {extraSections.map(section => (
+        <button key={section.id} onClick={() => onChange(section.id)}>
+          Change {section.label}
         </button>
       ))}
-      {extraTabs.find(tab => tab.id === value)?.content}
+      {extraSections.find(section => section.id === value)?.content}
     </div>
   ),
 }));
@@ -98,17 +98,17 @@ const renderProfilePage = () =>
 
 const openPrivacyTab = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.click(screen.getByRole('button', { name: /^settings$/i }));
-  await user.click(screen.getByRole('tab', { name: /privacy & data/i }));
+  await user.click(screen.getByRole('button', { name: /change privacy & data/i }));
 };
 
 describe('ProfilePage settings', () => {
-  it('opens the settings tab on the shared notification settings', async () => {
+  it('opens the settings tab with no section expanded', async () => {
     const user = userEvent.setup();
     renderProfilePage();
 
     await user.click(screen.getByRole('button', { name: /^settings$/i }));
 
-    expect(screen.getByText('Account settings tab: notifications')).toBeInTheDocument();
+    expect(screen.getByText('Open settings section: none')).toBeInTheDocument();
   });
 
   it('leaves name and phone to the Profile tab rather than the shared details form', async () => {

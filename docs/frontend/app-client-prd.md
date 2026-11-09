@@ -97,7 +97,7 @@ _Status: Shipped (roadmap items noted inline)._
 - **Discovery preferences**: pet types, search radius
 - **Notification preferences**: email, push, SMS, marketing, applications, messages, system, reminders, quiet hours
 - **Privacy controls**: profile visibility, show email/phone toggles
-- **Accessibility**: keyboard nav (built-in), theme toggle (`ThemeToggle` — light/normal/dark)
+- **Accessibility**: keyboard nav (built-in), theme choice (Light / Cosy / Dark, in the shared `AccountSettings`)
 
 _Out of scope / roadmap:_ Swipe sensitivity preference, characteristic preferences (size/age/energy), reduce-motion preference, default saved-search.
 
@@ -123,7 +123,7 @@ _Out of scope / roadmap:_ Behavioural learning / recommendation engine — see t
 
 ### Accessibility
 
-- Theme toggle (`ThemeToggle` — light / normal / dark; see §5)
+- Theme choice (Light / Cosy / Dark; see §5)
 - Keyboard navigation across swipe + bottom-tab nav
 - ARIA labels on swipe cards + nav
 - `prefers-reduced-motion` respected on the swipe surfaces (`SwipeCard`, `SwipeStack`,

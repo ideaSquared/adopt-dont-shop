@@ -1,14 +1,34 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { useState } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const mockUser = vi.hoisted(() => ({
+  current: {
+    firstName: 'Jane',
+    lastName: 'Smith',
+    email: 'jane@example.com',
+    twoFactorEnabled: false,
+  },
+}));
 
 vi.mock('@adopt-dont-shop/lib.auth', () => ({
   TwoFactorSettings: () => <div>Two-factor controls</div>,
+  useAuth: () => ({ user: mockUser.current }),
 }));
+
+const mockSetThemeMode = vi.hoisted(() => vi.fn());
 
 vi.mock('@adopt-dont-shop/lib.components', async importOriginal => ({
   ...(await importOriginal<typeof import('@adopt-dont-shop/lib.components')>()),
-  ThemeToggle: () => <div>Theme controls</div>,
+  useTheme: () => ({ themeMode: 'light', setThemeMode: mockSetThemeMode }),
+}));
+
+vi.mock('../hooks/use-notification-preferences', () => ({
+  useNotificationPreferences: () => ({
+    data: { emailEnabled: true, pushEnabled: false },
+    isPending: false,
+    isError: false,
+  }),
 }));
 
 vi.mock('./NotificationPreferencesForm', () => ({
@@ -27,95 +47,180 @@ vi.mock('./DeleteAccountSection', () => ({
   DeleteAccountSection: () => <div>Delete controls</div>,
 }));
 
-import { AccountSettings, type AccountSettingsTab } from './AccountSettings';
+import { AccountSettings, type AccountSettingsSection } from './AccountSettings';
 
 const Harness = ({
-  initial = 'notifications',
-  extraTabs,
+  initial = '',
+  extraSections,
   showAccountDetails,
 }: {
   initial?: string;
-  extraTabs?: ReadonlyArray<AccountSettingsTab>;
+  extraSections?: ReadonlyArray<AccountSettingsSection>;
   showAccountDetails?: boolean;
 }) => {
-  const [tab, setTab] = useState(initial);
+  const [open, setOpen] = useState(initial);
   return (
     <AccountSettings
-      value={tab}
-      onChange={setTab}
-      extraTabs={extraTabs}
+      value={open}
+      onChange={setOpen}
+      extraSections={extraSections}
       showAccountDetails={showAccountDetails}
     />
   );
 };
 
-const tabNames = () => screen.getAllByRole('tab').map(tab => tab.textContent);
-const selectedTab = () => screen.getByRole('tab', { selected: true });
+const rowTitles = () =>
+  within(screen.getByRole('list', { name: /account settings/i }))
+    .getAllByRole('heading')
+    .map(heading => heading.textContent);
+
+const row = (title: string) => {
+  const item = screen.getByRole('heading', { name: title }).closest('li');
+  if (!item) {
+    throw new Error(`No settings row titled ${title}`);
+  }
+  return within(item);
+};
 
 describe('AccountSettings', () => {
-  it('offers the same personal settings in every app', () => {
-    render(<Harness />);
-
-    expect(tabNames()).toEqual(['Notifications', 'Security', 'Appearance', 'Account']);
-    expect(screen.getByRole('tablist', { name: /account settings/i })).toBeInTheDocument();
+  beforeEach(() => {
+    mockUser.current = {
+      firstName: 'Jane',
+      lastName: 'Smith',
+      email: 'jane@example.com',
+      twoFactorEnabled: false,
+    };
+    mockSetThemeMode.mockClear();
   });
 
-  it('opens on notifications', () => {
+  it('lists every personal setting on one page', () => {
     render(<Harness />);
 
-    expect(selectedTab()).toHaveTextContent('Notifications');
-    expect(screen.getByText('Notification controls')).toBeInTheDocument();
+    expect(rowTitles()).toEqual([
+      'Your details',
+      'Email',
+      'Password',
+      'Two-factor sign-in',
+      'Notifications',
+      'Theme',
+    ]);
+  });
+
+  it('shows the current value of each setting without opening anything', () => {
+    render(<Harness />);
+
+    expect(row('Your details').getByText('Jane Smith')).toBeInTheDocument();
+    expect(row('Email').getByText('jane@example.com')).toBeInTheDocument();
+    expect(row('Two-factor sign-in').getByText('Off')).toBeInTheDocument();
+    expect(row('Notifications').getByText('Email on, browser alerts off')).toBeInTheDocument();
+    expect(row('Theme').getByText('Light')).toBeInTheDocument();
+  });
+
+  it('says two-factor sign-in is on when it is', () => {
+    mockUser.current = { ...mockUser.current, twoFactorEnabled: true };
+    render(<Harness />);
+
+    expect(row('Two-factor sign-in').getByText('On')).toBeInTheDocument();
+  });
+
+  it('keeps every form closed until the user asks to change something', () => {
+    render(<Harness />);
+
+    expect(screen.queryByText('Details controls')).not.toBeInTheDocument();
+    expect(screen.queryByText('Password controls')).not.toBeInTheDocument();
+    expect(screen.queryByText('Notification controls')).not.toBeInTheDocument();
   });
 
   it.each([
-    ['Security', 'Two-factor controls'],
-    ['Security', 'Password controls'],
-    ['Appearance', 'Theme controls'],
-    ['Account', 'Details controls'],
-    ['Account', 'Email controls'],
-    ['Account', 'Delete controls'],
-  ])('shows %s settings when that tab is chosen', (tab, content) => {
+    ['Change your details', 'Details controls'],
+    ['Change email', 'Email controls'],
+    ['Change password', 'Password controls'],
+    ['Change two-factor sign-in', 'Two-factor controls'],
+    ['Change notifications', 'Notification controls'],
+  ])('%s opens that form', (button, content) => {
     render(<Harness />);
 
-    fireEvent.click(screen.getByRole('tab', { name: tab }));
+    fireEvent.click(screen.getByRole('button', { name: button }));
 
-    expect(selectedTab()).toHaveTextContent(tab);
     expect(screen.getByText(content)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: button.replace('Change', 'Close') })).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
   });
 
-  it('leaves out the details form when the app edits those fields elsewhere', () => {
-    render(<Harness initial='account' showAccountDetails={false} />);
+  it('opens one setting at a time, so the page stays short', () => {
+    render(<Harness />);
 
-    expect(screen.queryByText('Details controls')).not.toBeInTheDocument();
-    expect(screen.getByText('Email controls')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Change email' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Change password' }));
+
+    expect(screen.getByText('Password controls')).toBeInTheDocument();
+    expect(screen.queryByText('Email controls')).not.toBeInTheDocument();
+  });
+
+  it('closes a setting again', () => {
+    render(<Harness initial='email' />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close email' }));
+
+    expect(screen.queryByText('Email controls')).not.toBeInTheDocument();
+  });
+
+  it('switches theme straight away from plain choices', () => {
+    render(<Harness initial='theme' />);
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Dark' }));
+
+    expect(mockSetThemeMode).toHaveBeenCalledWith('dark');
+  });
+
+  it('keeps account deletion apart from the everyday settings', () => {
+    render(<Harness />);
+
+    expect(screen.getByRole('heading', { name: 'Delete account' })).toBeInTheDocument();
+    expect(rowTitles()).not.toContain('Delete account');
     expect(screen.getByText('Delete controls')).toBeInTheDocument();
   });
 
-  it('falls back to notifications for an unknown tab, so stale links still land somewhere', () => {
-    render(<Harness initial='preferences' />);
+  it('leaves out the details row when the app edits those fields elsewhere', () => {
+    render(<Harness showAccountDetails={false} />);
 
-    expect(selectedTab()).toHaveTextContent('Notifications');
+    expect(rowTitles()).not.toContain('Your details');
   });
 
-  it('adds app-specific tabs after the shared ones', () => {
+  it('opens nothing for an unknown section, so stale links still land on the list', () => {
+    render(<Harness initial='security' />);
+
+    expect(screen.queryByRole('button', { name: /^close/i })).not.toBeInTheDocument();
+  });
+
+  it('adds app-specific sections after the shared ones', () => {
     render(
       <Harness
         initial='privacy'
-        extraTabs={[{ id: 'privacy', label: 'Privacy', content: <div>Privacy controls</div> }]}
+        extraSections={[
+          {
+            id: 'privacy',
+            label: 'Privacy & data',
+            summary: 'Profile visibility',
+            content: <div>Privacy controls</div>,
+          },
+        ]}
       />
     );
 
-    expect(tabNames()).toEqual(['Notifications', 'Security', 'Appearance', 'Account', 'Privacy']);
-    expect(selectedTab()).toHaveTextContent('Privacy');
+    expect(rowTitles().at(-1)).toBe('Privacy & data');
+    expect(row('Privacy & data').getByText('Profile visibility')).toBeInTheDocument();
     expect(screen.getByText('Privacy controls')).toBeInTheDocument();
   });
 
-  it('reports the chosen tab so the app can keep it in the URL', () => {
+  it('reports the open section so the app can keep it in the URL', () => {
     const onChange = vi.fn();
-    render(<AccountSettings value='notifications' onChange={onChange} />);
+    render(<AccountSettings value='' onChange={onChange} />);
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Security' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Change password' }));
 
-    expect(onChange).toHaveBeenCalledWith('security');
+    expect(onChange).toHaveBeenCalledWith('password');
   });
 });

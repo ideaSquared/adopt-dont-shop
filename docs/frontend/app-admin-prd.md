@@ -150,7 +150,7 @@ _Out of scope / roadmap:_ Compliance reports UI, system health monitoring UI (Pr
 
 ### Accessibility
 
-- Theme toggle (`ThemeToggle` from `lib.components` — light/normal/dark)
+- Theme choice (Light / Cosy / Dark, in the shared `AccountSettings` from `lib.account`)
 - WCAG 2.1 AA targeted (no formal audit artefact)
 - Keyboard navigation across DataTable + modals
 - Screen-reader-friendly markup
@@ -233,7 +233,7 @@ For support/moderation models see backend PRD §5–§8.
 
 ### Theme
 
-- Theme toggle (`ThemeToggle` — light / normal / dark); see Accessibility above.
+- Theme choice (Light / Cosy / Dark); see Accessibility above.
 
 _Out of scope / roadmap:_ Inline editing, auto-save.
 

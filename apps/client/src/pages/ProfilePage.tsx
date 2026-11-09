@@ -50,7 +50,7 @@ export const ProfilePage: React.FC = () => {
   const { user, isAuthenticated, updateProfile } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('profile');
-  const [settingsTab, setSettingsTab] = useState('notifications');
+  const [settingsSection, setSettingsSection] = useState('');
   const [applications, setApplications] = useState<ApplicationWithPetInfo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -428,10 +428,17 @@ export const ProfilePage: React.FC = () => {
       <h2 className={styles.sectionTitle}>Settings</h2>
       {/* Name and phone are edited in the Profile tab. */}
       <AccountSettings
-        value={settingsTab}
-        onChange={setSettingsTab}
+        value={settingsSection}
+        onChange={setSettingsSection}
         showAccountDetails={false}
-        extraTabs={[{ id: 'privacy', label: 'Privacy & data', content: renderPrivacyTab() }]}
+        extraSections={[
+          {
+            id: 'privacy',
+            label: 'Privacy & data',
+            summary: 'Who can see your profile, and a copy of your data',
+            content: renderPrivacyTab(),
+          },
+        ]}
       />
     </div>
   );

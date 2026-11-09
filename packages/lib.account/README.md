@@ -1,6 +1,7 @@
 # @adopt-dont-shop/lib.account
 
-Shared personal account settings (notifications, security, appearance, account) for every app.
+Shared personal account settings (details, email, password, two-factor, notifications, theme,
+delete account) for every app.
 
 ## Purpose
 
@@ -10,16 +11,18 @@ version. It owns the notification preferences form (and the TanStack Query
 hooks and Zod-validated service behind it), the account details, change
 email, change password and delete account forms, and the confirm-email-change
 screen, and composes them with the existing
-`TwoFactorSettings` (lib.auth) and `ThemeToggle` (lib.components) into a
-tabbed `AccountSettings` component. App-specific settings, such as the
-adopter's privacy and pet preferences in `app.client`, are passed in as extra
-tabs rather than living here.
+`TwoFactorSettings` (lib.auth) and a Light / Cosy / Dark theme choice into one
+`AccountSettings` list. It is built for people who are not confident with
+computers: each row shows the setting's current value, and a Change button
+opens that one form. App-specific settings, such as the adopter's privacy and
+pet preferences in `app.client`, are passed in as extra sections rather than
+living here.
 
 ## Location in the architecture
 
 See [`docs/README.md`](../../docs/README.md#libraries) for where the shared
 libraries sit. Depends on `lib.api` (requests), `lib.auth` (session, profile,
-password, erasure and two-factor), `lib.components` (form controls, tabs,
+password, erasure and two-factor), `lib.components` (form controls, buttons,
 theme) and `lib.utils` (UK phone validation). Backs onto these gateway routes:
 
 - `GET` / `PUT /api/v1/notifications/preferences` (`notifications.user_notification_prefs`).
@@ -57,24 +60,33 @@ dependency and import from the package root:
 ```tsx
 import { AccountSettings } from '@adopt-dont-shop/lib.account';
 
-const [tab, setTab] = useState('notifications');
+const [openSection, setOpenSection] = useState('');
 
 <AccountSettings
-  value={tab}
-  onChange={setTab}
-  extraTabs={[{ id: 'privacy', label: 'Privacy', content: <PrivacySettings /> }]}
+  value={openSection}
+  onChange={setOpenSection}
+  extraSections={[
+    {
+      id: 'privacy',
+      label: 'Privacy',
+      summary: 'Profile visibility',
+      content: <PrivacySettings />,
+    },
+  ]}
 />;
 ```
 
-- **Components**: `AccountSettings` (controlled tabs: Notifications, Security
-  (password and two-factor), Appearance, Account (your details, email and
-  delete account), then any `extraTabs`; an unknown `value` shows
-  Notifications, so stale links still land somewhere;
-  `showAccountDetails={false}` drops the name/phone form for an app that edits
+- **Components**: `AccountSettings` (a controlled summary list: Your details,
+  Email, Password, Two-factor sign-in, Notifications, Theme, then any
+  `extraSections`, each showing its current value; `value` is the id of the one
+  open section (`details`, `email`, `password`, `two-factor`, `notifications`,
+  `theme`, or an extra section's id) and `''` or an unknown id opens none, so
+  stale links still land on the list. Delete account sits apart below the list.
+  `showAccountDetails={false}` drops the name/phone row for an app that edits
   those fields elsewhere), `ConfirmEmailChange` (landing screen for the emailed
   link; confirms on a click, never on page load, because link scanners would
   spend the one-time token), `NotificationPreferencesForm` (channels,
-  categories, quiet hours and timezone). There is deliberately no email digest
+  categories, and quiet hours and timezone folded under "More options"). There is deliberately no email digest
   setting: digest emails read `email_preferences`, which no gateway route exposes yet.
 - **Hooks**: `useNotificationPreferences`, `useUpdateNotificationPreferences`
   (cached per signed-in user; the query waits until someone is signed in),

@@ -3,7 +3,6 @@ export { darkTheme, lightTheme, normalTheme } from './styles/theme';
 export type { Theme, ThemeMode } from './styles/theme';
 export { THEME_STORAGE_KEY, ThemeProvider, useTheme } from './styles/ThemeProvider';
 export { darkThemeClass, lightThemeClass, normalThemeClass, vars } from './styles/theme.css';
-export { ThemeToggle } from './components/ui/ThemeToggle/ThemeToggle';
 
 // Hooks
 export { useConfirm } from './hooks/useConfirm';

@@ -37,3 +37,16 @@ export const savedMessage = style({
 export const loading = style({
   color: vars.text.secondary,
 });
+
+export const moreOptions = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.spacing['4'],
+});
+
+export const moreOptionsToggle = style({
+  cursor: 'pointer',
+  color: vars.text.link,
+  fontWeight: vars.typography.weight.medium,
+  marginBottom: vars.spacing['4'],
+});
