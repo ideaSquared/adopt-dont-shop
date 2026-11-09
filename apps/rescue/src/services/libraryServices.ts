@@ -49,7 +49,7 @@ export const chatService = new ChatService({
   csrfToken: () => globalApiService.getCsrfToken(),
 });
 
-export const notificationsService = new NotificationsService(serviceConfig);
+export const notificationsService = new NotificationsService(serviceConfig, globalApiService);
 export const permissionsService = new PermissionsService(serviceConfig, globalApiService);
 export const invitationService = new InvitationsService(globalApiService, serviceConfig);
 

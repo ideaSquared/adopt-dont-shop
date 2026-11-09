@@ -1,4 +1,5 @@
 import { NotificationsService, Notification } from '@adopt-dont-shop/lib.notifications';
+import { apiService } from '@/services/libraryServices';
 import {
   createContext,
   useContext,
@@ -39,10 +40,13 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
   const [isLoading, setIsLoading] = useState(true);
 
   const notificationsService = useMemo(() => {
-    return new NotificationsService({
-      apiUrl: import.meta.env.VITE_API_BASE_URL,
-      debug: import.meta.env.DEV,
-    });
+    return new NotificationsService(
+      {
+        apiUrl: import.meta.env.VITE_API_BASE_URL,
+        debug: import.meta.env.DEV,
+      },
+      apiService
+    );
   }, []);
 
   const unreadCount = useMemo(() => {

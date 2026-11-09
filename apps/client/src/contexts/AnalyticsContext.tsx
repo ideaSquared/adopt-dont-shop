@@ -4,6 +4,7 @@ import {
   PageViewEvent,
 } from '@adopt-dont-shop/lib.analytics';
 import { createContext, useContext, ReactNode, useMemo } from 'react';
+import { apiService } from '@/services/libraryServices';
 
 interface AnalyticsContextType {
   analyticsService: AnalyticsService;
@@ -27,12 +28,15 @@ interface AnalyticsProviderProps {
 
 export const AnalyticsProvider = ({ children }: AnalyticsProviderProps) => {
   const analyticsService = useMemo(() => {
-    return new AnalyticsService({
-      apiUrl: import.meta.env.VITE_API_BASE_URL,
-      provider: 'internal',
-      autoTrackPageViews: true,
-      debug: import.meta.env.DEV,
-    });
+    return new AnalyticsService(
+      {
+        apiUrl: import.meta.env.VITE_API_BASE_URL,
+        provider: 'internal',
+        autoTrackPageViews: true,
+        debug: import.meta.env.DEV,
+      },
+      apiService
+    );
   }, []);
 
   const trackEvent = (event: UserEngagementEvent) => {

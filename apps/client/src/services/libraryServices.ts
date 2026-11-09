@@ -36,7 +36,7 @@ const serviceConfig = {
 // Create configured service instances with centralized configuration
 export const applicationService = new ApplicationsService(globalApiService, serviceConfig);
 
-export const discoveryService = new DiscoveryService(serviceConfig);
+export const discoveryService = new DiscoveryService(serviceConfig, globalApiService);
 
 export const petService = new PetsService(globalApiService);
 
@@ -71,9 +71,12 @@ export const chatService = new ChatService({
   csrfToken: () => globalApiService.getCsrfToken(),
 });
 
-export const permissionsService = new PermissionsService({
-  debug: import.meta.env.DEV,
-});
+export const permissionsService = new PermissionsService(
+  {
+    debug: import.meta.env.DEV,
+  },
+  globalApiService
+);
 
 // Re-export types for convenience
 export type {
