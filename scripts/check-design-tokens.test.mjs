@@ -39,6 +39,11 @@ describe('colour', () => {
     expect(count(source.join('\n'), 'colour')).toBe(3);
   });
 
+  it('counts a keyword that directly follows the colon', () => {
+    expect(count('color:white,', 'colour')).toBe(1);
+    expect(count("color: 'whitesmoke',", 'colour')).toBe(0);
+  });
+
   it('does not count white or black in identifiers or token references', () => {
     const source = ['export const whiteCard = style({', 'color: vars.text.inverse,'];
     expect(count(source.join('\n'), 'colour')).toBe(0);

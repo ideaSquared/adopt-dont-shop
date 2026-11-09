@@ -53,7 +53,7 @@ const SKIPPED_DIRS = new Set(['node_modules', 'dist', '__tests__', '__mocks__', 
 
 const HEX_RE = /#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})\b/;
 const COLOUR_FN_RE = /\b(?:rgba?|hsla?)\(/;
-const COLOUR_KEYWORD_RE = /^[^:]*:.*(?:^|[\s'"`(,:])(?:white|black)(?=$|[\s'"`;,)])/;
+const COLOUR_KEYWORD_RE = /^[^:]*:(?:.*[\s'"`(,:])?(?:white|black)(?=$|[\s'"`;,)])/;
 const FONT_WEIGHT_RE = /font-?weight['"]?\s*:\s*['"`]?\d{3}\b/i;
 const FONT_SIZE_RE = /font-?size['"]?\s*:\s*['"`]?\d*\.?\d+(?:px|rem|em)\b/i;
 const SPACING_PROP_RE =
