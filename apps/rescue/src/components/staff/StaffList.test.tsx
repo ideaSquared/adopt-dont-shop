@@ -61,6 +61,13 @@ describe('StaffList', () => {
     expect(screen.getByText('Showing 2 of 2 staff members')).toBeInTheDocument();
   });
 
+  it('identifies staff by name, not by their raw user id', () => {
+    render(<StaffList staff={[member()]} />);
+
+    expect(screen.getByText('Sarah Johnson')).toBeInTheDocument();
+    expect(screen.queryByText('su1')).not.toBeInTheDocument();
+  });
+
   it('filters the list by search term', () => {
     render(
       <StaffList

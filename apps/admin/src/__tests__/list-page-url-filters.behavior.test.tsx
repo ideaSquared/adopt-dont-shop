@@ -24,6 +24,9 @@ const mockUseBulkUpdatePets = vi.fn();
 const mockUseBulkUpdateUsers = vi.fn();
 
 vi.mock('../hooks', () => ({
+  usePetById: () => ({ isError: false }),
+  useApplicationById: () => ({ isError: false }),
+  useUserById: () => ({ isError: false }),
   useApplications: (filters: unknown) => mockUseApplications(filters),
   useBulkUpdateApplications: () => mockUseBulkUpdateApplications(),
   useRescuesList: () => mockUseRescuesList(),

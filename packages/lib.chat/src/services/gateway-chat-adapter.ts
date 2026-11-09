@@ -25,6 +25,10 @@ export const GatewayChatSchema = z.object({
   unreadCount: z.number().optional(),
   petId: z.string().optional(),
   rescueId: z.string().optional(),
+  // Display names for petId / rescueId, resolved by the gateway from the
+  // pets and rescue services. Unset when the lookup failed.
+  petName: z.string().optional(),
+  rescueName: z.string().optional(),
 });
 export type GatewayChat = z.infer<typeof GatewayChatSchema>;
 
@@ -110,6 +114,8 @@ export const toConversation = (chat: GatewayChat): Conversation => {
     isActive: status === 'active',
     status,
     petId: chat.petId,
+    petName: chat.petName,
     rescueId: chat.rescueId,
+    rescueName: chat.rescueName,
   };
 };

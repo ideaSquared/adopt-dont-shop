@@ -35,6 +35,9 @@ const defaultMutation = {
 };
 
 vi.mock('../hooks', () => ({
+  usePetById: () => ({ isError: false }),
+  useApplicationById: () => ({ isError: false }),
+  useUserById: () => ({ isError: false }),
   useUsers: (...args: unknown[]) => mockUseUsers(...args),
   useSuspendUser: () => mockUseSuspendUser(),
   useUnsuspendUser: () => mockUseUnsuspendUser(),

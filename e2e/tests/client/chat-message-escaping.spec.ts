@@ -6,6 +6,7 @@ import { dismissCookieBannerWhenShown } from '../../helpers/cookie-banner';
 import { uniqueText } from '../../helpers/factories';
 import { createPrivateConversation } from '../../helpers/private-conversation';
 import { skipSwipeIntro } from '../../helpers/swipe-intro';
+import { SEEDED_RESCUE_NAME } from '../../helpers/seeds';
 
 /**
  * Whatever an adopter types into the chat is shown back as plain text: markup
@@ -45,7 +46,7 @@ test.describe('chat message escaping', () => {
       await dismissCookieBannerWhenShown(page);
       await page
         .locator('main')
-        .getByRole('button', { name: /rescue organization/i })
+        .getByRole('button', { name: new RegExp(SEEDED_RESCUE_NAME) })
         .first()
         .click();
       const input = page.getByRole('textbox', { name: /message input/i });
@@ -80,7 +81,7 @@ test.describe('chat message escaping', () => {
       await page.reload();
       await page
         .locator('main')
-        .getByRole('button', { name: /rescue organization/i })
+        .getByRole('button', { name: new RegExp(SEEDED_RESCUE_NAME) })
         .first()
         .click();
       await expect(page.getByRole('article').filter({ hasText: html })).toBeVisible({

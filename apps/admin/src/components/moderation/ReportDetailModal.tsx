@@ -1,8 +1,7 @@
 import React from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { Calendar, Clock, ExternalLink, FileText, Shield, TriangleAlert, User } from 'lucide-react';
 import clsx from 'clsx';
-import { z } from 'zod';
 import { EntityInspector, type EntityInspectorTab, Spinner } from '@adopt-dont-shop/lib.components';
 import {
   Report,
@@ -105,45 +104,14 @@ const getEntityTypeLabel = (entityType: string): string => {
   }
 };
 
-// The backend (moderation.service.ts#enrichReportsWithEntityContext) attaches
-// an `entityContext` field to each report at the top level. It isn't part of
-// the shared Report Zod schema, so we parse it locally to avoid a cross-package
-// schema change. Every field is optional because the backend may attach a
-// deleted/error fallback or omit fields per entity type.
-const EntityContextSchema = z
-  .object({
-    displayName: z.string().optional(),
-    deleted: z.boolean().optional(),
-    error: z.boolean().optional(),
-    email: z.string().optional(),
-    userType: z.string().optional(),
-    petType: z.string().optional(),
-    breed: z.string().optional(),
-    city: z.string().optional(),
-    country: z.string().optional(),
-  })
-  .passthrough();
-
-type EntityContext = z.infer<typeof EntityContextSchema>;
-
-const extractEntityContext = (report: Report): EntityContext | undefined => {
-  const candidate = (report as { entityContext?: unknown }).entityContext;
-  if (candidate === undefined) {
-    return undefined;
-  }
-  const parsed = EntityContextSchema.safeParse(candidate);
-  return parsed.success ? parsed.data : undefined;
-};
-
 // ── Overview Tab ──────────────────────────────────────────────────
 
 type OverviewTabProps = {
   report: Report;
-  entityContext: EntityContext | undefined;
   onClose: () => void;
 };
 
-const OverviewTab: React.FC<OverviewTabProps> = ({ report, entityContext, onClose }) => {
+const OverviewTab: React.FC<OverviewTabProps> = ({ report, onClose }) => {
   const navigate = useNavigate();
   const viewUrl = getEntityViewUrl(report.reportedEntityType, report.reportedEntityId);
 
@@ -210,66 +178,30 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ report, entityContext, onClos
         </h3>
         <div className={styles.entityCard}>
           <div className={styles.entityType}>{report.reportedEntityType}</div>
-          {entityContext ? (
-            <>
-              <div className={styles.entityName}>
-                {entityContext.displayName}
-                {entityContext.deleted && ' (Deleted)'}
-                {entityContext.error && ' (Error Loading)'}
-              </div>
-              {entityContext.email && (
-                <div className={styles.entityDetail}>{entityContext.email}</div>
-              )}
-              {entityContext.userType && (
-                <div className={styles.entityDetail}>Type: {entityContext.userType}</div>
-              )}
-              {entityContext.petType && (
-                <div className={styles.entityDetail}>
-                  {entityContext.petType}
-                  {entityContext.breed && ` • ${entityContext.breed}`}
-                </div>
-              )}
-              {entityContext.city && entityContext.country && (
-                <div className={styles.entityDetail}>
-                  {entityContext.city}, {entityContext.country}
-                </div>
-              )}
-              <div className={styles.entityId}>
-                <strong>ID:</strong> {report.reportedEntityId}
-              </div>
-            </>
-          ) : (
-            <>
-              <div className={styles.entityName}>Entity ID: {report.reportedEntityId}</div>
-              <div className={styles.entityDetail}>No additional context available</div>
-              <div className={styles.entityId}>
-                <strong>Full ID:</strong> {report.reportedEntityId}
-              </div>
-            </>
-          )}
+          <div className={styles.entityName}>
+            {viewUrl ? (
+              <Link to={viewUrl} onClick={onClose}>
+                {report.reportedEntityName ||
+                  `View ${getEntityTypeLabel(report.reportedEntityType)}`}
+              </Link>
+            ) : (
+              report.reportedEntityName || getEntityTypeLabel(report.reportedEntityType)
+            )}
+          </div>
+          <div className={styles.entityId}>
+            <strong>ID:</strong> {report.reportedEntityId}
+          </div>
 
           {viewUrl && (
-            <>
-              <button
-                className={styles.viewContentButton}
-                onClick={handleViewContent}
-                data-testid='view-entity-button'
-                data-view-url={viewUrl}
-              >
-                <ExternalLink size={16} />
-                View {getEntityTypeLabel(report.reportedEntityType)}
-              </button>
-              {(entityContext?.deleted || entityContext?.error) && (
-                <div className={styles.warningBox}>
-                  <TriangleAlert size={16} />
-                  <div>
-                    {entityContext.deleted
-                      ? 'This entity was deleted. The link may not work.'
-                      : 'There was an error loading this entity. The link may not work.'}
-                  </div>
-                </div>
-              )}
-            </>
+            <button
+              className={styles.viewContentButton}
+              onClick={handleViewContent}
+              data-testid='view-entity-button'
+              data-view-url={viewUrl}
+            >
+              <ExternalLink size={16} />
+              View {getEntityTypeLabel(report.reportedEntityType)}
+            </button>
           )}
         </div>
       </div>
@@ -283,16 +215,20 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ report, entityContext, onClos
         </h3>
         <div className={styles.infoGrid}>
           <div className={styles.infoItem}>
-            <div className={styles.infoLabel}>Reporter ID</div>
-            <div className={clsx(styles.infoValue, styles.monospaceId)}>
-              {report.reporterId.substring(0, 8)}...
+            <div className={styles.infoLabel}>Reporter</div>
+            <div className={styles.infoValue}>
+              <Link to={`/users/${report.reporterId}`} onClick={onClose}>
+                {report.reporterName || 'View reporter'}
+              </Link>
             </div>
           </div>
           {report.reportedUserId && (
             <div className={styles.infoItem}>
-              <div className={styles.infoLabel}>Reported User ID</div>
-              <div className={clsx(styles.infoValue, styles.monospaceId)}>
-                {report.reportedUserId.substring(0, 8)}...
+              <div className={styles.infoLabel}>Reported User</div>
+              <div className={styles.infoValue}>
+                <Link to={`/users/${report.reportedUserId}`} onClick={onClose}>
+                  {report.reportedUserName || 'View user'}
+                </Link>
               </div>
             </div>
           )}
@@ -504,8 +440,6 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
     return null;
   }
 
-  const entityContext = extractEntityContext(report);
-
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       onClose();
@@ -522,7 +456,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
     {
       id: 'overview',
       label: 'Overview',
-      content: <OverviewTab report={report} entityContext={entityContext} onClose={onClose} />,
+      content: <OverviewTab report={report} onClose={onClose} />,
     },
   ];
 

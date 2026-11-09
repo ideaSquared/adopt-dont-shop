@@ -87,3 +87,41 @@ describe('Audit filters', () => {
     expect(screen.queryByText('Bob')).not.toBeInTheDocument();
   });
 });
+
+describe('Audit entity column', () => {
+  beforeEach(() => {
+    getAuditLogsMock.mockReset();
+  });
+
+  it('links an audited pet by its name instead of showing its id', async () => {
+    getAuditLogsMock.mockResolvedValue(
+      responseFor([
+        {
+          ...alice,
+          category: 'pet',
+          metadata: { entity: 'pet', entityId: 'pet-123', entityName: 'Buddy' },
+        },
+      ])
+    );
+
+    renderWithProviders(<Audit />);
+
+    expect(await screen.findByRole('link', { name: 'Buddy' })).toHaveAttribute(
+      'href',
+      '/pets/pet-123'
+    );
+    expect(screen.queryByText(/pet-123/)).not.toBeInTheDocument();
+  });
+
+  it('keeps the id for an entity type with no admin page', async () => {
+    getAuditLogsMock.mockResolvedValue(
+      responseFor([
+        { ...alice, category: 'chat', metadata: { entity: 'chat', entityId: 'chat-9' } },
+      ])
+    );
+
+    renderWithProviders(<Audit />);
+
+    expect(await screen.findByText('ID: chat-9')).toBeInTheDocument();
+  });
+});

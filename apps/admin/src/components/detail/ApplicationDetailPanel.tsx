@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router';
 import {
   Heading,
   Text,
@@ -40,7 +41,11 @@ const OverviewTab: React.FC<{ application: AdminApplication }> = ({ application 
           <Text>Name</Text>
         </dt>
         <dd>
-          <Text>{application.applicantName || '—'}</Text>
+          <Text>
+            <Link to={`/users/${application.applicantId}`}>
+              {application.applicantName || 'View applicant'}
+            </Link>
+          </Text>
         </dd>
         <dt>
           <Text>Email</Text>
@@ -58,19 +63,15 @@ const OverviewTab: React.FC<{ application: AdminApplication }> = ({ application 
           <Text>Name</Text>
         </dt>
         <dd>
-          <Text>{application.petName}</Text>
+          <Text>
+            <Link to={`/pets/${application.petId}`}>{application.petName || 'View pet'}</Link>
+          </Text>
         </dd>
         <dt>
           <Text>Type</Text>
         </dt>
         <dd>
           <Text>{application.petType ?? '—'}</Text>
-        </dd>
-        <dt>
-          <Text>ID</Text>
-        </dt>
-        <dd>
-          <Text>{application.petId}</Text>
         </dd>
       </dl>
     </section>
@@ -82,13 +83,11 @@ const OverviewTab: React.FC<{ application: AdminApplication }> = ({ application 
           <Text>Name</Text>
         </dt>
         <dd>
-          <Text>{application.rescueName}</Text>
-        </dd>
-        <dt>
-          <Text>ID</Text>
-        </dt>
-        <dd>
-          <Text>{application.rescueId}</Text>
+          <Text>
+            <Link to={`/rescues/${application.rescueId}`}>
+              {application.rescueName || 'View rescue'}
+            </Link>
+          </Text>
         </dd>
       </dl>
     </section>

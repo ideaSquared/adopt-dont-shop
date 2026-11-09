@@ -75,6 +75,8 @@ import { buildMetadata } from '../middleware/metadata.js';
 import { GRPC_TO_HTTP, handleGrpcError } from '../middleware/grpc-error.js';
 import { buildPaginationEnvelope, parsePagination } from '../middleware/pagination.js';
 
+import { lookupById } from '../utils/entity-names.js';
+
 import { mapWithConcurrency } from './reports.js';
 
 // ADS-1323: applicationIds fanned out one gRPC call per id with no cap — an
@@ -1139,7 +1141,7 @@ export const registerApplicationsRoutes = async (
           200: {
             type: 'object',
             properties: {
-              data: APPLICATION_VIEW_SCHEMA,
+              data: APPLICATION_LIST_ITEM_SCHEMA,
             },
           },
           400: {
@@ -1155,9 +1157,10 @@ export const registerApplicationsRoutes = async (
     async (req, reply) => {
       const q = req.query as Record<string, string | undefined>;
       try {
+        const meta = buildMetadata(req);
         const res = await client.get(
           { applicationId: req.params.id, includeTimeline: q.timeline === 'true' },
-          buildMetadata(req)
+          meta
         );
         // Stage B: a draft / unspecified application has no frontend
         // representation — treat it as not found rather than emitting a
@@ -1166,7 +1169,14 @@ export const registerApplicationsRoutes = async (
         if (view === null) {
           return reply.code(404).send({ error: 'application not found' });
         }
-        return reply.send({ data: view });
+        // Same pet / applicant / rescue names as the list, so the detail
+        // pages render names instead of raw ids.
+        const [data] = await enrichApplicationViews(
+          [view],
+          { petsClient, rescueClient, authClient },
+          meta
+        );
+        return reply.send({ data });
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -1806,30 +1816,6 @@ type EnrichmentClients = {
   rescueClient?: RescueClient;
   authClient?: AuthClient;
 };
-
-// Resolve a set of ids to records, deduped, tolerating per-id failures.
-// `fetch` returns undefined when its client is absent (optional-chaining
-// short-circuit), which is treated the same as a failed lookup.
-async function lookupById<T>(
-  ids: ReadonlyArray<string>,
-  fetch: (id: string) => Promise<T | undefined> | undefined
-): Promise<Map<string, T>> {
-  const unique = [...new Set(ids.filter(id => id !== ''))];
-  const map = new Map<string, T>();
-  await Promise.all(
-    unique.map(async id => {
-      try {
-        const value = await fetch(id);
-        if (value !== undefined) {
-          map.set(id, value);
-        }
-      } catch {
-        // Tolerated: leave this id unresolved so its name renders empty.
-      }
-    })
-  );
-  return map;
-}
 
 function fullName(user: GetApplicantProfileResponse): string {
   return [user.firstName, user.lastName]

@@ -25,6 +25,9 @@ let mockPetsResponse: { data: AdminPet[]; pagination?: { pages: number } } | und
 let mockIsLoading = false;
 let mockError: Error | null = null;
 const mockUsePetsCalls: Array<Record<string, unknown>> = [];
+// The pet fetched by id when a /pets/:petId link is not on the loaded page.
+let mockPetById: { data?: AdminPet; isError: boolean } = { isError: false };
+const mockUsePetByIdCalls: Array<string | undefined> = [];
 
 vi.mock('../hooks', () => ({
   usePets: (filters: Record<string, unknown>) => {
@@ -34,6 +37,10 @@ vi.mock('../hooks', () => ({
       isLoading: mockIsLoading,
       error: mockError,
     };
+  },
+  usePetById: (petId: string | undefined) => {
+    mockUsePetByIdCalls.push(petId);
+    return petId ? mockPetById : { isError: false };
   },
   useBulkUpdatePets: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useRescuesList: () => ({ data: { data: [] } }),
@@ -128,6 +135,8 @@ beforeEach(() => {
   mockIsLoading = false;
   mockError = null;
   mockUsePetsCalls.length = 0;
+  mockPetById = { isError: false };
+  mockUsePetByIdCalls.length = 0;
   vi.mocked(toast.error).mockClear();
 });
 
@@ -190,9 +199,31 @@ describe('Pets page deep-linking', () => {
     expect(screen.queryByTestId('pet-detail-panel')).not.toBeInTheDocument();
   });
 
+  it('fetches and opens a linked pet that is not on the loaded page', async () => {
+    setPetsState([buildPet({ petId: 'pet-1', name: 'Buddy' })]);
+    mockPetById = { data: buildPet({ petId: 'pet-99', name: 'Rex' }), isError: false };
+
+    renderPetsRoute('/pets/pet-99');
+
+    const modal = await screen.findByTestId('pet-detail-panel');
+    expect(modal).toHaveTextContent('Name: Rex');
+    expect(mockUsePetByIdCalls).toContain('pet-99');
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('does not fetch by id when the linked pet is already on the page', async () => {
+    setPetsState([buildPet({ petId: 'pet-1', name: 'Buddy' })]);
+
+    renderPetsRoute('/pets/pet-1');
+
+    await screen.findByTestId('pet-detail-panel');
+    expect(mockUsePetByIdCalls.every(id => id === undefined)).toBe(true);
+  });
+
   it('redirects to /pets when the petId is unknown and surfaces a toast', async () => {
     const buddy = buildPet({ petId: 'pet-1', name: 'Buddy' });
     setPetsState([buddy]);
+    mockPetById = { isError: true };
 
     renderPetsRoute('/pets/does-not-exist');
 

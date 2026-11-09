@@ -172,7 +172,7 @@ export function ConversationList({
                   </div>
 
                   {conversation.petId && (
-                    <div className={styles.petInfo}>Pet #{conversation.petId}</div>
+                    <div className={styles.petInfo}>About {conversation.petName || 'a pet'}</div>
                   )}
                 </div>
               </button>

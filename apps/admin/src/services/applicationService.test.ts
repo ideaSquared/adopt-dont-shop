@@ -21,6 +21,36 @@ beforeEach(() => {
 });
 
 describe('applicationService', () => {
+  describe('getById', () => {
+    it('fetches one application with its resolved names', async () => {
+      mockGet.mockResolvedValueOnce({
+        data: {
+          id: 'a9',
+          status: 'submitted',
+          petId: 'p1',
+          petName: 'Rex',
+          rescueId: 'r1',
+          rescueName: 'Paws',
+          userId: 'u1',
+          userName: 'Jane',
+          createdAt: '2024-01-01',
+          updatedAt: '2024-01-02',
+        },
+      });
+
+      const application = await applicationService.getById('a9');
+
+      expect(mockGet).toHaveBeenCalledWith('/api/v1/applications/a9');
+      expect(application).toMatchObject({
+        applicationId: 'a9',
+        petName: 'Rex',
+        rescueName: 'Paws',
+        applicantId: 'u1',
+        applicantName: 'Jane',
+      });
+    });
+  });
+
   describe('getAll', () => {
     it('maps filters to params and normalises backend applications', async () => {
       mockGet.mockResolvedValueOnce({
@@ -34,6 +64,7 @@ describe('applicationService', () => {
             petType: 'dog',
             rescueId: 'r1',
             rescueName: 'Paws',
+            userId: 'u1',
             userName: 'Jane',
             userEmail: 'jane@example.com',
             createdAt: '2024-01-01',
@@ -65,6 +96,7 @@ describe('applicationService', () => {
           petType: 'dog',
           rescueId: 'r1',
           rescueName: 'Paws',
+          applicantId: 'u1',
           applicantName: 'Jane',
           applicantEmail: 'jane@example.com',
           createdAt: '2024-01-01',

@@ -24,6 +24,7 @@ import {
   useDeleteUser,
   useBulkUpdateUsers,
   useCreateUser,
+  useUserById,
 } from '../hooks';
 import { apiService, type AdminUser } from '../services/libraryServices';
 import { exportData, type ExportColumn } from '../services/exportService';
@@ -140,9 +141,13 @@ const Users: React.FC = () => {
   const createUser = useCreateUser();
   const { toasts, showToast, hideToast } = useToast();
 
-  // Derive selected user from URL param + data
-  const selectedUser: AdminUser | null =
-    userId && data?.data ? (data.data.find((u: AdminUser) => u.userId === userId) ?? null) : null;
+  // Derive the selected user from the URL param: the loaded list's row when it
+  // is there, otherwise fetched by id so links from elsewhere open users on
+  // any page.
+  const listedUser =
+    userId && data?.data ? data.data.find((u: AdminUser) => u.userId === userId) : undefined;
+  const userById = useUserById(userId && !isLoading && !listedUser ? userId : undefined);
+  const selectedUser: AdminUser | null = listedUser ?? userById.data ?? null;
 
   const handleRowClick = (user: AdminUser) => {
     navigate(`/users/${user.userId}`, { replace: true });

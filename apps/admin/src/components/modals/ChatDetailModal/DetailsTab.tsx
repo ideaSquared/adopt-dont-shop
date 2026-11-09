@@ -73,10 +73,10 @@ export const DetailsTab: React.FC<DetailsTabProps> = ({
 
     {conversation.petId && (
       <div className={styles.detailItem}>
-        <div className={styles.detailLabel}>Pet ID</div>
+        <div className={styles.detailLabel}>Pet</div>
         <div className={styles.detailValue}>
           <Link to={`/pets/${conversation.petId}`} onClick={onClose} className={styles.entityLink}>
-            {conversation.petId}
+            {conversation.petName || 'View pet'}
           </Link>
         </div>
       </div>

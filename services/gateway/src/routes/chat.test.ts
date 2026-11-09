@@ -15,6 +15,8 @@ import {
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { ChatClient } from '../grpc-clients/chat-client.js';
+import type { PetsClient } from '../grpc-clients/pets-client.js';
+import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
 import { registerChatRoutes } from './chat.js';
 import { createEmailRateLimiter, type EmailRateLimiter } from './email-rate-limiter.js';
@@ -1111,6 +1113,103 @@ describe('chat + message responses carry resolved display names', () => {
     const body = res.json() as { messages: Array<{ senderName?: string }> };
     expect(body.messages[0].senderName).toBeUndefined();
     await plainApp.close();
+  });
+});
+
+// --- Pet / rescue name enrichment -------------------------------------
+
+describe('chat responses carry the pet and rescue names', () => {
+  const ENQUIRY_CHAT = { ...CHAT_FIXTURE, petId: 'pet-1', rescueId: 'rescue-1' };
+  const headers = { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' };
+
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+  let petGet: ReturnType<typeof vi.fn>;
+  let rescueGet: ReturnType<typeof vi.fn>;
+
+  beforeEach(async () => {
+    client = makeClient();
+    petGet = vi.fn().mockResolvedValue({ pet: { petId: 'pet-1', name: 'Buddy' } });
+    rescueGet = vi.fn().mockResolvedValue({ rescue: { rescueId: 'rescue-1', name: 'Happy Paws' } });
+    app = Fastify({ logger: false });
+    await registerChatRoutes(app, {
+      client,
+      // Partial client stubs: only `get` is reached by the enrichment.
+      petsClient: { get: petGet } as unknown as PetsClient,
+      rescueClient: { get: rescueGet } as unknown as RescueClient,
+    });
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('names the pet and rescue on each listed chat', async () => {
+    client.listChatsMock.mockResolvedValueOnce({ chats: [ENQUIRY_CHAT] });
+
+    const res = await app.inject({ method: 'GET', url: '/api/v1/chats', headers });
+
+    const body = res.json() as { data: Array<{ petName?: string; rescueName?: string }> };
+    expect(body.data[0]).toMatchObject({ petName: 'Buddy', rescueName: 'Happy Paws' });
+  });
+
+  it('names the pet and rescue on a single fetched chat', async () => {
+    client.getChatMock.mockResolvedValueOnce({ chat: ENQUIRY_CHAT });
+
+    const res = await app.inject({ method: 'GET', url: '/api/v1/chats/chat-1', headers });
+
+    const body = res.json() as { data: { petName?: string; rescueName?: string } };
+    expect(body.data).toMatchObject({ petName: 'Buddy', rescueName: 'Happy Paws' });
+  });
+
+  it('names the pet and rescue on search results', async () => {
+    client.searchChatsMock.mockResolvedValueOnce({
+      hits: [{ chat: ENQUIRY_CHAT, match: MESSAGE_FIXTURE }],
+      page: 1,
+      limit: 20,
+      total: 1,
+    });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/chats/search?query=hello',
+      headers,
+    });
+
+    const body = res.json() as { data: { chats: Array<{ petName?: string }> } };
+    expect(body.data.chats[0].petName).toBe('Buddy');
+  });
+
+  it('looks each distinct pet up once per page', async () => {
+    client.listChatsMock.mockResolvedValueOnce({
+      chats: [ENQUIRY_CHAT, { ...ENQUIRY_CHAT, chatId: 'chat-2' }],
+    });
+
+    await app.inject({ method: 'GET', url: '/api/v1/chats', headers });
+
+    expect(petGet).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves petName unset for an application chat with no pet', async () => {
+    client.listChatsMock.mockResolvedValueOnce({ chats: [CHAT_FIXTURE] });
+
+    const res = await app.inject({ method: 'GET', url: '/api/v1/chats', headers });
+
+    const body = res.json() as { data: Array<{ petName?: string }> };
+    expect(body.data[0].petName).toBeUndefined();
+    expect(petGet).not.toHaveBeenCalled();
+  });
+
+  it('still returns the chat when the pet lookup fails', async () => {
+    petGet.mockRejectedValueOnce({ code: status.NOT_FOUND });
+    client.listChatsMock.mockResolvedValueOnce({ chats: [ENQUIRY_CHAT] });
+
+    const res = await app.inject({ method: 'GET', url: '/api/v1/chats', headers });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { data: Array<{ petName?: string; rescueName?: string }> };
+    expect(body.data[0].petName).toBeUndefined();
+    expect(body.data[0].rescueName).toBe('Happy Paws');
   });
 });
 

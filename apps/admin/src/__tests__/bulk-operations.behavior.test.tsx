@@ -35,6 +35,9 @@ const mockUseBulkUpdateRescues = vi.fn();
 const mockUseCreateUser = vi.fn();
 
 vi.mock('../hooks', () => ({
+  usePetById: () => ({ isError: false }),
+  useApplicationById: () => ({ isError: false }),
+  useUserById: () => ({ isError: false }),
   useUsers: (...args: unknown[]) => mockUseUsers(...args),
   useSuspendUser: () => mockUseSuspendUser(),
   useUnsuspendUser: () => mockUseUnsuspendUser(),

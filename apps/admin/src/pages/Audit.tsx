@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { Link } from 'react-router';
 import {
   Heading,
   Text,
@@ -14,6 +15,14 @@ import { RefreshCw, Shield, SquarePen, Trash, User } from 'lucide-react';
 import { PageContainer, PageHeader, HeaderLeft } from '../components/ui';
 import { AuditLogsService, AuditLogStatus, type AuditLog } from '@adopt-dont-shop/lib.audit-logs';
 import * as styles from './Audit.css';
+
+// Admin detail routes for the audited aggregate types that have one.
+const ENTITY_ROUTES: Record<string, string> = {
+  user: '/users',
+  pet: '/pets',
+  rescue: '/rescues',
+  application: '/applications',
+};
 
 const getActionIconClass = (action: string): string => {
   switch (action) {
@@ -154,6 +163,20 @@ const Audit: React.FC = () => {
       .join(' ');
   };
 
+  // Names the audited entity and links to its admin page where one exists;
+  // aggregate types without a page (chat, report, …) keep showing the id.
+  const renderEntity = (entity: string, entityId: string, entityName?: string) => {
+    const route = ENTITY_ROUTES[entity];
+    if (!route) {
+      return entityName ?? `ID: ${entityId}`;
+    }
+    return (
+      <Link to={`${route}/${entityId}`} onClick={e => e.stopPropagation()}>
+        {entityName || `View ${formatResourceName(entity)}`}
+      </Link>
+    );
+  };
+
   // Columns use the shared DataTable's key/label/render shape. Server-side sort
   // was never wired for audit logs (the old table's sort only wrote URL params
   // the query ignored), so every column is explicitly non-sortable rather than
@@ -175,7 +198,9 @@ const Audit: React.FC = () => {
               {log.action} {formatResourceName(log.category)}
             </div>
             {log.metadata?.entityId && (
-              <div className={styles.logResource}>ID: {log.metadata.entityId}</div>
+              <div className={styles.logResource}>
+                {renderEntity(log.category, log.metadata.entityId, log.metadata.entityName)}
+              </div>
             )}
           </div>
         );

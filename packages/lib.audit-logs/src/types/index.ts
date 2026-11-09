@@ -23,6 +23,8 @@ export type AuditLog = {
   metadata: {
     entity?: string;
     entityId?: string;
+    // Display name of the audited entity, when the gateway resolved one.
+    entityName?: string;
     details?: Record<string, unknown>;
     ipAddress?: string;
     userAgent?: string;

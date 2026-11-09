@@ -82,7 +82,7 @@ export class ApplicationsService {
     }
   }
 
-  async getUserApplications(userId?: string): Promise<Application[]> {
+  async getUserApplications(userId?: string): Promise<ApplicationWithPetInfo[]> {
     try {
       const queryParams = userId ? { user_id: userId } : {};
       const response = await this.apiService.get<unknown>(this.baseUrl, queryParams);

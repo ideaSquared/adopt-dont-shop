@@ -60,7 +60,10 @@ class UserManagementService {
    */
   async getUserById(userId: string): Promise<User> {
     try {
-      return await apiService.get<User>(`/api/v1/admin/users/${userId}`);
+      const response = await apiService.get<{ success: boolean; data: User }>(
+        `/api/v1/admin/users/${userId}`
+      );
+      return response.data;
     } catch (error) {
       throw error;
     }

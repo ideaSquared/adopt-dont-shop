@@ -103,6 +103,13 @@ class PetService {
     return { data: response.data.map(toAdminPet), pagination: response.pagination };
   }
 
+  async getById(petId: string): Promise<AdminPet> {
+    const response = await apiService.get<{ success: boolean; data: BackendPet }>(
+      `${this.baseUrl}/${petId}`
+    );
+    return toAdminPet(response.data);
+  }
+
   async bulkUpdate(
     petIds: string[],
     operation: BulkPetOperation,

@@ -131,3 +131,46 @@ describe('ApplicationDetailsPage Message rescue CTA (ADS-634)', () => {
     );
   });
 });
+
+describe('ApplicationDetailsPage pet and rescue', () => {
+  beforeEach(() => {
+    getApplicationByIdMock.mockReset();
+    chatStateMock.conversations = [];
+  });
+
+  it('links the pet and rescue by name instead of showing their ids', async () => {
+    getApplicationByIdMock.mockResolvedValue({
+      ...makeApplication(),
+      petName: 'Buddy',
+      rescueName: 'Happy Paws',
+    });
+
+    render(<ApplicationDetailsPage />);
+
+    expect(await screen.findByRole('link', { name: 'Buddy' })).toHaveAttribute(
+      'href',
+      '/pets/pet-1'
+    );
+    expect(screen.getByRole('link', { name: 'Happy Paws' })).toHaveAttribute(
+      'href',
+      '/rescues/rescue-1'
+    );
+    expect(screen.queryByText('pet-1')).not.toBeInTheDocument();
+    expect(screen.queryByText('rescue-1')).not.toBeInTheDocument();
+  });
+
+  it('does not reveal which rescue staff member reviewed the application', async () => {
+    getApplicationByIdMock.mockResolvedValue({
+      ...makeApplication(),
+      status: 'approved',
+      reviewedAt: '2025-01-03T00:00:00Z',
+      reviewedBy: 'staff-user-42',
+    });
+
+    render(<ApplicationDetailsPage />);
+
+    expect(await screen.findByText('Reviewed')).toBeInTheDocument();
+    expect(screen.queryByText(/reviewed by/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('staff-user-42')).not.toBeInTheDocument();
+  });
+});

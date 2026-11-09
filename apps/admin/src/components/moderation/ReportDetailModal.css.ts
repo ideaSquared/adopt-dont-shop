@@ -222,19 +222,6 @@ export const entityId = style({
   border: '1px solid #e5e7eb',
 });
 
-export const warningBox = style({
-  background: '#fef3c7',
-  border: '1px solid #fbbf24',
-  borderRadius: '8px',
-  padding: '0.75rem 1rem',
-  marginTop: '0.75rem',
-  fontSize: '0.875rem',
-  color: '#92400e',
-  display: 'flex',
-  alignItems: 'flex-start',
-  gap: '0.5rem',
-});
-
 export const monospaceId = style({
   fontFamily: 'monospace',
   fontSize: '0.75rem',

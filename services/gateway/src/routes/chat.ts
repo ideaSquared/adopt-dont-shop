@@ -27,9 +27,12 @@ import {
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { ChatClient } from '../grpc-clients/chat-client.js';
+import type { PetsClient } from '../grpc-clients/pets-client.js';
+import type { RescueClient } from '../grpc-clients/rescue-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 import { buildPaginationEnvelope, parsePagination } from '../middleware/pagination.js';
+import { lookupPetNames, lookupRescueNames, lookupUserNames } from '../utils/entity-names.js';
 
 import type { EmailRateLimiter } from './email-rate-limiter.js';
 
@@ -39,6 +42,11 @@ export type ChatRoutesOptions = {
   // it absent, chats and messages carry no name and the lib.chat adapter
   // falls back to '' exactly as it did before this enrichment existed.
   authClient?: AuthClient;
+  // Resolve the pet / rescue a chat is about to display names, so the SPAs
+  // can render "About Buddy" rather than the pet's uuid. Optional — absent,
+  // chats carry no petName / rescueName and the UI falls back.
+  petsClient?: PetsClient;
+  rescueClient?: RescueClient;
   // Per-authenticated-user enquiry cap (ADS-1421), enforced as a route
   // preHandler — NOT via config.rateLimit.keyGenerator. @fastify/rate-limit's
   // keyGenerator runs at onRequest, before authenticate.ts has stripped a
@@ -124,37 +132,11 @@ const normalizeMessages = (json: unknown): unknown => {
 //
 // The chat service's own shape carries only ids (senderUserId,
 // participantUserIds, lastMessageSenderId) — it has no reason to know
-// display names. The gateway resolves them from service.auth the same
-// way applications.ts resolves pet/rescue/applicant names: one
+// display names. The gateway resolves them from service.auth via
+// lookupUserNames (utils/entity-names.ts): one
 // GetUserName call per distinct id, tolerating per-id failures (unknown
 // user, soft-deleted, auth unavailable) by leaving that id unresolved
 // rather than failing the whole request.
-
-async function lookupNames(
-  ids: ReadonlyArray<string>,
-  authClient: AuthClient | undefined,
-  metadata: Metadata
-): Promise<Map<string, string>> {
-  const unique = [...new Set(ids.filter(id => id !== ''))];
-  const names = new Map<string, string>();
-  if (!authClient) {
-    return names;
-  }
-  await Promise.all(
-    unique.map(async id => {
-      try {
-        const res = await authClient.getUserName({ userId: id }, metadata);
-        const full = [res.firstName, res.lastName].filter(Boolean).join(' ');
-        if (full) {
-          names.set(id, full);
-        }
-      } catch {
-        // Leave unresolved — the lib.chat adapter falls back to ''.
-      }
-    })
-  );
-  return names;
-}
 
 // Collects every id a page of chats could need a name for: each chat's
 // participants plus its last-message sender (which may not be a participant
@@ -188,6 +170,53 @@ const withChatNames = (
   };
 };
 
+// --- Pet / rescue name enrichment ------------------------------------
+//
+// Same tolerance as the participant names: an unresolvable pet or rescue
+// (archived, permission denied, client absent) leaves that name unset.
+
+type ChatSubjectClients = {
+  petsClient: PetsClient | undefined;
+  rescueClient: RescueClient | undefined;
+};
+
+type ChatSubjectNames = {
+  pets: Map<string, string>;
+  rescues: Map<string, string>;
+};
+
+const stringField = (chat: Record<string, unknown>, key: string): string =>
+  typeof chat[key] === 'string' ? (chat[key] as string) : '';
+
+async function lookupChatSubjects(
+  chats: ReadonlyArray<Record<string, unknown>>,
+  clients: ChatSubjectClients,
+  metadata: Metadata
+): Promise<ChatSubjectNames> {
+  const [pets, rescues] = await Promise.all([
+    lookupPetNames(
+      chats.map(c => stringField(c, 'petId')),
+      clients.petsClient,
+      metadata
+    ),
+    lookupRescueNames(
+      chats.map(c => stringField(c, 'rescueId')),
+      clients.rescueClient,
+      metadata
+    ),
+  ]);
+  return { pets, rescues };
+}
+
+const withChatSubjects = (
+  chat: Record<string, unknown>,
+  subjects: ChatSubjectNames
+): Record<string, unknown> => ({
+  ...chat,
+  petName: subjects.pets.get(stringField(chat, 'petId')),
+  rescueName: subjects.rescues.get(stringField(chat, 'rescueId')),
+});
+
 const withMessageSenderName = (
   message: Record<string, unknown>,
   names: Map<string, string>
@@ -204,6 +233,8 @@ export const registerChatRoutes = async (
   const {
     client,
     authClient,
+    petsClient,
+    rescueClient,
     petEnquiryUserRateLimiter,
     petEnquiryIpMax = DEFAULT_PET_ENQUIRY_IP_MAX,
   } = opts;
@@ -228,7 +259,7 @@ export const registerChatRoutes = async (
     : undefined;
 
   for (const prefix of CHAT_PREFIXES) {
-    registerChatRoutesForPrefix(app, client, prefix, authClient);
+    registerChatRoutesForPrefix(app, client, prefix, authClient, { petsClient, rescueClient });
   }
 
   // ---- POST /api/v1/chats/enquiries ----------------------------------
@@ -314,7 +345,8 @@ const registerChatRoutesForPrefix = (
   app: FastifyInstance,
   client: ChatClient,
   prefix: string,
-  authClient: AuthClient | undefined
+  authClient: AuthClient | undefined,
+  subjectClients: ChatSubjectClients
 ): void => {
   // ---- GET <prefix> -------------------------------------------------
   app.get(
@@ -376,10 +408,13 @@ const registerChatRoutesForPrefix = (
       try {
         const res = await client.listChats(grpcReq, metadata);
         const chats = res.chats.map(c => ChatV1.Chat.toJSON(c) as Record<string, unknown>);
-        const names = await lookupNames(chatNameIds(chats), authClient, metadata);
+        const [names, subjects] = await Promise.all([
+          lookupUserNames(chatNameIds(chats), authClient, metadata),
+          lookupChatSubjects(chats, subjectClients, metadata),
+        ]);
         return reply.send({
           success: true,
-          data: chats.map(c => withChatNames(c, names)),
+          data: chats.map(c => withChatSubjects(withChatNames(c, names), subjects)),
           pagination: buildPaginationEnvelope({
             mode: 'offset',
             page: pagination.page,
@@ -495,16 +530,23 @@ const registerChatRoutesForPrefix = (
           chat: ChatV1.Chat.toJSON(h.chat!) as Record<string, unknown>,
           match: h.match ? (ChatV1.Message.toJSON(h.match) as Record<string, unknown>) : null,
         }));
-        const names = await lookupNames(
-          [
-            ...chatNameIds(hits.map(h => h.chat)),
-            ...hits.map(h =>
-              h.match && typeof h.match.senderUserId === 'string' ? h.match.senderUserId : ''
-            ),
-          ],
-          authClient,
-          metadata
-        );
+        const [names, subjects] = await Promise.all([
+          lookupUserNames(
+            [
+              ...chatNameIds(hits.map(h => h.chat)),
+              ...hits.map(h =>
+                h.match && typeof h.match.senderUserId === 'string' ? h.match.senderUserId : ''
+              ),
+            ],
+            authClient,
+            metadata
+          ),
+          lookupChatSubjects(
+            hits.map(h => h.chat),
+            subjectClients,
+            metadata
+          ),
+        ]);
         // Match the monolith ConversationsController.searchConversations
         // body shape: { chats, pagination } so the SPA's existing search
         // handler keeps working unchanged.
@@ -515,7 +557,7 @@ const registerChatRoutesForPrefix = (
           success: true,
           data: {
             chats: hits.map(h => ({
-              ...withChatNames(h.chat, names),
+              ...withChatSubjects(withChatNames(h.chat, names), subjects),
               matched_message: h.match ? withMessageSenderName(h.match, names) : null,
             })),
             pagination: {
@@ -663,10 +705,13 @@ const registerChatRoutesForPrefix = (
           return reply.code(404).send({ success: false, error: 'Chat not found' });
         }
         const chat = ChatV1.Chat.toJSON(res.chat) as Record<string, unknown>;
-        const names = await lookupNames(chatNameIds([chat]), authClient, metadata);
+        const [names, subjects] = await Promise.all([
+          lookupUserNames(chatNameIds([chat]), authClient, metadata),
+          lookupChatSubjects([chat], subjectClients, metadata),
+        ]);
         return reply.send({
           success: true,
-          data: withChatNames(chat, names),
+          data: withChatSubjects(withChatNames(chat, names), subjects),
         });
       } catch (err) {
         return handleGrpcError(err, reply);
@@ -836,7 +881,7 @@ const registerChatRoutesForPrefix = (
         const messages = Array.isArray(body.messages)
           ? (body.messages as Array<Record<string, unknown>>)
           : [];
-        const names = await lookupNames(
+        const names = await lookupUserNames(
           messages.map(m => (typeof m.senderUserId === 'string' ? m.senderUserId : '')),
           authClient,
           metadata

@@ -6,7 +6,12 @@ import { createVerifiedAdopter, loginAccountViaApi } from '../../helpers/account
 import { loginViaUI } from '../../helpers/auth';
 import { dismissCookieBannerWhenShown } from '../../helpers/cookie-banner';
 import { uniqueText } from '../../helpers/factories';
-import { createAdopterApplication, expectOk, postWithCsrf } from '../../helpers/seeds';
+import {
+  createAdopterApplication,
+  expectOk,
+  postWithCsrf,
+  SEEDED_RESCUE_NAME,
+} from '../../helpers/seeds';
 import { skipSwipeIntro } from '../../helpers/swipe-intro';
 
 /**
@@ -24,7 +29,9 @@ import { skipSwipeIntro } from '../../helpers/swipe-intro';
 async function openConversation(page: Page, path: string, lastMessage?: string): Promise<void> {
   await page.goto(path);
   await dismissCookieBannerWhenShown(page);
-  const conversations = page.locator('main').getByRole('button', { name: /rescue organization/i });
+  const conversations = page
+    .locator('main')
+    .getByRole('button', { name: new RegExp(SEEDED_RESCUE_NAME) });
   // The shared rescue has many conversations (other specs open more), so pick the one
   // whose preview is the message under test instead of whichever is listed first.
   await (lastMessage ? conversations.filter({ hasText: lastMessage }) : conversations)
@@ -104,7 +111,7 @@ test.describe('chat in the UI', () => {
       await dismissCookieBannerWhenShown(page);
       const conversation = page
         .locator('main')
-        .getByRole('button', { name: /rescue organization/i })
+        .getByRole('button', { name: new RegExp(SEEDED_RESCUE_NAME) })
         .first();
       await expect(conversation).toHaveAccessibleName(/1 unread message$/, { timeout: 15_000 });
 

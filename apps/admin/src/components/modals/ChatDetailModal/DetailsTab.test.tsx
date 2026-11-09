@@ -29,7 +29,19 @@ describe('DetailsTab', () => {
     expect(link).toHaveAttribute('href', '/rescues/rescue-7');
   });
 
-  it('renders the pet id as a link to the pet detail route', () => {
+  it('renders the pet name as a link to the pet detail route', () => {
+    render(
+      <DetailsTab
+        conversation={buildConversation({ petId: 'pet-9', petName: 'Buddy' })}
+        getStatusBadge={noopBadge}
+        onClose={vi.fn()}
+      />
+    );
+    const link = screen.getByRole('link', { name: 'Buddy' });
+    expect(link).toHaveAttribute('href', '/pets/pet-9');
+  });
+
+  it('still links to the pet when its name could not be resolved', () => {
     render(
       <DetailsTab
         conversation={buildConversation({ petId: 'pet-9' })}
@@ -37,8 +49,7 @@ describe('DetailsTab', () => {
         onClose={vi.fn()}
       />
     );
-    const link = screen.getByRole('link', { name: 'pet-9' });
-    expect(link).toHaveAttribute('href', '/pets/pet-9');
+    expect(screen.getByRole('link', { name: 'View pet' })).toHaveAttribute('href', '/pets/pet-9');
   });
 
   it('calls onClose when the rescue link is clicked', () => {
@@ -65,7 +76,7 @@ describe('DetailsTab', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('link', { name: 'pet-9' }));
+    fireEvent.click(screen.getByRole('link', { name: 'View pet' }));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 

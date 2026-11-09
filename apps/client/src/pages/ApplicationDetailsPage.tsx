@@ -1,18 +1,18 @@
-import { applicationService, Application } from '@/services';
+import { applicationService, type ApplicationWithPetInfo } from '@/services';
 import { Alert, Button } from '@adopt-dont-shop/lib.components';
 import { ApplicationDetailSkeleton } from '@/components/skeletons';
 import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
 import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import { useChat } from '@/contexts/ChatContext';
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { WithdrawApplicationModal } from '../components/application';
 import * as styles from './ApplicationDetailsPage.css';
 
 export const ApplicationDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [application, setApplication] = useState<Application | null>(null);
+  const [application, setApplication] = useState<ApplicationWithPetInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
@@ -203,12 +203,6 @@ export const ApplicationDetailsPage: React.FC = () => {
               <span className={styles.infoValue}>{formatDate(application.reviewedAt)}</span>
             </div>
           )}
-          {application.reviewedBy && (
-            <div className={styles.infoItem}>
-              <span className={styles.infoLabel}>Reviewed By</span>
-              <span className={styles.infoValue}>{application.reviewedBy}</span>
-            </div>
-          )}
           {application.status === 'withdrawn' && application.updatedAt && (
             <div className={styles.infoItem}>
               <span className={styles.infoLabel}>Withdrawn On</span>
@@ -222,8 +216,10 @@ export const ApplicationDetailsPage: React.FC = () => {
         <h2 className={styles.sectionTitle}>Pet Information</h2>
         <div className={styles.infoGrid}>
           <div className={styles.infoItem}>
-            <span className={styles.infoLabel}>Pet ID</span>
-            <span className={styles.infoValue}>{application.petId}</span>
+            <span className={styles.infoLabel}>Pet</span>
+            <span className={styles.infoValue}>
+              <Link to={`/pets/${application.petId}`}>{application.petName || 'View pet'}</Link>
+            </span>
           </div>
         </div>
       </div>
@@ -236,8 +232,12 @@ export const ApplicationDetailsPage: React.FC = () => {
             <span className={styles.infoValue}>{application.id}</span>
           </div>
           <div className={styles.infoItem}>
-            <span className={styles.infoLabel}>Rescue ID</span>
-            <span className={styles.infoValue}>{application.rescueId}</span>
+            <span className={styles.infoLabel}>Rescue</span>
+            <span className={styles.infoValue}>
+              <Link to={`/rescues/${application.rescueId}`}>
+                {application.rescueName || 'View rescue'}
+              </Link>
+            </span>
           </div>
           {application.reviewNotes && (
             <div className={styles.infoItem}>

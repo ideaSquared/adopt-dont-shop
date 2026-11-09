@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import {
   Heading,
   Text,
@@ -230,7 +230,15 @@ const Messages: React.FC = () => {
             <div className={styles.messageSubject}>
               Chat #{chat.id.slice(-6)}
               {chat.rescueName && ` - ${chat.rescueName}`}
-              {chat.petId && ` (Pet: ${chat.petId.slice(-6)})`}
+              {chat.petId && (
+                <>
+                  {' (Pet: '}
+                  <Link to={`/pets/${chat.petId}`} onClick={e => e.stopPropagation()}>
+                    {chat.petName || 'View pet'}
+                  </Link>
+                  {')'}
+                </>
+              )}
             </div>
             <div className={styles.messageMeta}>
               <span>{chat.participants.length} participants</span>

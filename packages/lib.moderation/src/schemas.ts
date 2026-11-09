@@ -72,6 +72,11 @@ export const ReportSchema = z.object({
   reportedEntityType: ReportedEntityTypeSchema,
   reportedEntityId: z.string(),
   reportedUserId: z.string().nullable().optional(),
+  // Display names the gateway resolves for the ids above. Unset when the
+  // lookup failed or the entity type has no single name.
+  reporterName: z.string().optional(),
+  reportedUserName: z.string().optional(),
+  reportedEntityName: z.string().optional(),
   category: ReportCategorySchema,
   severity: ReportSeveritySchema,
   status: ReportStatusSchema,
