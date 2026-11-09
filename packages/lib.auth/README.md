@@ -50,6 +50,8 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
   rescue and admin apps' `/forgot-password` and `/reset-password` pages;
   app.client keeps its own pages). `SanctionBannerHost` is the account-sanction banner bound to the
   shared `apiService`, with toast feedback on acknowledge; each app mounts it in its layout.
+- **Utilities**: `isSafeRedirectPath` — open-redirect guard for post-login
+  redirect targets (same-origin paths only).
 - **Types**: `User`, `LoginRequest`, `RegisterRequest`, `AuthResponse`, the
   two-factor response types, `RescueRole`, `Permission`, `rolePermissions`.
 

@@ -45,6 +45,9 @@ export type { TwoFactorSettingsProps } from './components/TwoFactorSettings';
 export { BackupCodesReveal } from './components/BackupCodesReveal';
 export type { BackupCodesRevealProps } from './components/BackupCodesReveal';
 
+// Utils
+export { isSafeRedirectPath } from './utils/safeRedirect';
+
 // Types
 export * from './types';
 
