@@ -1,6 +1,7 @@
 import { ReactNode, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router';
-import { Spinner } from '@adopt-dont-shop/lib.components';
+import { ErrorBoundary, Spinner } from '@adopt-dont-shop/lib.components';
+import { captureException } from '@adopt-dont-shop/lib.observability';
 import { CookieBanner, LegalReacceptanceModal } from '@adopt-dont-shop/lib.legal';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 
@@ -8,7 +9,6 @@ import { useAuth } from '@adopt-dont-shop/lib.auth';
 import ProtectedRoute from './components/ProtectedRoute';
 import DevLoginPanel from './components/dev/DevLoginPanel';
 import Layout from './components/shared/Layout';
-import ErrorBoundary from './components/ErrorBoundary';
 
 // Pages — lazily loaded for code splitting
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -47,7 +47,17 @@ const PageLoader = () => (
 // ADS-482: route-level ErrorBoundary so a crash in one risky route (chat,
 // applications, etc.) doesn't blank the whole rescue dashboard.
 const RouteBoundary = ({ name, children }: { name: string; children: ReactNode }) => (
-  <ErrorBoundary boundary={name}>{children}</ErrorBoundary>
+  <ErrorBoundary
+    onError={(error, errorInfo) =>
+      captureException(error, {
+        app: 'rescue',
+        boundary: name,
+        componentStack: errorInfo.componentStack,
+      })
+    }
+  >
+    {children}
+  </ErrorBoundary>
 );
 
 function App() {

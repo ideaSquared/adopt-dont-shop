@@ -1,13 +1,13 @@
 import React, { ReactNode, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router';
 import { useAuth, PermissionsProvider } from '@adopt-dont-shop/lib.auth';
-import { Spinner } from '@adopt-dont-shop/lib.components';
+import { ErrorBoundary, Spinner } from '@adopt-dont-shop/lib.components';
+import { captureException } from '@adopt-dont-shop/lib.observability';
 import { CookieBanner, LegalReacceptanceModal } from '@adopt-dont-shop/lib.legal';
 import { permissionsService } from './services/libraryServices';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminLayout } from './components/layout/AdminLayout';
 import DevLoginPanel from './components/dev/DevLoginPanel';
-import ErrorBoundary from './components/ErrorBoundary';
 import * as styles from './App.css';
 
 const LoginPage = lazy(() => import('./pages/LoginPage').then(m => ({ default: m.LoginPage })));
@@ -52,7 +52,17 @@ const PageLoader = () => (
 // ADS-482: route-level ErrorBoundary so a crash in one risky admin route
 // (moderation, messages, audit, etc.) doesn't blank the whole dashboard.
 const RouteBoundary = ({ name, children }: { name: string; children: ReactNode }) => (
-  <ErrorBoundary boundary={name}>{children}</ErrorBoundary>
+  <ErrorBoundary
+    onError={(error, errorInfo) =>
+      captureException(error, {
+        app: 'admin',
+        boundary: name,
+        componentStack: errorInfo.componentStack,
+      })
+    }
+  >
+    {children}
+  </ErrorBoundary>
 );
 
 const AdminApp: React.FC = () => {

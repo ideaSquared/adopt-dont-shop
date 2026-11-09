@@ -45,10 +45,6 @@ vi.mock('./components/dev/DevLoginPanel', () => ({
   DevLoginPanel: () => null,
 }));
 
-vi.mock('./components/common/ErrorBoundary', () => ({
-  ErrorBoundary: ({ children }: { children: ReactNode }) => <>{children}</>,
-}));
-
 // ADS-497: replace the legal modal + cookie banner with sentinels so the
 // App-level wiring tests don't pull in their network behaviour.
 vi.mock('@adopt-dont-shop/lib.legal', () => ({

@@ -47,7 +47,7 @@ The canonical list lives in [`src/index.ts`](src/index.ts), grouped:
   `FormField` (+ `FormRow` / `FormSection`), `DateRangePicker` (+
   `createDefaultDateRangePresets`). `TextInput` is deprecated — prefer `Input`;
   it is still exported for existing consumers, do not add new call sites.
-- **Feedback**: `Alert`, `Modal`, `ConfirmDialog`, `EmptyState`, `ErrorState`,
+- **Feedback**: `Alert`, `Modal`, `ConfirmDialog`, `EmptyState`, `ErrorState`, `ErrorBoundary`,
   `Stepper`. `Toaster` / `toast` (sonner-based, ADS-125) is the current toast
   system; the legacy `Toast` / `ToastContainer` remain for existing call sites.
 - **Navigation**: `Breadcrumbs`, `Footer`, `Header`, `Navbar`, `NavSidebar`, `Tabs` (+

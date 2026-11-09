@@ -115,6 +115,8 @@ export * from './components/form/FileUpload';
 
 // UI components
 export * from './components/ui/EmptyState';
+export { ErrorBoundary } from './components/ui/ErrorBoundary';
+export type { ErrorBoundaryProps } from './components/ui/ErrorBoundary';
 export { ErrorState } from './components/ui/ErrorState';
 export type { ErrorStateProps, ErrorStateSize } from './components/ui/ErrorState';
 export * from './components/ui/Stepper';
