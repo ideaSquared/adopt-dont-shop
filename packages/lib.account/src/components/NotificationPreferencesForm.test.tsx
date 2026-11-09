@@ -68,10 +68,16 @@ describe('NotificationPreferencesForm', () => {
     expect(screen.getByRole('checkbox', { name: /^push/i })).not.toBeChecked();
     expect(screen.getByRole('checkbox', { name: /pet matches/i })).not.toBeChecked();
     expect(screen.getByRole('checkbox', { name: /rescue updates/i })).toBeChecked();
-    expect(screen.getByRole('combobox', { name: /digest/i })).toHaveTextContent(/daily/i);
     expect(screen.getByLabelText(/quiet hours start/i)).toHaveValue('22:00');
     expect(screen.getByLabelText(/quiet hours end/i)).toHaveValue('07:00');
     expect(screen.getByRole('combobox', { name: /timezone/i })).toHaveTextContent(/uk time/i);
+  });
+
+  it('offers no email digest setting — digest emails do not read these preferences', async () => {
+    renderForm();
+
+    await screen.findByRole('checkbox', { name: /^email/i });
+    expect(screen.queryByRole('combobox', { name: /digest/i })).not.toBeInTheDocument();
   });
 
   it('keeps SMS switched off and explains why — there is no SMS provider (ADS-1325)', async () => {
@@ -88,8 +94,6 @@ describe('NotificationPreferencesForm', () => {
 
     await user.click(await screen.findByRole('checkbox', { name: /^push/i }));
     await user.click(screen.getByRole('checkbox', { name: /^messages/i }));
-    await user.click(screen.getByRole('combobox', { name: /digest/i }));
-    await user.click(screen.getByRole('option', { name: /weekly/i }));
     await user.click(saveButton());
 
     await waitFor(() =>
@@ -97,7 +101,6 @@ describe('NotificationPreferencesForm', () => {
         ...SAVED,
         pushEnabled: true,
         chatMessages: false,
-        digestFrequency: 'weekly',
       })
     );
     expect(await screen.findByText(/notification preferences saved/i)).toBeInTheDocument();

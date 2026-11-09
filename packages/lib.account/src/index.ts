@@ -1,7 +1,6 @@
 export * from './components';
 export * from './hooks';
 export {
-  DIGEST_FREQUENCIES,
   fetchNotificationPreferences,
   updateNotificationPreferences,
 } from './services/notification-preferences-service';

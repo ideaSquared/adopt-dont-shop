@@ -14,11 +14,7 @@ import {
   useNotificationPreferences,
   useUpdateNotificationPreferences,
 } from '../hooks/use-notification-preferences';
-import {
-  DIGEST_FREQUENCIES,
-  type DigestFrequency,
-  type NotificationPreferences,
-} from '../services/notification-preferences-service';
+import { type NotificationPreferences } from '../services/notification-preferences-service';
 import * as styles from './NotificationPreferencesForm.css';
 
 type FlagKey = {
@@ -47,18 +43,6 @@ const CATEGORIES: ReadonlyArray<FlagField> = [
   { key: 'chatMessages', label: 'Messages', description: 'New chat messages' },
 ];
 
-const FREQUENCY_LABELS: Record<DigestFrequency, string> = {
-  immediate: 'Immediately',
-  daily: 'Daily digest',
-  weekly: 'Weekly digest',
-  never: 'Never',
-};
-
-const FREQUENCY_OPTIONS: SelectOption[] = DIGEST_FREQUENCIES.map(value => ({
-  value,
-  label: FREQUENCY_LABELS[value],
-}));
-
 const TIMEZONE_OPTIONS: ReadonlyArray<SelectOption> = [
   { value: 'Europe/London', label: 'UK time (Europe/London)' },
   { value: 'UTC', label: 'UTC' },
@@ -79,9 +63,6 @@ const QuietHoursSchema = z
 // SelectInput yields `string | string[]`; every select here is single-value.
 const singleValue = (value: string | string[]): string =>
   Array.isArray(value) ? (value[0] ?? '') : value;
-
-const isDigestFrequency = (value: string): value is DigestFrequency =>
-  DIGEST_FREQUENCIES.some(frequency => frequency === value);
 
 type EditorProps = { saved: NotificationPreferences };
 
@@ -155,22 +136,6 @@ const PreferencesEditor = ({ saved }: EditorProps) => {
         <div className={styles.fieldStack}>{CATEGORIES.map(renderFlag)}</div>
       </FormSection>
 
-      <FormSection title='Email digest' description='Group email notifications into a summary.'>
-        <SelectInput
-          label='Digest frequency'
-          data-testid='notification-digest-frequency'
-          value={draft.digestFrequency}
-          options={FREQUENCY_OPTIONS}
-          onChange={value => {
-            const next = singleValue(value);
-            if (isDigestFrequency(next)) {
-              change({ digestFrequency: next });
-            }
-          }}
-          fullWidth
-        />
-      </FormSection>
-
       <FormSection
         title='Quiet hours'
         description='Pause push and email notifications overnight. Leave both empty to turn quiet hours off.'
@@ -223,8 +188,8 @@ const PreferencesEditor = ({ saved }: EditorProps) => {
 };
 
 /**
- * The signed-in user's notification preferences: channels, categories, email
- * digest, and quiet hours. Needs a QueryClientProvider above it.
+ * The signed-in user's notification preferences: channels, categories and
+ * quiet hours. Needs a QueryClientProvider above it.
  */
 export const NotificationPreferencesForm = () => {
   const { data, isPending, isError } = useNotificationPreferences();
