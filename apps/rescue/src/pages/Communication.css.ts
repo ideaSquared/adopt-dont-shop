@@ -134,3 +134,22 @@ export const actionGroup = style({
   alignItems: 'center',
   gap: '0.5rem',
 });
+
+export const loadingContainer = style({
+  flex: 1,
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  background: vars.background.surface,
+});
+
+export const errorMessage = style({
+  background: vars.colors.dangerBgSubtle,
+  color: vars.colors.dangerTextEmphasis,
+  border: `1px solid ${vars.colors.dangerBorderSubtle}`,
+  padding: '1.5rem',
+  borderRadius: '8px',
+  margin: '2rem auto',
+  textAlign: 'center',
+  maxWidth: '400px',
+});

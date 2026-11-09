@@ -2,11 +2,12 @@ import { useChat } from '@/contexts/ChatContext';
 import { useHasPermission } from '@adopt-dont-shop/lib.auth';
 import {
   ChatWindow,
+  ConnectionStatusBanner,
   ConversationList,
   type ConversationListFilter,
   type ConversationStatus,
 } from '@adopt-dont-shop/lib.chat';
-import { Button, ConfirmDialog, toast, useConfirm } from '@adopt-dont-shop/lib.components';
+import { Button, ConfirmDialog, Spinner, toast, useConfirm } from '@adopt-dont-shop/lib.components';
 import { CHAT_VIEW } from '@adopt-dont-shop/lib.permissions';
 import clsx from 'clsx';
 import { useEffect, useState } from 'react';
@@ -52,8 +53,14 @@ const persistFilter = (filter: 'active' | 'resolved'): void => {
 };
 
 function Communication() {
-  const { activeConversation, conversations, setActiveConversation, updateConversationStatus } =
-    useChat();
+  const {
+    activeConversation,
+    conversations,
+    setActiveConversation,
+    updateConversationStatus,
+    isLoading,
+    error,
+  } = useChat();
   // ADS-757: gate on both `allowed` AND `!isLoading` so the action buttons
   // don't flash hidden during the initial permission fetch.
   // ADS-1191: the backend's updateChatStatus gates on `chats.read` (+ rescue
@@ -196,24 +203,36 @@ function Communication() {
         </div>
       </div>
 
-      <div className={styles.chatContainer}>
-        {isMobile ? (
-          <div
-            className={clsx(
-              styles.mobileView,
-              showChat ? styles.mobileViewShowChat : styles.mobileViewHideChat
-            )}
-          >
-            <ConversationList filter={conversationListFilter} />
-            <ChatWindow />
-          </div>
-        ) : (
-          <>
-            <ConversationList filter={conversationListFilter} />
-            <ChatWindow />
-          </>
-        )}
-      </div>
+      <ConnectionStatusBanner />
+
+      {error ? (
+        <div className={styles.errorMessage} role="alert">
+          Error loading chat: {error}
+        </div>
+      ) : isLoading && conversations.length === 0 ? (
+        <div className={styles.loadingContainer}>
+          <Spinner />
+        </div>
+      ) : (
+        <div className={styles.chatContainer}>
+          {isMobile ? (
+            <div
+              className={clsx(
+                styles.mobileView,
+                showChat ? styles.mobileViewShowChat : styles.mobileViewHideChat
+              )}
+            >
+              <ConversationList filter={conversationListFilter} />
+              <ChatWindow />
+            </div>
+          ) : (
+            <>
+              <ConversationList filter={conversationListFilter} />
+              <ChatWindow />
+            </>
+          )}
+        </div>
+      )}
 
       <ConfirmDialog {...confirmProps} data-testid="mark-resolved-confirm" />
     </div>

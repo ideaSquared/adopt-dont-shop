@@ -93,7 +93,9 @@ vi.mock('@adopt-dont-shop/lib.components', async () => {
 
   const toast = { success: vi.fn(), error: vi.fn() };
 
-  return { useConfirm, ConfirmDialog, Button, toast };
+  const Spinner = () => <div role="progressbar" aria-label="Loading" />;
+
+  return { useConfirm, ConfirmDialog, Button, Spinner, toast };
 });
 
 // lib.chat renders the conversation rows and the chat window from the
@@ -131,7 +133,13 @@ vi.mock('@adopt-dont-shop/lib.chat', async () => {
     const ctx = mockedUseChat();
     return <div data-testid="chat-window">{ctx.activeConversation?.id ?? 'none'}</div>;
   };
-  return { ...actual, ConversationList, ChatWindow };
+  const ConnectionStatusBanner = () => {
+    const { connectionStatus } = mockedUseChat();
+    return connectionStatus === 'connected' ? null : (
+      <div role="status">Chat connection: {connectionStatus}</div>
+    );
+  };
+  return { ...actual, ConversationList, ChatWindow, ConnectionStatusBanner };
 });
 
 // useHasPermission is the gate. We replace it inline so we can grant or
@@ -152,6 +160,9 @@ type BuildOptions = {
   activeConversation?: Conversation | null;
   hasPermission?: boolean;
   updateConversationStatus?: ReturnType<typeof vi.fn>;
+  isLoading?: boolean;
+  error?: string | null;
+  connectionStatus?: string;
 };
 
 const baseConversation = (overrides: Partial<Conversation>): Conversation => ({
@@ -181,6 +192,9 @@ const setupHooks = (opts: BuildOptions = {}) => {
     activeConversation: opts.activeConversation ?? null,
     setActiveConversation: vi.fn(),
     updateConversationStatus,
+    isLoading: opts.isLoading ?? false,
+    error: opts.error ?? null,
+    connectionStatus: opts.connectionStatus ?? 'connected',
   });
   return { updateConversationStatus };
 };
@@ -353,5 +367,56 @@ describe('Communication page - ADS-583 mark resolved', () => {
     );
     expect(screen.queryByTestId('conv-a')).not.toBeInTheDocument();
     expect(screen.getByTestId('conv-b')).toBeInTheDocument();
+  });
+});
+
+describe('Communication page - connection, loading and error states', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('shows the connection banner while the chat is not connected', () => {
+    setupHooks({ connectionStatus: 'reconnecting' });
+
+    renderPage();
+
+    expect(screen.getByRole('status')).toHaveTextContent(/reconnecting/i);
+  });
+
+  it('hides the connection banner when connected', () => {
+    setupHooks({ connectionStatus: 'connected' });
+
+    renderPage();
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('shows a spinner instead of the chat while the first load is pending', () => {
+    setupHooks({ isLoading: true, conversations: [] });
+
+    renderPage();
+
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    expect(screen.queryByTestId('conversation-list')).not.toBeInTheDocument();
+  });
+
+  it('keeps showing conversations while a background reload is pending', () => {
+    setupHooks({ isLoading: true, conversations: [baseConversation({ id: 'a' })] });
+
+    renderPage();
+
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    expect(screen.getByTestId('conv-a')).toBeInTheDocument();
+  });
+
+  it('shows the chat error instead of the chat', () => {
+    setupHooks({ error: 'Failed to load conversations' });
+
+    renderPage();
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Error loading chat: Failed to load conversations'
+    );
+    expect(screen.queryByTestId('conversation-list')).not.toBeInTheDocument();
   });
 });
