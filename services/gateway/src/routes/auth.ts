@@ -284,6 +284,9 @@ export const registerAuthRoutes = async (
                   lastName: { type: 'string' },
                   userType: { type: 'string' },
                   status: { type: 'string' },
+                  // Settings (lib.account / lib.auth TwoFactorSettings) read it
+                  // to offer "Disable 2FA" and to ask for a code on step-up.
+                  twoFactorEnabled: { type: 'boolean' },
                 },
               },
               permissions: { type: 'array', items: { type: 'string' } },
@@ -455,6 +458,9 @@ export const registerAuthRoutes = async (
                   userType: { type: 'string' },
                   status: { type: 'string' },
                   emailVerified: { type: 'boolean' },
+                  // Settings read it to offer "Disable 2FA" and to ask for a
+                  // code on step-up (change email, delete account).
+                  twoFactorEnabled: { type: 'boolean' },
                   // Editable account-profile fields must round-trip on GET the
                   // same way they do on PATCH /users/account — otherwise the
                   // serializer strips them and a persisted bio (etc.) vanishes

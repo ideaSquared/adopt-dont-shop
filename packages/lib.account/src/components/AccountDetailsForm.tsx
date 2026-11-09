@@ -33,13 +33,17 @@ const toErrors = (error: z.ZodError<Details>): DetailsErrors =>
 /** Name and phone number for the signed-in user. Email has its own form (ChangeEmailForm). */
 export const AccountDetailsForm = () => {
   const { user, updateProfile } = useAuth();
-  const [values, setValues] = useState<Details>({
+  const [baseline, setBaseline] = useState<Details>(() => ({
     firstName: user?.firstName ?? '',
     lastName: user?.lastName ?? '',
     phoneNumber: user?.phoneNumber ?? '',
-  });
+  }));
+  const [values, setValues] = useState<Details>(baseline);
   const [errors, setErrors] = useState<DetailsErrors>({});
-  const save = useMutation({ mutationFn: (details: Details) => updateProfile(details) });
+  const save = useMutation({
+    mutationFn: (changes: Partial<Details>) => updateProfile(changes),
+    onSuccess: (_data, changes) => setBaseline(prev => ({ ...prev, ...changes })),
+  });
 
   if (!user) {
     return null;
@@ -60,7 +64,15 @@ export const AccountDetailsForm = () => {
       setErrors(toErrors(parsed.error));
       return;
     }
-    save.mutate(parsed.data);
+    // Send only what the user changed. GET /auth/me doesn't return every
+    // field (no phone number today), so a field shown empty here may hold a
+    // stored value; resending it would wipe that value.
+    const changes = Object.fromEntries(
+      (Object.keys(parsed.data) as (keyof Details)[])
+        .filter(field => parsed.data[field] !== baseline[field].trim())
+        .map(field => [field, parsed.data[field]])
+    );
+    save.mutate(changes);
   };
 
   return (

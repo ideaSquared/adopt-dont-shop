@@ -51,13 +51,9 @@ describe('AccountDetailsForm', () => {
     await user.type(screen.getByLabelText(/first name/i), 'Augusta');
     await user.click(saveButton());
 
-    await waitFor(() =>
-      expect(updateProfile).toHaveBeenCalledWith({
-        firstName: 'Augusta',
-        lastName: 'Lovelace',
-        phoneNumber: '01632 960001',
-      })
-    );
+    // Only what changed: GET /auth/me doesn't return every field (no phone
+    // number today), so resending untouched values could wipe stored data.
+    await waitFor(() => expect(updateProfile).toHaveBeenCalledWith({ firstName: 'Augusta' }));
     expect(await screen.findByText(/details saved/i)).toBeInTheDocument();
   });
 
@@ -86,9 +82,7 @@ describe('AccountDetailsForm', () => {
     await user.clear(screen.getByLabelText(/phone/i));
     await user.click(saveButton());
 
-    await waitFor(() =>
-      expect(updateProfile).toHaveBeenCalledWith(expect.objectContaining({ phoneNumber: '' }))
-    );
+    await waitFor(() => expect(updateProfile).toHaveBeenCalledWith({ phoneNumber: '' }));
   });
 
   it('tells the user when saving fails', async () => {
