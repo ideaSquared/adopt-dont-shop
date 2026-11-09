@@ -20,3 +20,6 @@ export { getErrorMessage } from './get-error-message';
 
 // Null-safe date formatter
 export { safeFormatDate } from './safe-format-date';
+
+// File URL resolver (relative upload paths to absolute; rejects unsafe schemes)
+export { resolveFileUrl } from './file-url';

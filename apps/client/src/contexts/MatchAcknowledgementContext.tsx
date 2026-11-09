@@ -8,7 +8,7 @@ import {
   type Pet,
 } from '@/services';
 import { ItsAMatchModal } from '@/components/ItsAMatchModal';
-import { resolveFileUrl } from '@/utils/fileUtils';
+import { resolveFileUrl } from '@adopt-dont-shop/lib.utils';
 import { createAppContext } from './base/BaseContext';
 
 // ADS-633: detects rescue acknowledgement of an application (status moves

@@ -7,7 +7,7 @@ import { useDrag } from '@use-gesture/react';
 import React, { useCallback, useRef, useState } from 'react';
 import { ChevronUp, CircleCheck, Lock, MapPin, PawPrint, RefreshCw, Star } from 'lucide-react';
 import { useNavigate } from 'react-router';
-import { resolveFileUrl } from '../../utils/fileUtils';
+import { resolveFileUrl } from '@adopt-dont-shop/lib.utils';
 import * as styles from './SwipeCard.css';
 
 interface SwipeCardProps {

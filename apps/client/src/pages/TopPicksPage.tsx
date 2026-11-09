@@ -11,7 +11,7 @@ import type { MatchTopPick } from '@adopt-dont-shop/lib.matching';
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { matchingService } from '@/services';
-import { resolveFileUrl } from '@/utils/fileUtils';
+import { resolveFileUrl } from '@adopt-dont-shop/lib.utils';
 import * as styles from './TopPicksPage.css';
 
 const TYPE_ICON: Record<string, string> = {

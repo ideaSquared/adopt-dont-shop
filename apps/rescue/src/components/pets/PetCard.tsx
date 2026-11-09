@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router';
 import { Card, Button, ProgressiveImage } from '@adopt-dont-shop/lib.components';
 import { Pet, PetStatus } from '@adopt-dont-shop/lib.pets';
-import { formatCurrency, formatRelativeDate } from '@adopt-dont-shop/lib.utils';
-import { resolveFileUrl } from '../../utils/fileUtils';
+import { formatCurrency, formatRelativeDate, resolveFileUrl } from '@adopt-dont-shop/lib.utils';
 import * as styles from './PetCard.css';
 
 // Pet schema fields are optional because different API responses return

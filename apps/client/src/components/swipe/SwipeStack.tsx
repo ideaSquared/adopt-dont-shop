@@ -1,6 +1,6 @@
 import { useImagePreloader } from '@/hooks/useImagePreloader';
 import { DiscoveryPet, SwipeAction } from '@/services';
-import { resolveFileUrl } from '@/utils/fileUtils';
+import { resolveFileUrl } from '@adopt-dont-shop/lib.utils';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SwipeCard } from './SwipeCard';
 import * as styles from './SwipeStack.css';

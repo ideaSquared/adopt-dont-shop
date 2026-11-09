@@ -9,7 +9,7 @@ import { hasAnalyticsConsent } from '@adopt-dont-shop/lib.observability';
 import { PetDetailSkeleton } from '@/components/skeletons';
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
-import { resolveFileUrl } from '../utils/fileUtils';
+import { resolveFileUrl } from '@adopt-dont-shop/lib.utils';
 import * as styles from './PetDetailsPage.css';
 
 interface PetDetailsPageProps {}

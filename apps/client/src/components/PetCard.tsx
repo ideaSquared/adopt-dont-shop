@@ -6,7 +6,7 @@ import { Badge, Button, Card, PetImage } from '@adopt-dont-shop/lib.components';
 import React, { useState } from 'react';
 import { Heart, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router';
-import { resolveFileUrl } from '../utils/fileUtils';
+import { resolveFileUrl } from '@adopt-dont-shop/lib.utils';
 import { LoginPromptModal } from './modals/LoginPromptModal';
 import * as styles from './PetCard.css';
 

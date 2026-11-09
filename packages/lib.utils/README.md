@@ -48,6 +48,7 @@ Standalone helpers exported alongside the service:
 - `escapeLikePattern` — escape SQL `LIKE`/`ILIKE` wildcards in user search terms.
 - `getErrorMessage` — user-facing message from an HTTP status / network error.
 - `safeFormatDate` — null-safe date formatter.
+- `resolveFileUrl` — resolve a relative upload path against `VITE_API_BASE_URL` (same-origin when unset); rejects non-http(s) schemes and placeholder hosts.
 
 Sub-module exports:
 
@@ -82,4 +83,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 3 workspace package(s) depend on this library. See [lib.utils-consumers.md](../../docs/libraries/lib.utils-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

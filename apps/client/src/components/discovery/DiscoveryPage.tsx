@@ -9,7 +9,7 @@ import { Container } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { loadDiscoveryState, recordViewedPet } from '@/utils/discoverySession';
-import { resolveFileUrl } from '@/utils/fileUtils';
+import { resolveFileUrl } from '@adopt-dont-shop/lib.utils';
 import {
   hasReachedAnonSwipeLimit,
   incrementAnonSwipeCount,

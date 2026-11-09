@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Pet } from '@/services';
 import * as styles from './PetHeroCard.css';
-import { resolveFileUrl } from '@/utils/fileUtils';
+import { resolveFileUrl } from '@adopt-dont-shop/lib.utils';
 
 type Props = {
   pet: Pet;

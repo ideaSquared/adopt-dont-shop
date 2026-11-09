@@ -11,7 +11,7 @@ import { apiService, type ImageUploadResponse } from '@adopt-dont-shop/lib.api';
 import { Pet, PetCreateData, PetUpdateData } from '@adopt-dont-shop/lib.pets';
 import { useDialogFocus } from '../../hooks/useDialogFocus';
 import { usePetBreeds } from '../../hooks/usePetBreeds';
-import { resolveFileUrl } from '../../utils/fileUtils';
+import { resolveFileUrl } from '@adopt-dont-shop/lib.utils';
 import * as styles from './PetFormModal.css';
 
 // ADS-574: image uploader configuration.

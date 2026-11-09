@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveFileUrl } from './fileUtils';
+import { resolveFileUrl } from './file-url';
 
 describe('resolveFileUrl', () => {
   describe('passes through safe absolute URLs', () => {

@@ -11,7 +11,7 @@ import { useAuth } from '@adopt-dont-shop/lib.auth';
 import type { MatchTopPick } from '@adopt-dont-shop/lib.matching';
 import { useMatchPreferences } from '@/hooks/useMatchPreferences';
 import { matchingService } from '@/services';
-import { resolveFileUrl } from '@/utils/fileUtils';
+import { resolveFileUrl } from '@adopt-dont-shop/lib.utils';
 import * as styles from './TopPicksHomeModule.css';
 
 const TYPE_ICON: Record<string, string> = {
