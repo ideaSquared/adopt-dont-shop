@@ -82,6 +82,12 @@ export const deleteWithCsrf = (
 // data; the helpers below are thin lookups, not factories.
 // -----------------------------------------------------------------------
 
+/**
+ * The `rescue` persona's rescue. Chat lists label each conversation with it
+ * (the gateway resolves the chat's rescue id to this name).
+ */
+export const SEEDED_RESCUE_NAME = 'Paws Rescue';
+
 /** Names of the seeded Paws Rescue pets, by the status each is seeded in. */
 export const SEEDED_PETS = {
   available: 'Buddy',

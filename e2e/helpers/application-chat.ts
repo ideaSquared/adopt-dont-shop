@@ -2,7 +2,7 @@ import { expect, type BrowserContext, type Page } from '@playwright/test';
 
 import type { ApiClient } from '../fixtures/api';
 import { URLS } from '../playwright.config';
-import { expectOk, postWithCsrf } from './seeds';
+import { expectOk, postWithCsrf, SEEDED_RESCUE_NAME } from './seeds';
 
 type ApplicationRow = { id: string; petId: string; userId: string };
 
@@ -45,7 +45,7 @@ export async function openOnlyConversation(page: Page): Promise<void> {
   await page.goto('/chat');
   await page
     .locator('main')
-    .getByRole('button', { name: /rescue organization/i })
+    .getByRole('button', { name: new RegExp(SEEDED_RESCUE_NAME) })
     .first()
     .click();
   await expect(page.getByRole('textbox', { name: /message input/i })).toBeVisible({

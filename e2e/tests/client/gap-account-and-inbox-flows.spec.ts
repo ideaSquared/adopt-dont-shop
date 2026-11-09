@@ -15,6 +15,7 @@ import {
   expectOk,
   patchWithCsrf,
   postWithCsrf,
+  SEEDED_RESCUE_NAME,
 } from '../../helpers/seeds';
 import { openSignedInSession } from '../../helpers/signed-in-session';
 import { skipSwipeIntro } from '../../helpers/swipe-intro';
@@ -232,7 +233,7 @@ test.describe('client profile, password, chat and notifications', () => {
       await messagesLink(page).click();
       await page
         .locator('main')
-        .getByRole('button', { name: /rescue organization/i })
+        .getByRole('button', { name: new RegExp(SEEDED_RESCUE_NAME) })
         .first()
         .click();
       await expect(page.getByRole('article').filter({ hasText: first })).toBeVisible({
