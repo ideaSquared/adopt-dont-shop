@@ -210,6 +210,7 @@ export const ReportFiltersSchema = z.object({
   category: ReportCategorySchema.optional(),
   severity: ReportSeveritySchema.optional(),
   reportedEntityType: ReportedEntityTypeSchema.optional(),
+  reportedEntityId: z.string().optional(),
   reportedUserId: z.string().optional(),
   assignedModerator: z.string().optional(),
   search: z.string().optional(),

@@ -12152,6 +12152,26 @@ export const PROTO_SCHEMA: ProtoSchema = {
           comment:
             'Offset pagination for admin datatables. When set (>0) the handler\nreturns an OFFSET page plus a real `total` (COUNT) instead of a keyset\ncursor, so the shared DataTable can render "Page X of Y".',
         },
+        {
+          name: 'reported_entity_type',
+          jsonName: 'reportedEntityType',
+          kind: 'enum',
+          typeName: 'adopt_dont_shop.moderation.v1.ReportEntityType',
+          repeated: false,
+          optional: true,
+          sensitivity: null,
+          comment:
+            'Filter to reports about one kind of entity, and optionally one entity\nof that kind (e.g. a single conversation).',
+        },
+        {
+          name: 'reported_entity_id',
+          jsonName: 'reportedEntityId',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: false,
+          optional: true,
+          sensitivity: null,
+        },
       ],
     },
     'adopt_dont_shop.moderation.v1.ListReportsResponse': {

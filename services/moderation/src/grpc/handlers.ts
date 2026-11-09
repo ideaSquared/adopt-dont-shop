@@ -281,6 +281,14 @@ export async function listReports(
     where.push(`category = $${p++}`);
     params.push(categoryToDb(req.category));
   }
+  if (req.reportedEntityType !== undefined && req.reportedEntityType !== 0) {
+    where.push(`reported_entity_type = $${p++}`);
+    params.push(entityTypeToDb(req.reportedEntityType));
+  }
+  if (req.reportedEntityId !== undefined && req.reportedEntityId !== '') {
+    where.push(`reported_entity_id = $${p++}`);
+    params.push(req.reportedEntityId);
+  }
   if (req.assignedModerator !== undefined) {
     // assigned_moderator is redacted from the reporter-safe projection
     // (reportRowToProto forReporter=true), so it must not be filterable by a

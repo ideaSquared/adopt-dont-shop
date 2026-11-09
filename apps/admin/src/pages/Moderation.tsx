@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, useParams, useNavigate } from 'react-router';
 import {
+  Button,
   DataTable,
   type DataTableColumn,
   Input,
@@ -104,6 +105,15 @@ const VALID_REPORT_STATUSES: ReadonlySet<string> = new Set([
 
 const VALID_REPORT_SEVERITIES: ReadonlySet<string> = new Set(['critical', 'high', 'medium', 'low']);
 
+const VALID_ENTITY_TYPES: ReadonlySet<string> = new Set([
+  'user',
+  'rescue',
+  'pet',
+  'message',
+  'application',
+  'conversation',
+]);
+
 const Moderation: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -115,6 +125,42 @@ const Moderation: React.FC = () => {
     severityParam && VALID_REPORT_SEVERITIES.has(severityParam)
       ? (severityParam as ReportSeverity)
       : 'all';
+  const entityTypeParam = searchParams.get('entityType');
+  const entityTypeFilter: ReportedEntityType | 'all' =
+    entityTypeParam && VALID_ENTITY_TYPES.has(entityTypeParam)
+      ? (entityTypeParam as ReportedEntityType)
+      : 'all';
+  // Set by deep links (e.g. a chat's "View in Moderation Dashboard") to show
+  // the reports about one entity.
+  const entityIdFilter = searchParams.get('entityId') || undefined;
+
+  const clearEntityId = () => {
+    setSearchParams(
+      prev => {
+        const next = new URLSearchParams(prev);
+        next.delete('entityId');
+        return next;
+      },
+      { replace: true }
+    );
+  };
+
+  const setEntityTypeParam = (value: string) => {
+    // An entity id only makes sense with the type it came with.
+    setSearchParams(
+      prev => {
+        const next = new URLSearchParams(prev);
+        next.delete('entityId');
+        if (value && value !== 'all') {
+          next.set('entityType', value);
+        } else {
+          next.delete('entityType');
+        }
+        return next;
+      },
+      { replace: true }
+    );
+  };
 
   const setFilterParam = (key: string, value: string) => {
     setSearchParams(
@@ -136,7 +182,6 @@ const Moderation: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
-  const [entityTypeFilter, setEntityTypeFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
@@ -162,8 +207,8 @@ const Moderation: React.FC = () => {
   } = useReports({
     status: statusFilter === 'all' ? undefined : statusFilter,
     severity: severityFilter === 'all' ? undefined : severityFilter,
-    reportedEntityType:
-      entityTypeFilter === 'all' ? undefined : (entityTypeFilter as ReportedEntityType),
+    reportedEntityType: entityTypeFilter === 'all' ? undefined : entityTypeFilter,
+    reportedEntityId: entityIdFilter,
     search: debouncedSearchQuery || undefined,
     page: currentPage,
     limit: pageSize,
@@ -558,7 +603,7 @@ const Moderation: React.FC = () => {
             id='mod-type-filter'
             className={styles.select}
             value={entityTypeFilter}
-            onChange={e => setEntityTypeFilter(e.target.value)}
+            onChange={e => setEntityTypeParam(e.target.value)}
           >
             <option value='all'>All Types</option>
             <option value='user'>User</option>
@@ -566,9 +611,21 @@ const Moderation: React.FC = () => {
             <option value='pet'>Pet</option>
             <option value='message'>Message</option>
             <option value='application'>Application</option>
+            <option value='conversation'>Conversation</option>
           </select>
         </div>
       </div>
+
+      {entityIdFilter ? (
+        <div className={styles.entityFilterBanner} role='status'>
+          <span>
+            Showing reports for one {entityTypeFilter === 'all' ? 'item' : entityTypeFilter}
+          </span>
+          <Button variant='ghost' size='sm' onClick={clearEntityId}>
+            Show all reports
+          </Button>
+        </div>
+      ) : null}
 
       <BulkActionToolbar
         selectedCount={selectedRows.size}
