@@ -187,6 +187,39 @@ describe('loadConfig — upload signing secret (ADS-845)', () => {
   });
 });
 
+describe('loadConfig — erasure per-IP rate limit', () => {
+  const PROD_BASE = { CORS_ORIGIN: 'https://app.example.com' };
+
+  it('defaults to 5 requests per IP per hour', () => {
+    expect(loadConfig({}).erasureRateLimit.ipMax).toBe(5);
+  });
+
+  it.each(['development', 'test'])('accepts an override in %s', environment => {
+    const { erasureRateLimit } = loadConfig({
+      NODE_ENV: environment,
+      GATEWAY_ERASURE_IP_RATE_LIMIT_MAX: '1000',
+    });
+    expect(erasureRateLimit.ipMax).toBe(1000);
+  });
+
+  it.each(['production', 'staging'])('refuses to boot in %s when overridden', environment => {
+    expect(() =>
+      loadConfig({ ...PROD_BASE, NODE_ENV: environment, GATEWAY_ERASURE_IP_RATE_LIMIT_MAX: '1000' })
+    ).toThrow(/GATEWAY_ERASURE_IP_RATE_LIMIT_MAX must not be overridden in/);
+  });
+
+  it('boots in production when unset or set to the default', () => {
+    expect(() => loadConfig({ ...PROD_BASE, NODE_ENV: 'production' })).not.toThrow();
+    expect(() =>
+      loadConfig({ ...PROD_BASE, NODE_ENV: 'production', GATEWAY_ERASURE_IP_RATE_LIMIT_MAX: '5' })
+    ).not.toThrow();
+  });
+
+  it.each(['not-a-number', '0', '-5', ''])('falls back to the default for %j', raw => {
+    expect(loadConfig({ GATEWAY_ERASURE_IP_RATE_LIMIT_MAX: raw }).erasureRateLimit.ipMax).toBe(5);
+  });
+});
+
 describe('loadConfig — enquiry rate-limit caps', () => {
   const PROD_BASE = { CORS_ORIGIN: 'https://app.example.com' };
 

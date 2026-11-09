@@ -138,6 +138,7 @@ outbox — see [`packages/events`](../../packages/events/README.md)). Migrations
 **NATS** — emits (publish-after-commit): `auth.userLoggedIn`,
 `auth.tokenRevoked`, `auth.tokenRefreshed`, `auth.roleAssigned`,
 `auth.userRegistered`, `auth.emailVerified`, `auth.passwordResetRequested`,
+`auth.emailChangeRequested`, `auth.emailChangeConflict`, `auth.emailChanged`,
 `auth.actionTaken` (feeds the audit stream), and the admin/session/IP-rule
 subjects; participates in the `gdpr.erasureCompleted` saga. Consumes
 `gdpr.erasureRequested` (durable `gdpr-auth`).

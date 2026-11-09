@@ -56,6 +56,7 @@ import {
   reorderApplicationQuestions,
   updateApplicationQuestion,
 } from './application-question-handlers.js';
+import { checkSelfErasure } from './self-erasure-handlers.js';
 import { createPetsClient, type PetsClient } from './pets-client.js';
 
 export type CreateGrpcServerOptions = {
@@ -93,6 +94,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     delete: adapt(deleteRescue, { deps, logger }),
     inviteStaff: adapt(inviteStaff, { deps, logger }),
     getMyStaffMembership: adapt(getMyStaffMembership, { deps, logger }),
+    // Self-service erasure pre-check - blocks erasing a rescue's last staff member.
+    checkSelfErasure: adapt(checkSelfErasure, { deps, logger }),
     listStaffMembers: adapt(listStaffMembers, { deps, logger }),
     createStaffMember: adapt(createStaffMember, { deps, logger }),
     updateStaffMember: adapt(updateStaffMember, { deps, logger }),
@@ -131,6 +134,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'delete',
       'inviteStaff',
       'getMyStaffMembership',
+      'checkSelfErasure',
       'listStaffMembers',
       'createStaffMember',
       'updateStaffMember',

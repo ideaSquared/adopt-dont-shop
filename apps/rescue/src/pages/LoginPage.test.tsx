@@ -34,7 +34,19 @@ vi.mock('@adopt-dont-shop/lib.auth', async () => {
         {footer && <div>{footer}</div>}
       </div>
     ),
-    LoginForm: () => <div data-testid="login-form" />,
+    LoginForm: ({
+      showForgotPassword,
+      onForgotPassword,
+    }: {
+      showForgotPassword?: boolean;
+      onForgotPassword?: () => void;
+    }) => (
+      <div data-testid="login-form">
+        {showForgotPassword && onForgotPassword && (
+          <button onClick={onForgotPassword}>Forgot your password?</button>
+        )}
+      </div>
+    ),
   };
 });
 
@@ -58,5 +70,14 @@ describe('Rescue LoginPage', () => {
     await userEvent.setup().click(screen.getByRole('button', { name: 'Manage cookies' }));
 
     expect(window.localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY)).toBeNull();
+  });
+
+  it('offers "Forgot your password?", leading to this app’s reset page', async () => {
+    window.history.pushState({}, '', '/login');
+    renderWithProviders(<LoginPage />);
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Forgot your password?' }));
+
+    expect(window.location.pathname).toBe('/forgot-password');
   });
 });

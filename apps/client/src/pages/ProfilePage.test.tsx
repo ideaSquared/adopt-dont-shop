@@ -6,8 +6,6 @@ import { ThemeProvider } from '@adopt-dont-shop/lib.components';
 import { createMockUser } from '@adopt-dont-shop/lib.dev-tools';
 
 const updateProfileMock = vi.fn();
-const updatePreferencesMock = vi.fn();
-const getPreferencesMock = vi.fn();
 
 const mockUser = {
   ...createMockUser({
@@ -18,12 +16,6 @@ const mockUser = {
     createdAt: '2024-01-01T00:00:00.000Z',
     updatedAt: '2024-01-01T00:00:00.000Z',
   }),
-  notificationPreferences: {
-    emailNotifications: true,
-    pushNotifications: false,
-    smsNotifications: false,
-    marketingEmails: false,
-  },
   privacySettings: {
     profileVisibility: 'public',
   },
@@ -34,10 +26,6 @@ const mockUser = {
   },
 };
 
-// Toggled per-test so the delete modal can be rendered for both a non-2FA and
-// a 2FA account (the `mock` prefix exempts it from vi.mock hoisting checks).
-let mockTwoFactorEnabled = false;
-
 vi.mock('@adopt-dont-shop/lib.auth', async () => {
   const actual = await vi.importActual<typeof import('@adopt-dont-shop/lib.auth')>(
     '@adopt-dont-shop/lib.auth'
@@ -45,7 +33,7 @@ vi.mock('@adopt-dont-shop/lib.auth', async () => {
   return {
     ...actual,
     useAuth: () => ({
-      user: { ...mockUser, twoFactorEnabled: mockTwoFactorEnabled },
+      user: mockUser,
       isAuthenticated: true,
       isLoading: false,
       login: vi.fn(),
@@ -63,22 +51,41 @@ vi.mock('@/services', async () => {
   return {
     ...actual,
     applicationService: { getUserApplications: vi.fn().mockResolvedValue([]) },
-    authService: { deleteAccount: vi.fn().mockResolvedValue(undefined) },
     apiService: {
       get: vi.fn().mockResolvedValue({ user: {}, exportedAt: '2026-09-07T00:00:00Z' }),
     },
   };
 });
 
-vi.mock('@/services/notificationService', () => ({
-  default: {
-    getPreferences: () => getPreferencesMock(),
-    updatePreferences: (...args: unknown[]) => updatePreferencesMock(...args),
-  },
+// The shared tabs are covered in lib.account; this stub keeps the page's own
+// "Privacy & data" tab reachable.
+vi.mock('@adopt-dont-shop/lib.account', () => ({
+  AccountSettings: ({
+    value,
+    onChange,
+    extraTabs = [],
+    showAccountDetails = true,
+  }: {
+    value: string;
+    onChange: (id: string) => void;
+    extraTabs?: ReadonlyArray<{ id: string; label: string; content: React.ReactNode }>;
+    showAccountDetails?: boolean;
+  }) => (
+    <div>
+      <p>Account settings tab: {value}</p>
+      {showAccountDetails && <p>Shared details form</p>}
+      {extraTabs.map(tab => (
+        <button key={tab.id} role='tab' onClick={() => onChange(tab.id)}>
+          {tab.label}
+        </button>
+      ))}
+      {extraTabs.find(tab => tab.id === value)?.content}
+    </div>
+  ),
 }));
 
 import { ProfilePage } from './ProfilePage';
-import { apiService, authService } from '@/services';
+import { apiService } from '@/services';
 
 const renderProfilePage = () =>
   render(
@@ -89,39 +96,43 @@ const renderProfilePage = () =>
     </ThemeProvider>
   );
 
+const openPrivacyTab = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(screen.getByRole('button', { name: /^settings$/i }));
+  await user.click(screen.getByRole('tab', { name: /privacy & data/i }));
+};
+
+describe('ProfilePage settings', () => {
+  it('opens the settings tab on the shared notification settings', async () => {
+    const user = userEvent.setup();
+    renderProfilePage();
+
+    await user.click(screen.getByRole('button', { name: /^settings$/i }));
+
+    expect(screen.getByText('Account settings tab: notifications')).toBeInTheDocument();
+  });
+
+  it('leaves name and phone to the Profile tab rather than the shared details form', async () => {
+    const user = userEvent.setup();
+    renderProfilePage();
+
+    await user.click(screen.getByRole('button', { name: /^settings$/i }));
+
+    expect(screen.queryByText('Shared details form')).not.toBeInTheDocument();
+  });
+});
+
 describe('ProfilePage settings save', () => {
   beforeEach(() => {
     updateProfileMock.mockReset();
-    updatePreferencesMock.mockReset();
-    getPreferencesMock.mockReset();
-
-    getPreferencesMock.mockResolvedValue({
-      email: true,
-      push: false,
-      sms: false,
-      applications: true,
-      messages: true,
-      system: true,
-      marketing: false,
-      reminders: true,
-      quietHoursStart: '22:00',
-      quietHoursEnd: '08:00',
-    });
   });
 
   it('persists profile preferences via the auth API and surfaces a success message', async () => {
     const user = userEvent.setup();
     updateProfileMock.mockResolvedValue(undefined);
-    updatePreferencesMock.mockResolvedValue(undefined);
 
     renderProfilePage();
 
-    await user.click(screen.getByRole('button', { name: /^settings$/i }));
-
-    // Wait for form to load
-    await waitFor(() => {
-      expect(screen.getByLabelText(/email notifications/i)).toBeInTheDocument();
-    });
+    await openPrivacyTab(user);
 
     // Toggle a privacy setting so the form reveals the Save button
     await user.click(screen.getByLabelText(/show email address/i));
@@ -133,11 +144,10 @@ describe('ProfilePage settings save', () => {
     });
 
     const patch = updateProfileMock.mock.calls[0][0];
-    expect(patch.notificationPreferences).toBeDefined();
     expect(patch.privacySettings).toBeDefined();
     expect(patch.preferences).toBeDefined();
-
-    expect(updatePreferencesMock).toHaveBeenCalledTimes(1);
+    // Notification preferences are saved by the shared Notifications tab, not the profile.
+    expect(patch.notificationPreferences).toBeUndefined();
 
     await waitFor(() => {
       expect(screen.getByText(/settings saved successfully/i)).toBeInTheDocument();
@@ -146,7 +156,6 @@ describe('ProfilePage settings save', () => {
 
   it('shows an error message and does not silently swallow API failures', async () => {
     const user = userEvent.setup();
-    updatePreferencesMock.mockResolvedValue(undefined);
     updateProfileMock.mockRejectedValue(new Error('Network error: backend unreachable'));
 
     // Suppress expected console.error from the failure path
@@ -154,11 +163,7 @@ describe('ProfilePage settings save', () => {
 
     renderProfilePage();
 
-    await user.click(screen.getByRole('button', { name: /^settings$/i }));
-
-    await waitFor(() => {
-      expect(screen.getByLabelText(/email notifications/i)).toBeInTheDocument();
-    });
+    await openPrivacyTab(user);
 
     await user.click(screen.getByLabelText(/show email address/i));
     await user.click(screen.getByRole('button', { name: /save settings/i }));
@@ -174,122 +179,6 @@ describe('ProfilePage settings save', () => {
     expect(screen.queryByText(/settings saved successfully/i)).not.toBeInTheDocument();
 
     consoleErrorSpy.mockRestore();
-  });
-});
-
-// ADS-1205: account erasure is now gated on step-up re-auth — the modal
-// re-collects the current password (always) and a TOTP code (only for 2FA
-// accounts), and threads them through to the erasure request.
-describe('ProfilePage delete-account confirmation', () => {
-  const deleteAccountMock = vi.mocked(authService.deleteAccount);
-
-  beforeEach(() => {
-    mockTwoFactorEnabled = false;
-    deleteAccountMock.mockReset();
-    deleteAccountMock.mockResolvedValue(undefined);
-    getPreferencesMock.mockResolvedValue({
-      email: true,
-      push: false,
-      sms: false,
-      applications: true,
-      messages: true,
-      system: true,
-      marketing: false,
-      reminders: true,
-      quietHoursStart: '22:00',
-      quietHoursEnd: '08:00',
-    });
-  });
-
-  // The modal submit button reads "Delete account" (lower-case a); the
-  // Settings-tab danger-zone trigger reads "Delete Account" — matched here by
-  // exact case so the two never collide.
-  const getModalSubmit = () => screen.getByRole('button', { name: 'Delete account' });
-
-  it('asks for the current password', () => {
-    renderProfilePage();
-
-    expect(screen.getByLabelText(/current password/i)).toBeInTheDocument();
-  });
-
-  it('does not show the two-factor code field when 2FA is disabled', () => {
-    renderProfilePage();
-
-    expect(screen.queryByLabelText(/two-factor code/i)).not.toBeInTheDocument();
-  });
-
-  it('shows the two-factor code field when 2FA is enabled', () => {
-    mockTwoFactorEnabled = true;
-    renderProfilePage();
-
-    expect(screen.getByLabelText(/two-factor code/i)).toBeInTheDocument();
-  });
-
-  it('submits the erasure request with the entered password on confirm', async () => {
-    const user = userEvent.setup();
-    renderProfilePage();
-
-    await user.type(screen.getByLabelText(/current password/i), 'hunter2');
-    await user.click(getModalSubmit());
-
-    await waitFor(() => {
-      expect(deleteAccountMock).toHaveBeenCalledTimes(1);
-    });
-    expect(deleteAccountMock).toHaveBeenCalledWith({
-      reason: 'User requested account deletion',
-      password: 'hunter2',
-    });
-  });
-
-  it('threads the two-factor code through for a 2FA account', async () => {
-    mockTwoFactorEnabled = true;
-    const user = userEvent.setup();
-    renderProfilePage();
-
-    await user.type(screen.getByLabelText(/current password/i), 'hunter2');
-    await user.type(screen.getByLabelText(/two-factor code/i), '123456');
-    await user.click(getModalSubmit());
-
-    await waitFor(() => {
-      expect(deleteAccountMock).toHaveBeenCalledTimes(1);
-    });
-    expect(deleteAccountMock).toHaveBeenCalledWith({
-      reason: 'User requested account deletion',
-      password: 'hunter2',
-      twoFactorToken: '123456',
-    });
-  });
-
-  it('does not submit without a password and shows a validation message', async () => {
-    const user = userEvent.setup();
-    renderProfilePage();
-
-    await user.click(getModalSubmit());
-
-    expect(await screen.findByText(/enter your password/i)).toBeInTheDocument();
-    expect(deleteAccountMock).not.toHaveBeenCalled();
-  });
-
-  it('surfaces a friendly error when the password is rejected (401)', async () => {
-    const user = userEvent.setup();
-    deleteAccountMock.mockRejectedValue(new Error('credential_verification_failed'));
-    renderProfilePage();
-
-    await user.type(screen.getByLabelText(/current password/i), 'wrong-password');
-    await user.click(getModalSubmit());
-
-    expect(await screen.findByText(/that password was incorrect/i)).toBeInTheDocument();
-  });
-
-  it('surfaces an error and does not navigate when the erasure request fails', async () => {
-    const user = userEvent.setup();
-    deleteAccountMock.mockRejectedValue(new Error('service_unavailable'));
-    renderProfilePage();
-
-    await user.type(screen.getByLabelText(/current password/i), 'hunter2');
-    await user.click(getModalSubmit());
-
-    expect(await screen.findByText(/service_unavailable/i)).toBeInTheDocument();
   });
 });
 
@@ -311,7 +200,7 @@ describe('ProfilePage self-service data export (ADS-1320)', () => {
     const user = userEvent.setup();
     renderProfilePage();
 
-    await user.click(screen.getByRole('button', { name: /^settings$/i }));
+    await openPrivacyTab(user);
     await user.click(await screen.findByRole('button', { name: /download my data/i }));
 
     await waitFor(() => {
@@ -326,7 +215,7 @@ describe('ProfilePage self-service data export (ADS-1320)', () => {
     getExportMock.mockRejectedValue(new Error('boom'));
     renderProfilePage();
 
-    await user.click(screen.getByRole('button', { name: /^settings$/i }));
+    await openPrivacyTab(user);
     await user.click(await screen.findByRole('button', { name: /download my data/i }));
 
     expect(await screen.findByText(/failed to download your data/i)).toBeInTheDocument();

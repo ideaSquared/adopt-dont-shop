@@ -84,7 +84,9 @@ import {
 } from './privacy-prefs-handlers.js';
 import { getConsentStatus, recordConsent } from './consent-handlers.js';
 import { exportUserData, requestAccountDeletion } from './privacy-handlers.js';
+import { checkSelfErasure } from './self-erasure-handlers.js';
 import { verifyCredentials } from './verify-credentials.js';
+import { confirmEmailChange, requestEmailChange } from './email-change-handlers.js';
 import {
   adminListSessions,
   adminRevokeAllUserSessions,
@@ -153,6 +155,10 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     disableTwoFactor: adapt(disableTwoFactor, { deps, logger }),
     regenerateBackupCodes: adapt(regenerateBackupCodes, { deps, logger }),
     updateAccount: adapt(updateAccount, { deps, logger }),
+    // Verified email change: the request is self-scoped (step-up re-auth);
+    // the confirm is public - the mailed token is the credential.
+    requestEmailChange: adapt(requestEmailChange, { deps, logger }),
+    confirmEmailChange: adaptUnauth(confirmEmailChange, { deps, logger }),
     // Session management — list active refresh-token chains + revoke.
     listSessions: adapt(listSessions, { deps, logger }),
     revokeSession: adapt(revokeSession, { deps, logger }),
@@ -185,6 +191,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     adminResetPassword: adapt(adminResetPassword, { deps, logger }),
     exportUserData: adapt(exportUserData, { deps, logger }),
     requestAccountDeletion: adapt(requestAccountDeletion, { deps, logger }),
+    // Self-service erasure pre-check - blocks erasing the last active super admin.
+    checkSelfErasure: adapt(checkSelfErasure, { deps, logger }),
     listUserIdsByCohort: adapt(listUserIdsByCohort, { deps, logger }),
     // Admin security management — Security Center sessions + lockout.
     adminListSessions: adapt(adminListSessions, { deps, logger }),
@@ -227,6 +235,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'changePassword',
       'verifyCredentials',
       'updateAccount',
+      'requestEmailChange',
+      'confirmEmailChange',
       'listSessions',
       'revokeSession',
       'getPrivacyPreferences',
@@ -250,6 +260,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'adminResetPassword',
       'exportUserData',
       'requestAccountDeletion',
+      'checkSelfErasure',
       'listUserIdsByCohort',
       'adminListSessions',
       'adminRevokeSession',

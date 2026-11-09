@@ -157,6 +157,11 @@ services:
       # production/staging; service-gateway-limits deliberately omits them.
       GATEWAY_ENQUIRY_IP_RATE_LIMIT_MAX: '10000'
       GATEWAY_ENQUIRY_USER_RATE_LIMIT_MAX: '10000'
+      # Account-deletion per-IP backstop (5/hour by default): the account-settings
+      # specs erase throwaway accounts from the same one IP, so repeat runs on a
+      # stack would hit it. Refused under production/staging, like the caps above;
+      # service-gateway-limits deliberately omits it.
+      GATEWAY_ERASURE_IP_RATE_LIMIT_MAX: '1000'
 
   # Second gateway with production-default limits, for the limiter spec only
   # (e2e/tests/gateway-limits). Same image and source as service-gateway, but:

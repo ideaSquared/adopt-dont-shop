@@ -503,7 +503,7 @@ describe('registerSubscribers', () => {
     ]);
   });
 
-  it('also subscribes to the verification, password-reset and staff invitation events when authEmail is configured', async () => {
+  it('also subscribes to the verification, password-reset, staff invitation and email-change events when authEmail is configured', async () => {
     const { nats, consumersAdded } = makeNats();
 
     const subs = registerSubscribers({
@@ -513,17 +513,20 @@ describe('registerSubscribers', () => {
       authEmail: {
         frontendUrl: 'http://localhost:3000',
         rescueAppUrl: 'http://localhost:3002',
+        adminAppUrl: 'http://localhost:3001',
         fromEmail: 'noreply@adoptdontshop.com',
         fromName: "Adopt Don't Shop",
       },
     });
     await flush();
 
-    expect(subs).toHaveLength(20);
+    expect(subs).toHaveLength(22);
     const subjects = consumersAdded.map(c => c.filter_subject);
     expect(subjects).toContain('auth.userRegistered');
     expect(subjects).toContain('auth.passwordResetRequested');
     expect(subjects).toContain('rescue.staffInvited');
+    expect(subjects).toContain('auth.emailChangeRequested');
+    expect(subjects).toContain('auth.emailChangeConflict');
   });
 
   it('names each durable consumer with the shared notifications-workers prefix', async () => {

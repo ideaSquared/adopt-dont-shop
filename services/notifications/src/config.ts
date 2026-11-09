@@ -59,6 +59,10 @@ export type NotificationsConfig = {
   // Rescue app origin used to build the staff invitation accept link
   // (RESCUE_FRONTEND_URL, as documented in docs/env-reference.md).
   rescueAppUrl: string;
+  // Admin app origin used to build password-reset links for admin-side users
+  // (ADMIN_FRONTEND_URL, as documented in docs/env-reference.md). Falls back
+  // to frontendUrl in production when unset; see loadAdminAppUrl.
+  adminAppUrl: string;
   // Email provider selection — Phase 7 round-out. ADS-549 rule: in
   // production an unknown / unconfigured provider crashes boot rather
   // than silently downgrading to console.
@@ -97,6 +101,7 @@ const DEFAULT_SCHEMA = 'notifications';
 const DEFAULT_NATS_URL = 'nats://nats:4222';
 const DEFAULT_FRONTEND_URL = 'http://localhost:3000';
 const DEFAULT_RESCUE_FRONTEND_URL = 'http://localhost:3002';
+const DEFAULT_ADMIN_FRONTEND_URL = 'http://localhost:3001';
 
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): NotificationsConfig => {
   const port = parsePort(env.NOTIFICATIONS_PORT, DEFAULT_PORT, 'NOTIFICATIONS_PORT');
@@ -123,6 +128,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): NotificationsC
     natsUrl: env.NATS_URL?.trim() || DEFAULT_NATS_URL,
     frontendUrl: loadFrontendUrl(env),
     rescueAppUrl: loadRescueAppUrl(env),
+    adminAppUrl: loadAdminAppUrl(env),
     emailProvider: loadEmailProviderConfig(env),
     emailWorkerEnabled: env.EMAIL_WORKER_ENABLED?.trim() !== 'false',
     emailChannelEnabled: env.EMAIL_CHANNEL_ENABLED?.trim() !== 'false',
@@ -158,6 +164,22 @@ const loadRescueAppUrl = (env: NodeJS.ProcessEnv): string => {
     );
   }
   return DEFAULT_RESCUE_FRONTEND_URL;
+};
+
+// Unlike FRONTEND_URL and RESCUE_FRONTEND_URL this is not required in
+// production: deployments that predate it have no ADMIN_FRONTEND_URL set, and
+// refusing to boot would take their notifications service down on the next
+// deploy. Falling back to FRONTEND_URL keeps their admin reset links exactly
+// as they were (on the client app) until the variable is set.
+const loadAdminAppUrl = (env: NodeJS.ProcessEnv): string => {
+  const configured = env.ADMIN_FRONTEND_URL?.trim();
+  if (configured) {
+    return configured;
+  }
+  if ((env.NODE_ENV?.trim() ?? '').toLowerCase() === 'production') {
+    return loadFrontendUrl(env);
+  }
+  return DEFAULT_ADMIN_FRONTEND_URL;
 };
 
 const loadPushProviderConfig = (env: NodeJS.ProcessEnv): PushProviderConfig => {

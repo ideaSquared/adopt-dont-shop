@@ -76,6 +76,7 @@ x-dev-volumes: &dev-volumes
   - /app/packages/eslint-config-node/node_modules
   - /app/packages/eslint-config-react/node_modules
   - /app/packages/events/node_modules
+  - /app/packages/lib.account/node_modules
   - /app/packages/lib.analytics/node_modules
   - /app/packages/lib.api/node_modules
   - /app/packages/lib.applications/node_modules

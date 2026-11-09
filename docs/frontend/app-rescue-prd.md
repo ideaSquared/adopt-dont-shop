@@ -67,7 +67,7 @@ _Status: Shipped (roadmap items noted inline)._
 - Configure adoption policies via `AdoptionPolicyForm`
 - Manage rescue contact information via `RescueProfileForm`
 - Staff management via `StaffManagement` (add/remove/edit/invite)
-- Notification preferences via `NotificationPreferencesForm`
+- Notification preferences via the shared `AccountSettings` tabs (`lib.account`) on `/user-settings`
 
 _Out of scope / roadmap:_ Public rescue profile editor, in-app role/permission assignment UI (permissions managed via backend RBAC), volunteer-specific UX, message templates.
 
@@ -77,7 +77,7 @@ _Status: Shipped (roadmap items noted inline)._
 
 - Direct messaging with adopters via `lib.chat` (`ConversationList` + `ChatWindow`)
 - Conversation filter: active / resolved
-- Email/push/SMS preferences toggleable via `NotificationPreferencesForm` (backend handles delivery)
+- Email/push/SMS preferences toggleable via `NotificationPreferencesForm` from `lib.account` (backend handles delivery)
 
 _Out of scope / roadmap:_ Internal staff chat, message templates library, searchable conversation archive (search within messages), announcements broadcast.
 

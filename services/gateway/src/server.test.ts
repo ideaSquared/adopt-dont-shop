@@ -37,6 +37,7 @@ const baseConfig: GatewayConfig = {
   // Rate-limit: no Redis in tests, low cap so we can hit 429 quickly.
   rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },
   enquiryRateLimit: { ipMax: 200, userMax: 20 },
+  erasureRateLimit: { ipMax: 5 },
   cors: { origins: ['http://localhost:3000'] },
   // ADS-1325: maintenance-mode file check defaults to "off" — no test in
   // this suite creates the file, so fileExists() (real node:fs.existsSync)
@@ -793,9 +794,17 @@ describe('createServer — GDPR erasure route per-principal rate limit (ADS-1421
           principal: { userId: req.accessToken, roles: [1], permissions: [], rescueId: '' },
         }),
       verifyCredentials: () => Promise.resolve({ verified: true, twoFactorRequired: false }),
+      checkSelfErasure: () => Promise.resolve({ allowed: true, blockedReason: '' }),
       getMe: () => Promise.resolve({ user: { email: 'erased@example.com' } }),
       close: () => undefined,
     } as unknown as Parameters<typeof createServer>[0]['authClient'];
+  }
+
+  function makeErasureRescueClient(): Parameters<typeof createServer>[0]['rescueClient'] {
+    return {
+      checkSelfErasure: () => Promise.resolve({ allowed: true, blockedReason: '' }),
+      close: () => undefined,
+    } as unknown as Parameters<typeof createServer>[0]['rescueClient'];
   }
 
   function makeErasureNats(): import('nats').NatsConnection {
@@ -814,6 +823,7 @@ describe('createServer — GDPR erasure route per-principal rate limit (ADS-1421
       config: { ...baseConfig, trustProxy: true },
       logger: quietLogger,
       authClient: makeErasureAuthClient(),
+      rescueClient: makeErasureRescueClient(),
       nats: makeErasureNats(),
     });
   });
@@ -833,6 +843,39 @@ describe('createServer — GDPR erasure route per-principal rate limit (ADS-1421
       },
       payload: { password: 'hunter2' },
     });
+
+  it('keeps the strict per-IP backstop of 5 an hour by default', async () => {
+    // Different principals, so only the per-IP cap can trip.
+    for (let i = 0; i < 5; i++) {
+      const res = await postErasure(`ip-user-${i}`, '50.0.0.1');
+      expect(res.statusCode).toBe(202);
+    }
+    const sixth = await postErasure('ip-user-5', '50.0.0.1');
+    expect(sixth.statusCode).toBe(429);
+  });
+
+  it('lifts the per-IP backstop when config.erasureRateLimit.ipMax is raised (e2e stack)', async () => {
+    const lifted = await createServer({
+      config: { ...baseConfig, trustProxy: true, erasureRateLimit: { ipMax: 100 } },
+      logger: quietLogger,
+      authClient: makeErasureAuthClient(),
+      rescueClient: makeErasureRescueClient(),
+      nats: makeErasureNats(),
+    });
+    try {
+      for (let i = 0; i < 6; i++) {
+        const res = await lifted.inject({
+          method: 'POST',
+          url: '/api/v1/users/me/erasure-request',
+          headers: { authorization: `Bearer e2e-user-${i}`, 'x-forwarded-for': '60.0.0.1' },
+          payload: { password: 'hunter2' },
+        });
+        expect(res.statusCode).toBe(202);
+      }
+    } finally {
+      await lifted.close();
+    }
+  });
 
   it('enforces the per-principal cap even when the client forges a rotating x-user-id from a rotating IP', async () => {
     // Same real principal every time (same bearer token), but each request

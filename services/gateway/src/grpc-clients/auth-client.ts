@@ -19,6 +19,8 @@ import {
   type ChangePasswordResponse,
   type VerifyCredentialsRequest,
   type VerifyCredentialsResponse,
+  type AuthCheckSelfErasureRequest,
+  type AuthCheckSelfErasureResponse,
   type DisableTwoFactorRequest,
   type DisableTwoFactorResponse,
   type EnableTwoFactorRequest,
@@ -55,6 +57,10 @@ import {
   type ResetPasswordResponse,
   type UpdateAccountRequest,
   type UpdateAccountResponse,
+  type RequestEmailChangeRequest,
+  type RequestEmailChangeResponse,
+  type ConfirmEmailChangeRequest,
+  type ConfirmEmailChangeResponse,
   type ValidateTokenRequest,
   type ValidateTokenResponse,
   type VerifyEmailRequest,
@@ -167,6 +173,10 @@ export type AuthClient = {
     req: VerifyCredentialsRequest,
     metadata: Metadata
   ): Promise<VerifyCredentialsResponse>;
+  checkSelfErasure(
+    req: AuthCheckSelfErasureRequest,
+    metadata: Metadata
+  ): Promise<AuthCheckSelfErasureResponse>;
   setupTwoFactor(req: SetupTwoFactorRequest, metadata: Metadata): Promise<SetupTwoFactorResponse>;
   enableTwoFactor(
     req: EnableTwoFactorRequest,
@@ -181,6 +191,14 @@ export type AuthClient = {
     metadata: Metadata
   ): Promise<RegenerateBackupCodesResponse>;
   updateAccount(req: UpdateAccountRequest, metadata: Metadata): Promise<UpdateAccountResponse>;
+  requestEmailChange(
+    req: RequestEmailChangeRequest,
+    metadata: Metadata
+  ): Promise<RequestEmailChangeResponse>;
+  confirmEmailChange(
+    req: ConfirmEmailChangeRequest,
+    metadata: Metadata
+  ): Promise<ConfirmEmailChangeResponse>;
   listSessions(req: ListSessionsRequest, metadata: Metadata): Promise<ListSessionsResponse>;
   revokeSession(req: RevokeSessionRequest, metadata: Metadata): Promise<RevokeSessionResponse>;
   adminListSessions(
@@ -386,6 +404,10 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     regenerateBackupCodes: (req, metadata) =>
       callUnary(stub.regenerateBackupCodes, req, metadata, false),
     updateAccount: (req, metadata) => callUnary(stub.updateAccount, req, metadata, false),
+    // NON-idempotent: the step-up check consumes a 2FA code's replay
+    // watermark, and the confirm consumes its single-use token.
+    requestEmailChange: (req, metadata) => callUnary(stub.requestEmailChange, req, metadata, false),
+    confirmEmailChange: (req, metadata) => callUnary(stub.confirmEmailChange, req, metadata, false),
     revokeSession: (req, metadata) => callUnary(stub.revokeSession, req, metadata, false),
     adminRevokeSession: (req, metadata) => callUnary(stub.adminRevokeSession, req, metadata, false),
     adminRevokeAllUserSessions: (req, metadata) =>
@@ -417,6 +439,7 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     // ── Idempotent (reads / validation) ─────────────────────────────
     validateToken: (req, metadata) => callUnary(stub.validateToken, req, metadata, true),
     getMe: (req, metadata) => callUnary(stub.getMe, req, metadata, true),
+    checkSelfErasure: (req, metadata) => callUnary(stub.checkSelfErasure, req, metadata, true),
     listSessions: (req, metadata) => callUnary(stub.listSessions, req, metadata, true),
     adminListSessions: (req, metadata) => callUnary(stub.adminListSessions, req, metadata, true),
     listIpRules: (req, metadata) => callUnary(stub.listIpRules, req, metadata, true),

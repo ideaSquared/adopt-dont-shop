@@ -1,6 +1,6 @@
 // Test-only token-read seam (ADS-871).
 //
-// Password-reset / email-verification / staff-invitation tokens are normally
+// Password-reset / email-verification / email-change / staff-invitation tokens are normally
 // only delivered by email, so the suite can't read them to drive the FULL
 // auth round-trips. The gateway exposes a test-gated peek endpoint
 // (services/gateway/src/routes/test-token-peek.ts) — OFF unless
@@ -17,6 +17,10 @@ type AuthTokens = {
   verificationTokenExpiresAt: string | null;
   resetToken: string | null;
   resetTokenExpiration: string | null;
+  // A pending email change (POST /api/v1/users/me/email-change). Looked up by
+  // the account's CURRENT email: the address only moves once confirmed.
+  emailChangeToken: string | null;
+  emailChangeTokenExpiresAt: string | null;
 };
 
 async function withAnonApi<T>(fn: (ctx: APIRequestContext) => Promise<T>): Promise<T> {
@@ -95,5 +99,27 @@ export async function peekInvitationToken(
     }
     const body = (await res.json()) as { token?: string };
     return body.token ?? null;
+  });
+}
+
+/**
+ * Read a fresh token for the pending admin-console invitation of an email
+ * (POST /api/v1/admin/users with sendInvitation: false), from the
+ * test-token-peek seam. POST /api/v1/auth/redeem-invitation accepts it.
+ * Throws if no pending invitation exists.
+ */
+export async function peekUserInvitationToken(email: string): Promise<string> {
+  return withAnonApi(async ctx => {
+    const res = await ctx.get('/api/v1/test/user-invitation-token', { params: { email } });
+    if (!res.ok()) {
+      throw new Error(
+        `token-peek user-invitation-token failed for ${email}: ${res.status()} ${(await res.text()).slice(0, 200)}`
+      );
+    }
+    const body = (await res.json()) as { token?: string };
+    if (!body.token) {
+      throw new Error(`token-peek user-invitation-token returned no token for ${email}`);
+    }
+    return body.token;
   });
 }

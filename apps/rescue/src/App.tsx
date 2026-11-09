@@ -21,6 +21,12 @@ const Communication = lazy(() => import('./pages/Communication'));
 const FosterCoordination = lazy(() => import('./pages/FosterCoordination'));
 const AcceptInvitation = lazy(() => import('./pages/AcceptInvitation'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
+const ForgotPasswordPage = lazy(() =>
+  import('./pages/ForgotPasswordPage').then(m => ({ default: m.ForgotPasswordPage }))
+);
+const ResetPasswordPage = lazy(() =>
+  import('./pages/ResetPasswordPage').then(m => ({ default: m.ResetPasswordPage }))
+);
 const Analytics = lazy(() => import('./pages/Analytics'));
 // Reports (ADS-105)
 const Reports = lazy(() => import('./pages/Reports'));
@@ -59,6 +65,8 @@ function App() {
             <Route path="/accept-invitation" element={<AcceptInvitation />} />
             <Route path="/register-rescue" element={<RegisterRescue />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </Suspense>
@@ -76,6 +84,8 @@ function App() {
           <Route path="/accept-invitation" element={<AcceptInvitation />} />
           <Route path="/register-rescue" element={<RegisterRescue />} />
           <Route path="/login" element={<Navigate to="/" replace />} />
+          {/* A reset link opened while signed in still resets the password. */}
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           <Route
             path="*"

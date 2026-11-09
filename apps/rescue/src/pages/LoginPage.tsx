@@ -39,7 +39,8 @@ const LoginPage = () => {
     >
       <LoginForm
         onSuccess={handleSuccess}
-        showForgotPassword={false}
+        showForgotPassword={true}
+        onForgotPassword={() => navigate('/forgot-password')}
         helperText={
           <div className={styles.helperText}>
             <strong>Rescue Staff Only:</strong> This app is for rescue organization staff. <br />

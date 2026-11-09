@@ -746,6 +746,19 @@ export interface VerifyCredentialsResponse {
   twoFactorRequired: boolean;
 }
 
+export interface CheckSelfErasureRequest {
+}
+
+export interface CheckSelfErasureResponse {
+  /** True when nothing in service.auth blocks the caller's self-erasure. */
+  allowed: boolean;
+  /**
+   * Machine-readable reason when allowed is false ("last_super_admin");
+   * empty otherwise.
+   */
+  blockedReason: string;
+}
+
 export interface SetupTwoFactorRequest {
 }
 
@@ -825,6 +838,34 @@ export interface UpdateAccountRequest {
 
 export interface UpdateAccountResponse {
   user?: User | undefined;
+}
+
+export interface RequestEmailChangeRequest {
+  /** The address to move the account to. Trimmed and lower-cased server-side. */
+  newEmail: string;
+  /** Step-up re-authentication, same rules as VerifyCredentialsRequest. */
+  password: string;
+  twoFactorToken?: string | undefined;
+}
+
+export interface RequestEmailChangeResponse {
+  /**
+   * True when the credentials checked out and the request was accepted —
+   * including when the address already belongs to another account.
+   */
+  verified: boolean;
+  /**
+   * Set when the password was correct but the account has 2FA enabled and no
+   * two_factor_token was supplied. verified is false in this case.
+   */
+  twoFactorRequired: boolean;
+}
+
+export interface ConfirmEmailChangeRequest {
+  token: string;
+}
+
+export interface ConfirmEmailChangeResponse {
 }
 
 export interface Session {
@@ -4798,6 +4839,129 @@ export const VerifyCredentialsResponse: MessageFns<VerifyCredentialsResponse> = 
   },
 };
 
+function createBaseCheckSelfErasureRequest(): CheckSelfErasureRequest {
+  return {};
+}
+
+export const CheckSelfErasureRequest: MessageFns<CheckSelfErasureRequest> = {
+  encode(_: CheckSelfErasureRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CheckSelfErasureRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCheckSelfErasureRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): CheckSelfErasureRequest {
+    return {};
+  },
+
+  toJSON(_: CheckSelfErasureRequest): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CheckSelfErasureRequest>, I>>(base?: I): CheckSelfErasureRequest {
+    return CheckSelfErasureRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CheckSelfErasureRequest>, I>>(_: I): CheckSelfErasureRequest {
+    const message = createBaseCheckSelfErasureRequest();
+    return message;
+  },
+};
+
+function createBaseCheckSelfErasureResponse(): CheckSelfErasureResponse {
+  return { allowed: false, blockedReason: "" };
+}
+
+export const CheckSelfErasureResponse: MessageFns<CheckSelfErasureResponse> = {
+  encode(message: CheckSelfErasureResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.allowed !== false) {
+      writer.uint32(8).bool(message.allowed);
+    }
+    if (message.blockedReason !== "") {
+      writer.uint32(18).string(message.blockedReason);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CheckSelfErasureResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCheckSelfErasureResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.allowed = reader.bool();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.blockedReason = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CheckSelfErasureResponse {
+    return {
+      allowed: isSet(object.allowed) ? globalThis.Boolean(object.allowed) : false,
+      blockedReason: isSet(object.blockedReason)
+        ? globalThis.String(object.blockedReason)
+        : isSet(object.blocked_reason)
+        ? globalThis.String(object.blocked_reason)
+        : "",
+    };
+  },
+
+  toJSON(message: CheckSelfErasureResponse): unknown {
+    const obj: any = {};
+    if (message.allowed !== false) {
+      obj.allowed = message.allowed;
+    }
+    if (message.blockedReason !== "") {
+      obj.blockedReason = message.blockedReason;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CheckSelfErasureResponse>, I>>(base?: I): CheckSelfErasureResponse {
+    return CheckSelfErasureResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CheckSelfErasureResponse>, I>>(object: I): CheckSelfErasureResponse {
+    const message = createBaseCheckSelfErasureResponse();
+    message.allowed = object.allowed ?? false;
+    message.blockedReason = object.blockedReason ?? "";
+    return message;
+  },
+};
+
 function createBaseSetupTwoFactorRequest(): SetupTwoFactorRequest {
   return {};
 }
@@ -5627,6 +5791,287 @@ export const UpdateAccountResponse: MessageFns<UpdateAccountResponse> = {
   fromPartial<I extends Exact<DeepPartial<UpdateAccountResponse>, I>>(object: I): UpdateAccountResponse {
     const message = createBaseUpdateAccountResponse();
     message.user = (object.user !== undefined && object.user !== null) ? User.fromPartial(object.user) : undefined;
+    return message;
+  },
+};
+
+function createBaseRequestEmailChangeRequest(): RequestEmailChangeRequest {
+  return { newEmail: "", password: "", twoFactorToken: undefined };
+}
+
+export const RequestEmailChangeRequest: MessageFns<RequestEmailChangeRequest> = {
+  encode(message: RequestEmailChangeRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.newEmail !== "") {
+      writer.uint32(10).string(message.newEmail);
+    }
+    if (message.password !== "") {
+      writer.uint32(18).string(message.password);
+    }
+    if (message.twoFactorToken !== undefined) {
+      writer.uint32(26).string(message.twoFactorToken);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RequestEmailChangeRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRequestEmailChangeRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.newEmail = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.password = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.twoFactorToken = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RequestEmailChangeRequest {
+    return {
+      newEmail: isSet(object.newEmail)
+        ? globalThis.String(object.newEmail)
+        : isSet(object.new_email)
+        ? globalThis.String(object.new_email)
+        : "",
+      password: isSet(object.password) ? globalThis.String(object.password) : "",
+      twoFactorToken: isSet(object.twoFactorToken)
+        ? globalThis.String(object.twoFactorToken)
+        : isSet(object.two_factor_token)
+        ? globalThis.String(object.two_factor_token)
+        : undefined,
+    };
+  },
+
+  toJSON(message: RequestEmailChangeRequest): unknown {
+    const obj: any = {};
+    if (message.newEmail !== "") {
+      obj.newEmail = message.newEmail;
+    }
+    if (message.password !== "") {
+      obj.password = message.password;
+    }
+    if (message.twoFactorToken !== undefined) {
+      obj.twoFactorToken = message.twoFactorToken;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RequestEmailChangeRequest>, I>>(base?: I): RequestEmailChangeRequest {
+    return RequestEmailChangeRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RequestEmailChangeRequest>, I>>(object: I): RequestEmailChangeRequest {
+    const message = createBaseRequestEmailChangeRequest();
+    message.newEmail = object.newEmail ?? "";
+    message.password = object.password ?? "";
+    message.twoFactorToken = object.twoFactorToken ?? undefined;
+    return message;
+  },
+};
+
+function createBaseRequestEmailChangeResponse(): RequestEmailChangeResponse {
+  return { verified: false, twoFactorRequired: false };
+}
+
+export const RequestEmailChangeResponse: MessageFns<RequestEmailChangeResponse> = {
+  encode(message: RequestEmailChangeResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.verified !== false) {
+      writer.uint32(8).bool(message.verified);
+    }
+    if (message.twoFactorRequired !== false) {
+      writer.uint32(16).bool(message.twoFactorRequired);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RequestEmailChangeResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRequestEmailChangeResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.verified = reader.bool();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.twoFactorRequired = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RequestEmailChangeResponse {
+    return {
+      verified: isSet(object.verified) ? globalThis.Boolean(object.verified) : false,
+      twoFactorRequired: isSet(object.twoFactorRequired)
+        ? globalThis.Boolean(object.twoFactorRequired)
+        : isSet(object.two_factor_required)
+        ? globalThis.Boolean(object.two_factor_required)
+        : false,
+    };
+  },
+
+  toJSON(message: RequestEmailChangeResponse): unknown {
+    const obj: any = {};
+    if (message.verified !== false) {
+      obj.verified = message.verified;
+    }
+    if (message.twoFactorRequired !== false) {
+      obj.twoFactorRequired = message.twoFactorRequired;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RequestEmailChangeResponse>, I>>(base?: I): RequestEmailChangeResponse {
+    return RequestEmailChangeResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RequestEmailChangeResponse>, I>>(object: I): RequestEmailChangeResponse {
+    const message = createBaseRequestEmailChangeResponse();
+    message.verified = object.verified ?? false;
+    message.twoFactorRequired = object.twoFactorRequired ?? false;
+    return message;
+  },
+};
+
+function createBaseConfirmEmailChangeRequest(): ConfirmEmailChangeRequest {
+  return { token: "" };
+}
+
+export const ConfirmEmailChangeRequest: MessageFns<ConfirmEmailChangeRequest> = {
+  encode(message: ConfirmEmailChangeRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.token !== "") {
+      writer.uint32(10).string(message.token);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ConfirmEmailChangeRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseConfirmEmailChangeRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.token = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ConfirmEmailChangeRequest {
+    return { token: isSet(object.token) ? globalThis.String(object.token) : "" };
+  },
+
+  toJSON(message: ConfirmEmailChangeRequest): unknown {
+    const obj: any = {};
+    if (message.token !== "") {
+      obj.token = message.token;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ConfirmEmailChangeRequest>, I>>(base?: I): ConfirmEmailChangeRequest {
+    return ConfirmEmailChangeRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ConfirmEmailChangeRequest>, I>>(object: I): ConfirmEmailChangeRequest {
+    const message = createBaseConfirmEmailChangeRequest();
+    message.token = object.token ?? "";
+    return message;
+  },
+};
+
+function createBaseConfirmEmailChangeResponse(): ConfirmEmailChangeResponse {
+  return {};
+}
+
+export const ConfirmEmailChangeResponse: MessageFns<ConfirmEmailChangeResponse> = {
+  encode(_: ConfirmEmailChangeResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ConfirmEmailChangeResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseConfirmEmailChangeResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): ConfirmEmailChangeResponse {
+    return {};
+  },
+
+  toJSON(_: ConfirmEmailChangeResponse): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ConfirmEmailChangeResponse>, I>>(base?: I): ConfirmEmailChangeResponse {
+    return ConfirmEmailChangeResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ConfirmEmailChangeResponse>, I>>(_: I): ConfirmEmailChangeResponse {
+    const message = createBaseConfirmEmailChangeResponse();
     return message;
   },
 };
@@ -13776,6 +14221,25 @@ export const AuthServiceService = {
       Buffer.from(VerifyCredentialsResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): VerifyCredentialsResponse => VerifyCredentialsResponse.decode(value),
   },
+  /**
+   * Self-service erasure pre-check. Reports whether the calling principal may
+   * erase their own account. Blocked (allowed=false,
+   * blocked_reason="last_super_admin") when the caller is the last active,
+   * non-deleted super admin — erasing them would leave the platform with no
+   * super admin. Self-scoped: there is no user_id field; requires the
+   * x-user-id metadata. Read-only.
+   */
+  checkSelfErasure: {
+    path: "/adopt_dont_shop.auth.v1.AuthService/CheckSelfErasure" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: CheckSelfErasureRequest): Buffer =>
+      Buffer.from(CheckSelfErasureRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CheckSelfErasureRequest => CheckSelfErasureRequest.decode(value),
+    responseSerialize: (value: CheckSelfErasureResponse): Buffer =>
+      Buffer.from(CheckSelfErasureResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CheckSelfErasureResponse => CheckSelfErasureResponse.decode(value),
+  },
   setupTwoFactor: {
     path: "/adopt_dont_shop.auth.v1.AuthService/SetupTwoFactor" as const,
     requestStream: false as const,
@@ -13830,7 +14294,8 @@ export const AuthServiceService = {
   /**
    * Authenticated profile edit (first_name, last_name, phone_number,
    * bio, timezone, language, country, city, address). Email changes go
-   * through a dedicated re-verification flow (deferred).
+   * through the re-verification flow below (RequestEmailChange +
+   * ConfirmEmailChange).
    */
   updateAccount: {
     path: "/adopt_dont_shop.auth.v1.AuthService/UpdateAccount" as const,
@@ -13841,6 +14306,46 @@ export const AuthServiceService = {
     responseSerialize: (value: UpdateAccountResponse): Buffer =>
       Buffer.from(UpdateAccountResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): UpdateAccountResponse => UpdateAccountResponse.decode(value),
+  },
+  /**
+   * Self-scoped start of an email change. Re-verifies the caller's password
+   * (and a current TOTP for 2FA accounts) the same way VerifyCredentials
+   * does, then stores the new address as pending and mails a single-use
+   * confirmation link to it (24h). The account email does not change until
+   * ConfirmEmailChange. An address that already belongs to another account
+   * gets the SAME response as a free one (no enumeration); nothing is stored
+   * and that address is told instead. INVALID_ARGUMENT "invalid_email" /
+   * "email_unchanged" for a malformed or identical address. Requires the
+   * x-user-id metadata.
+   */
+  requestEmailChange: {
+    path: "/adopt_dont_shop.auth.v1.AuthService/RequestEmailChange" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: RequestEmailChangeRequest): Buffer =>
+      Buffer.from(RequestEmailChangeRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): RequestEmailChangeRequest => RequestEmailChangeRequest.decode(value),
+    responseSerialize: (value: RequestEmailChangeResponse): Buffer =>
+      Buffer.from(RequestEmailChangeResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): RequestEmailChangeResponse => RequestEmailChangeResponse.decode(value),
+  },
+  /**
+   * Public: the token mailed by RequestEmailChange is the credential. Swaps
+   * the account email to the pending address, marks it verified and ends
+   * every session. INVALID_ARGUMENT "invalid_or_expired_token" for an
+   * unknown, used or expired token; ALREADY_EXISTS "email_in_use" when the
+   * address was taken by another account in the meantime.
+   */
+  confirmEmailChange: {
+    path: "/adopt_dont_shop.auth.v1.AuthService/ConfirmEmailChange" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ConfirmEmailChangeRequest): Buffer =>
+      Buffer.from(ConfirmEmailChangeRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ConfirmEmailChangeRequest => ConfirmEmailChangeRequest.decode(value),
+    responseSerialize: (value: ConfirmEmailChangeResponse): Buffer =>
+      Buffer.from(ConfirmEmailChangeResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ConfirmEmailChangeResponse => ConfirmEmailChangeResponse.decode(value),
   },
   /**
    * List active sessions for the calling principal. Always self-scoped
@@ -14557,6 +15062,15 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
    * Requires the x-user-id metadata; a missing password is INVALID_ARGUMENT.
    */
   verifyCredentials: handleUnaryCall<VerifyCredentialsRequest, VerifyCredentialsResponse>;
+  /**
+   * Self-service erasure pre-check. Reports whether the calling principal may
+   * erase their own account. Blocked (allowed=false,
+   * blocked_reason="last_super_admin") when the caller is the last active,
+   * non-deleted super admin — erasing them would leave the platform with no
+   * super admin. Self-scoped: there is no user_id field; requires the
+   * x-user-id metadata. Read-only.
+   */
+  checkSelfErasure: handleUnaryCall<CheckSelfErasureRequest, CheckSelfErasureResponse>;
   setupTwoFactor: handleUnaryCall<SetupTwoFactorRequest, SetupTwoFactorResponse>;
   enableTwoFactor: handleUnaryCall<EnableTwoFactorRequest, EnableTwoFactorResponse>;
   disableTwoFactor: handleUnaryCall<DisableTwoFactorRequest, DisableTwoFactorResponse>;
@@ -14571,9 +15085,30 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
   /**
    * Authenticated profile edit (first_name, last_name, phone_number,
    * bio, timezone, language, country, city, address). Email changes go
-   * through a dedicated re-verification flow (deferred).
+   * through the re-verification flow below (RequestEmailChange +
+   * ConfirmEmailChange).
    */
   updateAccount: handleUnaryCall<UpdateAccountRequest, UpdateAccountResponse>;
+  /**
+   * Self-scoped start of an email change. Re-verifies the caller's password
+   * (and a current TOTP for 2FA accounts) the same way VerifyCredentials
+   * does, then stores the new address as pending and mails a single-use
+   * confirmation link to it (24h). The account email does not change until
+   * ConfirmEmailChange. An address that already belongs to another account
+   * gets the SAME response as a free one (no enumeration); nothing is stored
+   * and that address is told instead. INVALID_ARGUMENT "invalid_email" /
+   * "email_unchanged" for a malformed or identical address. Requires the
+   * x-user-id metadata.
+   */
+  requestEmailChange: handleUnaryCall<RequestEmailChangeRequest, RequestEmailChangeResponse>;
+  /**
+   * Public: the token mailed by RequestEmailChange is the credential. Swaps
+   * the account email to the pending address, marks it verified and ends
+   * every session. INVALID_ARGUMENT "invalid_or_expired_token" for an
+   * unknown, used or expired token; ALREADY_EXISTS "email_in_use" when the
+   * address was taken by another account in the meantime.
+   */
+  confirmEmailChange: handleUnaryCall<ConfirmEmailChangeRequest, ConfirmEmailChangeResponse>;
   /**
    * List active sessions for the calling principal. Always self-scoped
    * — admins see their own sessions, not anyone else's. Returns the
@@ -15128,6 +15663,29 @@ export interface AuthServiceClient extends Client {
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: VerifyCredentialsResponse) => void,
   ): ClientUnaryCall;
+  /**
+   * Self-service erasure pre-check. Reports whether the calling principal may
+   * erase their own account. Blocked (allowed=false,
+   * blocked_reason="last_super_admin") when the caller is the last active,
+   * non-deleted super admin — erasing them would leave the platform with no
+   * super admin. Self-scoped: there is no user_id field; requires the
+   * x-user-id metadata. Read-only.
+   */
+  checkSelfErasure(
+    request: CheckSelfErasureRequest,
+    callback: (error: ServiceError | null, response: CheckSelfErasureResponse) => void,
+  ): ClientUnaryCall;
+  checkSelfErasure(
+    request: CheckSelfErasureRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: CheckSelfErasureResponse) => void,
+  ): ClientUnaryCall;
+  checkSelfErasure(
+    request: CheckSelfErasureRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: CheckSelfErasureResponse) => void,
+  ): ClientUnaryCall;
   setupTwoFactor(
     request: SetupTwoFactorRequest,
     callback: (error: ServiceError | null, response: SetupTwoFactorResponse) => void,
@@ -15198,7 +15756,8 @@ export interface AuthServiceClient extends Client {
   /**
    * Authenticated profile edit (first_name, last_name, phone_number,
    * bio, timezone, language, country, city, address). Email changes go
-   * through a dedicated re-verification flow (deferred).
+   * through the re-verification flow below (RequestEmailChange +
+   * ConfirmEmailChange).
    */
   updateAccount(
     request: UpdateAccountRequest,
@@ -15214,6 +15773,54 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: UpdateAccountResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Self-scoped start of an email change. Re-verifies the caller's password
+   * (and a current TOTP for 2FA accounts) the same way VerifyCredentials
+   * does, then stores the new address as pending and mails a single-use
+   * confirmation link to it (24h). The account email does not change until
+   * ConfirmEmailChange. An address that already belongs to another account
+   * gets the SAME response as a free one (no enumeration); nothing is stored
+   * and that address is told instead. INVALID_ARGUMENT "invalid_email" /
+   * "email_unchanged" for a malformed or identical address. Requires the
+   * x-user-id metadata.
+   */
+  requestEmailChange(
+    request: RequestEmailChangeRequest,
+    callback: (error: ServiceError | null, response: RequestEmailChangeResponse) => void,
+  ): ClientUnaryCall;
+  requestEmailChange(
+    request: RequestEmailChangeRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: RequestEmailChangeResponse) => void,
+  ): ClientUnaryCall;
+  requestEmailChange(
+    request: RequestEmailChangeRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: RequestEmailChangeResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Public: the token mailed by RequestEmailChange is the credential. Swaps
+   * the account email to the pending address, marks it verified and ends
+   * every session. INVALID_ARGUMENT "invalid_or_expired_token" for an
+   * unknown, used or expired token; ALREADY_EXISTS "email_in_use" when the
+   * address was taken by another account in the meantime.
+   */
+  confirmEmailChange(
+    request: ConfirmEmailChangeRequest,
+    callback: (error: ServiceError | null, response: ConfirmEmailChangeResponse) => void,
+  ): ClientUnaryCall;
+  confirmEmailChange(
+    request: ConfirmEmailChangeRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ConfirmEmailChangeResponse) => void,
+  ): ClientUnaryCall;
+  confirmEmailChange(
+    request: ConfirmEmailChangeRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ConfirmEmailChangeResponse) => void,
   ): ClientUnaryCall;
   /**
    * List active sessions for the calling principal. Always self-scoped

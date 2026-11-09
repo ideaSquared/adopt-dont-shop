@@ -14,6 +14,7 @@ export function getLibraryAliases(appDir: string, mode: string) {
 
   const libraryAliases = {
     '@adopt-dont-shop/lib.components': resolve(appDir, '../../packages/lib.components/src'),
+    '@adopt-dont-shop/lib.account': resolve(appDir, '../../packages/lib.account/src'),
     '@adopt-dont-shop/lib.analytics': resolve(appDir, '../../packages/lib.analytics/src'),
     '@adopt-dont-shop/lib.api': resolve(appDir, '../../packages/lib.api/src'),
     '@adopt-dont-shop/lib.applications': resolve(appDir, '../../packages/lib.applications/src'),

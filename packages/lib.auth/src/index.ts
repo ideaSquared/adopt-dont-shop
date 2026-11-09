@@ -35,6 +35,11 @@ export type { RegisterFormProps } from './components/RegisterForm';
 export { SocialSignInButtons } from './components/SocialSignInButtons';
 export type { SocialSignInButtonsProps, SocialProvider } from './components/SocialSignInButtons';
 export { TwoFactorSettings } from './components/TwoFactorSettings';
+export { ForgotPasswordForm, ResetPasswordForm } from './components/PasswordRecoveryForms';
+export type {
+  ForgotPasswordFormProps,
+  ResetPasswordFormProps,
+} from './components/PasswordRecoveryForms';
 export type { TwoFactorSettingsProps } from './components/TwoFactorSettings';
 export { BackupCodesReveal } from './components/BackupCodesReveal';
 export type { BackupCodesRevealProps } from './components/BackupCodesReveal';

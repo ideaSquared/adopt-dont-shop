@@ -62,7 +62,7 @@ export const CONSUMER_REGISTRY: RegistryEntry[] = [
         service: 'service.notifications',
         file: 'services/notifications/src/nats/subscribers.ts',
         description:
-          'Subscribes to auth.userLoggedIn (security notification), auth.roleAssigned (role change notification), auth.userRegistered (verification email) and auth.passwordResetRequested (password reset email).',
+          'Subscribes to auth.userLoggedIn (security notification), auth.roleAssigned (role change notification), auth.userRegistered (verification email), auth.passwordResetRequested (password reset email), auth.emailChangeRequested (confirmation link to the new address and notice to the old one) and auth.emailChangeConflict ("already has an account" notice).',
       },
       {
         service: 'service.audit',

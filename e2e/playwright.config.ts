@@ -164,6 +164,14 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     '**/onboarding-and-top-picks.spec.ts',
     // Manual-QA gap closure: every gap-*.spec.ts is a validated journey.
     '**/gap-*.spec.ts',
+    // Shared account settings (lib.account): notification preferences
+    // round-trip, change password / email / delete on throwaway accounts, the
+    // last-staff-member erasure guard, and the read-only admin tab check.
+    '**/account-settings.spec.ts',
+    // 2FA set up and switched off from Settings > Security (TwoFactorSettings)
+    // on throwaway adopters: enter the authenticator code, see the backup
+    // codes once; then disable it with a fresh code.
+    '**/2fa-setup-via-ui.spec.ts',
   ],
   rescue: [
     // ADS-866 (batch A2) — rescue-staff journeys, unblocked by the ADS-863
@@ -223,6 +231,19 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     '**/add-pet-validation.spec.ts',
     '**/cross-tenant-and-role-isolation.spec.ts',
     '**/gap-*.spec.ts',
+    // Shared account settings (lib.account): notification preferences
+    // round-trip, change password / email / delete on throwaway accounts, the
+    // last-staff-member erasure guard, and the read-only admin tab check.
+    '**/account-settings.spec.ts',
+    // Account journeys driven through the rescue UI on throwaway rescues:
+    // - password-recovery-via-ui: "Forgot your password?" → emailed link →
+    //   lib.auth's shared reset form → only the new password signs in.
+    // - 2fa-login-ui: the login form's TOTP prompt (2FA enabled over the API).
+    // - staff-invitation-via-ui: an invitee accepts at /accept-invitation and
+    //   signs in.
+    '**/password-recovery-via-ui.spec.ts',
+    '**/2fa-login-ui.spec.ts',
+    '**/staff-invitation-via-ui.spec.ts',
   ],
   admin: [
     // ADS-867 (batch A3) — admin journeys. superadmin storageState
@@ -265,6 +286,17 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     '**/admin-pet-unpublish.spec.ts',
     '**/admin-moderation-sanction.spec.ts',
     '**/gap-*.spec.ts',
+    // Shared account settings (lib.account): notification preferences
+    // round-trip, change password / email / delete on throwaway accounts, the
+    // last-staff-member erasure guard, and the read-only admin tab check.
+    '**/account-settings.spec.ts',
+    // Account journeys driven through the admin UI on a throwaway admin
+    // (createThrowawayAdmin), never the seeded super admin:
+    // - password-recovery-via-ui: "Forgot your password?" → emailed link →
+    //   lib.auth's shared reset form → only the new password signs in.
+    // - 2fa-login-ui: the login form's TOTP prompt (2FA enabled over the API).
+    '**/password-recovery-via-ui.spec.ts',
+    '**/2fa-login-ui.spec.ts',
   ],
 };
 

@@ -951,8 +951,10 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
       nats: opts.nats,
       auditClient: opts.auditClient,
       authClient: opts.authClient,
+      rescueClient: opts.rescueClient,
       redis: rateLimitRedis,
       erasureUserRateLimiter,
+      erasureIpRateLimitMax: config.erasureRateLimit.ipMax,
     });
   }
 

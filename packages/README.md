@@ -17,6 +17,7 @@ this is just the map. The `lib.*` references are also indexed from
 
 | Package                                                | Purpose                                                                                           |
 | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| [lib.account](./lib.account/README.md)                 | Shared personal account settings — notifications, two-factor, theme.                              |
 | [lib.analytics](./lib.analytics/README.md)             | Event-tracking client — batched engagement events, metrics, A/B results.                          |
 | [lib.api](./lib.api/README.md)                         | HTTP transport: typed `ApiService`, interceptors, auth-token injection, CSRF, PostGIS transforms. |
 | [lib.applications](./lib.applications/README.md)       | Adoption-application lifecycle client — submit, update, transition, documents.                    |

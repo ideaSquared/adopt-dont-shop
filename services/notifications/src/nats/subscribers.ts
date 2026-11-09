@@ -158,8 +158,9 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
     subscriptions.push(route.register({ nats, deps, onError }));
   }
 
-  // auth.userRegistered / auth.passwordResetRequested — verification and
-  // reset emails, queued straight onto the email worker (see auth-emails.ts).
+  // auth.userRegistered / auth.passwordResetRequested / auth.emailChange* —
+  // verification, reset and email-change emails, queued straight onto the
+  // email worker (see auth-emails.ts).
   if (authEmail) {
     subscriptions.push(
       ...registerAuthEmailSubscribers({

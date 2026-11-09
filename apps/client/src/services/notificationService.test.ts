@@ -157,28 +157,6 @@ describe('mutations refresh unread count', () => {
 });
 
 describe('preferences', () => {
-  it('returns the nested success/data preferences when present', async () => {
-    const prefs = {
-      email: false,
-      push: true,
-      sms: false,
-      applications: true,
-      messages: false,
-      system: true,
-      marketing: false,
-      reminders: true,
-    };
-    apiGet.mockResolvedValue({ data: { success: true, data: prefs } });
-
-    await expect(notificationService.getPreferences()).resolves.toEqual(prefs);
-  });
-
-  it('returns sensible defaults when the request fails', async () => {
-    apiGet.mockRejectedValue(new Error('down'));
-
-    await expect(notificationService.getPreferences()).rejects.toThrow('down');
-  });
-
   it('updates preferences via PUT', async () => {
     apiPut.mockResolvedValue(undefined);
 

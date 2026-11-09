@@ -77,6 +77,13 @@ service RescueService {
   rpc GetMyStaffMembership(GetMyStaffMembershipRequest)
       returns (GetMyStaffMembershipResponse);
 
+  // Self-service erasure pre-check. Reports whether the calling principal may
+  // erase their own account. Blocked (allowed=false,
+  // blocked_reason="last_rescue_staff") when the caller is the only
+  // non-deleted staff member of any non-deleted rescue — erasing them would
+  // orphan that rescue. Self-scoped: there is no user_id field. Read-only.
+  rpc CheckSelfErasure(CheckSelfErasureRequest) returns (CheckSelfErasureResponse);
+
   // List all staff members at a rescue. Caller MUST be a verified staff
   // member of that rescue (or admin). Used by the staff "colleagues"
   // view.
@@ -512,6 +519,16 @@ message GetMyStaffMembershipRequest {}
 
 message GetMyStaffMembershipResponse {
   StaffMember staff_member = 1;
+}
+
+message CheckSelfErasureRequest {}
+
+message CheckSelfErasureResponse {
+  // True when nothing in service.rescue blocks the caller's self-erasure.
+  bool allowed = 1;
+  // Machine-readable reason when allowed is false ("last_rescue_staff");
+  // empty otherwise.
+  string blocked_reason = 2;
 }
 
 message ListStaffMembersRequest {

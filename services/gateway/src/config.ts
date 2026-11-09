@@ -151,6 +151,12 @@ export type GatewayConfig = {
     ipMax: number;
     userMax: number;
   };
+  // Per source IP backstop on POST /api/v1/users/me/erasure-request (per
+  // hour). Env-overridable for e2e only (every spec shares one docker-side
+  // IP) — loadConfig throws if production/staging overrides it.
+  erasureRateLimit: {
+    ipMax: number;
+  };
   rateLimit: {
     // Redis URL for the shared rate-limit store. When unset the gateway
     // runs with an in-memory store only (single-replica / dev use).
@@ -235,6 +241,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
     trustProxy: buildTrustProxy(env, environment),
     rateLimit: buildRateLimitConfig(env),
     enquiryRateLimit: buildEnquiryRateLimitConfig(env, environment),
+    erasureRateLimit: buildErasureRateLimitConfig(env, environment),
     maintenance: buildMaintenanceConfig(env),
   };
 };
@@ -362,6 +369,20 @@ function buildEnquiryRateLimitConfig(
     );
   }
   return { ipMax, userMax };
+}
+
+const DEFAULT_ERASURE_IP_MAX = 5;
+
+// Same dev/e2e-only override rule as the enquiry caps above.
+function buildErasureRateLimitConfig(
+  env: NodeJS.ProcessEnv,
+  environment: string
+): GatewayConfig['erasureRateLimit'] {
+  const ipMax = readPositiveInt(env.GATEWAY_ERASURE_IP_RATE_LIMIT_MAX, DEFAULT_ERASURE_IP_MAX);
+  if (environment === 'production' || environment === 'staging') {
+    assertDefault('GATEWAY_ERASURE_IP_RATE_LIMIT_MAX', ipMax, DEFAULT_ERASURE_IP_MAX, environment);
+  }
+  return { ipMax };
 }
 
 function assertDefault(name: string, value: number, fallback: number, environment: string): void {

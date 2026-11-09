@@ -25,13 +25,6 @@ interface ProfileEditFormProps {
 const ProfileFormSchema = z.object({
   firstName: z.string().refine(v => v.trim().length > 0, 'First name is required'),
   lastName: z.string().refine(v => v.trim().length > 0, 'Last name is required'),
-  email: z
-    .string()
-    .refine(v => v.trim().length > 0, 'Email is required')
-    .refine(
-      v => v.trim().length === 0 || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
-      'Please enter a valid email address'
-    ),
   phone: z
     .string()
     .refine(v => v.length === 0 || /^\+?[\d\s\-()]+$/.test(v), 'Please enter a valid phone number'),
@@ -298,15 +291,14 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
       </div>
 
       <div className={styles.formRow}>
-        <FormField label='Email' htmlFor='email' required error={errors.email}>
-          <Input
-            id='email'
-            type='email'
-            value={formData.email}
-            onChange={e => handleInputChange('email', e.target.value)}
-            aria-invalid={!!errors.email}
-            disabled={isLoading}
-          />
+        {/* Read-only: the account API ignores email here. Changing it needs the
+            verified flow in Settings > Account (lib.account ChangeEmailForm). */}
+        <FormField
+          label='Email'
+          htmlFor='email'
+          description='To change your email, go to Settings, then Account.'
+        >
+          <Input id='email' type='email' value={formData.email} readOnly />
         </FormField>
 
         <FormField label='Phone Number' htmlFor='phone' error={errors.phone}>

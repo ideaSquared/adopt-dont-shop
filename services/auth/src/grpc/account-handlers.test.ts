@@ -472,6 +472,28 @@ describe('forgotPassword', () => {
     expect(sql).toContain('SET reset_token_hash');
   });
 
+  it('tells the reset email which kind of user asked, so the link opens the app they use', async () => {
+    mocks.clientScript([userRowFixture({ user_type: 'rescue_staff' })]);
+
+    await forgotPassword(mocks.deps, null, { email: 'a@example.com' });
+
+    expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
+    const [subject, data] = mocks.natsMock.publish.mock.calls[0];
+    expect(subject).toBe('auth.passwordResetRequested');
+    const event = JSON.parse(new TextDecoder().decode(data as Uint8Array)) as {
+      payload: { userId: string; userType: string };
+    };
+    expect(event.payload).toMatchObject({ userId: 'usr-1', userType: 'rescue_staff' });
+  });
+
+  it('publishes nothing for an unknown email', async () => {
+    mocks.clientScript([]);
+
+    await forgotPassword(mocks.deps, null, { email: 'nobody@example.com' });
+
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
   it('stores only the hash of the reset token — raw token never written to DB', async () => {
     mocks.clientScript([userRowFixture()]);
     await forgotPassword(mocks.deps, null, { email: 'a@example.com' });

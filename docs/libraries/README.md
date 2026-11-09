@@ -45,6 +45,7 @@ The monorepo ships **24 frontend-shared libraries** under `@adopt-dont-shop/lib.
 - [`lib.feature-flags`](../../packages/lib.feature-flags/README.md) — Statsig hooks (`useFeatureGate`, `useDynamicConfig`, `useConfigValue`) + typed gate/config constants
 - [`lib.observability`](../../packages/lib.observability/README.md) — Sentry init, Web Vitals reporter, analytics-consent gate
 - [`lib.legal`](../../packages/lib.legal/README.md) — legal re-acceptance modal, cookie banner, consent service
+- [`lib.account`](../../packages/lib.account/README.md) — shared personal account settings (notifications, security, appearance)
 
 ### Utilities
 

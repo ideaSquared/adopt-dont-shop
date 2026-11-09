@@ -147,6 +147,25 @@ export const normalizeUpdateAccountBody = (
   postalCode: pickRaw(body, ['postalCode', 'postal_code']),
 });
 
+// POST /api/v1/users/me/email-change. Never rejects an object body (the
+// route's JSON schema already requires one): a missing or non-string field
+// becomes empty so the route can answer with the contract's own errors
+// (a missing password is a 401, a bad address is the auth service's 400
+// invalid_email) instead of a generic validation body.
+export const RequestEmailChangeBodySchema = z.object({
+  newEmail: z.string().max(320).catch(''),
+  password: z.string().max(128).catch(''),
+  twoFactorToken: z.string().max(32).optional().catch(undefined),
+});
+
+export type RequestEmailChangeBody = z.infer<typeof RequestEmailChangeBodySchema>;
+
+export const ConfirmEmailChangeBodySchema = z.object({
+  token: tokenField,
+});
+
+export type ConfirmEmailChangeBody = z.infer<typeof ConfirmEmailChangeBodySchema>;
+
 export type ValidationFailure = {
   error: string;
   details: { path: string; message: string }[];

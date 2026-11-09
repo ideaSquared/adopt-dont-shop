@@ -9,6 +9,7 @@ import { GDPR_ERASURE_REQUESTED } from '@adopt-dont-shop/events';
 
 import type { AuditClient } from '../grpc-clients/audit-client.js';
 import type { AuthClient } from '../grpc-clients/auth-client.js';
+import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
 import { registerGdprRoutes, type ErasureStore } from './gdpr.js';
 import { createEmailRateLimiter, type EmailRateLimiter } from './email-rate-limiter.js';
@@ -65,32 +66,52 @@ function makeAuthClient(
   opts: {
     verifyCredentials?: ReturnType<typeof vi.fn>;
     getMe?: ReturnType<typeof vi.fn>;
+    checkSelfErasure?: ReturnType<typeof vi.fn>;
   } = {}
 ): {
   client: AuthClient;
   verifyCredentials: ReturnType<typeof vi.fn>;
   getMe: ReturnType<typeof vi.fn>;
+  checkSelfErasure: ReturnType<typeof vi.fn>;
 } {
   const verifyCredentials =
     opts.verifyCredentials ??
     vi.fn().mockResolvedValue({ verified: true, twoFactorRequired: false });
   const getMe = opts.getMe ?? vi.fn().mockResolvedValue({ user: { email: 'erased@example.com' } });
-  const client = { verifyCredentials, getMe } as unknown as AuthClient;
-  return { client, verifyCredentials, getMe };
+  const checkSelfErasure =
+    opts.checkSelfErasure ?? vi.fn().mockResolvedValue({ allowed: true, blockedReason: '' });
+  const client = { verifyCredentials, getMe, checkSelfErasure } as unknown as AuthClient;
+  return { client, verifyCredentials, getMe, checkSelfErasure };
+}
+
+// Self-erasure pre-check double for service.rescue. Defaults to "allowed".
+function makeRescueClient(opts: { checkSelfErasure?: ReturnType<typeof vi.fn> } = {}): {
+  client: RescueClient;
+  checkSelfErasure: ReturnType<typeof vi.fn>;
+} {
+  const checkSelfErasure =
+    opts.checkSelfErasure ?? vi.fn().mockResolvedValue({ allowed: true, blockedReason: '' });
+  const client = { checkSelfErasure } as unknown as RescueClient;
+  return { client, checkSelfErasure };
 }
 
 describe('POST /api/v1/users/me/erasure-request', () => {
   let app: FastifyInstance;
   let published: Array<{ subject: string; data: string }>;
   let verifyCredentials: ReturnType<typeof vi.fn>;
+  let authCheckSelfErasure: ReturnType<typeof vi.fn>;
+  let rescueCheckSelfErasure: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     app = Fastify({ logger: false });
     const { nats, published: p } = fakeNats();
     published = p;
     const auth = makeAuthClient();
+    const rescue = makeRescueClient();
     verifyCredentials = auth.verifyCredentials;
-    await registerGdprRoutes(app, { nats, authClient: auth.client });
+    authCheckSelfErasure = auth.checkSelfErasure;
+    rescueCheckSelfErasure = rescue.checkSelfErasure;
+    await registerGdprRoutes(app, { nats, authClient: auth.client, rescueClient: rescue.client });
   });
 
   afterEach(async () => {
@@ -201,6 +222,88 @@ describe('POST /api/v1/users/me/erasure-request', () => {
     expect(res.json()).toMatchObject({ success: false, error: 'two_factor_required' });
     expect(published).toHaveLength(0);
   });
+
+  it('runs the self-erasure checks only after the credentials verify', async () => {
+    verifyCredentials.mockResolvedValue({ verified: false, twoFactorRequired: false });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users/me/erasure-request',
+      headers: { 'x-user-id': 'usr-1' },
+      payload: { password: 'wrong-password' },
+    });
+    expect(res.statusCode).toBe(401);
+    expect(authCheckSelfErasure).not.toHaveBeenCalled();
+    expect(rescueCheckSelfErasure).not.toHaveBeenCalled();
+  });
+
+  it('returns 409 last_super_admin and publishes nothing for the last active super admin', async () => {
+    authCheckSelfErasure.mockResolvedValue({ allowed: false, blockedReason: 'last_super_admin' });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users/me/erasure-request',
+      headers: { 'x-user-id': 'usr-1' },
+      payload: { password: PASSWORD },
+    });
+    expect(res.statusCode).toBe(409);
+    expect(res.json()).toEqual({ success: false, error: 'last_super_admin' });
+    expect(published).toHaveLength(0);
+  });
+
+  it("returns 409 last_rescue_staff and publishes nothing for a rescue's last staff member", async () => {
+    rescueCheckSelfErasure.mockResolvedValue({
+      allowed: false,
+      blockedReason: 'last_rescue_staff',
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users/me/erasure-request',
+      headers: { 'x-user-id': 'usr-1' },
+      payload: { password: PASSWORD },
+    });
+    expect(res.statusCode).toBe(409);
+    expect(res.json()).toEqual({ success: false, error: 'last_rescue_staff' });
+    expect(published).toHaveLength(0);
+  });
+
+  it('fails closed and publishes nothing when a self-erasure check errors', async () => {
+    rescueCheckSelfErasure.mockRejectedValue({
+      code: grpcStatus.UNAVAILABLE,
+      details: 'rescue down',
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users/me/erasure-request',
+      headers: { 'x-user-id': 'usr-1' },
+      payload: { password: PASSWORD },
+    });
+    expect(res.statusCode).toBe(503);
+    expect(res.json()).toMatchObject({ error: 'service_unavailable' });
+    expect(published).toHaveLength(0);
+  });
+});
+
+describe('POST /api/v1/users/me/erasure-request — rescue client unavailable', () => {
+  it('fails closed with 500 before verifying credentials and publishes nothing', async () => {
+    const app = Fastify({ logger: false });
+    const { nats, published } = fakeNats();
+    const auth = makeAuthClient();
+    // No rescueClient wired — the last-rescue-staff check cannot run.
+    await registerGdprRoutes(app, { nats, authClient: auth.client });
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/users/me/erasure-request',
+        headers: { 'x-user-id': 'usr-1' },
+        payload: { password: PASSWORD },
+      });
+      expect(res.statusCode).toBe(500);
+      expect(res.json()).toMatchObject({ success: false, error: 'verification_unavailable' });
+      expect(auth.verifyCredentials).not.toHaveBeenCalled();
+      expect(published).toHaveLength(0);
+    } finally {
+      await app.close();
+    }
+  });
 });
 
 // ADS-1421: the per-principal cap is a preHandler, keyed on x-user-id. In
@@ -221,7 +324,12 @@ describe('POST /api/v1/users/me/erasure-request — per-principal rate limit (AD
     published = p;
     const auth = makeAuthClient();
     erasureUserRateLimiter = createEmailRateLimiter({ max: 1, windowMs: 60_000 });
-    await registerGdprRoutes(app, { nats, authClient: auth.client, erasureUserRateLimiter });
+    await registerGdprRoutes(app, {
+      nats,
+      authClient: auth.client,
+      rescueClient: makeRescueClient().client,
+      erasureUserRateLimiter,
+    });
   });
 
   afterEach(async () => {
@@ -262,7 +370,11 @@ describe('POST /api/v1/users/me/erasure-request — per-principal rate limit (AD
     const bareApp = Fastify({ logger: false });
     const { nats, published: barePublished } = fakeNats();
     const auth = makeAuthClient();
-    await registerGdprRoutes(bareApp, { nats, authClient: auth.client });
+    await registerGdprRoutes(bareApp, {
+      nats,
+      authClient: auth.client,
+      rescueClient: makeRescueClient().client,
+    });
 
     const first = await bareApp.inject({
       method: 'POST',
@@ -318,7 +430,11 @@ describe('POST /api/v1/users/me/erasure-request — broker failure', () => {
   beforeEach(async () => {
     app = Fastify({ logger: false });
     const { nats } = fakeNatsFailingPublish();
-    await registerGdprRoutes(app, { nats, authClient: makeAuthClient().client });
+    await registerGdprRoutes(app, {
+      nats,
+      authClient: makeAuthClient().client,
+      rescueClient: makeRescueClient().client,
+    });
   });
 
   afterEach(async () => {
@@ -350,7 +466,12 @@ describe('POST /api/v1/users/me/erasure-request — idempotency', () => {
     published = p;
     const { redis } = fakeRedis();
     redisSet = redis.set as ReturnType<typeof vi.fn>;
-    await registerGdprRoutes(app, { nats, authClient: makeAuthClient().client, redis });
+    await registerGdprRoutes(app, {
+      nats,
+      authClient: makeAuthClient().client,
+      rescueClient: makeRescueClient().client,
+      redis,
+    });
   });
 
   afterEach(async () => {
@@ -424,7 +545,12 @@ describe('POST /api/v1/users/me/erasure-request — idempotency', () => {
     const failApp = Fastify({ logger: false });
     const { nats } = fakeNats();
     const { redis } = fakeRedis();
-    await registerGdprRoutes(failApp, { nats, authClient: auth.client, redis });
+    await registerGdprRoutes(failApp, {
+      nats,
+      authClient: auth.client,
+      rescueClient: makeRescueClient().client,
+      redis,
+    });
     try {
       const res = await failApp.inject({
         method: 'POST',
@@ -458,7 +584,12 @@ describe('POST /api/v1/users/me/erasure-request — per-IP rate-limit backstop',
     await app.register(rateLimit, { global: true, max: 1000, timeWindow: '1 minute' });
     const { nats } = fakeNats();
     const { redis } = fakeRedis();
-    await registerGdprRoutes(app, { nats, authClient: makeAuthClient().client, redis });
+    await registerGdprRoutes(app, {
+      nats,
+      authClient: makeAuthClient().client,
+      rescueClient: makeRescueClient().client,
+      redis,
+    });
   });
 
   afterEach(async () => {
@@ -572,7 +703,11 @@ describe('POST /api/v1/users/me/erasure-request — email resolution', () => {
     const { nats, published: p } = fakeNats();
     published = p;
     const getMe = vi.fn().mockResolvedValue({ user: { email: 'erased@example.com' } });
-    await registerGdprRoutes(app, { nats, authClient: makeAuthClient({ getMe }).client });
+    await registerGdprRoutes(app, {
+      nats,
+      authClient: makeAuthClient({ getMe }).client,
+      rescueClient: makeRescueClient().client,
+    });
 
     const res = await app.inject({
       method: 'POST',
@@ -591,7 +726,11 @@ describe('POST /api/v1/users/me/erasure-request — email resolution', () => {
     const { nats, published: p } = fakeNats();
     published = p;
     const getMe = vi.fn().mockRejectedValue(new Error('auth unavailable'));
-    await registerGdprRoutes(app, { nats, authClient: makeAuthClient({ getMe }).client });
+    await registerGdprRoutes(app, {
+      nats,
+      authClient: makeAuthClient({ getMe }).client,
+      rescueClient: makeRescueClient().client,
+    });
 
     const res = await app.inject({
       method: 'POST',

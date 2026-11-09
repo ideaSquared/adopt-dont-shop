@@ -53,11 +53,11 @@ const MIN_PASSWORD_LENGTH = 8;
 
 // Random URL-safe bearer token. The raw value is sent to the user (email);
 // only its SHA-256 hash is stored — see hashToken().
-function mintToken(): string {
+export function mintToken(): string {
   return randomBytes(32).toString('base64url');
 }
 
-function hashToken(token: string): string {
+export function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
@@ -501,6 +501,9 @@ export async function forgotPassword(
           userId: user.user_id,
           email: user.email,
           firstName: user.first_name,
+          // Lets service.notifications point the link at the app this user
+          // signs in to (client, rescue or admin).
+          userType: user.user_type,
           resetToken: token,
           resetExpiresAt: expires.toISOString(),
         },

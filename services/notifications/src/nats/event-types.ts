@@ -205,6 +205,28 @@ export type AuthRescueRegistrationAttemptedEvent = {
   userId: UserId;
 };
 
+// auth.emailChangeRequested — service.auth publishes when a user asks to move
+// their account to a new address. Carries both addresses and the raw one-time
+// confirmation token so auth-emails.ts can mail the link to the new address
+// and a security notice (no link, no token) to the old one. Never logged.
+export type AuthEmailChangeRequestedEvent = {
+  userId: UserId;
+  firstName: string | null;
+  oldEmail: string;
+  newEmail: string;
+  token: string;
+  expiresAt: string; // RFC 3339
+};
+
+// auth.emailChangeConflict — service.auth publishes instead of
+// auth.emailChangeRequested when the requested address already belongs to
+// another account. The request answer stays neutral (no enumeration); the
+// address is emailed instead. userId is the requester, not the recipient.
+export type AuthEmailChangeConflictEvent = {
+  userId: UserId;
+  newEmail: string;
+};
+
 // rescue.staffInvitationCancelled — service.rescue publishes when an
 // admin/rescue-lead cancels a pending staff invitation. Log-only: the
 // invitee never had an

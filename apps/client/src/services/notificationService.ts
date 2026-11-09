@@ -174,45 +174,6 @@ class NotificationService {
   }
 
   /**
-   * Get user notification preferences
-   */
-  async getPreferences(): Promise<NotificationPreferences> {
-    try {
-      // Same nested-shape handling as getUnreadCount. (ADS-705)
-      type PreferencesResponse = {
-        data?: {
-          success?: boolean;
-          data?: NotificationPreferences;
-        } & Partial<NotificationPreferences>;
-      };
-      const response = await api.get<PreferencesResponse>('/api/v1/notifications/preferences');
-
-      if (response.data?.success && response.data?.data) {
-        return response.data.data;
-      } else if (response.data) {
-        return response.data as NotificationPreferences;
-      }
-
-      // Fallback defaults
-      return {
-        email: true,
-        push: false,
-        sms: false,
-        applications: true,
-        messages: true,
-        system: true,
-        marketing: false,
-        reminders: true,
-        quietHoursStart: '22:00',
-        quietHoursEnd: '08:00',
-      };
-    } catch (error) {
-      console.error('Failed to fetch notification preferences:', error);
-      throw error;
-    }
-  }
-
-  /**
    * Update user notification preferences
    */
   async updatePreferences(preferences: Partial<NotificationPreferences>): Promise<void> {

@@ -31,13 +31,31 @@ Many specs set up or even complete a journey through the API, which proves the b
 | Adopter | Favourite a pet                                          | `client/favourite-add-via-ui`                                       |
 | Adopter | Apply for a pet (questionnaire → send → My Applications) | `client/apply-via-ui`, `client/custom-question-on-application-form` |
 | Adopter | Message the rescue, get a live reply                     | `client/chat-via-ui`                                                |
+| Adopter | Save notification preferences; they survive a reload     | `client/account-settings`                                           |
+| Adopter | Change password (signed out; only the new one works)     | `client/account-settings`                                           |
+| Adopter | Change email from the emailed link; sign in with it      | `client/account-settings`                                           |
+| Adopter | Delete the account (can no longer sign in)               | `client/account-settings`                                           |
+| Adopter | Set up 2FA in Settings; backup codes shown once          | `client/2fa-setup-via-ui`                                           |
+| Adopter | Switch 2FA off in Settings with an authenticator code    | `client/2fa-setup-via-ui`                                           |
+| Rescue  | Accept a staff invitation from the link; sign in         | `rescue/staff-invitation-via-ui`                                    |
+| Rescue  | Reset a forgotten password from the link                 | `rescue/password-recovery-via-ui`                                   |
+| Rescue  | Log in with 2FA                                          | `rescue/2fa-login-ui`                                               |
+| Rescue  | Change your name in account settings                     | `rescue/account-settings`                                           |
+| Rescue  | Change password (signed out; only the new one works)     | `rescue/account-settings`                                           |
+| Rescue  | Change email from the emailed link; sign in with it      | `rescue/account-settings`                                           |
+| Rescue  | Last staff member is refused account deletion            | `rescue/account-settings`                                           |
 | Rescue  | List a new pet; adopters can open it                     | `rescue/add-pet-via-ui`                                             |
 | Rescue  | Start a review and approve an application                | `rescue/review-and-approve-via-ui`                                  |
 | Rescue  | Reply to an adopter                                      | `client/chat-via-ui` (second browser)                               |
+| Admin   | Reset a forgotten password from the link                 | `admin/password-recovery-via-ui`                                    |
+| Admin   | Log in with 2FA                                          | `admin/2fa-login-ui`                                                |
+| Admin   | Change password (signed out; only the new one works)     | `admin/account-settings`                                            |
+| Admin   | Change email from the emailed link; sign in with it      | `admin/account-settings`                                            |
+| Admin   | Delete the account (can no longer sign in)               | `admin/account-settings`                                            |
 | Admin   | Suspend a user (they can no longer log in)               | `admin/suspend-user-via-ui`                                         |
 | Admin   | Publish a blog post; visitors read it                    | `admin/publish-blog-post-via-ui`                                    |
 
-Still covered through the API only (worth a UI spec next): staff invitations, custom questions (rescue side), notification preferences, bulk user actions, moderation/support triage and audit log (page-load smokes only).
+Still covered through the API only (worth a UI spec next): sending a staff invitation (accepting one is UI-driven), custom questions (rescue side), bulk user actions, moderation/support triage and audit log (page-load smokes only).
 
 ## Layout
 
@@ -51,13 +69,16 @@ e2e/
 │   ├── index.ts                  # `test` extended with `apiAs` and `asRole`
 │   └── roles.ts                  # seeded role credentials (DevPassword123!)
 ├── helpers/
-│   ├── accounts.ts               # createVerifiedAdopter — throwaway, login-ready adopter
+│   ├── accounts.ts               # createVerifiedAdopter / createThrowawayAdmin, canSignIn
 │   ├── application-form.ts       # answerEveryApplicationStep — walks /apply/:petId
 │   ├── auth.ts                   # loginViaUI, logoutViaUI
+│   ├── email-change.ts           # confirmEmailChangeFromLink — the emailed confirm link
 │   ├── factories.ts              # uniqueEmail/petName/text — collision-proof data
+│   ├── password-recovery.ts      # forgot/reset password through lib.auth's shared forms
 │   ├── pet.ts                    # gotoDiscover, searchForPet, openFirstPet, ...
 │   ├── seeds.ts                  # seed data helpers for test setup
-│   └── selectors.ts              # data-testid constants (used as a fallback only)
+│   ├── selectors.ts              # data-testid constants (used as a fallback only)
+│   └── two-factor.ts             # enableTwoFactorViaApi, nextTotpCode, loginAsksForTwoFactor
 └── tests/
     ├── client/                   # adopter journeys (app.client :3000)
     ├── rescue/                   # rescue staff journeys (app.rescue :3002)

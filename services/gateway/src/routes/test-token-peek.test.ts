@@ -44,6 +44,8 @@ describe('GET /api/v1/test/auth-token', () => {
           verification_token_expires_at: new Date('2026-06-19T00:00:00Z'),
           minted_reset: true,
           reset_token_expiration: new Date('2026-06-18T01:00:00Z'),
+          minted_email_change: true,
+          email_change_expires_at: new Date('2026-06-19T02:00:00Z'),
         },
       ],
     });
@@ -59,6 +61,8 @@ describe('GET /api/v1/test/auth-token', () => {
       verificationTokenExpiresAt: string;
       resetToken: string;
       resetTokenExpiration: string;
+      emailChangeToken: string;
+      emailChangeTokenExpiresAt: string;
     };
     // The raw token is freshly minted (random), but its expiry passes through.
     expect(typeof body.verificationToken).toBe('string');
@@ -67,6 +71,9 @@ describe('GET /api/v1/test/auth-token', () => {
     expect(typeof body.resetToken).toBe('string');
     expect(body.resetToken.length).toBeGreaterThan(0);
     expect(body.resetTokenExpiration).toBe('2026-06-18T01:00:00.000Z');
+    expect(typeof body.emailChangeToken).toBe('string');
+    expect(body.emailChangeToken.length).toBeGreaterThan(0);
+    expect(body.emailChangeTokenExpiresAt).toBe('2026-06-19T02:00:00.000Z');
 
     // Re-arms auth.users, filtered by email + not-deleted, and stores the
     // sha256 of the raw token it returned (so verify/reset validate later).
@@ -77,6 +84,7 @@ describe('GET /api/v1/test/auth-token', () => {
     expect(params[0]).toBe('user@example.com');
     expect(params[1]).toBe(sha256Hex(body.verificationToken));
     expect(params[3]).toBe(sha256Hex(body.resetToken));
+    expect(params[5]).toBe(sha256Hex(body.emailChangeToken));
   });
 
   it('returns null for a flow whose hash is not outstanding', async () => {
@@ -87,6 +95,8 @@ describe('GET /api/v1/test/auth-token', () => {
           verification_token_expires_at: null,
           minted_reset: null,
           reset_token_expiration: null,
+          minted_email_change: null,
+          email_change_expires_at: null,
         },
       ],
     });
@@ -102,6 +112,8 @@ describe('GET /api/v1/test/auth-token', () => {
       verificationTokenExpiresAt: null,
       resetToken: null,
       resetTokenExpiration: null,
+      emailChangeToken: null,
+      emailChangeTokenExpiresAt: null,
     });
   });
 

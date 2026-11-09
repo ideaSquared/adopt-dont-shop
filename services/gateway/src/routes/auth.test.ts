@@ -195,6 +195,21 @@ describe('POST /api/v1/auth/login', () => {
     expect(req.ipAddress).toBeDefined();
   });
 
+  it('includes twoFactorEnabled on the signed-in user', async () => {
+    loginMock.mockResolvedValueOnce({
+      ...LOGIN_RES,
+      user: { ...LOGIN_RES.user!, twoFactorEnabled: true },
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { email: 'alex@example.com', password: 'hunter2' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect((res.json() as { user: Record<string, unknown> }).user.twoFactorEnabled).toBe(true);
+  });
+
   it('sets the access + refresh token pair as httpOnly cookies plus a JS-readable session marker (ADS-919)', async () => {
     loginMock.mockResolvedValueOnce(LOGIN_RES);
     const res = await app.inject({
@@ -438,6 +453,32 @@ describe('GET /api/v1/auth/me', () => {
       expect(body.permissions).toEqual(['pets.read']);
       const [, metadata] = getMeMock.mock.calls[0];
       expect(metadata.get('x-user-id')[0]).toBe('usr-1');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('tells the SPA when the user has 2FA on, so settings can offer to disable it', async () => {
+    // Regression: the response schema stripped twoFactorEnabled, so every app
+    // thought 2FA was off: no "Disable 2FA" button, and the change-email and
+    // delete-account forms never asked for the code the backend then required.
+    const { client, getMeMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      getMeMock.mockResolvedValueOnce({
+        user: { ...LOGIN_RES.user!, twoFactorEnabled: true },
+        roles: [AuthV1.UserRole.USER_ROLE_ADOPTER],
+        permissions: ['pets.read'],
+      } satisfies GetMeResponse);
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/auth/me',
+        headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect((res.json() as { user: Record<string, unknown> }).user.twoFactorEnabled).toBe(true);
     } finally {
       await app.close();
     }
