@@ -95,6 +95,9 @@ importers:
 
   apps/admin:
     dependencies:
+      '@adopt-dont-shop/lib.account':
+        specifier: workspace:*
+        version: link:../../packages/lib.account
       '@adopt-dont-shop/lib.analytics':
         specifier: workspace:*
         version: link:../../packages/lib.analytics
@@ -267,6 +270,9 @@ importers:
 
   apps/client:
     dependencies:
+      '@adopt-dont-shop/lib.account':
+        specifier: workspace:*
+        version: link:../../packages/lib.account
       '@adopt-dont-shop/lib.analytics':
         specifier: workspace:*
         version: link:../../packages/lib.analytics
@@ -460,6 +466,9 @@ importers:
 
   apps/rescue:
     dependencies:
+      '@adopt-dont-shop/lib.account':
+        specifier: workspace:*
+        version: link:../../packages/lib.account
       '@adopt-dont-shop/lib.analytics':
         specifier: workspace:*
         version: link:../../packages/lib.analytics

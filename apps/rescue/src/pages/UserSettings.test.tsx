@@ -1,5 +1,6 @@
 import { vi, describe, it, expect } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, useLocation } from 'react-router';
 import UserSettings from './UserSettings';
 
@@ -12,22 +13,28 @@ vi.mock('@adopt-dont-shop/lib.auth', () => ({
 
 vi.mock('@adopt-dont-shop/lib.components', async importOriginal => ({
   // Real Tabs: the page's tab behaviour is part of what these tests cover.
-  Tabs: (await importOriginal<typeof import('@adopt-dont-shop/lib.components')>()).Tabs,
+  ...(await importOriginal<typeof import('@adopt-dont-shop/lib.components')>()),
   ThemeToggle: () => <div data-testid="theme-toggle">Theme</div>,
 }));
 
-vi.mock('../components/rescue/NotificationPreferencesForm', () => ({
-  default: () => <div data-testid="notif-form">Notification Form</div>,
+// The shared notifications tab fetches preferences; keep it loading.
+vi.mock('@adopt-dont-shop/lib.api', async importOriginal => ({
+  ...(await importOriginal<typeof import('@adopt-dont-shop/lib.api')>()),
+  apiService: { get: () => new Promise(() => undefined) },
 }));
 
 const LocationProbe = () => <div data-testid="location">{useLocation().hash}</div>;
 
 const renderAt = (route: string) =>
   render(
-    <MemoryRouter initialEntries={[route]}>
-      <UserSettings />
-      <LocationProbe />
-    </MemoryRouter>
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <MemoryRouter initialEntries={[route]}>
+        <UserSettings />
+        <LocationProbe />
+      </MemoryRouter>
+    </QueryClientProvider>
   );
 
 describe('UserSettings', () => {
@@ -37,14 +44,15 @@ describe('UserSettings', () => {
     expect(screen.getByRole('heading', { name: 'My Settings' })).toBeInTheDocument();
   });
 
-  it('shows only the personal tabs, defaulting to preferences', () => {
+  it('shows the shared personal tabs, defaulting to notifications', () => {
     renderAt('/user-settings');
     expect(screen.getAllByRole('tab').map(t => t.textContent)).toEqual([
-      'Preferences',
+      'Notifications',
       'Security',
       'Appearance',
     ]);
-    expect(screen.getByRole('tab', { name: 'Preferences' })).toHaveAttribute(
+    expect(screen.getByText(/loading notification preferences/i)).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Notifications' })).toHaveAttribute(
       'aria-selected',
       'true'
     );
@@ -53,15 +61,17 @@ describe('UserSettings', () => {
   it.each([
     ['#security', 'Security'],
     ['#appearance', 'Appearance'],
-    ['#preferences', 'Preferences'],
+    ['#notifications', 'Notifications'],
+    // Old bookmarks (and RescueSettings' redirect) still use #preferences.
+    ['#preferences', 'Notifications'],
   ])('restores the tab from %s', (hash, name) => {
     renderAt(`/user-settings${hash}`);
     expect(screen.getByRole('tab', { name })).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('falls back to preferences for an unknown hash', () => {
+  it('falls back to notifications for an unknown hash', () => {
     renderAt('/user-settings#nonexistent');
-    expect(screen.getByRole('tab', { name: 'Preferences' })).toHaveAttribute(
+    expect(screen.getByRole('tab', { name: 'Notifications' })).toHaveAttribute(
       'aria-selected',
       'true'
     );
@@ -76,8 +86,8 @@ describe('UserSettings', () => {
 
   it('moves between tabs with the arrow keys and keeps the hash in step', async () => {
     renderAt('/user-settings');
-    screen.getByRole('tab', { name: 'Preferences' }).focus();
-    fireEvent.keyDown(screen.getByRole('tab', { name: 'Preferences' }), { key: 'ArrowRight' });
+    screen.getByRole('tab', { name: 'Notifications' }).focus();
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Notifications' }), { key: 'ArrowRight' });
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('#security'));
     expect(screen.getByRole('tab', { name: 'Security' })).toHaveFocus();
   });

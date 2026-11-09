@@ -4,6 +4,7 @@ import {
   ProfileEditForm,
   SettingsForm,
 } from '@/components/profile';
+import { AccountSettings } from '@adopt-dont-shop/lib.account';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { apiService, applicationService, authService, Application, User } from '@/services';
 import {
@@ -42,12 +43,6 @@ interface ApplicationWithPetInfo extends Application {
 type TabType = 'profile' | 'applications' | 'settings';
 
 interface UserSettings {
-  notifications?: {
-    email?: boolean;
-    push?: boolean;
-    sms?: boolean;
-    marketing?: boolean;
-  };
   privacy?: {
     profileVisibility?: 'public' | 'private';
     showEmail?: boolean;
@@ -71,6 +66,7 @@ export const ProfilePage: React.FC = () => {
   const { user, isAuthenticated, updateProfile } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('profile');
+  const [settingsTab, setSettingsTab] = useState('notifications');
   const [applications, setApplications] = useState<ApplicationWithPetInfo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -194,30 +190,14 @@ export const ProfilePage: React.FC = () => {
       }
 
       // Map the SettingsForm shape onto the User profile fields persisted by the
-      // backend. Notification toggles in the form itself are saved via
-      // notificationService.updatePreferences (see SettingsForm); here we
-      // persist privacy, marketing-email opt-in and pet/search preferences so
-      // they round-trip with the user profile.
+      // backend: privacy and pet/search preferences round-trip with the user
+      // profile. Notification preferences are saved separately by the shared
+      // Notifications tab (lib.account).
       const profilePatch: Partial<User> = {
         privacySettings: {
           ...(user.privacySettings ?? {}),
           ...(settings.privacy?.profileVisibility !== undefined && {
             profileVisibility: settings.privacy.profileVisibility,
-          }),
-        },
-        notificationPreferences: {
-          ...(user.notificationPreferences ?? {}),
-          ...(settings.notifications?.email !== undefined && {
-            emailNotifications: settings.notifications.email,
-          }),
-          ...(settings.notifications?.push !== undefined && {
-            pushNotifications: settings.notifications.push,
-          }),
-          ...(settings.notifications?.sms !== undefined && {
-            smsNotifications: settings.notifications.sms,
-          }),
-          ...(settings.notifications?.marketing !== undefined && {
-            marketingEmails: settings.notifications.marketing,
           }),
         },
         preferences: {
@@ -484,9 +464,8 @@ export const ProfilePage: React.FC = () => {
     </div>
   );
 
-  const renderSettingsTab = () => (
-    <div className={styles.section}>
-      <h2 className={styles.sectionTitle}>Settings</h2>
+  const renderPrivacyTab = () => (
+    <>
       <div role='status' aria-live='polite' aria-atomic='true'>
         {successMessage && (
           <div className={styles.sectionGap}>
@@ -522,6 +501,17 @@ export const ProfilePage: React.FC = () => {
           Download my data
         </Button>
       </div>
+    </>
+  );
+
+  const renderSettingsTab = () => (
+    <div className={styles.section}>
+      <h2 className={styles.sectionTitle}>Settings</h2>
+      <AccountSettings
+        value={settingsTab}
+        onChange={setSettingsTab}
+        extraTabs={[{ id: 'privacy', label: 'Privacy & data', content: renderPrivacyTab() }]}
+      />
     </div>
   );
 

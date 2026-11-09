@@ -46,28 +46,6 @@ export const settingItem = style({
   },
 });
 
-export const settingLabel = style({
-  flex: 1,
-});
-
-globalStyle(`${settingLabel} h4`, {
-  fontSize: '1rem',
-  color: vars.text.primary,
-  marginBottom: '0.25rem',
-});
-
-globalStyle(`${settingLabel} p`, {
-  fontSize: '0.875rem',
-  color: vars.text.secondary,
-  margin: 0,
-});
-
-export const settingControl = style({
-  display: 'flex',
-  alignItems: 'center',
-  gap: '1rem',
-});
-
 export const buttonGroup = style({
   display: 'flex',
   gap: '1rem',

@@ -6,8 +6,6 @@ import { ThemeProvider } from '@adopt-dont-shop/lib.components';
 import { createMockUser } from '@adopt-dont-shop/lib.dev-tools';
 
 const updateProfileMock = vi.fn();
-const updatePreferencesMock = vi.fn();
-const getPreferencesMock = vi.fn();
 
 const mockUser = {
   ...createMockUser({
@@ -18,12 +16,6 @@ const mockUser = {
     createdAt: '2024-01-01T00:00:00.000Z',
     updatedAt: '2024-01-01T00:00:00.000Z',
   }),
-  notificationPreferences: {
-    emailNotifications: true,
-    pushNotifications: false,
-    smsNotifications: false,
-    marketingEmails: false,
-  },
   privacySettings: {
     profileVisibility: 'public',
   },
@@ -70,11 +62,28 @@ vi.mock('@/services', async () => {
   };
 });
 
-vi.mock('@/services/notificationService', () => ({
-  default: {
-    getPreferences: () => getPreferencesMock(),
-    updatePreferences: (...args: unknown[]) => updatePreferencesMock(...args),
-  },
+// The shared tabs are covered in lib.account; this stub keeps the page's own
+// "Privacy & data" tab reachable.
+vi.mock('@adopt-dont-shop/lib.account', () => ({
+  AccountSettings: ({
+    value,
+    onChange,
+    extraTabs = [],
+  }: {
+    value: string;
+    onChange: (id: string) => void;
+    extraTabs?: ReadonlyArray<{ id: string; label: string; content: React.ReactNode }>;
+  }) => (
+    <div>
+      <p>Account settings tab: {value}</p>
+      {extraTabs.map(tab => (
+        <button key={tab.id} role='tab' onClick={() => onChange(tab.id)}>
+          {tab.label}
+        </button>
+      ))}
+      {extraTabs.find(tab => tab.id === value)?.content}
+    </div>
+  ),
 }));
 
 import { ProfilePage } from './ProfilePage';
@@ -89,39 +98,34 @@ const renderProfilePage = () =>
     </ThemeProvider>
   );
 
+const openPrivacyTab = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(screen.getByRole('button', { name: /^settings$/i }));
+  await user.click(screen.getByRole('tab', { name: /privacy & data/i }));
+};
+
+describe('ProfilePage settings', () => {
+  it('opens the settings tab on the shared notification settings', async () => {
+    const user = userEvent.setup();
+    renderProfilePage();
+
+    await user.click(screen.getByRole('button', { name: /^settings$/i }));
+
+    expect(screen.getByText('Account settings tab: notifications')).toBeInTheDocument();
+  });
+});
+
 describe('ProfilePage settings save', () => {
   beforeEach(() => {
     updateProfileMock.mockReset();
-    updatePreferencesMock.mockReset();
-    getPreferencesMock.mockReset();
-
-    getPreferencesMock.mockResolvedValue({
-      email: true,
-      push: false,
-      sms: false,
-      applications: true,
-      messages: true,
-      system: true,
-      marketing: false,
-      reminders: true,
-      quietHoursStart: '22:00',
-      quietHoursEnd: '08:00',
-    });
   });
 
   it('persists profile preferences via the auth API and surfaces a success message', async () => {
     const user = userEvent.setup();
     updateProfileMock.mockResolvedValue(undefined);
-    updatePreferencesMock.mockResolvedValue(undefined);
 
     renderProfilePage();
 
-    await user.click(screen.getByRole('button', { name: /^settings$/i }));
-
-    // Wait for form to load
-    await waitFor(() => {
-      expect(screen.getByLabelText(/email notifications/i)).toBeInTheDocument();
-    });
+    await openPrivacyTab(user);
 
     // Toggle a privacy setting so the form reveals the Save button
     await user.click(screen.getByLabelText(/show email address/i));
@@ -133,11 +137,10 @@ describe('ProfilePage settings save', () => {
     });
 
     const patch = updateProfileMock.mock.calls[0][0];
-    expect(patch.notificationPreferences).toBeDefined();
     expect(patch.privacySettings).toBeDefined();
     expect(patch.preferences).toBeDefined();
-
-    expect(updatePreferencesMock).toHaveBeenCalledTimes(1);
+    // Notification preferences are saved by the shared Notifications tab, not the profile.
+    expect(patch.notificationPreferences).toBeUndefined();
 
     await waitFor(() => {
       expect(screen.getByText(/settings saved successfully/i)).toBeInTheDocument();
@@ -146,7 +149,6 @@ describe('ProfilePage settings save', () => {
 
   it('shows an error message and does not silently swallow API failures', async () => {
     const user = userEvent.setup();
-    updatePreferencesMock.mockResolvedValue(undefined);
     updateProfileMock.mockRejectedValue(new Error('Network error: backend unreachable'));
 
     // Suppress expected console.error from the failure path
@@ -154,11 +156,7 @@ describe('ProfilePage settings save', () => {
 
     renderProfilePage();
 
-    await user.click(screen.getByRole('button', { name: /^settings$/i }));
-
-    await waitFor(() => {
-      expect(screen.getByLabelText(/email notifications/i)).toBeInTheDocument();
-    });
+    await openPrivacyTab(user);
 
     await user.click(screen.getByLabelText(/show email address/i));
     await user.click(screen.getByRole('button', { name: /save settings/i }));
@@ -187,18 +185,6 @@ describe('ProfilePage delete-account confirmation', () => {
     mockTwoFactorEnabled = false;
     deleteAccountMock.mockReset();
     deleteAccountMock.mockResolvedValue(undefined);
-    getPreferencesMock.mockResolvedValue({
-      email: true,
-      push: false,
-      sms: false,
-      applications: true,
-      messages: true,
-      system: true,
-      marketing: false,
-      reminders: true,
-      quietHoursStart: '22:00',
-      quietHoursEnd: '08:00',
-    });
   });
 
   // The modal submit button reads "Delete account" (lower-case a); the
@@ -311,7 +297,7 @@ describe('ProfilePage self-service data export (ADS-1320)', () => {
     const user = userEvent.setup();
     renderProfilePage();
 
-    await user.click(screen.getByRole('button', { name: /^settings$/i }));
+    await openPrivacyTab(user);
     await user.click(await screen.findByRole('button', { name: /download my data/i }));
 
     await waitFor(() => {
@@ -326,7 +312,7 @@ describe('ProfilePage self-service data export (ADS-1320)', () => {
     getExportMock.mockRejectedValue(new Error('boom'));
     renderProfilePage();
 
-    await user.click(screen.getByRole('button', { name: /^settings$/i }));
+    await openPrivacyTab(user);
     await user.click(await screen.findByRole('button', { name: /download my data/i }));
 
     expect(await screen.findByText(/failed to download your data/i)).toBeInTheDocument();

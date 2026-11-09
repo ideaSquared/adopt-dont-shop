@@ -24,23 +24,3 @@ globalStyle(`${pageHeader} p`, {
   color: vars.text.tertiary,
   margin: 0,
 });
-
-export const section = style({
-  background: vars.background.surface,
-  border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '0.75rem',
-  padding: '2rem',
-  marginBottom: '1.5rem',
-});
-
-globalStyle(`${section} h2`, {
-  fontSize: '1.25rem',
-  color: vars.text.secondary,
-  margin: '0 0 0.5rem 0',
-});
-
-globalStyle(`${section} > p`, {
-  fontSize: '0.875rem',
-  color: vars.text.tertiary,
-  margin: '0 0 1.5rem 0',
-});

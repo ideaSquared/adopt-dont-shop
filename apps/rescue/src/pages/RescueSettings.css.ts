@@ -61,22 +61,3 @@ globalStyle(`${placeholderSection} p`, {
   color: vars.text.tertiary,
   margin: 0,
 });
-
-export const securitySection = style({
-  background: vars.background.surface,
-  border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '0.75rem',
-  padding: '2rem',
-});
-
-globalStyle(`${securitySection} h2`, {
-  fontSize: '1.25rem',
-  color: vars.text.secondary,
-  margin: '0 0 0.5rem 0',
-});
-
-globalStyle(`${securitySection} > p`, {
-  fontSize: '0.875rem',
-  color: vars.text.tertiary,
-  margin: '0 0 1.5rem 0',
-});
