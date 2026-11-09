@@ -1,6 +1,7 @@
 import { request as playwrightRequest, type Page } from '@playwright/test';
 
 import { test, expect } from '../../fixtures';
+import { dismissCookieBannerWhenShown } from '../../helpers/cookie-banner';
 import { openAccountContext } from '../../helpers/cross-app-sessions';
 import { postWithCsrf } from '../../helpers/seeds';
 import { createRescueWithOwner } from '../../helpers/throwaway-rescue';
@@ -33,6 +34,8 @@ test.describe('rescue staff account settings', () => {
     const context = await openAccountContext(browser, rescue.owner, URLS.rescue);
     try {
       const page = await context.newPage();
+      // The fixed cookie banner covers buttons at the bottom of the page.
+      await dismissCookieBannerWhenShown(page);
       await page.goto('/user-settings#account');
       await activePanel(page).getByRole('button', { name: 'Delete account…' }).click();
       const dialog = page.getByRole('dialog');
@@ -53,6 +56,8 @@ test.describe('rescue staff account settings', () => {
     const context = await openAccountContext(browser, rescue.owner, URLS.rescue);
     try {
       const page = await context.newPage();
+      // The fixed cookie banner covers buttons at the bottom of the page.
+      await dismissCookieBannerWhenShown(page);
       await page.goto('/user-settings#account');
       await activePanel(page).getByLabel('First name').fill('Renamed');
       await activePanel(page).getByRole('button', { name: 'Save details' }).click();
