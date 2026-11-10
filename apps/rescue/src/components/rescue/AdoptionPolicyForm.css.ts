@@ -69,3 +69,8 @@ export const buttonGroup = style({
 export const checkboxWrapper = style({
   marginBottom: '0.75rem',
 });
+
+// A small number field shouldn't stretch across the whole form.
+export const narrowField = style({
+  maxWidth: '16rem',
+});
