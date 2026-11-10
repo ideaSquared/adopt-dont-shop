@@ -10,6 +10,7 @@ vi.mock('@adopt-dont-shop/lib.moderation', () => ({
 }));
 
 import { moderationService } from '@adopt-dont-shop/lib.moderation';
+import { toast } from '@adopt-dont-shop/lib.components';
 
 const mockGetReports = vi.mocked(moderationService.getReports);
 const mockCreateReport = vi.mocked(moderationService.createReport);
@@ -126,5 +127,27 @@ describe('ModerationTab', () => {
       '/users/user-1',
       '/users/user-2',
     ]);
+  });
+
+  it('shows an error state when reports cannot be loaded', async () => {
+    mockGetReports.mockRejectedValue(new Error('boom'));
+
+    render(<ModerationTab chat={buildChat()} chatId='chat-1' />);
+
+    expect(await screen.findByText('Failed to load reports.')).toBeInTheDocument();
+  });
+
+  it('toasts an error when flagging the conversation fails', async () => {
+    mockCreateReport.mockRejectedValue(new Error('nope'));
+
+    render(<ModerationTab chat={buildChat()} chatId='chat-1' />);
+    fireEvent.click(await screen.findByRole('button', { name: /report this conversation/i }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        'Failed to flag conversation. Please try again.',
+        expect.anything()
+      );
+    });
   });
 });
