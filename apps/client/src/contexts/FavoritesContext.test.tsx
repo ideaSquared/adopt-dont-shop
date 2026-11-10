@@ -9,6 +9,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
 const getFavorites = vi.fn();
@@ -31,9 +32,14 @@ vi.mock('@adopt-dont-shop/lib.auth', () => ({
 
 import { FavoritesProvider, useFavorites } from './FavoritesContext';
 
-const wrapper = ({ children }: { children: ReactNode }) => (
-  <FavoritesProvider>{children}</FavoritesProvider>
-);
+const wrapper = ({ children }: { children: ReactNode }) => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return (
+    <QueryClientProvider client={queryClient}>
+      <FavoritesProvider>{children}</FavoritesProvider>
+    </QueryClientProvider>
+  );
+};
 
 beforeEach(() => {
   vi.resetAllMocks();
