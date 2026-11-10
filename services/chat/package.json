@@ -29,13 +29,14 @@
     "build": "tsc",
     "clean": "rimraf dist",
     "test": "vitest run",
+    "test:contracts:provider": "vitest run --config vitest.contracts.config.ts --reporter=verbose",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "lint": "eslint src",
-    "lint:fix": "eslint src --fix",
-    "format": "prettier --write \"src/**/*.ts\"",
-    "format:check": "prettier --check \"src/**/*.ts\"",
-    "type-check": "tsc --noEmit"
+    "lint": "eslint src test",
+    "lint:fix": "eslint src test --fix",
+    "format": "prettier --write \"{src,test}/**/*.ts\"",
+    "format:check": "prettier --check \"{src,test}/**/*.ts\"",
+    "type-check": "tsc --noEmit -p tsconfig.typecheck.json"
   },
   "dependencies": {
     "@adopt-dont-shop/authz": "workspace:*",
@@ -56,6 +57,8 @@
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-node": "workspace:*",
+    "@adopt-dont-shop/test-utils": "workspace:*",
+    "@pact-foundation/pact": "^17.0.0",
     "@types/pg": "^8.15.5"
   }
 }

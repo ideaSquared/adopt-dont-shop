@@ -1,0 +1,181 @@
+{
+  "consumer": {
+    "name": "service.notifications"
+  },
+  "messages": [
+    {
+      "contents": {
+        "fromStatus": "pending",
+        "rescueId": "rescue-001",
+        "toStatus": "verified"
+      },
+      "description": "rescue.verified event",
+      "matchingRules": {
+        "body": {
+          "$.fromStatus": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.rescueId": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.toStatus": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          }
+        }
+      },
+      "metadata": {
+        "contentType": "application/json"
+      },
+      "providerStates": [
+        {
+          "name": "an admin verifies a pending rescue"
+        }
+      ]
+    },
+    {
+      "contents": {
+        "reason": "Charity number could not be confirmed",
+        "rescueId": "rescue-001"
+      },
+      "description": "rescue.rejected event with a reason",
+      "matchingRules": {
+        "body": {
+          "$.reason": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.rescueId": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          }
+        }
+      },
+      "metadata": {
+        "contentType": "application/json"
+      },
+      "providerStates": [
+        {
+          "name": "an admin rejects a pending rescue with a reason"
+        }
+      ]
+    },
+    {
+      "contents": {
+        "email": "new.staff@example.com",
+        "expiration": "2026-06-25T10:00:00.000Z",
+        "token": "one-time-token"
+      },
+      "description": "rescue.staffInvited event with a token",
+      "matchingRules": {
+        "body": {
+          "$.email": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.expiration": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "regex",
+                "regex": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$"
+              }
+            ]
+          },
+          "$.token": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          }
+        }
+      },
+      "metadata": {
+        "contentType": "application/json"
+      },
+      "providerStates": [
+        {
+          "name": "a rescue invites a new staff member by email"
+        }
+      ]
+    },
+    {
+      "contents": {
+        "invitationId": "inv-001",
+        "rescueId": "rescue-001"
+      },
+      "description": "rescue.staffInvitationCancelled event",
+      "matchingRules": {
+        "body": {
+          "$.invitationId": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.rescueId": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          }
+        }
+      },
+      "metadata": {
+        "contentType": "application/json"
+      },
+      "providerStates": [
+        {
+          "name": "an admin cancels a pending staff invitation"
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "pact-js": {
+      "version": "17.0.0"
+    },
+    "pactRust": {
+      "ffi": "0.5.4",
+      "models": "1.3.11"
+    },
+    "pactSpecification": {
+      "version": "3.0.0"
+    }
+  },
+  "provider": {
+    "name": "service.rescue"
+  }
+}
