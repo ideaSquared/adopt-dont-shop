@@ -246,14 +246,17 @@ pnpm docker:dev:build
 into `.turbo/.docker-dev-state.json`) — this manual step is for the rare
 case that detection misses (e.g. you edited the lockfile outside git).
 
-When the image changes, `docker-dev.mjs` starts the stack with
-`--renew-anon-volumes`. Without it, compose copies each container's old
-`node_modules` volumes onto its replacement, so the new image's deps stay
-hidden. If you recreate containers by hand after a rebuild, pass the flag
-yourself:
+When any container is still on an older dev image, `docker-dev.mjs` starts
+the stack with `--renew-anon-volumes`. Without it, compose copies each
+container's old `node_modules` volumes onto its replacement, so the new
+image's deps stay hidden. If you recreate containers by hand after a rebuild,
+pass the flag yourself and enable the profiles (the apps and services are
+profile-gated, so without them only infra is touched):
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --no-build --renew-anon-volumes
+docker compose -f docker-compose.yml -f docker-compose.dev.yml \
+  --profile client --profile admin --profile rescue --profile services \
+  up -d --no-build --renew-anon-volumes
 ```
 
 ---

@@ -402,25 +402,51 @@ export function resolveProfiles(profile) {
 // slip onto the slow path). It only disables BUILDING — missing infra images
 // (postgres/redis/nats/…) are still pulled automatically.
 //
-// --renew-anon-volumes when the image changed: compose copies a container's
-// anonymous volumes onto its replacement, so without it every per-package
-// node_modules volume keeps the OLD image's deps and a newly added workspace
-// dependency is ERR_MODULE_NOT_FOUND. The dev stack's only anonymous volumes
-// are node_modules paths, so renewing them loses nothing.
-export function composeUpArgs(profiles, { detach, imageChanged }) {
+// --renew-anon-volumes when any container is on an older dev image: compose
+// copies a container's anonymous volumes onto its replacement, so without it
+// every per-package node_modules volume keeps the OLD image's deps and a newly
+// added workspace dependency is ERR_MODULE_NOT_FOUND. Checking the containers
+// themselves, not just whether this run built the image, also catches ones a
+// previous narrower `--profile` run left on the old image. The flag
+// force-recreates every container, so it is not on by default. The dev
+// stack's only anonymous volumes are node_modules paths, so renewing them
+// loses nothing.
+export function needsVolumeRenewal(containers, currentImageId) {
+  return containers.some(c => c.configImage === LOCAL_DEV_IMAGE && c.imageId !== currentImageId);
+}
+
+export function composeUpArgs(profiles, { detach, renewAnonVolumes }) {
   return [
     ...profiles.flatMap(p => ['--profile', p]),
     'up',
     '--no-build',
-    ...(imageChanged ? ['--renew-anon-volumes'] : []),
+    ...(renewAnonVolumes ? ['--renew-anon-volumes'] : []),
     ...(detach ? ['-d'] : []),
   ];
 }
 
-function up(imageChanged) {
+// Every container in the project, whatever its profile, with the image it was
+// configured with and the image ID it actually runs.
+function projectContainers() {
+  const ids = capture(['docker compose', ...COMPOSE, 'ps -a -q'].join(' '))
+    .split(/\s+/)
+    .filter(Boolean);
+  if (ids.length === 0) return [];
+  return capture(`docker inspect -f "{{.Config.Image}} {{.Image}}" ${ids.join(' ')}`)
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map(line => {
+      const [configImage, imageId] = line.split(' ');
+      return { configImage, imageId };
+    });
+}
+
+function up() {
   const profiles = resolveProfiles(PROFILE);
   step(`Starting stack (profile: ${profiles.join(', ')}${DETACH ? ', detached' : ''})`);
-  const args = composeUpArgs(profiles, { detach: DETACH, imageChanged });
+  const currentImageId = capture(`docker image inspect -f "{{.Id}}" ${LOCAL_DEV_IMAGE}`);
+  const renewAnonVolumes = needsVolumeRenewal(projectContainers(), currentImageId);
+  const args = composeUpArgs(profiles, { detach: DETACH, renewAnonVolumes });
   run(['docker compose', ...COMPOSE, ...args].join(' '));
 }
 
@@ -429,7 +455,7 @@ function up(imageChanged) {
 // `up` then recreates only the containers whose compose config changed, because
 // your code is already live under the bind mount. A dependency change rebuilds
 // the shared image, so every app/service container is recreated with fresh
-// anonymous node_modules volumes (see composeUpArgs) to pick up the new deps.
+// anonymous node_modules volumes (see needsVolumeRenewal) to pick up the new deps.
 function reportRefreshPlan(imageChanged) {
   if (imageChanged) {
     warn(
@@ -471,7 +497,7 @@ async function main() {
   }
   await checkPostgresVolume();
   reportRefreshPlan(imageChanged);
-  up(imageChanged);
+  up();
   if (DETACH) {
     log('');
     ok('Stack started in background.');
