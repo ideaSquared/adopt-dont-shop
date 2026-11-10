@@ -194,6 +194,8 @@ describe('FosterCoordination', () => {
     expect(await screen.findByRole('option', { name: /Pet page 13/ })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: /Pet page 1 \(/ })).toBeInTheDocument();
     expect(mockedPet.getPetsByRescue).toHaveBeenCalledTimes(totalPages);
+    // 100 per page, the gateway's maximum, so each request carries five times as many pets.
+    expect(mockedPet.getPetsByRescue).toHaveBeenCalledWith('rescue-1', 1, 100);
   });
 
   it('looks pets up under the rescue from the staff membership and names them in the list', async () => {
@@ -215,7 +217,7 @@ describe('FosterCoordination', () => {
     renderAt('/foster');
 
     expect(await screen.findByText('Buddy (Labrador)')).toBeInTheDocument();
-    expect(mockedPet.getPetsByRescue).toHaveBeenCalledWith('rescue-1', 1);
+    expect(mockedPet.getPetsByRescue).toHaveBeenCalledWith('rescue-1', 1, 100);
   });
 
   it('creates a placement using the picker-selected pet and foster user', async () => {

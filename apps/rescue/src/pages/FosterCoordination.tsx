@@ -27,14 +27,15 @@ import * as styles from './FosterCoordination.css';
 
 const NO_PLACEMENTS: FosterPlacement[] = [];
 const NO_PETS: Pet[] = [];
-// The pets endpoint serves 20 per page. Fetch every page the API reports, in small batches so a
-// large rescue does not fire dozens of parallel requests. The cap is a safety net (2,000 pets).
+// Fetch every page the API reports, at the gateway's maximum page size, in small batches so a
+// large rescue does not fire dozens of parallel requests. The cap is a safety net (10,000 pets).
+const PET_PAGE_SIZE = 100;
 const MAX_PET_PAGES = 100;
 const PET_PAGE_BATCH_SIZE = 5;
 
 // Errors propagate so the query exposes a failed state instead of an empty list.
 const loadAllPets = async (rescueId: string): Promise<Pet[]> => {
-  const first = await petService.getPetsByRescue(rescueId, 1);
+  const first = await petService.getPetsByRescue(rescueId, 1, PET_PAGE_SIZE);
   const lastPage = Math.min(first.pagination.totalPages, MAX_PET_PAGES);
   const remainingPages = Array.from({ length: Math.max(lastPage - 1, 0) }, (_, i) => i + 2);
   const batches = Array.from(
@@ -43,7 +44,9 @@ const loadAllPets = async (rescueId: string): Promise<Pet[]> => {
   );
   const loaded = await batches.reduce<Promise<Pet[]>>(async (acc, batch) => {
     const soFar = await acc;
-    const pages = await Promise.all(batch.map(page => petService.getPetsByRescue(rescueId, page)));
+    const pages = await Promise.all(
+      batch.map(page => petService.getPetsByRescue(rescueId, page, PET_PAGE_SIZE))
+    );
     return [...soFar, ...pages.flatMap(page => page.data)];
   }, Promise.resolve(first.data));
   return loaded;
