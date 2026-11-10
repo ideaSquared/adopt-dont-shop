@@ -10,8 +10,9 @@ export type DomainEvent<T = unknown> = {
   payload: T;
   // Event id used for idempotency on the subscriber side. Callers MUST set
   // this to a value that uniquely identifies the business action — typically
-  // the aggregate id + version, or a ULID minted at command time. Falls back
-  // to a generated value but that defeats idempotency.
+  // the aggregate id + version, or a ULID minted at command time. When omitted,
+  // the outbox stores null and the event gets no Nats-Msg-Id, so it opts out of
+  // idempotency and broker-side de-dup.
   //
   // Under JetStream this id ALSO becomes the published message's
   // `Nats-Msg-Id`, so a double-publish of the same event within the stream's
