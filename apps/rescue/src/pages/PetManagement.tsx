@@ -1,14 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, useNavigate, useParams } from 'react-router';
 import {
+  Alert,
   Card,
   Container,
   Button,
-  Text,
-  Heading,
+  ErrorState,
+  MetricCard,
+  PageHeader,
   toast,
   useFilterParamSetter,
 } from '@adopt-dont-shop/lib.components';
+import { House } from 'lucide-react';
 import { PetListSkeleton } from '../components/skeletons';
 import {
   Pet,
@@ -28,19 +32,150 @@ import PetBulkActionBar, { type PetBulkAction } from '../components/pets/PetBulk
 import { usePet } from '../hooks/usePet';
 import * as styles from './PetManagement.css';
 
-interface PetStats {
+type PetStats = {
   total: number;
   available: number;
   pending: number;
   adopted: number;
   onHold: number;
-}
+};
+
+type DashboardStatsResponse = {
+  data: {
+    totalAnimals?: number;
+    availableForAdoption?: number;
+    pendingApplications?: number;
+    adoptedPets?: number;
+  };
+};
+
+const NO_PETS: Pet[] = [];
+const NO_RESCUE_MESSAGE = 'not associated with a rescue';
+
+// Map dashboard data to our stats format
+const fetchPetStats = async (): Promise<PetStats> => {
+  // Try to get stats using the dashboard endpoint which works
+  const dashboardData = await apiService.get<DashboardStatsResponse>('/api/v1/dashboard/rescue');
+  return {
+    total: dashboardData.data.totalAnimals || 0,
+    available: dashboardData.data.availableForAdoption || 0,
+    pending: dashboardData.data.pendingApplications || 0,
+    adopted: dashboardData.data.adoptedPets || 0,
+    onHold: 0, // Not available in dashboard data
+  };
+};
 
 const PetManagement: React.FC = () => {
-  const handleCreateDemoRescue = async () => {
-    try {
-      setLoading(true);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { user, refreshUser } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
+  // Filter state is driven by URL search params so refresh/back preserves it.
+  const statusFilter = (searchParams.get('status') ?? 'all') as PetStatus | 'all';
+  const searchFilter = searchParams.get('search') ?? '';
+  const typeFilter = searchParams.get('type') ?? '';
+  const sizeFilter = searchParams.get('size') ?? '';
+  const breedFilter = searchParams.get('breed') ?? '';
+  const ageGroupFilter = searchParams.get('ageGroup') ?? '';
+  const genderFilter = searchParams.get('gender') ?? '';
+
+  const setFilterParam = useFilterParamSetter(setSearchParams, { resetPage: true });
+
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [dismissedError, setDismissedError] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showCsvImport, setShowCsvImport] = useState(false);
+  const [editingPet, setEditingPet] = useState<Pet | null>(null);
+  // A pet deep-linked via /pets/:petId opens in the same form as "Edit".
+  const { petId: routePetId } = useParams<{ petId?: string }>();
+  const { data: routePet, isError: routePetMissing } = usePet(routePetId);
+  const petInForm = editingPet ?? (routePetId ? routePet : undefined) ?? null;
+
+  // A deep link to a pet that no longer exists (or can't be loaded) returns to
+  // the list with an explanation rather than silently showing the list.
+  useEffect(() => {
+    if (!routePetId || !routePetMissing) {
+      return;
+    }
+    toast.error('That pet could not be found');
+    navigate('/pets', { replace: true });
+  }, [routePetId, routePetMissing, navigate]);
+
+  const closePetForm = () => {
+    setShowAddModal(false);
+    setEditingPet(null);
+    if (routePetId) {
+      navigate('/pets');
+    }
+  };
+
+  // Pagination
+  const currentPage = Number(searchParams.get('page') ?? '1');
+
+  // ADS-646: bulk selection state. We hold the set of selected pet IDs at
+  // the page level so the toolbar and grid share one source of truth. The
+  // result summary is shown inline after a bulk write finishes (success +
+  // failure counts) and cleared once the user clears the selection.
+  const [selectedPetIds, setSelectedPetIds] = useState<Set<string>>(new Set());
+  const [bulkResult, setBulkResult] = useState<{
+    successCount: number;
+    failedCount: number;
+  } | null>(null);
+
+  const listFilters: Parameters<typeof petManagementService.getMyRescuePets>[0] = {
+    page: currentPage,
+    limit: 12,
+    search: searchFilter || undefined,
+    sortBy: 'created_at',
+    sortOrder: 'DESC' as const,
+    ...(statusFilter !== 'all' && { status: statusFilter }),
+    ...(typeFilter && { type: typeFilter }),
+    ...(sizeFilter && { size: sizeFilter }),
+    ...(breedFilter && { breed: breedFilter }),
+    ...(ageGroupFilter && { ageGroup: ageGroupFilter }),
+    ...(genderFilter && { gender: genderFilter }),
+  };
+
+  // Use getMyRescuePets which automatically determines the rescue ID from authentication
+  const petsQuery = useQuery({
+    queryKey: ['pets', 'rescue-list', listFilters],
+    queryFn: () => petManagementService.getMyRescuePets(listFilters),
+    placeholderData: keepPreviousData,
+    staleTime: 0,
+    retry: false,
+  });
+  const statsQuery = useQuery({
+    queryKey: ['pets', 'rescue-stats'],
+    queryFn: fetchPetStats,
+    retry: false,
+  });
+  const stats = statsQuery.data ?? null;
+
+  const pets = petsQuery.data?.pets ?? NO_PETS;
+  const totalPages = petsQuery.data?.pagination.totalPages ?? 1;
+  const hasNext = petsQuery.data?.pagination.hasNext ?? false;
+  const hasPrev = petsQuery.data?.pagination.hasPrev ?? false;
+
+  const queryErrorMessage = (() => {
+    const err = petsQuery.error;
+    if (!err) {
+      return null;
+    }
+    if (err instanceof Error && err.message.includes(NO_RESCUE_MESSAGE)) {
+      return 'You need to be associated with a rescue organization to manage pets.';
+    }
+    return err instanceof Error ? err.message : 'Failed to fetch pets';
+  })();
+  const error = actionError ?? queryErrorMessage;
+  // If the error is about not being associated with a rescue, show setup
+  const showRescueSetup =
+    petsQuery.error instanceof Error && petsQuery.error.message.includes(NO_RESCUE_MESSAGE);
+
+  const refreshPets = () => queryClient.invalidateQueries({ queryKey: ['pets'] });
+
+  const demoRescueMutation = useMutation({
+    mutationFn: async () => {
       // Create a demo rescue
       const demoRescueData = {
         name: `${user?.firstName}'s Demo Rescue`,
@@ -73,198 +208,67 @@ const PetManagement: React.FC = () => {
 
       // Refresh the user data
       await refreshUser();
-      setShowRescueSetup(false);
+    },
+    onSuccess: () => {
+      refreshPets();
       toast.success('Demo rescue created. You can now manage pets.');
-    } catch (error) {
-      console.error('Error creating demo rescue:', error);
+    },
+    onError: (err: unknown) => {
+      console.error('Error creating demo rescue:', err);
       toast.error('Failed to create demo rescue. Please check the console for details.', {
-        action: { label: 'Retry', onClick: handleCreateDemoRescue },
+        action: { label: 'Retry', onClick: () => demoRescueMutation.mutate() },
       });
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+  });
 
-  const navigate = useNavigate();
-  const { user, refreshUser } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const statusMutation = useMutation({
+    mutationFn: ({ petId, status, notes }: { petId: string; status: PetStatus; notes?: string }) =>
+      petManagementService.updatePetStatus(petId, status, notes),
+    onSuccess: refreshPets,
+    // Failures show in the page's own error banner.
+    onError: () => undefined,
+  });
 
-  // Filter state is driven by URL search params so refresh/back preserves it.
-  const statusFilter = (searchParams.get('status') ?? 'all') as PetStatus | 'all';
-  const searchFilter = searchParams.get('search') ?? '';
-  const typeFilter = searchParams.get('type') ?? '';
-  const sizeFilter = searchParams.get('size') ?? '';
-  const breedFilter = searchParams.get('breed') ?? '';
-  const ageGroupFilter = searchParams.get('ageGroup') ?? '';
-  const genderFilter = searchParams.get('gender') ?? '';
+  const deleteMutation = useMutation({
+    mutationFn: ({ petId, reason }: { petId: string; reason?: string }) =>
+      petManagementService.deletePet(petId, reason),
+    onSettled: refreshPets,
+    onError: () => undefined,
+  });
 
-  const setFilterParam = useFilterParamSetter(setSearchParams, { resetPage: true });
+  const bulkMutation = useMutation({
+    mutationFn: ({ ids, action }: { ids: string[]; action: PetBulkAction }) =>
+      action.type === 'status'
+        ? petManagementService.bulkUpdatePetStatus(ids, action.status)
+        : petManagementService.bulkArchivePets(ids),
+    onSettled: refreshPets,
+  });
 
-  const [pets, setPets] = useState<Pet[]>([]);
-  const [stats, setStats] = useState<PetStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showCsvImport, setShowCsvImport] = useState(false);
-  const [editingPet, setEditingPet] = useState<Pet | null>(null);
-  // A pet deep-linked via /pets/:petId opens in the same form as "Edit".
-  const { petId: routePetId } = useParams<{ petId?: string }>();
-  const { data: routePet, isError: routePetMissing } = usePet(routePetId);
-  const petInForm = editingPet ?? (routePetId ? routePet : undefined) ?? null;
+  const saveMutation = useMutation({
+    mutationFn: (data: PetCreateData | PetUpdateData) =>
+      petInForm
+        ? petManagementService.updatePet(petInForm.pet_id, data as PetUpdateData)
+        : petManagementService.createPet(data as PetCreateData),
+    onSuccess: refreshPets,
+  });
 
-  // A deep link to a pet that no longer exists (or can't be loaded) returns to
-  // the list with an explanation rather than silently showing the list.
-  useEffect(() => {
-    if (!routePetId || !routePetMissing) {
-      return;
-    }
-    toast.error('That pet could not be found');
-    navigate('/pets', { replace: true });
-  }, [routePetId, routePetMissing, navigate]);
-
-  const closePetForm = () => {
-    setShowAddModal(false);
-    setEditingPet(null);
-    if (routePetId) {
-      navigate('/pets');
-    }
-  };
-
-  // Pagination
-  const currentPage = Number(searchParams.get('page') ?? '1');
-  const [totalPages, setTotalPages] = useState(1);
-  const [hasNext, setHasNext] = useState(false);
-  const [hasPrev, setHasPrev] = useState(false);
-
-  const [showRescueSetup, setShowRescueSetup] = useState(false);
-
-  // ADS-646: bulk selection state. We hold the set of selected pet IDs at
-  // the page level so the toolbar and grid share one source of truth. The
-  // result summary is shown inline after a bulk write finishes (success +
-  // failure counts) and cleared once the user clears the selection.
-  const [selectedPetIds, setSelectedPetIds] = useState<Set<string>>(new Set());
-  const [bulkBusy, setBulkBusy] = useState(false);
-  const [bulkResult, setBulkResult] = useState<{
-    successCount: number;
-    failedCount: number;
-  } | null>(null);
-
-  const fetchPets = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const filters: Parameters<typeof petManagementService.getMyRescuePets>[0] = {
-        page: currentPage,
-        limit: 12,
-        search: searchFilter || undefined,
-        sortBy: 'created_at',
-        sortOrder: 'DESC' as const,
-      };
-
-      if (statusFilter !== 'all') {
-        filters.status = statusFilter;
-      }
-
-      if (typeFilter) {
-        filters.type = typeFilter;
-      }
-
-      if (sizeFilter) {
-        filters.size = sizeFilter;
-      }
-
-      if (breedFilter) {
-        filters.breed = breedFilter;
-      }
-
-      if (ageGroupFilter) {
-        filters.ageGroup = ageGroupFilter;
-      }
-
-      if (genderFilter) {
-        filters.gender = genderFilter;
-      }
-
-      // Use getMyRescuePets which automatically determines the rescue ID from authentication
-      const response = await petManagementService.getMyRescuePets(filters);
-
-      setPets(response.pets);
-      setTotalPages(response.pagination.totalPages);
-      setHasNext(response.pagination.hasNext);
-      setHasPrev(response.pagination.hasPrev);
-    } catch (err) {
-      console.error('Failed to fetch pets:', err);
-
-      // If the error is about not being associated with a rescue, show setup
-      if (err instanceof Error && err.message.includes('not associated with a rescue')) {
-        setShowRescueSetup(true);
-        setError('You need to be associated with a rescue organization to manage pets.');
-      } else {
-        setError(err instanceof Error ? err.message : 'Failed to fetch pets');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
-      // Try to get stats using the dashboard endpoint which works
-      const dashboardData = await apiService.get<{
-        data: {
-          totalAnimals?: number;
-          availableForAdoption?: number;
-          pendingApplications?: number;
-          adoptedPets?: number;
-        };
-      }>('/api/v1/dashboard/rescue');
-
-      // Map dashboard data to our stats format
-      setStats({
-        total: dashboardData.data.totalAnimals || 0,
-        available: dashboardData.data.availableForAdoption || 0,
-        pending: dashboardData.data.pendingApplications || 0,
-        adopted: dashboardData.data.adoptedPets || 0,
-        onHold: 0, // Not available in dashboard data
-      });
-    } catch (err) {
-      console.error('Failed to fetch pet statistics:', err);
-    }
-  };
-
-  useEffect(() => {
-    fetchPets();
-  }, [
-    currentPage,
-    statusFilter,
-    searchFilter,
-    typeFilter,
-    sizeFilter,
-    breedFilter,
-    ageGroupFilter,
-    genderFilter,
-  ]);
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
+  const loading =
+    petsQuery.isFetching ||
+    demoRescueMutation.isPending ||
+    deleteMutation.isPending ||
+    statusMutation.isPending;
 
   const handleStatusChange = async (petId: string, newStatus: PetStatus, notes?: string) => {
     try {
-      await petManagementService.updatePetStatus(petId, newStatus, notes);
-      fetchPets(); // Refresh the list
-      fetchStats(); // Refresh stats
+      await statusMutation.mutateAsync({ petId, status: newStatus, notes });
     } catch (err) {
       console.error('Failed to update pet status:', err);
-      setError(err instanceof Error ? err.message : 'Failed to update pet status');
+      setActionError(err instanceof Error ? err.message : 'Failed to update pet status');
     }
   };
 
   const handlePetSaved = () => {
     closePetForm();
-    fetchPets();
-    fetchStats();
   };
 
   const handleEditPet = (pet: Pet) => {
@@ -272,27 +276,13 @@ const PetManagement: React.FC = () => {
   };
 
   const handleDeletePet = async (petId: string, reason?: string) => {
-    setLoading(true);
-
     try {
-      // Optimistically remove the pet from the UI immediately
-      setPets(prevPets => prevPets.filter(pet => pet.pet_id !== petId));
-
-      await petManagementService.deletePet(petId, reason);
-
-      // Refresh data to ensure consistency
-      await fetchPets();
-      await fetchStats();
-
+      await deleteMutation.mutateAsync({ petId, reason });
       // Clear any previous errors
-      setError(null);
+      setActionError(null);
     } catch (err) {
       console.error('Failed to delete pet:', err);
-      setError(err instanceof Error ? err.message : 'Failed to delete pet');
-      // If deletion failed, refresh the data to restore the pet in the UI
-      await fetchPets();
-    } finally {
-      setLoading(false);
+      setActionError(err instanceof Error ? err.message : 'Failed to delete pet');
     }
   };
 
@@ -320,16 +310,10 @@ const PetManagement: React.FC = () => {
     if (ids.length === 0) {
       return;
     }
-    setBulkBusy(true);
     try {
-      const result =
-        action.type === 'status'
-          ? await petManagementService.bulkUpdatePetStatus(ids, action.status)
-          : await petManagementService.bulkArchivePets(ids);
+      const result = await bulkMutation.mutateAsync({ ids, action });
       setBulkResult({ successCount: result.successCount, failedCount: result.failedCount });
       setSelectedPetIds(new Set());
-      await fetchPets();
-      await fetchStats();
       if (result.failedCount === 0) {
         toast.success(`Bulk action applied to ${result.successCount} pets`);
       } else {
@@ -339,8 +323,6 @@ const PetManagement: React.FC = () => {
       console.error('Bulk action failed:', err);
       const message = err instanceof Error ? err.message : 'Bulk action failed';
       toast.error(message);
-    } finally {
-      setBulkBusy(false);
     }
   };
 
@@ -359,10 +341,10 @@ const PetManagement: React.FC = () => {
     );
   };
 
-  if (loading && pets.length === 0) {
+  if (petsQuery.isLoading) {
     return (
       <Container className={styles.pageContainer}>
-        <Heading level="h1">Pet Management</Heading>
+        <PageHeader title="Pet Management" />
         <PetListSkeleton />
       </Container>
     );
@@ -371,30 +353,31 @@ const PetManagement: React.FC = () => {
   if (error && pets.length === 0) {
     return (
       <Container className={styles.pageContainer}>
-        <div className={styles.errorContainer}>
-          <Heading level="h3">Error Loading Pets</Heading>
-          <Text>{error}</Text>
-          <Button onClick={() => fetchPets()} className={styles.retryButton}>
-            Try Again
-          </Button>
-        </div>
+        <ErrorState
+          title="Error Loading Pets"
+          message={error}
+          onRetry={() => {
+            setActionError(null);
+            petsQuery.refetch();
+          }}
+        />
       </Container>
     );
   }
 
   // Show rescue setup only if we get a specific error about not being associated with a rescue
-  if (showRescueSetup && error?.includes('not associated with a rescue')) {
+  if (showRescueSetup && pets.length === 0) {
     return (
       <Container className={styles.pageContainer}>
-        <div className={styles.pageHeader}>
-          <div className={styles.headerContent}>
-            <h1>Rescue Setup Required</h1>
-            <p>You need to be associated with a rescue organization to manage pets.</p>
-          </div>
-        </div>
+        <PageHeader
+          title="Rescue Setup Required"
+          description="You need to be associated with a rescue organization to manage pets."
+        />
 
         <Card className={styles.setupCard}>
-          <div className={styles.setupEmoji}>🏠</div>
+          <div className={styles.setupEmoji}>
+            <House size="1em" aria-hidden="true" />
+          </div>
           <h2>Create Your Rescue Organization</h2>
           <p className={styles.setupHint}>
             To start managing pets, you first need to create or join a rescue organization. This
@@ -402,7 +385,11 @@ const PetManagement: React.FC = () => {
           </p>
 
           <div className={styles.setupActions}>
-            <Button variant="primary" onClick={handleCreateDemoRescue} disabled={loading}>
+            <Button
+              variant="primary"
+              onClick={() => demoRescueMutation.mutate()}
+              disabled={loading}
+            >
               {loading ? 'Creating...' : 'Create Demo Rescue (Dev)'}
             </Button>
             <Button variant="outline" onClick={() => navigate('/register-rescue')}>
@@ -424,51 +411,38 @@ const PetManagement: React.FC = () => {
     );
   }
 
+  const visibleError = error !== dismissedError ? error : null;
+
   return (
     <Container className={styles.pageContainer}>
       <div className={styles.contentWrapper}>
-        <div className={styles.pageHeader}>
-          <div className={styles.headerContent}>
-            <h1>Pet Management</h1>
-            <p>Manage your rescue's pet inventory, medical records, and adoption status.</p>
-          </div>
-          <div className={styles.headerActions}>
-            <Button
-              variant="outline"
-              onClick={() => setShowCsvImport(true)}
-              disabled={!user?.rescueId}
-            >
-              Import CSV
-            </Button>
-            <Button variant="primary" onClick={() => setShowAddModal(true)}>
-              Add New Pet
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          title="Pet Management"
+          description="Manage your rescue's pet inventory, medical records, and adoption status."
+          actions={
+            <div className={styles.headerActions}>
+              <Button
+                variant="outline"
+                onClick={() => setShowCsvImport(true)}
+                disabled={!user?.rescueId}
+              >
+                Import CSV
+              </Button>
+              <Button variant="primary" onClick={() => setShowAddModal(true)}>
+                Add New Pet
+              </Button>
+            </div>
+          }
+        />
 
         {/* Statistics */}
         {stats && (
           <div className={styles.statsContainer}>
-            <Card className={styles.statCard}>
-              <div className={styles.statNumber}>{stats.total}</div>
-              <div className={styles.statLabel}>Total Pets</div>
-            </Card>
-            <Card className={styles.statCard}>
-              <div className={styles.statNumber}>{stats.available}</div>
-              <div className={styles.statLabel}>Available</div>
-            </Card>
-            <Card className={styles.statCard}>
-              <div className={styles.statNumber}>{stats.pending}</div>
-              <div className={styles.statLabel}>Pending</div>
-            </Card>
-            <Card className={styles.statCard}>
-              <div className={styles.statNumber}>{stats.adopted}</div>
-              <div className={styles.statLabel}>Adopted</div>
-            </Card>
-            <Card className={styles.statCard}>
-              <div className={styles.statNumber}>{stats.onHold}</div>
-              <div className={styles.statLabel}>On Hold</div>
-            </Card>
+            <MetricCard label="Total Pets" value={stats.total} />
+            <MetricCard label="Available" value={stats.available} />
+            <MetricCard label="Pending" value={stats.pending} />
+            <MetricCard label="Adopted" value={stats.adopted} />
+            <MetricCard label="On Hold" value={stats.onHold} />
           </div>
         )}
 
@@ -530,18 +504,17 @@ const PetManagement: React.FC = () => {
         </div>
 
         {/* Error Message */}
-        {error && (
-          <div className={styles.errorContainer}>
-            <Text>{error}</Text>
-            <Button
-              onClick={() => setError(null)}
-              variant="outline"
-              size="sm"
-              className={styles.dismissButton}
-            >
-              Dismiss
-            </Button>
-          </div>
+        {visibleError && (
+          <Alert
+            variant="error"
+            closable
+            onClose={() => {
+              setActionError(null);
+              setDismissedError(visibleError);
+            }}
+          >
+            {visibleError}
+          </Alert>
         )}
 
         {/* Bulk action bar (ADS-646) — only renders while a selection is active. */}
@@ -549,7 +522,7 @@ const PetManagement: React.FC = () => {
           selectedCount={selectedPetIds.size}
           onClearSelection={handleClearSelection}
           onBulkAction={handleBulkAction}
-          busy={bulkBusy}
+          busy={bulkMutation.isPending}
           resultSummary={bulkResult}
         />
 
@@ -582,10 +555,7 @@ const PetManagement: React.FC = () => {
           isOpen={showCsvImport}
           rescueId={user.rescueId}
           onClose={() => setShowCsvImport(false)}
-          onImported={() => {
-            fetchPets();
-            fetchStats();
-          }}
+          onImported={refreshPets}
         />
       )}
 
@@ -597,17 +567,13 @@ const PetManagement: React.FC = () => {
           onClose={closePetForm}
           onSubmit={async data => {
             try {
-              if (petInForm) {
-                await petManagementService.updatePet(petInForm.pet_id, data as PetUpdateData);
-              } else {
-                await petManagementService.createPet(data as PetCreateData);
-              }
+              await saveMutation.mutateAsync(data);
               handlePetSaved();
               // ADS-125
               toast.success('Pet saved');
-            } catch (error) {
-              console.error('Error saving pet:', error);
-              throw error;
+            } catch (saveError) {
+              console.error('Error saving pet:', saveError);
+              throw saveError;
             }
           }}
         />

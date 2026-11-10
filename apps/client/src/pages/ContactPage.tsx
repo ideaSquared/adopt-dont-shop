@@ -1,5 +1,5 @@
 import React from 'react';
-import { Container } from '@adopt-dont-shop/lib.components';
+import { Container, PageHeader } from '@adopt-dont-shop/lib.components';
 
 /**
  * ADS-1326: the footer links to /contact, which had no route (404).
@@ -9,7 +9,7 @@ import { Container } from '@adopt-dont-shop/lib.components';
  */
 export const ContactPage: React.FC = () => (
   <Container>
-    <h1>Contact Us</h1>
+    <PageHeader title='Contact Us' />
     <p>
       For general enquiries, including account or platform issues, email{' '}
       <a href='mailto:privacy@adoptdontshop.app'>privacy@adoptdontshop.app</a>.

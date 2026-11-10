@@ -1,10 +1,14 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
-import { vars } from '@adopt-dont-shop/lib.components/theme';
+import { media, vars } from '@adopt-dont-shop/lib.components/theme';
 
-export const headerActions = style({
-  display: 'flex',
-  gap: '0.75rem',
+export const page = style({});
+
+export const cardTitle = style({
+  margin: 0,
+  fontSize: vars.typography.size.lg,
+  fontWeight: vars.typography.weight.semibold,
+  color: vars.text.primary,
 });
 
 export const configGrid = style({
@@ -13,7 +17,7 @@ export const configGrid = style({
   gap: '1.5rem',
   // The 500px minimum overflows phones; drop to a single full-width column.
   '@media': {
-    '(max-width: 768px)': {
+    [media.down('md')]: {
       gridTemplateColumns: '1fr',
     },
   },

@@ -1,5 +1,25 @@
 import React, { useState } from 'react';
-import { Card, Container, Heading, Text } from '@adopt-dont-shop/lib.components';
+import {
+  Alert,
+  Button,
+  Card,
+  Container,
+  Heading,
+  MetricCard,
+  PageHeader,
+  Text,
+} from '@adopt-dont-shop/lib.components';
+import {
+  ChartColumnIncreasing,
+  CircleCheck,
+  CircleX,
+  ClipboardList,
+  Heart,
+  Info,
+  PawPrint,
+  TriangleAlert,
+  X,
+} from 'lucide-react';
 import { useAuth, authService, STORAGE_KEYS } from '@adopt-dont-shop/lib.auth';
 import { useDashboardData } from '../hooks';
 import { UnreadMessagesPanel } from '../components/dashboard/UnreadMessagesPanel';
@@ -7,6 +27,12 @@ import { DashboardSkeleton } from '../components/skeletons';
 import { formatRelativeDate } from '@adopt-dont-shop/lib.utils';
 import { apiService } from '../services/libraryServices';
 import * as styles from './Dashboard.css';
+
+const notificationIcons: Record<string, typeof Info> = {
+  success: CircleCheck,
+  warning: TriangleAlert,
+  error: CircleX,
+};
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -16,9 +42,7 @@ const Dashboard: React.FC = () => {
   if (loading) {
     return (
       <Container className={styles.dashboardContainer}>
-        <div className={styles.dashboardHeader}>
-          <Heading level="h1">Rescue Dashboard</Heading>
-        </div>
+        <PageHeader title="Rescue Dashboard" />
         <DashboardSkeleton />
       </Container>
     );
@@ -27,21 +51,22 @@ const Dashboard: React.FC = () => {
   if (error) {
     return (
       <Container className={styles.dashboardContainer}>
-        <div className={styles.dashboardHeader}>
-          <Heading level="h1">Rescue Dashboard</Heading>
-          <Text>Welcome back! Here's what's happening with your rescue today.</Text>
-        </div>
+        <PageHeader
+          title="Rescue Dashboard"
+          description="Welcome back! Here's what's happening with your rescue today."
+        />
         <Card>
           <div className={styles.errorCard}>
-            <Text className={styles.errorMessage}>⚠️ Unable to load dashboard data: {error}</Text>
+            <Alert variant="error">Unable to load dashboard data: {error}</Alert>
             <Text className={styles.errorHint}>
               This usually indicates an authentication issue. Please try logging in again.
             </Text>
             <div className={styles.errorActions}>
-              <button onClick={() => window.location.reload()} className={styles.refreshButton}>
+              <Button variant="primary" onClick={() => window.location.reload()}>
                 Refresh Page
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => {
                   // Clear only auth-related client state rather than all
                   // localStorage, to avoid wiping unrelated user preferences
@@ -54,10 +79,9 @@ const Dashboard: React.FC = () => {
                   apiService.clearCsrfToken();
                   window.location.reload();
                 }}
-                className={styles.clearAuthButton}
               >
                 Clear Auth & Restart
-              </button>
+              </Button>
             </div>
           </div>
         </Card>
@@ -68,10 +92,7 @@ const Dashboard: React.FC = () => {
   if (!dashboardData) {
     return (
       <Container className={styles.dashboardContainer}>
-        <div className={styles.dashboardHeader}>
-          <Heading level="h1">Rescue Dashboard</Heading>
-          <Text>No dashboard data available.</Text>
-        </div>
+        <PageHeader title="Rescue Dashboard" description="No dashboard data available." />
       </Container>
     );
   }
@@ -87,10 +108,10 @@ const Dashboard: React.FC = () => {
 
   return (
     <Container className={styles.dashboardContainer}>
-      <div className={styles.dashboardHeader}>
-        <Heading level="h1">Rescue Dashboard</Heading>
-        <Text>Welcome back! Here's what's happening with your rescue today.</Text>
-      </div>
+      <PageHeader
+        title="Rescue Dashboard"
+        description="Welcome back! Here's what's happening with your rescue today."
+      />
 
       {/* Welcome Message for Current User */}
       <div className={styles.welcomeMessage}>
@@ -120,14 +141,15 @@ const Dashboard: React.FC = () => {
               </a>
             </div>
           </div>
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="sm"
             className={styles.onboardingDismiss}
             onClick={() => setOnboardingDismissed(true)}
             aria-label="Dismiss onboarding banner"
           >
-            ✕
-          </button>
+            <X size="1em" aria-hidden="true" />
+          </Button>
         </div>
       )}
 
@@ -137,49 +159,30 @@ const Dashboard: React.FC = () => {
 
       {/* Key Metrics Row */}
       <div className={styles.metricsGrid}>
-        <Card>
-          <div className={styles.metricCardBody}>
-            <div className={styles.metricCardHeader}>
-              <span className={styles.metricEmoji}>🐕</span>
-              <Text className={styles.metricLabel}>Total Pets</Text>
-            </div>
-            <Text className={styles.metricValue}>{totalPets}</Text>
-            <Text className={styles.metricDeltaUp}>↑ 5% from last month</Text>
-          </div>
-        </Card>
-
-        <Card>
-          <div className={styles.metricCardBody}>
-            <div className={styles.metricCardHeader}>
-              <span className={styles.metricEmoji}>❤️</span>
-              <Text className={styles.metricLabel}>Successful Adoptions</Text>
-            </div>
-            <Text className={styles.metricValue}>{successfulAdoptions}</Text>
-            <Text className={styles.metricDeltaUp}>↑ 12% from last month</Text>
-          </div>
-        </Card>
-
-        <Card>
-          <div className={styles.metricCardBody}>
-            <div className={styles.metricCardHeader}>
-              <span className={styles.metricEmoji}>📋</span>
-              <Text className={styles.metricLabel}>Pending Applications</Text>
-            </div>
-            <Text className={styles.metricValue}>{pendingApplications}</Text>
-            <Text className={styles.metricDeltaDown}>↓ 2% from last month</Text>
-          </div>
-        </Card>
-
-        <Card>
-          <div className={styles.metricCardBody}>
-            <div className={styles.metricCardHeader}>
-              <span className={styles.metricEmoji}>📊</span>
-              <Text className={styles.metricLabel}>Adoption Rate</Text>
-            </div>
-            <Text className={styles.metricValue}>{adoptionRate}%</Text>
-            <Text className={styles.metricDeltaUp}>↑ 3% from last month</Text>
-          </div>
-        </Card>
+        <MetricCard
+          icon={<PawPrint size="1em" />}
+          label="Total Pets"
+          value={totalPets}
+          helperText="↑ 5% from last month"
+        />
+        <MetricCard
+          icon={<Heart size="1em" />}
+          label="Successful Adoptions"
+          value={successfulAdoptions}
+          helperText="↑ 12% from last month"
+        />
+        <MetricCard
+          icon={<ClipboardList size="1em" />}
+          label="Pending Applications"
+          value={pendingApplications}
+          helperText="↓ 2% from last month"
+        />
+        <MetricCard
+          icon={<ChartColumnIncreasing size="1em" />}
+          label="Adoption Rate"
+          value={`${adoptionRate}%`}
+          helperText="↑ 3% from last month"
+        />
       </div>
 
       {/* Charts and Analytics Row */}
@@ -288,18 +291,7 @@ const Dashboard: React.FC = () => {
         <div className={styles.notificationsBody}>
           {notifications.length > 0 ? (
             notifications.map(notification => {
-              const getNotificationIcon = (type: string) => {
-                switch (type) {
-                  case 'success':
-                    return '✅';
-                  case 'warning':
-                    return '⚠️';
-                  case 'error':
-                    return '❌';
-                  default:
-                    return 'ℹ️';
-                }
-              };
+              const NotificationIcon = notificationIcons[notification.type] ?? Info;
 
               return (
                 <div
@@ -309,7 +301,7 @@ const Dashboard: React.FC = () => {
                   }`}
                 >
                   <div className={styles.notificationIcon}>
-                    {getNotificationIcon(notification.type)}
+                    <NotificationIcon size="1em" aria-hidden="true" />
                   </div>
                   <div className={styles.notificationContent}>
                     <Text className={styles.notificationTitle}>{notification.title}</Text>
@@ -327,7 +319,9 @@ const Dashboard: React.FC = () => {
           )}
         </div>
         <div className={styles.notificationsFooter}>
-          <button className={styles.viewAllButton}>View All Notifications</button>
+          <Button variant="ghost" size="sm">
+            View All Notifications
+          </Button>
         </div>
       </Card>
     </Container>

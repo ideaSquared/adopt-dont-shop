@@ -1,5 +1,7 @@
-import { petService, Pet } from '@/services';
-import React, { useCallback, useEffect, useState } from 'react';
+import { petService } from '@/services';
+import { FAVORITE_PET_IDS_QUERY_KEY, FAVORITE_PETS_QUERY_KEY } from '@/hooks/useFavoritePets';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { createAppContext, handleAsyncAction } from './base/BaseContext';
 
@@ -21,10 +23,51 @@ interface FavoritesProviderProps {
 }
 
 export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }) => {
-  const [favoritePetIds, setFavoritePetIds] = useState<Set<string>>(new Set());
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated, user } = useAuth();
+  const queryClient = useQueryClient();
+  const isSignedIn = isAuthenticated && !!user;
+
+  const idsQuery = useQuery({
+    queryKey: FAVORITE_PET_IDS_QUERY_KEY,
+    queryFn: async () => (await petService.getFavorites()).map(pet => pet.pet_id),
+    enabled: isSignedIn,
+  });
+
+  // Signing out must hide favourites even though the cache entry outlives the session.
+  const favoritePetIds = useMemo(
+    () => new Set(isSignedIn ? (idsQuery.data ?? []) : []),
+    [isSignedIn, idsQuery.data]
+  );
+  const isLoading = idsQuery.isFetching;
+
+  // Surface a failed load through the same `error` field the mutations use.
+  useEffect(() => {
+    if (idsQuery.error) {
+      console.error('Failed to fetch favorites:', idsQuery.error);
+      setError(idsQuery.error.message);
+    }
+  }, [idsQuery.error]);
+
+  useEffect(() => {
+    if (!isSignedIn) {
+      queryClient.removeQueries({ queryKey: ['favorites'] });
+    }
+  }, [isSignedIn, queryClient]);
+
+  const updateFavoriteIds = useCallback(
+    (update: (ids: Set<string>) => Set<string>) => {
+      queryClient.setQueryData<string[]>(FAVORITE_PET_IDS_QUERY_KEY, previous => [
+        ...update(new Set(previous ?? [])),
+      ]);
+    },
+    [queryClient]
+  );
+
+  const invalidateFavoritePets = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: FAVORITE_PETS_QUERY_KEY }),
+    [queryClient]
+  );
 
   const clearError = useCallback(() => {
     setError(null);
@@ -39,21 +82,11 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
 
   const refreshFavorites = useCallback(async (): Promise<void> => {
     if (!isAuthenticated) {
-      setFavoritePetIds(new Set());
       return;
     }
-
-    const result = await handleAsyncAction(() => petService.getFavorites(), {
-      setLoading: setIsLoading,
-      setError,
-      onError: error => console.error('Failed to fetch favorites:', error),
-    });
-
-    if (result) {
-      const petIds = new Set(result.map((pet: Pet) => pet.pet_id));
-      setFavoritePetIds(petIds);
-    }
-  }, [isAuthenticated]);
+    setError(null);
+    await idsQuery.refetch();
+  }, [isAuthenticated, idsQuery]);
 
   const addToFavorites = useCallback(
     async (petId: string): Promise<void> => {
@@ -66,14 +99,15 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
       }
 
       // Optimistic update
-      setFavoritePetIds(prev => new Set([...prev, petId]));
+      updateFavoriteIds(prev => new Set([...prev, petId]));
 
       const success = await handleAsyncAction(() => petService.addToFavorites(petId), {
         setError,
+        onSuccess: () => void invalidateFavoritePets(),
         onError: error => {
           console.error('Failed to add to favorites:', error);
           // Revert optimistic update on error
-          setFavoritePetIds(prev => {
+          updateFavoriteIds(prev => {
             const newSet = new Set(prev);
             newSet.delete(petId);
             return newSet;
@@ -83,7 +117,7 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
           const errorMessage = error.message || '';
           if (errorMessage.includes('already in favorites')) {
             // Backend says it's already favorited, keep in local state
-            setFavoritePetIds(prev => new Set([...prev, petId]));
+            updateFavoriteIds(prev => new Set([...prev, petId]));
             setError(null); // Clear the error since it's not really an error
           }
         },
@@ -93,7 +127,7 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
         throw new Error('Failed to add to favorites');
       }
     },
-    [isAuthenticated, favoritePetIds]
+    [isAuthenticated, favoritePetIds, updateFavoriteIds, invalidateFavoritePets]
   );
 
   const removeFromFavorites = useCallback(
@@ -107,7 +141,7 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
       }
 
       // Optimistic update
-      setFavoritePetIds(prev => {
+      updateFavoriteIds(prev => {
         const newSet = new Set(prev);
         newSet.delete(petId);
         return newSet;
@@ -115,10 +149,11 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
 
       const success = await handleAsyncAction(() => petService.removeFromFavorites(petId), {
         setError,
+        onSuccess: () => void invalidateFavoritePets(),
         onError: error => {
           console.error('Failed to remove from favorites:', error);
           // Revert optimistic update on error
-          setFavoritePetIds(prev => new Set([...prev, petId]));
+          updateFavoriteIds(prev => new Set([...prev, petId]));
         },
       });
 
@@ -126,17 +161,8 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
         throw new Error('Failed to remove from favorites');
       }
     },
-    [isAuthenticated, favoritePetIds]
+    [isAuthenticated, favoritePetIds, updateFavoriteIds, invalidateFavoritePets]
   );
-
-  // Fetch favorites when user logs in
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      refreshFavorites();
-    } else {
-      setFavoritePetIds(new Set());
-    }
-  }, [isAuthenticated, user, refreshFavorites]);
 
   const value: FavoritesContextType = {
     favoritePetIds,

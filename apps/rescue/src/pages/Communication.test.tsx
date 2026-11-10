@@ -95,7 +95,51 @@ vi.mock('@adopt-dont-shop/lib.components', async () => {
 
   const Spinner = () => <div role="progressbar" aria-label="Loading" />;
 
-  return { useConfirm, ConfirmDialog, Button, Spinner, toast };
+  const PageHeader = (props: {
+    title: React.ReactNode;
+    description?: React.ReactNode;
+    actions?: React.ReactNode;
+  }) => (
+    <header>
+      <h1>{props.title}</h1>
+      <p>{props.description}</p>
+      {props.actions}
+    </header>
+  );
+
+  const Alert = (props: { children?: React.ReactNode }) => <div role="alert">{props.children}</div>;
+
+  const Tabs = (props: {
+    tabs: Array<{ id: string; label: React.ReactNode; content: React.ReactNode }>;
+    value: string;
+    onChange: (id: string) => void;
+    'aria-label'?: string;
+  }) => (
+    <div>
+      <div role="tablist" aria-label={props['aria-label']}>
+        {props.tabs.map(tab => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={tab.id === props.value}
+            onClick={() => props.onChange(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+      {props.tabs
+        .filter(tab => tab.id === props.value)
+        .map(tab => (
+          <div key={tab.id} role="tabpanel">
+            {tab.content}
+          </div>
+        ))}
+    </div>
+  );
+
+  return { useConfirm, ConfirmDialog, Button, Spinner, toast, PageHeader, Alert, Tabs };
 });
 
 // lib.chat renders the conversation rows and the chat window from the

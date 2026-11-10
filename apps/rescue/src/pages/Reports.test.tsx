@@ -60,7 +60,7 @@ describe('Rescue ReportsPage', () => {
     renderWithProviders(<ReportsPage />);
 
     expect(screen.getByRole('heading', { name: 'Reports', level: 1 })).toBeInTheDocument();
-    expect(screen.getByText('Loading…')).toBeInTheDocument();
+    expect(screen.getByLabelText('Loading…')).toBeInTheDocument();
   });
 
   it('shows the empty-state prompt when there are no saved reports', () => {
@@ -126,7 +126,7 @@ describe('Rescue ReportsPage', () => {
 
     renderWithProviders(<ReportsPage />);
 
-    expect(screen.getByText('Loading…')).toBeInTheDocument();
+    expect(screen.getByLabelText('Loading…')).toBeInTheDocument();
     expect(screen.queryByText('No templates available.')).not.toBeInTheDocument();
   });
 });

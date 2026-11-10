@@ -1,6 +1,7 @@
 import { vi, describe, it, expect } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import RescueSettings from './RescueSettings';
 import { apiService } from '../services/libraryServices';
 
@@ -14,9 +15,12 @@ vi.mock('@adopt-dont-shop/lib.auth', () => ({
 vi.mock('@adopt-dont-shop/lib.components', async importOriginal => {
   const React = await import('react');
   // Real Tabs: the page's tab behaviour is part of what these tests cover.
-  const { Tabs } = await importOriginal<typeof import('@adopt-dont-shop/lib.components')>();
+  const { Tabs, PageHeader, ErrorState } =
+    await importOriginal<typeof import('@adopt-dont-shop/lib.components')>();
   return {
     Tabs,
+    PageHeader,
+    ErrorState,
     toast: { success: vi.fn(), error: vi.fn() },
     Skeleton: (props: Record<string, unknown>) =>
       React.createElement('div', { 'aria-hidden': 'true', ...props }),
@@ -63,10 +67,14 @@ const LocationProbe = () => {
 
 const renderWithRoute = (initialRoute: string) =>
   render(
-    <MemoryRouter initialEntries={[initialRoute]}>
-      <RescueSettings />
-      <LocationProbe />
-    </MemoryRouter>
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <MemoryRouter initialEntries={[initialRoute]}>
+        <RescueSettings />
+        <LocationProbe />
+      </MemoryRouter>
+    </QueryClientProvider>
   );
 
 const waitForTabsToLoad = () =>

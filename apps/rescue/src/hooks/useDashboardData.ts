@@ -1,70 +1,57 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { dashboardService } from '../services';
 import { RescueDashboardData, RecentActivity, DashboardNotification } from '../types';
 
-interface UseDashboardDataReturn {
+type UseDashboardDataReturn = {
   dashboardData: RescueDashboardData | null;
   recentActivities: RecentActivity[];
   notifications: DashboardNotification[];
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
-}
+};
+
+const NO_ACTIVITIES: RecentActivity[] = [];
+const NO_NOTIFICATIONS: DashboardNotification[] = [];
+
+const toErrorMessage = (error: unknown): string | null => {
+  if (!error) {
+    return null;
+  }
+  return error instanceof Error ? error.message : 'Failed to fetch dashboard data';
+};
 
 /**
  * Custom hook for fetching and managing dashboard data
  */
 export function useDashboardData(): UseDashboardDataReturn {
   const { user } = useAuth();
-  const [dashboardData, setDashboardData] = useState<RescueDashboardData | null>(null);
-  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
-  const [notifications, setNotifications] = useState<DashboardNotification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Pass userId from auth context — never read from localStorage
+  const userId = user?.userId ?? '';
 
-  const fetchDashboardData = async (signal?: { cancelled: boolean }) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Fetch all dashboard data in parallel
-      const [dashboard, activities, notifs] = await Promise.all([
+  const query = useQuery({
+    queryKey: ['dashboard', userId],
+    // Fetch all dashboard data in parallel
+    queryFn: async () => {
+      const [dashboardData, recentActivities, notifications] = await Promise.all([
         dashboardService.getRescueDashboardData(),
         dashboardService.getRecentActivities(),
-        // Pass userId from auth context — never read from localStorage
-        dashboardService.getDashboardNotifications(user?.userId ?? ''),
+        dashboardService.getDashboardNotifications(userId),
       ]);
-
-      if (signal?.cancelled) return;
-      setDashboardData(dashboard);
-      setRecentActivities(activities);
-      setNotifications(notifs);
-    } catch (err) {
-      if (signal?.cancelled) return;
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch dashboard data';
-      setError(errorMessage);
-      console.error('Dashboard data fetch error:', err);
-    } finally {
-      if (!signal?.cancelled) setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const signal = { cancelled: false };
-    fetchDashboardData(signal);
-    return () => {
-      signal.cancelled = true;
-    };
-    // Re-fetch when the authenticated user changes
-  }, [user?.userId]);
+      return { dashboardData, recentActivities, notifications };
+    },
+    staleTime: 0,
+  });
 
   return {
-    dashboardData,
-    recentActivities,
-    notifications,
-    loading,
-    error,
-    refetch: () => fetchDashboardData(),
+    dashboardData: query.data?.dashboardData ?? null,
+    recentActivities: query.data?.recentActivities ?? NO_ACTIVITIES,
+    notifications: query.data?.notifications ?? NO_NOTIFICATIONS,
+    loading: query.isFetching,
+    error: toErrorMessage(query.error),
+    refetch: async () => {
+      await query.refetch();
+    },
   };
 }
