@@ -1,4 +1,5 @@
 import React from 'react';
+import { MapPin } from 'lucide-react';
 import * as styles from './SearchPage.css';
 import { Button, Card, Input, SelectInput } from '@adopt-dont-shop/lib.components';
 import { type PetSearchFilters } from '@/services';
@@ -23,6 +24,10 @@ type SearchFiltersProps = {
   onSearch: () => void;
 };
 
+// Layout, top to bottom: a search bar with its submit button attached; the
+// attribute filters; then one "where" line (place, use my location, distance).
+// Results update as filters change, so the only button is the one that
+// submits the typed search.
 export const SearchFilters: React.FC<SearchFiltersProps> = ({
   filters,
   searchQuery,
@@ -34,15 +39,39 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
   onSearch,
 }) => (
   <Card className={styles.filtersCard}>
-    <div className={styles.filtersGrid}>
-      <Input
-        label='Search'
-        value={searchQuery}
-        onChange={e => onSearchQueryChange(e.target.value)}
-        placeholder='Search by name, breed, or description...'
-      />
+    <div className={styles.filtersHeader}>
+      <h2 className={styles.filtersTitle}>Filters</h2>
+      {hasActiveFilters && (
+        <Button variant='link' size='sm' onClick={onClearFilters}>
+          Clear Filters
+        </Button>
+      )}
+    </div>
 
+    <form
+      role='search'
+      className={styles.searchBar}
+      onSubmit={e => {
+        e.preventDefault();
+        onSearch();
+      }}
+    >
+      <div className={styles.searchField}>
+        <Input
+          label='Search'
+          value={searchQuery}
+          onChange={e => onSearchQueryChange(e.target.value)}
+          placeholder='Search by name, breed, or description...'
+        />
+      </div>
+      <Button type='submit' className={styles.controlButton}>
+        Search
+      </Button>
+    </form>
+
+    <div className={styles.filtersGrid}>
       <SelectInput
+        fullWidth
         label='Pet Type'
         value={filters.type || ''}
         onChange={(value: string | string[]) => onFilterChange('type', value as string)}
@@ -50,6 +79,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
       />
 
       <SelectInput
+        fullWidth
         label='Size'
         value={filters.size || ''}
         onChange={(value: string | string[]) => onFilterChange('size', value as string)}
@@ -57,6 +87,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
       />
 
       <SelectInput
+        fullWidth
         label='Gender'
         value={filters.gender || ''}
         onChange={(value: string | string[]) => onFilterChange('gender', value as string)}
@@ -64,6 +95,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
       />
 
       <SelectInput
+        fullWidth
         label='Age Group'
         value={filters.ageGroup || ''}
         onChange={(value: string | string[]) => onFilterChange('ageGroup', value as string)}
@@ -71,35 +103,15 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
       />
 
       <SelectInput
+        fullWidth
         label='Status'
         value={filters.status || ''}
         onChange={(value: string | string[]) => onFilterChange('status', value as string)}
         options={PET_STATUS}
       />
-
-      <SelectInput
-        label='Distance'
-        value={filters.maxDistance?.toString() || ''}
-        onChange={(value: string | string[]) => onFilterChange('maxDistance', value as string)}
-        options={DISTANCE_OPTIONS}
-      />
     </div>
 
     <div className={styles.locationFilterRow}>
-      <Button
-        className={styles.locationButton}
-        variant='outline'
-        size='sm'
-        onClick={geolocation.requestLocation}
-        disabled={geolocation.status === 'loading'}
-      >
-        {geolocation.status === 'loading'
-          ? 'Detecting...'
-          : geolocation.hasLocation
-            ? 'Update My Location'
-            : 'Use My Location'}
-      </Button>
-      <span className={styles.orLabel}>or</span>
       <div className={styles.locationInputGroup}>
         <Input
           label='Location'
@@ -113,52 +125,58 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
           }}
           placeholder='City or postcode...'
         />
-        {filters.location?.trim() && (
-          <Button
-            className={styles.locationButton}
-            variant='outline'
-            size='sm'
-            onClick={() => geolocation.handleUseLocationText(filters.location || '')}
-            disabled={geolocation.isGeocodingLocation}
-          >
-            {geolocation.isGeocodingLocation ? 'Finding...' : 'Search nearby'}
-          </Button>
-        )}
       </div>
-      {geolocation.hasLocation && (
+      {filters.location?.trim() && (
         <Button
-          className={styles.locationButton}
+          className={styles.controlButton}
           variant='outline'
-          size='sm'
-          onClick={geolocation.clearLocation}
+          onClick={() => geolocation.handleUseLocationText(filters.location || '')}
+          disabled={geolocation.isGeocodingLocation}
         >
+          {geolocation.isGeocodingLocation ? 'Finding...' : 'Search nearby'}
+        </Button>
+      )}
+      <Button
+        className={styles.controlButton}
+        variant='outline'
+        onClick={geolocation.requestLocation}
+        disabled={geolocation.status === 'loading'}
+      >
+        <MapPin size='1em' aria-hidden='true' className={styles.buttonIcon} />
+        {geolocation.status === 'loading'
+          ? 'Detecting...'
+          : geolocation.hasLocation
+            ? 'Update My Location'
+            : 'Use My Location'}
+      </Button>
+      {geolocation.hasLocation && (
+        <Button className={styles.controlButton} variant='link' onClick={geolocation.clearLocation}>
           Clear Location
         </Button>
       )}
-      {geolocation.hasLocation && (
-        <div className={styles.locationStatus({ variant: 'success' })}>
-          Location detected - distance search enabled
-        </div>
-      )}
-      {(geolocation.status === 'denied' ||
-        geolocation.status === 'error' ||
-        geolocation.status === 'unavailable') && (
-        <div className={styles.locationStatus({ variant: 'error' })}>{geolocation.error}</div>
-      )}
-      {geolocation.geocodeError && (
-        <div className={styles.locationStatus({ variant: 'error' })}>
-          {geolocation.geocodeError}
-        </div>
-      )}
+      <div className={styles.distanceField}>
+        <SelectInput
+          fullWidth
+          label='Distance'
+          value={filters.maxDistance?.toString() || ''}
+          onChange={(value: string | string[]) => onFilterChange('maxDistance', value as string)}
+          options={DISTANCE_OPTIONS}
+        />
+      </div>
     </div>
 
-    <div className={styles.filterActions}>
-      {hasActiveFilters && (
-        <Button variant='outline' onClick={onClearFilters}>
-          Clear Filters
-        </Button>
-      )}
-      <Button onClick={onSearch}>Search</Button>
-    </div>
+    {geolocation.hasLocation && (
+      <div className={styles.locationStatus({ variant: 'success' })}>
+        Location detected - distance search enabled
+      </div>
+    )}
+    {(geolocation.status === 'denied' ||
+      geolocation.status === 'error' ||
+      geolocation.status === 'unavailable') && (
+      <div className={styles.locationStatus({ variant: 'error' })}>{geolocation.error}</div>
+    )}
+    {geolocation.geocodeError && (
+      <div className={styles.locationStatus({ variant: 'error' })}>{geolocation.geocodeError}</div>
+    )}
   </Card>
 );

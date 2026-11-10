@@ -4,6 +4,7 @@ import { Container, EmptyState, PageHeader, Spinner } from '@adopt-dont-shop/lib
 import { useLegalDocument, renderLegalMarkdown } from '@adopt-dont-shop/lib.legal';
 import { SafeHtml } from '@/components/SafeHtml';
 import { cmsPublicService } from '@/services/cmsService';
+import * as styles from './LegalPage.css';
 
 type LegalPageProps = {
   slug: 'terms' | 'privacy';
@@ -22,6 +23,9 @@ const TITLES: Record<LegalPageProps['slug'], string> = {
  * source; a CMS page for the slug, if one exists, is an optional override
  * (e.g. a rescue-specific legal notice a content editor has published).
  */
+// The documents open with their own `# Title`, which repeats the page header.
+const withoutLeadingHeading = (markdown: string): string => markdown.replace(/^\s*# [^\n]*\n+/, '');
+
 export const LegalPage: React.FC<LegalPageProps> = ({ slug }) => {
   const legalQuery = useLegalDocument(slug);
   const cmsOverrideQuery = useQuery({
@@ -42,7 +46,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ slug }) => {
     return (
       <Container>
         <PageHeader title={cmsOverrideQuery.data.title} />
-        <SafeHtml html={cmsOverrideQuery.data.content} />
+        <SafeHtml className={styles.legalContent} html={cmsOverrideQuery.data.content} />
       </Container>
     );
   }
@@ -59,7 +63,10 @@ export const LegalPage: React.FC<LegalPageProps> = ({ slug }) => {
   return (
     <Container>
       <PageHeader title={TITLES[slug]} />
-      <SafeHtml html={renderLegalMarkdown(legalQuery.data.content)} />
+      <SafeHtml
+        className={styles.legalContent}
+        html={renderLegalMarkdown(withoutLeadingHeading(legalQuery.data.content))}
+      />
     </Container>
   );
 };

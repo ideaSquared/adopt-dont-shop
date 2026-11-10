@@ -12,12 +12,14 @@ import {
   PageHeader,
   QueryBoundary,
   SelectInput,
+  useDebouncedValue,
 } from '@adopt-dont-shop/lib.components';
 import { PetCardSkeletonGrid } from '@/components/skeletons';
 import React, { useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 import * as styles from './SearchPage.css';
 import { useSearchPets } from './useSearchPets';
+import { useAppliedSearchQuery } from './useAppliedSearchQuery';
 import { SORT_OPTIONS } from './searchOptions';
 import { SearchFilters } from './SearchFilters';
 import { DiscoverySearchToggle } from '@/components/discovery/DiscoverySearchToggle';
@@ -68,9 +70,13 @@ export const SearchPage: React.FC = () => {
     });
   }, [trackPageView, trackEvent, logEvent, advancedFiltersEnabled]);
 
+  // Results follow the filters and typed text after a short pause, so typing in
+  // the search or location box doesn't fire a request per keystroke.
+  const appliedSearch = useAppliedSearchQuery(filterState.searchQuery);
+  const appliedFilters = useDebouncedValue(filterState.filters, 300);
   const searchQuery = useSearchPets({
-    filters: filterState.filters,
-    searchQuery: filterState.searchQuery,
+    filters: appliedFilters,
+    searchQuery: appliedSearch.appliedQuery,
     coordinates: nearby.hasLocation
       ? { latitude: nearby.latitude, longitude: nearby.longitude }
       : null,
@@ -83,8 +89,14 @@ export const SearchPage: React.FC = () => {
   const error = searchQuery.isError
     ? 'Something went wrong loading results. Please check your connection and try again.'
     : null;
+  // The Search button / Enter applies the typed text now, or refreshes the
+  // results if it is already applied.
   const loadPets = () => {
-    void searchQuery.refetch();
+    if (appliedSearch.appliedQuery === filterState.searchQuery) {
+      void searchQuery.refetch();
+      return;
+    }
+    appliedSearch.submit();
   };
 
   const handleClearAll = () => {

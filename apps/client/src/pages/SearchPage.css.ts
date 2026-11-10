@@ -12,30 +12,51 @@ export const filtersCard = style({
   padding: vars.spacing['4'],
 });
 
-export const filtersGrid = style({
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+export const filtersHeader = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
   gap: vars.spacing['3'],
   marginBottom: vars.spacing['3'],
+});
+
+export const filtersTitle = style({
+  margin: 0,
+  fontSize: vars.typography.size.lg,
+  fontWeight: vars.typography.weight.semibold,
+  color: vars.text.primary,
+});
+
+// The search field with its submit button attached on the same line.
+export const searchBar = style({
+  display: 'flex',
+  alignItems: 'flex-end',
+  gap: vars.spacing['2'],
+  marginBottom: vars.spacing['4'],
+  '@media': {
+    '(max-width: 768px)': {
+      flexDirection: 'column',
+      alignItems: 'stretch',
+    },
+  },
+});
+
+export const searchField = style({
+  flex: 1,
+  minWidth: 0,
+});
+
+export const filtersGrid = style({
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+  gap: vars.spacing['3'],
+  marginBottom: vars.spacing['4'],
   '@media': {
     '(max-width: 768px)': {
       gridTemplateColumns: '1fr',
     },
   },
 });
-
-export const filterActions = style({
-  display: 'flex',
-  gap: vars.spacing['3'],
-  justifyContent: 'flex-end',
-  flexWrap: 'wrap',
-  '@media': {
-    '(max-width: 768px)': {
-      justifyContent: 'center',
-    },
-  },
-});
-
 export const searchResults = style({
   marginBottom: vars.spacing['5'],
 });
@@ -108,6 +129,7 @@ globalStyle(`${pagination} .page-controls`, {
   gap: vars.spacing['2'],
 });
 
+// The "where" line: place, use my location, and distance, bottom-aligned.
 export const locationFilterRow = style({
   display: 'flex',
   alignItems: 'flex-end',
@@ -122,29 +144,35 @@ export const locationFilterRow = style({
 });
 
 export const locationInputGroup = style({
-  display: 'flex',
-  alignItems: 'flex-end',
-  gap: vars.spacing['2'],
   flex: '1',
-  minWidth: '160px',
+  minWidth: '200px',
 });
 
-export const orLabel = style({
-  fontSize: vars.typography.size.sm,
-  color: vars.text.tertiary,
-  whiteSpace: 'nowrap',
-  paddingBottom: '10px',
+export const distanceField = style({
+  width: '12rem',
+  flexShrink: 0,
   '@media': {
     '(max-width: 768px)': {
-      paddingBottom: '0',
-      textAlign: 'center',
+      width: '100%',
     },
   },
 });
 
-// 2.5rem matches the Input control's md height, so the buttons line up with the
-// Location field beside them. '&&' outranks the Button size class.
-export const locationButton = style({
+// The select trigger has a 200px min-width, wider than the filter columns and
+// the distance field; let it shrink to its slot so selects keep their gaps.
+globalStyle(`${filtersGrid} [role="combobox"], ${distanceField} [role="combobox"]`, {
+  minWidth: 0,
+});
+
+// The shared Input wrapper adds a bottom margin; these rows align their
+// children's bottoms, so without this the buttons sit that margin below the field.
+globalStyle(`${searchField} > div, ${locationInputGroup} > div`, {
+  marginBottom: 0,
+});
+
+// 2.5rem matches the Input control's md height, so buttons line up with the
+// fields beside them. '&&' outranks the Button size class.
+export const controlButton = style({
   whiteSpace: 'nowrap',
   selectors: {
     '&&': {
@@ -153,6 +181,11 @@ export const locationButton = style({
       minHeight: '2.5rem',
     },
   },
+});
+
+export const buttonIcon = style({
+  marginRight: vars.spacing['1'],
+  flexShrink: 0,
 });
 
 export const locationHint = style({

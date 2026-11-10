@@ -804,6 +804,15 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
       description ? React.createElement('p', null, description) : null,
       children
     ),
+  // Real debounce behaviour (same as the library hook), so timing tests hold.
+  useDebouncedValue: <T>(value: T, delayMs = 300): T => {
+    const [debounced, setDebounced] = React.useState<T>(value);
+    React.useEffect(() => {
+      const timer = setTimeout(() => setDebounced(value), delayMs);
+      return () => clearTimeout(timer);
+    }, [value, delayMs]);
+    return debounced;
+  },
   // ADS-587: useConfirm / ConfirmDialog mocks so tests can intercept the
   // promise-based confirm flow without rendering the real modal.
   useConfirm: () => ({
