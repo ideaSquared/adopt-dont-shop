@@ -1029,7 +1029,15 @@ export interface ListReportsRequest {
    * returns an OFFSET page plus a real `total` (COUNT) instead of a keyset
    * cursor, so the shared DataTable can render "Page X of Y".
    */
-  page?: number | undefined;
+  page?:
+    | number
+    | undefined;
+  /**
+   * Filter to reports about one kind of entity, and optionally one entity
+   * of that kind (e.g. a single conversation).
+   */
+  reportedEntityType?: ReportEntityType | undefined;
+  reportedEntityId?: string | undefined;
 }
 
 export interface ListReportsResponse {
@@ -4082,6 +4090,8 @@ function createBaseListReportsRequest(): ListReportsRequest {
     category: undefined,
     assignedModerator: undefined,
     page: undefined,
+    reportedEntityType: undefined,
+    reportedEntityId: undefined,
   };
 }
 
@@ -4107,6 +4117,12 @@ export const ListReportsRequest: MessageFns<ListReportsRequest> = {
     }
     if (message.page !== undefined) {
       writer.uint32(56).uint32(message.page);
+    }
+    if (message.reportedEntityType !== undefined) {
+      writer.uint32(64).int32(message.reportedEntityType);
+    }
+    if (message.reportedEntityId !== undefined) {
+      writer.uint32(74).string(message.reportedEntityId);
     }
     return writer;
   },
@@ -4174,6 +4190,22 @@ export const ListReportsRequest: MessageFns<ListReportsRequest> = {
           message.page = reader.uint32();
           continue;
         }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.reportedEntityType = reader.int32() as any;
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.reportedEntityId = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -4196,6 +4228,16 @@ export const ListReportsRequest: MessageFns<ListReportsRequest> = {
         ? globalThis.String(object.assigned_moderator)
         : undefined,
       page: isSet(object.page) ? globalThis.Number(object.page) : undefined,
+      reportedEntityType: isSet(object.reportedEntityType)
+        ? reportEntityTypeFromJSON(object.reportedEntityType)
+        : isSet(object.reported_entity_type)
+        ? reportEntityTypeFromJSON(object.reported_entity_type)
+        : undefined,
+      reportedEntityId: isSet(object.reportedEntityId)
+        ? globalThis.String(object.reportedEntityId)
+        : isSet(object.reported_entity_id)
+        ? globalThis.String(object.reported_entity_id)
+        : undefined,
     };
   },
 
@@ -4222,6 +4264,12 @@ export const ListReportsRequest: MessageFns<ListReportsRequest> = {
     if (message.page !== undefined) {
       obj.page = Math.round(message.page);
     }
+    if (message.reportedEntityType !== undefined) {
+      obj.reportedEntityType = reportEntityTypeToJSON(message.reportedEntityType);
+    }
+    if (message.reportedEntityId !== undefined) {
+      obj.reportedEntityId = message.reportedEntityId;
+    }
     return obj;
   },
 
@@ -4237,6 +4285,8 @@ export const ListReportsRequest: MessageFns<ListReportsRequest> = {
     message.category = object.category ?? undefined;
     message.assignedModerator = object.assignedModerator ?? undefined;
     message.page = object.page ?? undefined;
+    message.reportedEntityType = object.reportedEntityType ?? undefined;
+    message.reportedEntityId = object.reportedEntityId ?? undefined;
     return message;
   },
 };

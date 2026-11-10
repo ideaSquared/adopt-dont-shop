@@ -13,6 +13,7 @@ type ModerationTabProps = {
 
 export const ModerationTab: React.FC<ModerationTabProps> = ({ chat, chatId }) => {
   const [reports, setReports] = useState<Report[]>([]);
+  const [totalReports, setTotalReports] = useState(0);
   const [loadingReports, setLoadingReports] = useState(false);
   const [flaggingConversation, setFlaggingConversation] = useState(false);
 
@@ -21,15 +22,18 @@ export const ModerationTab: React.FC<ModerationTabProps> = ({ chat, chatId }) =>
     try {
       const result = await moderationService.getReports({
         reportedEntityType: 'conversation',
+        reportedEntityId: chatId,
         page: 1,
         limit: 100,
         sortBy: 'createdAt',
         sortOrder: 'desc',
       });
       setReports(result.data);
+      setTotalReports(result.pagination.total);
     } catch (error) {
       console.error('Failed to fetch reports:', error);
       setReports([]);
+      setTotalReports(0);
     } finally {
       setLoadingReports(false);
     }
@@ -91,7 +95,7 @@ export const ModerationTab: React.FC<ModerationTabProps> = ({ chat, chatId }) =>
       <div className={styles.detailItem}>
         <div className={styles.detailLabel}>
           <FileText size='1em' />
-          Existing Reports ({reports.length})
+          Existing Reports ({totalReports})
         </div>
         <div className={styles.detailValue}>
           {loadingReports ? (
@@ -146,7 +150,7 @@ export const ModerationTab: React.FC<ModerationTabProps> = ({ chat, chatId }) =>
         </div>
         <div className={styles.detailValue}>
           <a
-            href={`/moderation?entity=conversation&id=${chatId}`}
+            href={`/moderation?entityType=conversation&entityId=${encodeURIComponent(chatId)}`}
             className={styles.moderationLink}
           >
             View in Moderation Dashboard →
@@ -173,10 +177,7 @@ export const ModerationTab: React.FC<ModerationTabProps> = ({ chat, chatId }) =>
                     <span>
                       {participant.name} ({participant.type})
                     </span>
-                    <a
-                      href={`/moderation?user=${participant.id}`}
-                      className={styles.participantViewLink}
-                    >
+                    <a href={`/users/${participant.id}`} className={styles.participantViewLink}>
                       View User
                     </a>
                   </li>

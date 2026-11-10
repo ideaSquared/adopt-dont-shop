@@ -86,4 +86,45 @@ describe('ModerationTab', () => {
     expect(await screen.findByText('Alice (adopter)')).toBeInTheDocument();
     expect(screen.getByText('Bob (rescue)')).toBeInTheDocument();
   });
+
+  it('only asks for reports about this conversation', async () => {
+    render(<ModerationTab chat={buildChat()} chatId='chat-1' />);
+    await screen.findByText('No reports filed for this conversation');
+    expect(mockGetReports).toHaveBeenCalledWith(
+      expect.objectContaining({ reportedEntityType: 'conversation', reportedEntityId: 'chat-1' })
+    );
+  });
+
+  it('counts every report on the conversation, not just the loaded page', async () => {
+    mockGetReports.mockResolvedValue({
+      data: [
+        {
+          reportId: 'rep-1',
+          category: 'spam',
+          status: 'pending',
+          description: 'Spammy content',
+          createdAt: new Date().toISOString(),
+        },
+      ],
+      pagination: { page: 1, pages: 3, total: 3 },
+    });
+    render(<ModerationTab chat={buildChat()} chatId='chat-1' />);
+    expect(await screen.findByText(/existing reports \(3\)/i)).toBeInTheDocument();
+  });
+
+  it('links to the moderation dashboard filtered to this conversation', async () => {
+    render(<ModerationTab chat={buildChat()} chatId='chat-1' />);
+    expect(
+      await screen.findByRole('link', { name: /view in moderation dashboard/i })
+    ).toHaveAttribute('href', '/moderation?entityType=conversation&entityId=chat-1');
+  });
+
+  it('links each participant to their user page', async () => {
+    render(<ModerationTab chat={buildChat()} chatId='chat-1' />);
+    const links = await screen.findAllByRole('link', { name: /view user/i });
+    expect(links.map(link => link.getAttribute('href'))).toEqual([
+      '/users/user-1',
+      '/users/user-2',
+    ]);
+  });
 });

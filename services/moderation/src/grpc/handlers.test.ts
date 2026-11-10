@@ -470,6 +470,42 @@ describe('listReports', () => {
     expect(sql).toContain('assigned_moderator = $4');
   });
 
+  it('narrows to reports about one entity when type and id are given', async () => {
+    const { deps, query } = makeDeps([{ rows: [] }]);
+    await listReports(deps, makePrincipal(), {
+      reportedEntityType: ModerationV1.ReportEntityType.REPORT_ENTITY_TYPE_CONVERSATION,
+      reportedEntityId: 'chat-42',
+      limit: 10,
+    } as ListReportsRequest);
+    const sql = query.mock.calls[0][0] as string;
+    const params = query.mock.calls[0][1] as unknown[];
+    expect(sql).toContain('reported_entity_type = $1');
+    expect(sql).toContain('reported_entity_id = $2');
+    expect(params.slice(0, 2)).toEqual(['conversation', 'chat-42']);
+  });
+
+  it('keeps the reporter self-scope when filtering by entity', async () => {
+    const { deps, query } = makeDeps([{ rows: [] }]);
+    await listReports(deps, makePrincipal({ userId: 'usr-1', permissions: [] }), {
+      reportedEntityType: ModerationV1.ReportEntityType.REPORT_ENTITY_TYPE_CONVERSATION,
+      reportedEntityId: 'chat-42',
+      limit: 10,
+    } as ListReportsRequest);
+    const sql = query.mock.calls[0][0] as string;
+    expect(sql).toContain('reporter_id = $1');
+    expect(sql).toContain('reported_entity_id = $3');
+  });
+
+  it('ignores an empty entity id', async () => {
+    const { deps, query } = makeDeps([{ rows: [] }]);
+    await listReports(deps, makePrincipal(), {
+      reportedEntityId: '',
+      limit: 10,
+    } as ListReportsRequest);
+    const sql = query.mock.calls[0][0] as string;
+    expect(sql).not.toContain('reported_entity_id =');
+  });
+
   it('treats empty assignedModerator string as IS NULL filter', async () => {
     const { deps, query } = makeDeps([{ rows: [] }]);
     await listReports(deps, makePrincipal(), {

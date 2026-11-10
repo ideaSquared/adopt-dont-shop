@@ -193,17 +193,18 @@ Documentation for the adopt-don't-shop monorepo, organised by audience: **Start 
 
 ### Library consumer lists
 
+- [lib.account consumers](./libraries/lib.account-consumers.md) — 3 consumer(s)
 - [lib.analytics consumers](./libraries/lib.analytics-consumers.md) — 3 consumer(s)
-- [lib.api consumers](./libraries/lib.api-consumers.md) — 19 consumer(s)
+- [lib.api consumers](./libraries/lib.api-consumers.md) — 20 consumer(s)
 - [lib.applications consumers](./libraries/lib.applications-consumers.md) — 2 consumer(s)
 - [lib.audit-logs consumers](./libraries/lib.audit-logs-consumers.md) — 1 consumer(s)
-- [lib.auth consumers](./libraries/lib.auth-consumers.md) — 4 consumer(s)
+- [lib.auth consumers](./libraries/lib.auth-consumers.md) — 5 consumer(s)
 - [lib.av-scan consumers](./libraries/lib.av-scan-consumers.md) — 1 consumer(s)
 - [lib.chat consumers](./libraries/lib.chat-consumers.md) — 3 consumer(s)
-- [lib.components consumers](./libraries/lib.components-consumers.md) — 6 consumer(s)
+- [lib.components consumers](./libraries/lib.components-consumers.md) — 7 consumer(s)
 - [lib.dev-tools consumers](./libraries/lib.dev-tools-consumers.md) — 3 consumer(s)
 - [lib.discovery consumers](./libraries/lib.discovery-consumers.md) — 2 consumer(s)
-- [lib.feature-flags consumers](./libraries/lib.feature-flags-consumers.md) — 2 consumer(s)
+- [lib.feature-flags consumers](./libraries/lib.feature-flags-consumers.md) — 3 consumer(s)
 - [lib.invitations consumers](./libraries/lib.invitations-consumers.md) — 1 consumer(s)
 - [lib.legal consumers](./libraries/lib.legal-consumers.md) — 3 consumer(s)
 - [lib.matching consumers](./libraries/lib.matching-consumers.md) — 1 consumer(s)
@@ -215,7 +216,7 @@ Documentation for the adopt-don't-shop monorepo, organised by audience: **Start 
 - [lib.rescue consumers](./libraries/lib.rescue-consumers.md) — 3 consumer(s)
 - [lib.search consumers](./libraries/lib.search-consumers.md) — 2 consumer(s)
 - [lib.support-tickets consumers](./libraries/lib.support-tickets-consumers.md) — 1 consumer(s)
-- [lib.types consumers](./libraries/lib.types-consumers.md) — 31 consumer(s)
-- [lib.utils consumers](./libraries/lib.utils-consumers.md) — 3 consumer(s)
+- [lib.types consumers](./libraries/lib.types-consumers.md) — 32 consumer(s)
+- [lib.utils consumers](./libraries/lib.utils-consumers.md) — 4 consumer(s)
 - [lib.validation consumers](./libraries/lib.validation-consumers.md) — 3 consumer(s)
 <!-- LIB-CONSUMER-LISTS:END -->

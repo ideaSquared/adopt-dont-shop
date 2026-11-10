@@ -151,6 +151,26 @@ describe('ModerationService', () => {
       expect(calledWith).toContain('page=2');
     });
 
+    it('sends the reported entity filter so one entity’s reports can be listed', async () => {
+      mockedApi.get.mockResolvedValueOnce({
+        success: true,
+        data: [],
+        pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+      });
+
+      await service.getReports({
+        reportedEntityType: 'conversation',
+        reportedEntityId: 'chat-42',
+        page: 1,
+        limit: 20,
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
+      });
+      const calledWith = mockedApi.get.mock.calls[0]?.[0] as string;
+      expect(calledWith).toContain('reportedEntityType=conversation');
+      expect(calledWith).toContain('reportedEntityId=chat-42');
+    });
+
     it('rejects when the backend payload fails schema validation', async () => {
       mockedApi.get.mockResolvedValueOnce({
         success: true,
