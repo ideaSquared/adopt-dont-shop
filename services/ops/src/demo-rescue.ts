@@ -108,8 +108,15 @@ const arrayAt = (json: JsonObject, key: string): readonly JsonObject[] => {
     : [];
 };
 
+const RESCUE_CLEANUP =
+  'Remove it with `pnpm ops demo delete-rescue <rescueId>` (or deactivate the owner with `pnpm ops auth deactivate-user <userId>` if no rescue was made).';
+
 // Re-throw a step failure with the ids created so far in the hint.
-const withCreated = async <T>(created: readonly string[], step: () => Promise<T>): Promise<T> => {
+const withCreated = async <T>(
+  created: readonly string[],
+  step: () => Promise<T>,
+  cleanup: string = RESCUE_CLEANUP
+): Promise<T> => {
   try {
     return await step();
   } catch (err) {
@@ -123,9 +130,54 @@ const withCreated = async <T>(created: readonly string[], step: () => Promise<T>
     throw new OpsError(
       base.code,
       base.message,
-      `Already created: ${created.join(', ')}. Remove it with \`pnpm ops demo delete-rescue <rescueId>\` (or deactivate the owner with \`pnpm ops auth deactivate-user <userId>\` if no rescue was made).`
+      `Already created: ${created.join(', ')}. ${cleanup}`
     );
   }
+};
+
+// Tag put on every pet `demo create-pets` makes. pets.List has no tag filter,
+// so delete-pets reads each pet's tagsJson and matches it itself.
+export const DEMO_TAG = 'demo';
+
+// Create `count` sample pets in a rescue, one pets.Create each. `created`
+// lists what the caller already made, for the failure hint; `tags` and
+// `cleanup` let a caller mark the pets and name its own cleanup command.
+export const createSamplePets = async (
+  call: CallDownstream,
+  options: {
+    readonly rescueId: string;
+    readonly count: number;
+    readonly created: readonly string[];
+    readonly tags?: readonly string[];
+    readonly cleanup?: string;
+  }
+): Promise<string[]> => {
+  const { rescueId, count, created, tags, cleanup } = options;
+  return Array.from({ length: count }, (_, i) => i).reduce<Promise<string[]>>(async (soFar, i) => {
+    const ids = await soFar;
+    const sample = SAMPLE_PETS[i % SAMPLE_PETS.length];
+    const pet = await withCreated(
+      [...created, ...ids.map(p => `pet ${p}`)],
+      () =>
+        call(
+          'pets.Create',
+          {
+            rescueId,
+            name: i < SAMPLE_PETS.length ? sample.name : `${sample.name} ${i + 1}`,
+            type: sample.type,
+            gender: sample.gender,
+            size: sample.size,
+            ageGroup: AGE_GROUPS[i % AGE_GROUPS.length],
+            shortDescription: 'A demo pet for testing.',
+            ...(tags === undefined ? {} : { tagsJson: JSON.stringify(tags) }),
+          },
+          { permissions: [PETS_CREATE, PETS_MANAGE_ANY], rescueId }
+        ),
+      cleanup
+    );
+    const petId = str(objectAt(pet, 'pet').petId);
+    return petId === undefined ? ids : [...ids, petId];
+  }, Promise.resolve([]));
 };
 
 export const createDemoRescue = async (
@@ -205,30 +257,7 @@ export const createDemoRescue = async (
     )
   );
 
-  const petIds = await Array.from({ length: petCount }, (_, i) => i).reduce<Promise<string[]>>(
-    async (soFar, i) => {
-      const ids = await soFar;
-      const sample = SAMPLE_PETS[i % SAMPLE_PETS.length];
-      const pet = await withCreated([...created, ...ids.map(p => `pet ${p}`)], () =>
-        call(
-          'pets.Create',
-          {
-            rescueId,
-            name: i < SAMPLE_PETS.length ? sample.name : `${sample.name} ${i + 1}`,
-            type: sample.type,
-            gender: sample.gender,
-            size: sample.size,
-            ageGroup: AGE_GROUPS[i % AGE_GROUPS.length],
-            shortDescription: 'A demo pet for testing.',
-          },
-          { permissions: [PETS_CREATE, PETS_MANAGE_ANY], rescueId }
-        )
-      );
-      const petId = str(objectAt(pet, 'pet').petId);
-      return petId === undefined ? ids : [...ids, petId];
-    },
-    Promise.resolve([])
-  );
+  const petIds = await createSamplePets(call, { rescueId, count: petCount, created });
 
   return {
     rescueId,
@@ -241,21 +270,27 @@ export const createDemoRescue = async (
   };
 };
 
-const listAllPetIds = async (call: CallDownstream, rescueId: string): Promise<string[]> => {
-  const page = async (cursor: string | undefined, n: number): Promise<string[]> => {
+export const listAllPets = async (
+  call: CallDownstream,
+  rescueId: string
+): Promise<readonly JsonObject[]> => {
+  const page = async (cursor: string | undefined, n: number): Promise<readonly JsonObject[]> => {
     const res = await call(
       'pets.List',
       { rescueIdFilter: rescueId, limit: PET_PAGE_LIMIT, ...(cursor ? { cursor } : {}) },
       { permissions: [PETS_VIEW], rescueId }
     );
-    const ids = arrayAt(res, 'pets').flatMap(p => str(p.petId) ?? []);
+    const pets = arrayAt(res, 'pets');
     const next = str(res.nextCursor);
     return next === undefined || n + 1 >= MAX_PET_PAGES
-      ? ids
-      : [...ids, ...(await page(next, n + 1))];
+      ? pets
+      : [...pets, ...(await page(next, n + 1))];
   };
   return page(undefined, 0);
 };
+
+const listAllPetIds = async (call: CallDownstream, rescueId: string): Promise<string[]> =>
+  (await listAllPets(call, rescueId)).flatMap(p => str(p.petId) ?? []);
 
 export const deleteDemoRescue = async (
   request: JsonObject,

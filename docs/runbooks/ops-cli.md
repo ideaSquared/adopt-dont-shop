@@ -213,6 +213,8 @@ A broken chain is a security incident: stop, preserve the table (`pg_dump -t ops
 
 `pnpm ops demo create-adopter` leaves an active `demo-…@example.com` adopter. Remove it with `pnpm ops demo delete-adopter <userId> -e staging`, which deactivates the account and refuses any non-demo address.
 
+To fill an existing staging rescue with sample pets, use `pnpm ops demo create-pets <rescueId> -e staging --count 5`. Those pets carry a `demo` tag; `pnpm ops demo delete-pets <rescueId> -e staging` deletes only the tagged ones and never the rescue's real pets.
+
 ## If `service-ops` is down
 
 `service-ops` is a developer tool. Nothing in the product depends on it, so an outage is not a user-facing incident, but a failed health check does fail a deploy (the health gate includes `service-ops:4100`), so you need to fix it to ship.

@@ -99,12 +99,16 @@ pnpm ops demo create-rescue -e staging --pet-count 5        # preview, then conf
 pnpm ops demo delete-rescue <rescueId> -e staging
 pnpm ops demo create-adopter -e staging --first-name Ada
 pnpm ops demo delete-adopter <userId> -e staging
+pnpm ops demo create-pets <rescueId> -e staging --count 10  # sample pets for any verified rescue
+pnpm ops demo delete-pets <rescueId> -e staging
 ```
 
 `create-rescue` makes a verified rescue, an active owner login (a generated `demo-…@example.com`
 address and password, printed once in the result) and up to 10 sample pets. Sign in to the rescue
 app with that login. `delete-rescue` removes the pets and the rescue and deactivates the demo
-owner; it refuses any rescue `create-rescue` did not make. Both are refused in prod.
+owner; it refuses any rescue `create-rescue` did not make. `create-pets` adds 1 to 25 (default 5)
+available sample pets, tagged `demo`, to any existing verified rescue; `delete-pets` deletes only the
+pets in that rescue carrying the `demo` tag. All four are refused in prod.
 
 `create-adopter` makes a verified, active adopter (generated `demo-…@example.com` login, password
 printed once) that can sign in to the client app straight away. `delete-adopter` deactivates it

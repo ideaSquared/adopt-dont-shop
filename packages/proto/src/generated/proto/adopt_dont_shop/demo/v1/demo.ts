@@ -84,6 +84,28 @@ export interface DeleteAdopterResponse {
   status: string;
 }
 
+export interface CreatePetsRequest {
+  rescueId: string;
+  /** Sample pets to add, 1 to 25. Defaults to 5. */
+  count?: number | undefined;
+}
+
+export interface CreatePetsResponse {
+  rescueId: string;
+  petIds: string[];
+  /** What to do next, including the delete-pets command. */
+  nextSteps: string;
+}
+
+export interface DeletePetsRequest {
+  rescueId: string;
+}
+
+export interface DeletePetsResponse {
+  rescueId: string;
+  deletedPetIds: string[];
+}
+
 function createBaseCreateRescueRequest(): CreateRescueRequest {
   return { name: undefined, petCount: undefined };
 }
@@ -848,6 +870,338 @@ export const DeleteAdopterResponse: MessageFns<DeleteAdopterResponse> = {
   },
 };
 
+function createBaseCreatePetsRequest(): CreatePetsRequest {
+  return { rescueId: "", count: undefined };
+}
+
+export const CreatePetsRequest: MessageFns<CreatePetsRequest> = {
+  encode(message: CreatePetsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rescueId !== "") {
+      writer.uint32(10).string(message.rescueId);
+    }
+    if (message.count !== undefined) {
+      writer.uint32(16).uint32(message.count);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreatePetsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreatePetsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.count = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreatePetsRequest {
+    return {
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+        ? globalThis.String(object.rescue_id)
+        : "",
+      count: isSet(object.count) ? globalThis.Number(object.count) : undefined,
+    };
+  },
+
+  toJSON(message: CreatePetsRequest): unknown {
+    const obj: any = {};
+    if (message.rescueId !== "") {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.count !== undefined) {
+      obj.count = Math.round(message.count);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CreatePetsRequest>, I>>(base?: I): CreatePetsRequest {
+    return CreatePetsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CreatePetsRequest>, I>>(object: I): CreatePetsRequest {
+    const message = createBaseCreatePetsRequest();
+    message.rescueId = object.rescueId ?? "";
+    message.count = object.count ?? undefined;
+    return message;
+  },
+};
+
+function createBaseCreatePetsResponse(): CreatePetsResponse {
+  return { rescueId: "", petIds: [], nextSteps: "" };
+}
+
+export const CreatePetsResponse: MessageFns<CreatePetsResponse> = {
+  encode(message: CreatePetsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rescueId !== "") {
+      writer.uint32(10).string(message.rescueId);
+    }
+    for (const v of message.petIds) {
+      writer.uint32(18).string(v!);
+    }
+    if (message.nextSteps !== "") {
+      writer.uint32(26).string(message.nextSteps);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreatePetsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreatePetsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.petIds.push(reader.string());
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.nextSteps = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreatePetsResponse {
+    return {
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+        ? globalThis.String(object.rescue_id)
+        : "",
+      petIds: globalThis.Array.isArray(object?.petIds)
+        ? object.petIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.pet_ids)
+        ? object.pet_ids.map((e: any) => globalThis.String(e))
+        : [],
+      nextSteps: isSet(object.nextSteps)
+        ? globalThis.String(object.nextSteps)
+        : isSet(object.next_steps)
+        ? globalThis.String(object.next_steps)
+        : "",
+    };
+  },
+
+  toJSON(message: CreatePetsResponse): unknown {
+    const obj: any = {};
+    if (message.rescueId !== "") {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.petIds?.length) {
+      obj.petIds = message.petIds;
+    }
+    if (message.nextSteps !== "") {
+      obj.nextSteps = message.nextSteps;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CreatePetsResponse>, I>>(base?: I): CreatePetsResponse {
+    return CreatePetsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CreatePetsResponse>, I>>(object: I): CreatePetsResponse {
+    const message = createBaseCreatePetsResponse();
+    message.rescueId = object.rescueId ?? "";
+    message.petIds = object.petIds?.map((e) => e) || [];
+    message.nextSteps = object.nextSteps ?? "";
+    return message;
+  },
+};
+
+function createBaseDeletePetsRequest(): DeletePetsRequest {
+  return { rescueId: "" };
+}
+
+export const DeletePetsRequest: MessageFns<DeletePetsRequest> = {
+  encode(message: DeletePetsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rescueId !== "") {
+      writer.uint32(10).string(message.rescueId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeletePetsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeletePetsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeletePetsRequest {
+    return {
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+        ? globalThis.String(object.rescue_id)
+        : "",
+    };
+  },
+
+  toJSON(message: DeletePetsRequest): unknown {
+    const obj: any = {};
+    if (message.rescueId !== "") {
+      obj.rescueId = message.rescueId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeletePetsRequest>, I>>(base?: I): DeletePetsRequest {
+    return DeletePetsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeletePetsRequest>, I>>(object: I): DeletePetsRequest {
+    const message = createBaseDeletePetsRequest();
+    message.rescueId = object.rescueId ?? "";
+    return message;
+  },
+};
+
+function createBaseDeletePetsResponse(): DeletePetsResponse {
+  return { rescueId: "", deletedPetIds: [] };
+}
+
+export const DeletePetsResponse: MessageFns<DeletePetsResponse> = {
+  encode(message: DeletePetsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rescueId !== "") {
+      writer.uint32(10).string(message.rescueId);
+    }
+    for (const v of message.deletedPetIds) {
+      writer.uint32(18).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeletePetsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeletePetsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.deletedPetIds.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeletePetsResponse {
+    return {
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+        ? globalThis.String(object.rescue_id)
+        : "",
+      deletedPetIds: globalThis.Array.isArray(object?.deletedPetIds)
+        ? object.deletedPetIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.deleted_pet_ids)
+        ? object.deleted_pet_ids.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: DeletePetsResponse): unknown {
+    const obj: any = {};
+    if (message.rescueId !== "") {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.deletedPetIds?.length) {
+      obj.deletedPetIds = message.deletedPetIds;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeletePetsResponse>, I>>(base?: I): DeletePetsResponse {
+    return DeletePetsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeletePetsResponse>, I>>(object: I): DeletePetsResponse {
+    const message = createBaseDeletePetsResponse();
+    message.rescueId = object.rescueId ?? "";
+    message.deletedPetIds = object.deletedPetIds?.map((e) => e) || [];
+    return message;
+  },
+};
+
 /**
  * DemoService creates and removes throwaway rescues for testing in dev and
  * staging. No service process serves it over gRPC: service.ops handles it
@@ -914,6 +1268,29 @@ export const DemoServiceService = {
       Buffer.from(DeleteAdopterResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): DeleteAdopterResponse => DeleteAdopterResponse.decode(value),
   },
+  /** Add sample available pets, tagged "demo", to an existing verified rescue. */
+  createPets: {
+    path: "/adopt_dont_shop.demo.v1.DemoService/CreatePets" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: CreatePetsRequest): Buffer => Buffer.from(CreatePetsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CreatePetsRequest => CreatePetsRequest.decode(value),
+    responseSerialize: (value: CreatePetsResponse): Buffer => Buffer.from(CreatePetsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CreatePetsResponse => CreatePetsResponse.decode(value),
+  },
+  /**
+   * Soft-delete the pets in a rescue that carry the "demo" tag. Never touches
+   * unmarked pets or the rescue itself.
+   */
+  deletePets: {
+    path: "/adopt_dont_shop.demo.v1.DemoService/DeletePets" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: DeletePetsRequest): Buffer => Buffer.from(DeletePetsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): DeletePetsRequest => DeletePetsRequest.decode(value),
+    responseSerialize: (value: DeletePetsResponse): Buffer => Buffer.from(DeletePetsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): DeletePetsResponse => DeletePetsResponse.decode(value),
+  },
 } as const;
 
 export interface DemoServiceServer extends UntypedServiceImplementation {
@@ -937,6 +1314,13 @@ export interface DemoServiceServer extends UntypedServiceImplementation {
    * email is not a generated demo address.
    */
   deleteAdopter: handleUnaryCall<DeleteAdopterRequest, DeleteAdopterResponse>;
+  /** Add sample available pets, tagged "demo", to an existing verified rescue. */
+  createPets: handleUnaryCall<CreatePetsRequest, CreatePetsResponse>;
+  /**
+   * Soft-delete the pets in a rescue that carry the "demo" tag. Never touches
+   * unmarked pets or the rescue itself.
+   */
+  deletePets: handleUnaryCall<DeletePetsRequest, DeletePetsResponse>;
 }
 
 export interface DemoServiceClient extends Client {
@@ -1015,6 +1399,41 @@ export interface DemoServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: DeleteAdopterResponse) => void,
+  ): ClientUnaryCall;
+  /** Add sample available pets, tagged "demo", to an existing verified rescue. */
+  createPets(
+    request: CreatePetsRequest,
+    callback: (error: ServiceError | null, response: CreatePetsResponse) => void,
+  ): ClientUnaryCall;
+  createPets(
+    request: CreatePetsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: CreatePetsResponse) => void,
+  ): ClientUnaryCall;
+  createPets(
+    request: CreatePetsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: CreatePetsResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Soft-delete the pets in a rescue that carry the "demo" tag. Never touches
+   * unmarked pets or the rescue itself.
+   */
+  deletePets(
+    request: DeletePetsRequest,
+    callback: (error: ServiceError | null, response: DeletePetsResponse) => void,
+  ): ClientUnaryCall;
+  deletePets(
+    request: DeletePetsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: DeletePetsResponse) => void,
+  ): ClientUnaryCall;
+  deletePets(
+    request: DeletePetsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: DeletePetsResponse) => void,
   ): ClientUnaryCall;
 }
 

@@ -9760,6 +9760,63 @@ export const PROTO_SCHEMA: ProtoSchema = {
         },
       ],
     },
+    'adopt_dont_shop.demo.v1.CreatePetsRequest': {
+      fullName: 'adopt_dont_shop.demo.v1.CreatePetsRequest',
+      fields: [
+        {
+          name: 'rescue_id',
+          jsonName: 'rescueId',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: false,
+          optional: false,
+          sensitivity: 'INTERNAL',
+        },
+        {
+          name: 'count',
+          jsonName: 'count',
+          kind: 'scalar',
+          scalarType: 'uint32',
+          repeated: false,
+          optional: true,
+          sensitivity: null,
+          comment: 'Sample pets to add, 1 to 25. Defaults to 5.',
+        },
+      ],
+    },
+    'adopt_dont_shop.demo.v1.CreatePetsResponse': {
+      fullName: 'adopt_dont_shop.demo.v1.CreatePetsResponse',
+      fields: [
+        {
+          name: 'rescue_id',
+          jsonName: 'rescueId',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: false,
+          optional: false,
+          sensitivity: 'INTERNAL',
+        },
+        {
+          name: 'pet_ids',
+          jsonName: 'petIds',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: true,
+          optional: false,
+          sensitivity: 'INTERNAL',
+        },
+        {
+          name: 'next_steps',
+          jsonName: 'nextSteps',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: false,
+          optional: false,
+          sensitivity: 'PUBLIC',
+          comment: 'What to do next, including the delete-pets command.',
+        },
+      ],
+    },
     'adopt_dont_shop.demo.v1.CreateRescueRequest': {
       fullName: 'adopt_dont_shop.demo.v1.CreateRescueRequest',
       fields: [
@@ -9892,6 +9949,43 @@ export const PROTO_SCHEMA: ProtoSchema = {
           optional: false,
           sensitivity: 'PUBLIC',
           comment: 'The status the account was left in: "deactivated".',
+        },
+      ],
+    },
+    'adopt_dont_shop.demo.v1.DeletePetsRequest': {
+      fullName: 'adopt_dont_shop.demo.v1.DeletePetsRequest',
+      fields: [
+        {
+          name: 'rescue_id',
+          jsonName: 'rescueId',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: false,
+          optional: false,
+          sensitivity: 'INTERNAL',
+        },
+      ],
+    },
+    'adopt_dont_shop.demo.v1.DeletePetsResponse': {
+      fullName: 'adopt_dont_shop.demo.v1.DeletePetsResponse',
+      fields: [
+        {
+          name: 'rescue_id',
+          jsonName: 'rescueId',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: false,
+          optional: false,
+          sensitivity: 'INTERNAL',
+        },
+        {
+          name: 'deleted_pet_ids',
+          jsonName: 'deletedPetIds',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: true,
+          optional: false,
+          sensitivity: 'INTERNAL',
         },
       ],
     },
@@ -23211,6 +23305,19 @@ export const PROTO_SCHEMA: ProtoSchema = {
           outputType: 'adopt_dont_shop.demo.v1.DeleteAdopterResponse',
           comment:
             'Deactivate an adopter made by CreateAdopter. Refuses any account whose\nemail is not a generated demo address.',
+        },
+        {
+          name: 'CreatePets',
+          inputType: 'adopt_dont_shop.demo.v1.CreatePetsRequest',
+          outputType: 'adopt_dont_shop.demo.v1.CreatePetsResponse',
+          comment: 'Add sample available pets, tagged "demo", to an existing verified rescue.',
+        },
+        {
+          name: 'DeletePets',
+          inputType: 'adopt_dont_shop.demo.v1.DeletePetsRequest',
+          outputType: 'adopt_dont_shop.demo.v1.DeletePetsResponse',
+          comment:
+            'Soft-delete the pets in a rescue that carry the "demo" tag. Never touches\nunmarked pets or the rescue itself.',
         },
       ],
     },
