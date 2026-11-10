@@ -7,7 +7,7 @@
 // Reuses rowToProtoUser + UserRow + the enum maps from handlers.ts so
 // the admin view returns the same User shape GetMe does.
 
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomInt, randomUUID } from 'node:crypto';
 
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction, type TransactionalScope } from '@adopt-dont-shop/events';
@@ -791,11 +791,22 @@ export async function applyUserSanction(
 
 // --- AdminResetPassword ----------------------------------------------
 
-// A URL-safe random string with enough entropy to be a one-time password.
-// 18 bytes → 24 base64url chars; communicated out-of-band and changed by
-// the user on next sign-in.
+const UPPER = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+const LOWER = 'abcdefghijkmnopqrstuvwxyz';
+const DIGITS = '23456789';
+const SPECIAL = '!@#$%^&*-_=+?';
+const TEMP_PASSWORD_BODY_LENGTH = 20;
+
+const pickFrom = (alphabet: string): string => alphabet[randomInt(alphabet.length)] ?? '';
+
+// A one-time password that always satisfies the strong-password rule
+// (NewPasswordSchema): one character from each required class plus 20 random
+// ones (~115 bits). Communicated out-of-band and changed by the user on next
+// sign-in. Ambiguous characters (0/O, 1/l/I) are left out for readability.
 function generateTemporaryPassword(): string {
-  return randomBytes(18).toString('base64url');
+  const all = UPPER + LOWER + DIGITS + SPECIAL;
+  const body = Array.from({ length: TEMP_PASSWORD_BODY_LENGTH }, () => pickFrom(all));
+  return [pickFrom(UPPER), pickFrom(LOWER), pickFrom(DIGITS), pickFrom(SPECIAL), ...body].join('');
 }
 
 export async function adminResetPassword(

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Principal } from '@adopt-dont-shop/authz';
 import type { Permission, UserId } from '@adopt-dont-shop/lib.types';
+import { NewPasswordSchema } from '@adopt-dont-shop/lib.validation';
 import { AuthV1 } from '@adopt-dont-shop/proto';
 
 import {
@@ -582,6 +583,18 @@ describe('adminResetPassword', () => {
     expect(hashMock).toHaveBeenCalledTimes(1);
     expect(hashMock).toHaveBeenCalledWith(res.temporaryPassword);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.passwordResetByAdmin');
+  });
+
+  it('always generates a temporary password that satisfies the strong-password rule', async () => {
+    const generated: string[] = [];
+    for (let i = 0; i < 200; i += 1) {
+      mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] });
+      mocks.clientScript.push({ rows: [{ user_id: 'usr-1' }] });
+      mocks.clientScript.push({ rows: [] });
+      const res = await adminResetPassword(mocks.deps, ADMIN, { userId: 'usr-1' });
+      generated.push(res.temporaryPassword);
+    }
+    expect(generated.filter(pw => !NewPasswordSchema.safeParse(pw).success)).toEqual([]);
   });
 
   // --- ADS-1291: elevated-target guard ----------------------------------
