@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '../../test-utils';
+import { fireEvent, render, screen, waitFor } from '../../test-utils';
 import { AddUserModal } from './AddUserModal';
 
 const defaultProps = {
@@ -41,5 +41,45 @@ describe('AddUserModal aria-required (a11y sweep)', () => {
     render(<AddUserModal {...defaultProps} />);
     const role = screen.getByLabelText(/role/i);
     expect(role).not.toHaveAttribute('aria-required');
+  });
+});
+
+describe('AddUserModal submission', () => {
+  const fillIn = () => {
+    fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'Ada' } });
+    fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Lovelace' } });
+    fireEvent.change(screen.getByLabelText(/^email$/i), { target: { value: 'ada@example.com' } });
+  };
+
+  it('creates the user with the entered details and the chosen role, then closes', async () => {
+    const onCreate = vi.fn().mockResolvedValue(undefined);
+    const onClose = vi.fn();
+    render(<AddUserModal isOpen onClose={onClose} onCreate={onCreate} />);
+
+    fillIn();
+    fireEvent.change(screen.getByLabelText(/role/i), { target: { value: 'moderator' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create User' }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+    expect(onCreate).toHaveBeenCalledWith({
+      email: 'ada@example.com',
+      first_name: 'Ada',
+      last_name: 'Lovelace',
+      role: 'moderator',
+      is_active: true,
+      send_invitation: true,
+    });
+  });
+
+  it('shows the failure and stays open when creation fails', async () => {
+    const onCreate = vi.fn().mockRejectedValue(new Error('Email already in use'));
+    const onClose = vi.fn();
+    render(<AddUserModal isOpen onClose={onClose} onCreate={onCreate} />);
+
+    fillIn();
+    fireEvent.click(screen.getByRole('button', { name: 'Create User' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Email already in use');
+    expect(onClose).not.toHaveBeenCalled();
   });
 });
