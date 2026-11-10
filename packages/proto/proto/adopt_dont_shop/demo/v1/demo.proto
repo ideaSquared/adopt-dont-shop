@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package adopt_dont_shop.demo.v1;
+
+import "proto/adopt_dont_shop/v1/options.proto";
+
+// DemoService creates and removes throwaway rescues for testing in dev and
+// staging. No service process serves it over gRPC: service.ops handles it
+// in-process (services/ops/src/demo-rescue.ts) by calling the existing auth,
+// rescue and pets RPCs in order. It is defined here so the ops catalog,
+// request validation and response masking work exactly as for any other
+// command. service.ops refuses both RPCs in prod.
+service DemoService {
+  // Create a verified rescue with an active owner account and sample pets.
+  // The owner's generated password is returned once in the response.
+  rpc CreateRescue(CreateRescueRequest) returns (CreateRescueResponse);
+
+  // Remove a rescue made by CreateRescue: soft-delete its pets and the
+  // rescue, then deactivate its owner. Refuses rescues it did not create.
+  rpc DeleteRescue(DeleteRescueRequest) returns (DeleteRescueResponse);
+}
+
+message CreateRescueRequest {
+  // Rescue name. Defaults to "Demo Rescue <short id>".
+  optional string name = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  // Sample pets to add, 0 to 10. Defaults to 3.
+  optional uint32 pet_count = 2;
+}
+
+message CreateRescueResponse {
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string rescue_name = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  string owner_user_id = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  // A generated demo-<id>@example.com address, not a real person's.
+  string owner_email = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  // The owner's generated password. service.ops shows it once, in the
+  // execute result only.
+  string owner_password = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
+  repeated string pet_ids = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  // Where to sign in and what to do next.
+  string next_steps = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+}
+
+message DeleteRescueRequest {
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+}
+
+message DeleteRescueResponse {
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  repeated string deleted_pet_ids = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  repeated string deactivated_user_ids = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+}
