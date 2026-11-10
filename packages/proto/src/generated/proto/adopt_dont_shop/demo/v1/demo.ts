@@ -56,6 +56,106 @@ export interface DeleteRescueResponse {
   deactivatedUserIds: string[];
 }
 
+export interface CreateAdopterRequest {
+  /** Defaults to "Demo". */
+  firstName?: string | undefined;
+}
+
+export interface CreateAdopterResponse {
+  userId: string;
+  /** A generated demo-<id>@example.com address, not a real person's. */
+  email: string;
+  /**
+   * The generated password. service.ops shows it once, in the execute
+   * result only.
+   */
+  password: string;
+  /** Where to sign in and what to do next. */
+  nextSteps: string;
+}
+
+export interface DeleteAdopterRequest {
+  userId: string;
+}
+
+export interface DeleteAdopterResponse {
+  userId: string;
+  /** The status the account was left in: "deactivated". */
+  status: string;
+}
+
+export interface CreatePetsRequest {
+  rescueId: string;
+  /** Sample pets to add, 1 to 25. Defaults to 5. */
+  count?: number | undefined;
+}
+
+export interface CreatePetsResponse {
+  rescueId: string;
+  petIds: string[];
+  /** What to do next, including the delete-pets command. */
+  nextSteps: string;
+}
+
+export interface DeletePetsRequest {
+  rescueId: string;
+}
+
+export interface DeletePetsResponse {
+  rescueId: string;
+  deletedPetIds: string[];
+}
+
+export interface CreateApplicationRequest {
+  /** The rescue the application goes to. */
+  rescueId: string;
+  /** A pet of that rescue. Defaults to the rescue's first available pet. */
+  petId?:
+    | string
+    | undefined;
+  /**
+   * Where to leave the application: submitted (default), under_review,
+   * home_visit_scheduled, home_visit_completed, approved or rejected.
+   */
+  stage?: string | undefined;
+}
+
+export interface CreateApplicationResponse {
+  applicationId: string;
+  adopterUserId: string;
+  /** A generated demo-<id>@example.com address, not a real person's. */
+  adopterEmail: string;
+  /**
+   * The adopter's generated password. service.ops shows it once, in the
+   * execute result only.
+   */
+  adopterPassword: string;
+  petId: string;
+  stage: string;
+  /** Where to look and what to do next. */
+  nextSteps: string;
+}
+
+export interface DeleteApplicationRequest {
+  applicationId: string;
+  /**
+   * The rescue the application belongs to. Needed because the applications
+   * service only shows a submitted application to staff scoped to its rescue.
+   */
+  rescueId: string;
+}
+
+export interface DeleteApplicationResponse {
+  applicationId: string;
+  /**
+   * "withdrawn", or "left as is" when the application was already decided
+   * (approved, rejected, withdrawn or adopted) and cannot be withdrawn.
+   */
+  action: string;
+  status: string;
+  deactivatedUserIds: string[];
+}
+
 function createBaseCreateRescueRequest(): CreateRescueRequest {
   return { name: undefined, petCount: undefined };
 }
@@ -496,6 +596,1150 @@ export const DeleteRescueResponse: MessageFns<DeleteRescueResponse> = {
   },
 };
 
+function createBaseCreateAdopterRequest(): CreateAdopterRequest {
+  return { firstName: undefined };
+}
+
+export const CreateAdopterRequest: MessageFns<CreateAdopterRequest> = {
+  encode(message: CreateAdopterRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.firstName !== undefined) {
+      writer.uint32(10).string(message.firstName);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateAdopterRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreateAdopterRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.firstName = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreateAdopterRequest {
+    return {
+      firstName: isSet(object.firstName)
+        ? globalThis.String(object.firstName)
+        : isSet(object.first_name)
+        ? globalThis.String(object.first_name)
+        : undefined,
+    };
+  },
+
+  toJSON(message: CreateAdopterRequest): unknown {
+    const obj: any = {};
+    if (message.firstName !== undefined) {
+      obj.firstName = message.firstName;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CreateAdopterRequest>, I>>(base?: I): CreateAdopterRequest {
+    return CreateAdopterRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CreateAdopterRequest>, I>>(object: I): CreateAdopterRequest {
+    const message = createBaseCreateAdopterRequest();
+    message.firstName = object.firstName ?? undefined;
+    return message;
+  },
+};
+
+function createBaseCreateAdopterResponse(): CreateAdopterResponse {
+  return { userId: "", email: "", password: "", nextSteps: "" };
+}
+
+export const CreateAdopterResponse: MessageFns<CreateAdopterResponse> = {
+  encode(message: CreateAdopterResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.email !== "") {
+      writer.uint32(18).string(message.email);
+    }
+    if (message.password !== "") {
+      writer.uint32(26).string(message.password);
+    }
+    if (message.nextSteps !== "") {
+      writer.uint32(34).string(message.nextSteps);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateAdopterResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreateAdopterResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.email = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.password = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.nextSteps = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreateAdopterResponse {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+        ? globalThis.String(object.user_id)
+        : "",
+      email: isSet(object.email) ? globalThis.String(object.email) : "",
+      password: isSet(object.password) ? globalThis.String(object.password) : "",
+      nextSteps: isSet(object.nextSteps)
+        ? globalThis.String(object.nextSteps)
+        : isSet(object.next_steps)
+        ? globalThis.String(object.next_steps)
+        : "",
+    };
+  },
+
+  toJSON(message: CreateAdopterResponse): unknown {
+    const obj: any = {};
+    if (message.userId !== "") {
+      obj.userId = message.userId;
+    }
+    if (message.email !== "") {
+      obj.email = message.email;
+    }
+    if (message.password !== "") {
+      obj.password = message.password;
+    }
+    if (message.nextSteps !== "") {
+      obj.nextSteps = message.nextSteps;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CreateAdopterResponse>, I>>(base?: I): CreateAdopterResponse {
+    return CreateAdopterResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CreateAdopterResponse>, I>>(object: I): CreateAdopterResponse {
+    const message = createBaseCreateAdopterResponse();
+    message.userId = object.userId ?? "";
+    message.email = object.email ?? "";
+    message.password = object.password ?? "";
+    message.nextSteps = object.nextSteps ?? "";
+    return message;
+  },
+};
+
+function createBaseDeleteAdopterRequest(): DeleteAdopterRequest {
+  return { userId: "" };
+}
+
+export const DeleteAdopterRequest: MessageFns<DeleteAdopterRequest> = {
+  encode(message: DeleteAdopterRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
+      writer.uint32(10).string(message.userId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteAdopterRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteAdopterRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteAdopterRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+        ? globalThis.String(object.user_id)
+        : "",
+    };
+  },
+
+  toJSON(message: DeleteAdopterRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== "") {
+      obj.userId = message.userId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteAdopterRequest>, I>>(base?: I): DeleteAdopterRequest {
+    return DeleteAdopterRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteAdopterRequest>, I>>(object: I): DeleteAdopterRequest {
+    const message = createBaseDeleteAdopterRequest();
+    message.userId = object.userId ?? "";
+    return message;
+  },
+};
+
+function createBaseDeleteAdopterResponse(): DeleteAdopterResponse {
+  return { userId: "", status: "" };
+}
+
+export const DeleteAdopterResponse: MessageFns<DeleteAdopterResponse> = {
+  encode(message: DeleteAdopterResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.status !== "") {
+      writer.uint32(18).string(message.status);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteAdopterResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteAdopterResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.status = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteAdopterResponse {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+        ? globalThis.String(object.user_id)
+        : "",
+      status: isSet(object.status) ? globalThis.String(object.status) : "",
+    };
+  },
+
+  toJSON(message: DeleteAdopterResponse): unknown {
+    const obj: any = {};
+    if (message.userId !== "") {
+      obj.userId = message.userId;
+    }
+    if (message.status !== "") {
+      obj.status = message.status;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteAdopterResponse>, I>>(base?: I): DeleteAdopterResponse {
+    return DeleteAdopterResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteAdopterResponse>, I>>(object: I): DeleteAdopterResponse {
+    const message = createBaseDeleteAdopterResponse();
+    message.userId = object.userId ?? "";
+    message.status = object.status ?? "";
+    return message;
+  },
+};
+
+function createBaseCreatePetsRequest(): CreatePetsRequest {
+  return { rescueId: "", count: undefined };
+}
+
+export const CreatePetsRequest: MessageFns<CreatePetsRequest> = {
+  encode(message: CreatePetsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rescueId !== "") {
+      writer.uint32(10).string(message.rescueId);
+    }
+    if (message.count !== undefined) {
+      writer.uint32(16).uint32(message.count);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreatePetsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreatePetsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.count = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreatePetsRequest {
+    return {
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+        ? globalThis.String(object.rescue_id)
+        : "",
+      count: isSet(object.count) ? globalThis.Number(object.count) : undefined,
+    };
+  },
+
+  toJSON(message: CreatePetsRequest): unknown {
+    const obj: any = {};
+    if (message.rescueId !== "") {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.count !== undefined) {
+      obj.count = Math.round(message.count);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CreatePetsRequest>, I>>(base?: I): CreatePetsRequest {
+    return CreatePetsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CreatePetsRequest>, I>>(object: I): CreatePetsRequest {
+    const message = createBaseCreatePetsRequest();
+    message.rescueId = object.rescueId ?? "";
+    message.count = object.count ?? undefined;
+    return message;
+  },
+};
+
+function createBaseCreatePetsResponse(): CreatePetsResponse {
+  return { rescueId: "", petIds: [], nextSteps: "" };
+}
+
+export const CreatePetsResponse: MessageFns<CreatePetsResponse> = {
+  encode(message: CreatePetsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rescueId !== "") {
+      writer.uint32(10).string(message.rescueId);
+    }
+    for (const v of message.petIds) {
+      writer.uint32(18).string(v!);
+    }
+    if (message.nextSteps !== "") {
+      writer.uint32(26).string(message.nextSteps);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreatePetsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreatePetsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.petIds.push(reader.string());
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.nextSteps = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreatePetsResponse {
+    return {
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+        ? globalThis.String(object.rescue_id)
+        : "",
+      petIds: globalThis.Array.isArray(object?.petIds)
+        ? object.petIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.pet_ids)
+        ? object.pet_ids.map((e: any) => globalThis.String(e))
+        : [],
+      nextSteps: isSet(object.nextSteps)
+        ? globalThis.String(object.nextSteps)
+        : isSet(object.next_steps)
+        ? globalThis.String(object.next_steps)
+        : "",
+    };
+  },
+
+  toJSON(message: CreatePetsResponse): unknown {
+    const obj: any = {};
+    if (message.rescueId !== "") {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.petIds?.length) {
+      obj.petIds = message.petIds;
+    }
+    if (message.nextSteps !== "") {
+      obj.nextSteps = message.nextSteps;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CreatePetsResponse>, I>>(base?: I): CreatePetsResponse {
+    return CreatePetsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CreatePetsResponse>, I>>(object: I): CreatePetsResponse {
+    const message = createBaseCreatePetsResponse();
+    message.rescueId = object.rescueId ?? "";
+    message.petIds = object.petIds?.map((e) => e) || [];
+    message.nextSteps = object.nextSteps ?? "";
+    return message;
+  },
+};
+
+function createBaseDeletePetsRequest(): DeletePetsRequest {
+  return { rescueId: "" };
+}
+
+export const DeletePetsRequest: MessageFns<DeletePetsRequest> = {
+  encode(message: DeletePetsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rescueId !== "") {
+      writer.uint32(10).string(message.rescueId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeletePetsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeletePetsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeletePetsRequest {
+    return {
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+        ? globalThis.String(object.rescue_id)
+        : "",
+    };
+  },
+
+  toJSON(message: DeletePetsRequest): unknown {
+    const obj: any = {};
+    if (message.rescueId !== "") {
+      obj.rescueId = message.rescueId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeletePetsRequest>, I>>(base?: I): DeletePetsRequest {
+    return DeletePetsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeletePetsRequest>, I>>(object: I): DeletePetsRequest {
+    const message = createBaseDeletePetsRequest();
+    message.rescueId = object.rescueId ?? "";
+    return message;
+  },
+};
+
+function createBaseDeletePetsResponse(): DeletePetsResponse {
+  return { rescueId: "", deletedPetIds: [] };
+}
+
+export const DeletePetsResponse: MessageFns<DeletePetsResponse> = {
+  encode(message: DeletePetsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rescueId !== "") {
+      writer.uint32(10).string(message.rescueId);
+    }
+    for (const v of message.deletedPetIds) {
+      writer.uint32(18).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeletePetsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeletePetsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.deletedPetIds.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeletePetsResponse {
+    return {
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+        ? globalThis.String(object.rescue_id)
+        : "",
+      deletedPetIds: globalThis.Array.isArray(object?.deletedPetIds)
+        ? object.deletedPetIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.deleted_pet_ids)
+        ? object.deleted_pet_ids.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: DeletePetsResponse): unknown {
+    const obj: any = {};
+    if (message.rescueId !== "") {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.deletedPetIds?.length) {
+      obj.deletedPetIds = message.deletedPetIds;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeletePetsResponse>, I>>(base?: I): DeletePetsResponse {
+    return DeletePetsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeletePetsResponse>, I>>(object: I): DeletePetsResponse {
+    const message = createBaseDeletePetsResponse();
+    message.rescueId = object.rescueId ?? "";
+    message.deletedPetIds = object.deletedPetIds?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBaseCreateApplicationRequest(): CreateApplicationRequest {
+  return { rescueId: "", petId: undefined, stage: undefined };
+}
+
+export const CreateApplicationRequest: MessageFns<CreateApplicationRequest> = {
+  encode(message: CreateApplicationRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rescueId !== "") {
+      writer.uint32(10).string(message.rescueId);
+    }
+    if (message.petId !== undefined) {
+      writer.uint32(18).string(message.petId);
+    }
+    if (message.stage !== undefined) {
+      writer.uint32(26).string(message.stage);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateApplicationRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreateApplicationRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.petId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.stage = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreateApplicationRequest {
+    return {
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+        ? globalThis.String(object.rescue_id)
+        : "",
+      petId: isSet(object.petId)
+        ? globalThis.String(object.petId)
+        : isSet(object.pet_id)
+        ? globalThis.String(object.pet_id)
+        : undefined,
+      stage: isSet(object.stage) ? globalThis.String(object.stage) : undefined,
+    };
+  },
+
+  toJSON(message: CreateApplicationRequest): unknown {
+    const obj: any = {};
+    if (message.rescueId !== "") {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.petId !== undefined) {
+      obj.petId = message.petId;
+    }
+    if (message.stage !== undefined) {
+      obj.stage = message.stage;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CreateApplicationRequest>, I>>(base?: I): CreateApplicationRequest {
+    return CreateApplicationRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CreateApplicationRequest>, I>>(object: I): CreateApplicationRequest {
+    const message = createBaseCreateApplicationRequest();
+    message.rescueId = object.rescueId ?? "";
+    message.petId = object.petId ?? undefined;
+    message.stage = object.stage ?? undefined;
+    return message;
+  },
+};
+
+function createBaseCreateApplicationResponse(): CreateApplicationResponse {
+  return {
+    applicationId: "",
+    adopterUserId: "",
+    adopterEmail: "",
+    adopterPassword: "",
+    petId: "",
+    stage: "",
+    nextSteps: "",
+  };
+}
+
+export const CreateApplicationResponse: MessageFns<CreateApplicationResponse> = {
+  encode(message: CreateApplicationResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.applicationId !== "") {
+      writer.uint32(10).string(message.applicationId);
+    }
+    if (message.adopterUserId !== "") {
+      writer.uint32(18).string(message.adopterUserId);
+    }
+    if (message.adopterEmail !== "") {
+      writer.uint32(26).string(message.adopterEmail);
+    }
+    if (message.adopterPassword !== "") {
+      writer.uint32(34).string(message.adopterPassword);
+    }
+    if (message.petId !== "") {
+      writer.uint32(42).string(message.petId);
+    }
+    if (message.stage !== "") {
+      writer.uint32(50).string(message.stage);
+    }
+    if (message.nextSteps !== "") {
+      writer.uint32(58).string(message.nextSteps);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateApplicationResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreateApplicationResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.applicationId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.adopterUserId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.adopterEmail = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.adopterPassword = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.petId = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.stage = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.nextSteps = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreateApplicationResponse {
+    return {
+      applicationId: isSet(object.applicationId)
+        ? globalThis.String(object.applicationId)
+        : isSet(object.application_id)
+        ? globalThis.String(object.application_id)
+        : "",
+      adopterUserId: isSet(object.adopterUserId)
+        ? globalThis.String(object.adopterUserId)
+        : isSet(object.adopter_user_id)
+        ? globalThis.String(object.adopter_user_id)
+        : "",
+      adopterEmail: isSet(object.adopterEmail)
+        ? globalThis.String(object.adopterEmail)
+        : isSet(object.adopter_email)
+        ? globalThis.String(object.adopter_email)
+        : "",
+      adopterPassword: isSet(object.adopterPassword)
+        ? globalThis.String(object.adopterPassword)
+        : isSet(object.adopter_password)
+        ? globalThis.String(object.adopter_password)
+        : "",
+      petId: isSet(object.petId)
+        ? globalThis.String(object.petId)
+        : isSet(object.pet_id)
+        ? globalThis.String(object.pet_id)
+        : "",
+      stage: isSet(object.stage) ? globalThis.String(object.stage) : "",
+      nextSteps: isSet(object.nextSteps)
+        ? globalThis.String(object.nextSteps)
+        : isSet(object.next_steps)
+        ? globalThis.String(object.next_steps)
+        : "",
+    };
+  },
+
+  toJSON(message: CreateApplicationResponse): unknown {
+    const obj: any = {};
+    if (message.applicationId !== "") {
+      obj.applicationId = message.applicationId;
+    }
+    if (message.adopterUserId !== "") {
+      obj.adopterUserId = message.adopterUserId;
+    }
+    if (message.adopterEmail !== "") {
+      obj.adopterEmail = message.adopterEmail;
+    }
+    if (message.adopterPassword !== "") {
+      obj.adopterPassword = message.adopterPassword;
+    }
+    if (message.petId !== "") {
+      obj.petId = message.petId;
+    }
+    if (message.stage !== "") {
+      obj.stage = message.stage;
+    }
+    if (message.nextSteps !== "") {
+      obj.nextSteps = message.nextSteps;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CreateApplicationResponse>, I>>(base?: I): CreateApplicationResponse {
+    return CreateApplicationResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CreateApplicationResponse>, I>>(object: I): CreateApplicationResponse {
+    const message = createBaseCreateApplicationResponse();
+    message.applicationId = object.applicationId ?? "";
+    message.adopterUserId = object.adopterUserId ?? "";
+    message.adopterEmail = object.adopterEmail ?? "";
+    message.adopterPassword = object.adopterPassword ?? "";
+    message.petId = object.petId ?? "";
+    message.stage = object.stage ?? "";
+    message.nextSteps = object.nextSteps ?? "";
+    return message;
+  },
+};
+
+function createBaseDeleteApplicationRequest(): DeleteApplicationRequest {
+  return { applicationId: "", rescueId: "" };
+}
+
+export const DeleteApplicationRequest: MessageFns<DeleteApplicationRequest> = {
+  encode(message: DeleteApplicationRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.applicationId !== "") {
+      writer.uint32(10).string(message.applicationId);
+    }
+    if (message.rescueId !== "") {
+      writer.uint32(18).string(message.rescueId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteApplicationRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteApplicationRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.applicationId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteApplicationRequest {
+    return {
+      applicationId: isSet(object.applicationId)
+        ? globalThis.String(object.applicationId)
+        : isSet(object.application_id)
+        ? globalThis.String(object.application_id)
+        : "",
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+        ? globalThis.String(object.rescue_id)
+        : "",
+    };
+  },
+
+  toJSON(message: DeleteApplicationRequest): unknown {
+    const obj: any = {};
+    if (message.applicationId !== "") {
+      obj.applicationId = message.applicationId;
+    }
+    if (message.rescueId !== "") {
+      obj.rescueId = message.rescueId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteApplicationRequest>, I>>(base?: I): DeleteApplicationRequest {
+    return DeleteApplicationRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteApplicationRequest>, I>>(object: I): DeleteApplicationRequest {
+    const message = createBaseDeleteApplicationRequest();
+    message.applicationId = object.applicationId ?? "";
+    message.rescueId = object.rescueId ?? "";
+    return message;
+  },
+};
+
+function createBaseDeleteApplicationResponse(): DeleteApplicationResponse {
+  return { applicationId: "", action: "", status: "", deactivatedUserIds: [] };
+}
+
+export const DeleteApplicationResponse: MessageFns<DeleteApplicationResponse> = {
+  encode(message: DeleteApplicationResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.applicationId !== "") {
+      writer.uint32(10).string(message.applicationId);
+    }
+    if (message.action !== "") {
+      writer.uint32(18).string(message.action);
+    }
+    if (message.status !== "") {
+      writer.uint32(26).string(message.status);
+    }
+    for (const v of message.deactivatedUserIds) {
+      writer.uint32(34).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteApplicationResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteApplicationResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.applicationId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.action = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.status = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.deactivatedUserIds.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteApplicationResponse {
+    return {
+      applicationId: isSet(object.applicationId)
+        ? globalThis.String(object.applicationId)
+        : isSet(object.application_id)
+        ? globalThis.String(object.application_id)
+        : "",
+      action: isSet(object.action) ? globalThis.String(object.action) : "",
+      status: isSet(object.status) ? globalThis.String(object.status) : "",
+      deactivatedUserIds: globalThis.Array.isArray(object?.deactivatedUserIds)
+        ? object.deactivatedUserIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.deactivated_user_ids)
+        ? object.deactivated_user_ids.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: DeleteApplicationResponse): unknown {
+    const obj: any = {};
+    if (message.applicationId !== "") {
+      obj.applicationId = message.applicationId;
+    }
+    if (message.action !== "") {
+      obj.action = message.action;
+    }
+    if (message.status !== "") {
+      obj.status = message.status;
+    }
+    if (message.deactivatedUserIds?.length) {
+      obj.deactivatedUserIds = message.deactivatedUserIds;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteApplicationResponse>, I>>(base?: I): DeleteApplicationResponse {
+    return DeleteApplicationResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteApplicationResponse>, I>>(object: I): DeleteApplicationResponse {
+    const message = createBaseDeleteApplicationResponse();
+    message.applicationId = object.applicationId ?? "";
+    message.action = object.action ?? "";
+    message.status = object.status ?? "";
+    message.deactivatedUserIds = object.deactivatedUserIds?.map((e) => e) || [];
+    return message;
+  },
+};
+
 /**
  * DemoService creates and removes throwaway rescues for testing in dev and
  * staging. No service process serves it over gRPC: service.ops handles it
@@ -534,6 +1778,89 @@ export const DemoServiceService = {
       Buffer.from(DeleteRescueResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): DeleteRescueResponse => DeleteRescueResponse.decode(value),
   },
+  /**
+   * Create a verified, active adopter account that can sign in to the client
+   * app straight away. The generated password is returned once.
+   */
+  createAdopter: {
+    path: "/adopt_dont_shop.demo.v1.DemoService/CreateAdopter" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: CreateAdopterRequest): Buffer => Buffer.from(CreateAdopterRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CreateAdopterRequest => CreateAdopterRequest.decode(value),
+    responseSerialize: (value: CreateAdopterResponse): Buffer =>
+      Buffer.from(CreateAdopterResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CreateAdopterResponse => CreateAdopterResponse.decode(value),
+  },
+  /**
+   * Deactivate an adopter made by CreateAdopter. Refuses any account whose
+   * email is not a generated demo address.
+   */
+  deleteAdopter: {
+    path: "/adopt_dont_shop.demo.v1.DemoService/DeleteAdopter" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: DeleteAdopterRequest): Buffer => Buffer.from(DeleteAdopterRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): DeleteAdopterRequest => DeleteAdopterRequest.decode(value),
+    responseSerialize: (value: DeleteAdopterResponse): Buffer =>
+      Buffer.from(DeleteAdopterResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): DeleteAdopterResponse => DeleteAdopterResponse.decode(value),
+  },
+  /** Add sample available pets, tagged "demo", to an existing verified rescue. */
+  createPets: {
+    path: "/adopt_dont_shop.demo.v1.DemoService/CreatePets" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: CreatePetsRequest): Buffer => Buffer.from(CreatePetsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CreatePetsRequest => CreatePetsRequest.decode(value),
+    responseSerialize: (value: CreatePetsResponse): Buffer => Buffer.from(CreatePetsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CreatePetsResponse => CreatePetsResponse.decode(value),
+  },
+  /**
+   * Soft-delete the pets in a rescue that carry the "demo" tag. Never touches
+   * unmarked pets or the rescue itself.
+   */
+  deletePets: {
+    path: "/adopt_dont_shop.demo.v1.DemoService/DeletePets" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: DeletePetsRequest): Buffer => Buffer.from(DeletePetsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): DeletePetsRequest => DeletePetsRequest.decode(value),
+    responseSerialize: (value: DeletePetsResponse): Buffer => Buffer.from(DeletePetsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): DeletePetsResponse => DeletePetsResponse.decode(value),
+  },
+  /**
+   * Create a demo adopter and a submitted adoption application from them for
+   * one of a rescue's available pets, optionally moved on to a later stage.
+   * The adopter's generated password is returned once in the response.
+   */
+  createApplication: {
+    path: "/adopt_dont_shop.demo.v1.DemoService/CreateApplication" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: CreateApplicationRequest): Buffer =>
+      Buffer.from(CreateApplicationRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CreateApplicationRequest => CreateApplicationRequest.decode(value),
+    responseSerialize: (value: CreateApplicationResponse): Buffer =>
+      Buffer.from(CreateApplicationResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CreateApplicationResponse => CreateApplicationResponse.decode(value),
+  },
+  /**
+   * Remove an application made by CreateApplication: withdraw it, then
+   * deactivate its demo adopter. Refuses applications whose adopter is not a
+   * generated demo account.
+   */
+  deleteApplication: {
+    path: "/adopt_dont_shop.demo.v1.DemoService/DeleteApplication" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: DeleteApplicationRequest): Buffer =>
+      Buffer.from(DeleteApplicationRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): DeleteApplicationRequest => DeleteApplicationRequest.decode(value),
+    responseSerialize: (value: DeleteApplicationResponse): Buffer =>
+      Buffer.from(DeleteApplicationResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): DeleteApplicationResponse => DeleteApplicationResponse.decode(value),
+  },
 } as const;
 
 export interface DemoServiceServer extends UntypedServiceImplementation {
@@ -547,6 +1874,35 @@ export interface DemoServiceServer extends UntypedServiceImplementation {
    * rescue, then deactivate its owner. Refuses rescues it did not create.
    */
   deleteRescue: handleUnaryCall<DeleteRescueRequest, DeleteRescueResponse>;
+  /**
+   * Create a verified, active adopter account that can sign in to the client
+   * app straight away. The generated password is returned once.
+   */
+  createAdopter: handleUnaryCall<CreateAdopterRequest, CreateAdopterResponse>;
+  /**
+   * Deactivate an adopter made by CreateAdopter. Refuses any account whose
+   * email is not a generated demo address.
+   */
+  deleteAdopter: handleUnaryCall<DeleteAdopterRequest, DeleteAdopterResponse>;
+  /** Add sample available pets, tagged "demo", to an existing verified rescue. */
+  createPets: handleUnaryCall<CreatePetsRequest, CreatePetsResponse>;
+  /**
+   * Soft-delete the pets in a rescue that carry the "demo" tag. Never touches
+   * unmarked pets or the rescue itself.
+   */
+  deletePets: handleUnaryCall<DeletePetsRequest, DeletePetsResponse>;
+  /**
+   * Create a demo adopter and a submitted adoption application from them for
+   * one of a rescue's available pets, optionally moved on to a later stage.
+   * The adopter's generated password is returned once in the response.
+   */
+  createApplication: handleUnaryCall<CreateApplicationRequest, CreateApplicationResponse>;
+  /**
+   * Remove an application made by CreateApplication: withdraw it, then
+   * deactivate its demo adopter. Refuses applications whose adopter is not a
+   * generated demo account.
+   */
+  deleteApplication: handleUnaryCall<DeleteApplicationRequest, DeleteApplicationResponse>;
 }
 
 export interface DemoServiceClient extends Client {
@@ -587,6 +1943,119 @@ export interface DemoServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: DeleteRescueResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Create a verified, active adopter account that can sign in to the client
+   * app straight away. The generated password is returned once.
+   */
+  createAdopter(
+    request: CreateAdopterRequest,
+    callback: (error: ServiceError | null, response: CreateAdopterResponse) => void,
+  ): ClientUnaryCall;
+  createAdopter(
+    request: CreateAdopterRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: CreateAdopterResponse) => void,
+  ): ClientUnaryCall;
+  createAdopter(
+    request: CreateAdopterRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: CreateAdopterResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Deactivate an adopter made by CreateAdopter. Refuses any account whose
+   * email is not a generated demo address.
+   */
+  deleteAdopter(
+    request: DeleteAdopterRequest,
+    callback: (error: ServiceError | null, response: DeleteAdopterResponse) => void,
+  ): ClientUnaryCall;
+  deleteAdopter(
+    request: DeleteAdopterRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: DeleteAdopterResponse) => void,
+  ): ClientUnaryCall;
+  deleteAdopter(
+    request: DeleteAdopterRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: DeleteAdopterResponse) => void,
+  ): ClientUnaryCall;
+  /** Add sample available pets, tagged "demo", to an existing verified rescue. */
+  createPets(
+    request: CreatePetsRequest,
+    callback: (error: ServiceError | null, response: CreatePetsResponse) => void,
+  ): ClientUnaryCall;
+  createPets(
+    request: CreatePetsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: CreatePetsResponse) => void,
+  ): ClientUnaryCall;
+  createPets(
+    request: CreatePetsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: CreatePetsResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Soft-delete the pets in a rescue that carry the "demo" tag. Never touches
+   * unmarked pets or the rescue itself.
+   */
+  deletePets(
+    request: DeletePetsRequest,
+    callback: (error: ServiceError | null, response: DeletePetsResponse) => void,
+  ): ClientUnaryCall;
+  deletePets(
+    request: DeletePetsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: DeletePetsResponse) => void,
+  ): ClientUnaryCall;
+  deletePets(
+    request: DeletePetsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: DeletePetsResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Create a demo adopter and a submitted adoption application from them for
+   * one of a rescue's available pets, optionally moved on to a later stage.
+   * The adopter's generated password is returned once in the response.
+   */
+  createApplication(
+    request: CreateApplicationRequest,
+    callback: (error: ServiceError | null, response: CreateApplicationResponse) => void,
+  ): ClientUnaryCall;
+  createApplication(
+    request: CreateApplicationRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: CreateApplicationResponse) => void,
+  ): ClientUnaryCall;
+  createApplication(
+    request: CreateApplicationRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: CreateApplicationResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Remove an application made by CreateApplication: withdraw it, then
+   * deactivate its demo adopter. Refuses applications whose adopter is not a
+   * generated demo account.
+   */
+  deleteApplication(
+    request: DeleteApplicationRequest,
+    callback: (error: ServiceError | null, response: DeleteApplicationResponse) => void,
+  ): ClientUnaryCall;
+  deleteApplication(
+    request: DeleteApplicationRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: DeleteApplicationResponse) => void,
+  ): ClientUnaryCall;
+  deleteApplication(
+    request: DeleteApplicationRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: DeleteApplicationResponse) => void,
   ): ClientUnaryCall;
 }
 

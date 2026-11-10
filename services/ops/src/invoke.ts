@@ -6,7 +6,12 @@ import type { Logger } from 'winston';
 
 import type { Principal } from '@adopt-dont-shop/authz';
 import type { DomainEvent } from '@adopt-dont-shop/events';
-import type { Permission, RescueId, UserId } from '@adopt-dont-shop/lib.types';
+import {
+  ADMIN_USERS_READ,
+  type Permission,
+  type RescueId,
+  type UserId,
+} from '@adopt-dont-shop/lib.types';
 import type {
   InvokePlan,
   InvokeRequest,
@@ -25,6 +30,7 @@ import {
 import { sha256Hex, type AccessLogEntry } from './access-chain.js';
 import type { AuthContext } from './auth.js';
 import { canonicalJson } from './canonical-json.js';
+import { DEMO_EMAIL_PATTERN } from './demo-rescue.js';
 import { fromGrpcError, OpsError } from './errors.js';
 import { piiRevealedEvent, writeExecutedEvent } from './events.js';
 import { findApplicableUnlock, maskOrReveal, type MaskedResponse } from './masking.js';
@@ -197,10 +203,49 @@ export const createInvokeService = (deps: InvokeDeps) => {
     return method.output.toJSON(result.response);
   };
 
+  // A step may act as a user only when auth says it is a generated demo
+  // adopter (demo email, adopter role). Anything else is refused before the
+  // step's own call is made.
+  const assertDemoAdopter = async (
+    operatorId: string,
+    requestId: string,
+    userId: string
+  ): Promise<void> => {
+    const method = deps.resolveMethod('auth.AdminGetUser');
+    if (method === undefined) {
+      throw new OpsError(
+        'INTERNAL',
+        'auth.AdminGetUser is not in the proto schema',
+        'Regenerate the proto schema and redeploy service.ops.'
+      );
+    }
+    const json = asJsonObject(
+      await callAs({
+        method,
+        principal: principalFor(operatorId, [ADMIN_USERS_READ], undefined),
+        request: { userId },
+        requestId,
+        rollbackDryRun: false,
+      })
+    );
+    const user = asJsonObject(json.user);
+    const isDemoAdopter =
+      typeof user.email === 'string' &&
+      DEMO_EMAIL_PATTERN.test(user.email) &&
+      user.userType === 'USER_ROLE_ADOPTER';
+    if (!isDemoAdopter) {
+      throw new OpsError(
+        'INVALID_ARGUMENT',
+        `Refusing to act as user ${userId}: not a generated demo adopter`,
+        'Only accounts made by `pnpm ops demo` commands can be acted as.'
+      );
+    }
+  };
+
   // For in-process commands: each step is a real call with its own principal.
-  const downstreamFor =
-    (operatorId: string, requestId: string): CallDownstream =>
-    async (rpc, request, step) => {
+  const downstreamFor = (operatorId: string, requestId: string): CallDownstream => {
+    const verifiedActors = new Set<string>();
+    return async (rpc, request, step) => {
       const method = deps.resolveMethod(rpc);
       if (method === undefined) {
         throw new OpsError(
@@ -209,15 +254,21 @@ export const createInvokeService = (deps: InvokeDeps) => {
           'Regenerate the proto schema and redeploy service.ops.'
         );
       }
+      const { actingUserId } = step;
+      if (actingUserId !== undefined && !verifiedActors.has(actingUserId)) {
+        await assertDemoAdopter(operatorId, requestId, actingUserId);
+        verifiedActors.add(actingUserId);
+      }
       const json = await callAs({
         method,
-        principal: principalFor(operatorId, step.permissions, step.rescueId),
+        principal: principalFor(actingUserId ?? operatorId, step.permissions, step.rescueId),
         request,
         requestId,
         rollbackDryRun: false,
       });
       return asJsonObject(json);
     };
+  };
 
   const maskFor = (
     messageName: string,
