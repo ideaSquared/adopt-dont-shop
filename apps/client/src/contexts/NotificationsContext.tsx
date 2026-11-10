@@ -1,6 +1,11 @@
 import { NotificationsService, Notification } from '@adopt-dont-shop/lib.notifications';
 import { apiService } from '@/services/libraryServices';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+  type InfiniteData,
+} from '@tanstack/react-query';
 import { createContext, useContext, ReactNode, useMemo, useCallback } from 'react';
 import { z } from 'zod';
 
@@ -12,6 +17,9 @@ interface NotificationsContextType {
   markAllAsRead: (userId: string) => Promise<void>;
   clearAll: (userId: string) => Promise<void>;
   isLoading: boolean;
+  hasMore: boolean;
+  isLoadingMore: boolean;
+  loadMore: () => Promise<void>;
 }
 
 const NotificationsContext = createContext<NotificationsContextType | null>(null);
@@ -58,6 +66,18 @@ const fromWire = (notification: Notification): Notification => {
   };
 };
 
+type NotificationsPage = { items: Notification[]; hasNext: boolean };
+type CachedNotifications = InfiniteData<NotificationsPage, number>;
+
+const mapItems = (
+  cached: CachedNotifications | undefined,
+  update: (current: Notification[]) => Notification[]
+): CachedNotifications | undefined =>
+  cached && {
+    ...cached,
+    pages: cached.pages.map(page => ({ ...page, items: update(page.items) })),
+  };
+
 const markRead = (notification: Notification): Notification => ({
   ...notification,
   readAt: notification.readAt || new Date().toISOString(),
@@ -77,21 +97,39 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
     );
   }, []);
 
-  const notificationsQuery = useQuery({
+  const notificationsQuery = useInfiniteQuery({
     queryKey,
     enabled: !!userId,
-    queryFn: async () => {
+    initialPageParam: 1,
+    queryFn: async ({ pageParam }): Promise<NotificationsPage> => {
       try {
-        const response = await notificationsService.getUserNotifications(userId ?? '');
-        return (response.data || []).map(fromWire);
+        const response =
+          pageParam > 1
+            ? await notificationsService.getUserNotifications(userId ?? '', { page: pageParam })
+            : await notificationsService.getUserNotifications(userId ?? '');
+        return {
+          items: (response.data || []).map(fromWire),
+          hasNext: response.pagination?.hasNext ?? false,
+        };
       } catch (error) {
         console.error('Failed to load notifications:', error);
         throw error;
       }
     },
+    getNextPageParam: (lastPage, _pages, lastPageParam) =>
+      lastPage.hasNext ? lastPageParam + 1 : undefined,
   });
-  const notifications = useMemo(() => notificationsQuery.data ?? [], [notificationsQuery.data]);
+  const notifications = useMemo(
+    () => notificationsQuery.data?.pages.flatMap(page => page.items) ?? [],
+    [notificationsQuery.data]
+  );
   const isLoading = notificationsQuery.isLoading;
+  const hasMore = notificationsQuery.hasNextPage;
+  const isLoadingMore = notificationsQuery.isFetchingNextPage;
+  const { fetchNextPage } = notificationsQuery;
+  const loadMore = useCallback(async (): Promise<void> => {
+    await fetchNextPage();
+  }, [fetchNextPage]);
 
   const unreadCount = useMemo(() => {
     return notifications.filter(n => !n.readAt).length;
@@ -99,7 +137,7 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
 
   const updateCached = useCallback(
     (update: (current: Notification[]) => Notification[]) =>
-      queryClient.setQueryData<Notification[]>(queryKey, current => update(current ?? [])),
+      queryClient.setQueryData<CachedNotifications>(queryKey, cached => mapItems(cached, update)),
     [queryClient, queryKey]
   );
 
@@ -127,13 +165,13 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
     mutationFn: (snapshot: Notification[]) =>
       Promise.all(snapshot.map(n => notificationsService.deleteNotification(n.id))),
     onMutate: () => {
-      const snapshot = queryClient.getQueryData<Notification[]>(queryKey) ?? [];
-      queryClient.setQueryData<Notification[]>(queryKey, []);
+      const snapshot = queryClient.getQueryData<CachedNotifications>(queryKey);
+      queryClient.setQueryData<CachedNotifications>(queryKey, cached => mapItems(cached, () => []));
       return { snapshot };
     },
     onError: (error, _snapshot, context) => {
       console.error('Failed to clear all notifications:', error);
-      queryClient.setQueryData<Notification[]>(queryKey, context?.snapshot ?? []);
+      queryClient.setQueryData<CachedNotifications>(queryKey, context?.snapshot);
     },
   });
 
@@ -171,6 +209,9 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
       markAllAsRead,
       clearAll,
       isLoading,
+      hasMore,
+      isLoadingMore,
+      loadMore,
     }),
     [
       notificationsService,
@@ -180,6 +221,9 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
       markAllAsRead,
       clearAll,
       isLoading,
+      hasMore,
+      isLoadingMore,
+      loadMore,
     ]
   );
 

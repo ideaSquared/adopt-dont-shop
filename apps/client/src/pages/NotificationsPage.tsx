@@ -16,7 +16,16 @@ import * as styles from './NotificationsPage.css';
 
 export const NotificationsPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
-  const { notifications, unreadCount, markAsRead, markAllAsRead, isLoading } = useNotifications();
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    isLoading,
+    hasMore,
+    isLoadingMore,
+    loadMore,
+  } = useNotifications();
   const { trackPageView, trackEvent } = useAnalytics();
   const navigate = useNavigate();
 
@@ -160,6 +169,18 @@ export const NotificationsPage: React.FC = () => {
             </li>
           ))}
         </ul>
+        {hasMore && (
+          <div className={styles.loadMore}>
+            <Button
+              variant='outline'
+              onClick={() => loadMore()}
+              disabled={isLoadingMore}
+              aria-label='Load more notifications'
+            >
+              {isLoadingMore ? 'Loading…' : 'Load more'}
+            </Button>
+          </div>
+        )}
       </QueryBoundary>
     </div>
   );

@@ -97,3 +97,9 @@ export const loadingList = style({
   flexDirection: 'column',
   gap: vars.spacing['3'],
 });
+
+export const loadMore = style({
+  display: 'flex',
+  justifyContent: 'center',
+  marginTop: vars.spacing['4'],
+});

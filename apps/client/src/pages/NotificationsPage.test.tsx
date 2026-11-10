@@ -20,6 +20,9 @@ const notificationsStateMock: {
   markAllAsRead: () => void;
   clearAll: () => void;
   isLoading: boolean;
+  hasMore: boolean;
+  isLoadingMore: boolean;
+  loadMore: () => Promise<void>;
 } = {
   notifications: [],
   unreadCount: 0,
@@ -27,6 +30,9 @@ const notificationsStateMock: {
   markAllAsRead: vi.fn(),
   clearAll: vi.fn(),
   isLoading: false,
+  hasMore: false,
+  isLoadingMore: false,
+  loadMore: vi.fn(async () => undefined),
 };
 
 vi.mock('@adopt-dont-shop/lib.auth', async () => {
@@ -72,6 +78,7 @@ describe('NotificationsPage auth guard', () => {
   beforeEach(() => {
     notificationsStateMock.notifications = [];
     notificationsStateMock.isLoading = false;
+    notificationsStateMock.hasMore = false;
   });
 
   it('redirects unauthenticated visitors to /login', () => {
@@ -166,5 +173,34 @@ describe('NotificationsPage clicking a notification', () => {
 
     expect(notificationsStateMock.markAsRead).not.toHaveBeenCalled();
     expect(screen.getByRole('heading', { name: /^notifications$/i })).toBeInTheDocument();
+  });
+});
+
+describe('NotificationsPage load more', () => {
+  const item = { id: 'n-1', title: 'Hello', message: 'Message', createdAt: '2026-01-01T00:00:00Z' };
+
+  beforeEach(() => {
+    mockIsAuthenticated.value = true;
+    notificationsStateMock.notifications = [item];
+    notificationsStateMock.isLoading = false;
+    notificationsStateMock.loadMore = vi.fn(async () => undefined);
+  });
+
+  it('offers to load more when the gateway has more notifications', async () => {
+    notificationsStateMock.hasMore = true;
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Load more notifications' }));
+
+    expect(notificationsStateMock.loadMore).toHaveBeenCalled();
+  });
+
+  it('hides the load more button on the last page', () => {
+    notificationsStateMock.hasMore = false;
+    renderPage();
+
+    expect(
+      screen.queryByRole('button', { name: 'Load more notifications' })
+    ).not.toBeInTheDocument();
   });
 });
