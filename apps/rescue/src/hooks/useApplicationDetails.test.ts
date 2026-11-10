@@ -164,18 +164,59 @@ describe('useApplicationDetails', () => {
 
     expect(thrown).toBeInstanceOf(Error);
     expect((thrown as Error).message).toBe('transition failed');
-    await waitFor(() => expect(result.current.error).toBe('transition failed'));
+    expect(result.current.error).toBeNull();
+    expect(result.current.application).not.toBeNull();
   });
 
-  it('surfaces an update error without throwing for reference updates', async () => {
+  it('rejects a failed reference update without turning it into a load error', async () => {
     serviceMocks.updateReferenceCheck.mockRejectedValue(new Error('update failed'));
     const { result } = renderHook(() => useApplicationDetails('app1'), { wrapper: QueryWrapper });
     await waitFor(() => expect(result.current.application).not.toBeNull());
 
+    let thrown: unknown;
     await act(async () => {
-      await result.current.updateReferenceCheck('ref1', 'verified');
+      await result.current.updateReferenceCheck('ref1', 'verified').catch((err: unknown) => {
+        thrown = err;
+      });
     });
 
-    await waitFor(() => expect(result.current.error).toBe('update failed'));
+    expect((thrown as Error).message).toBe('update failed');
+    expect(result.current.error).toBeNull();
+    expect(result.current.application).not.toBeNull();
+  });
+
+  it.each([
+    ['scheduleHomeVisit', serviceMocks.scheduleHomeVisit],
+    ['updateHomeVisit', serviceMocks.updateHomeVisit],
+    ['addTimelineEvent', serviceMocks.addTimelineEvent],
+  ] as const)('rejects a failed %s so the caller can react', async (name, mock) => {
+    mock.mockRejectedValue(new Error('nope'));
+    const { result } = renderHook(() => useApplicationDetails('app1'), { wrapper: QueryWrapper });
+    await waitFor(() => expect(result.current.application).not.toBeNull());
+
+    const call = () => {
+      switch (name) {
+        case 'scheduleHomeVisit':
+          return result.current.scheduleHomeVisit({
+            scheduledDate: '2099-01-01',
+            scheduledTime: '10:00',
+            assignedStaff: 'Sam',
+          });
+        case 'updateHomeVisit':
+          return result.current.updateHomeVisit('hv1', { notes: 'x' });
+        case 'addTimelineEvent':
+          return result.current.addTimelineEvent('note_added', 'hi');
+      }
+    };
+
+    let thrown: unknown;
+    await act(async () => {
+      await call().catch((err: unknown) => {
+        thrown = err;
+      });
+    });
+
+    expect((thrown as Error).message).toBe('nope');
+    expect(result.current.error).toBeNull();
   });
 });
