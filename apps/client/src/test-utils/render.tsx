@@ -1,5 +1,6 @@
 import { render, RenderOptions } from '@testing-library/react';
-import { ReactElement } from 'react';
+import { ReactElement, useState } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router';
 import { ThemeProvider } from '@adopt-dont-shop/lib.components';
 
@@ -11,11 +12,19 @@ type AllProvidersProps = {
   children: React.ReactNode;
 };
 
-const AllProviders = ({ children }: AllProvidersProps) => (
-  <BrowserRouter>
-    <ThemeProvider>{children}</ThemeProvider>
-  </BrowserRouter>
-);
+const createTestQueryClient = () =>
+  new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+
+const AllProviders = ({ children }: AllProvidersProps) => {
+  const [queryClient] = useState(createTestQueryClient);
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <ThemeProvider>{children}</ThemeProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
+};
 
 /**
  * Custom render function that wraps components with all necessary providers

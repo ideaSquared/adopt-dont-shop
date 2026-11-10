@@ -228,8 +228,12 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     React.createElement('div', props, children),
   Card: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
-  Button: ({ children, ...props }: React.ComponentPropsWithoutRef<'button'>) =>
-    React.createElement('button', props, children),
+  Button: ({
+    children,
+    startIcon,
+    ...props
+  }: React.ComponentPropsWithoutRef<'button'> & { startIcon?: React.ReactNode }) =>
+    React.createElement('button', props, startIcon, children),
   Input: ({
     label,
     error,

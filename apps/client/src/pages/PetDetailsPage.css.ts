@@ -12,29 +12,6 @@ export const pageContainer = style({
   },
 });
 
-export const backLink = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  // C4: keep the tap target at least 44px tall on touch devices.
-  minHeight: vars.spacing['6'],
-  padding: '0.5rem 1rem',
-  marginBottom: '2rem',
-  textDecoration: 'none',
-  color: vars.text.secondary,
-  background: 'transparent',
-  border: `1px solid ${vars.border.color.default}`,
-  borderRadius: vars.border.radius.base,
-  fontSize: '0.9rem',
-  font: 'inherit',
-  cursor: 'pointer',
-  transition: `all ${vars.transitions.fast}`,
-  ':hover': {
-    color: vars.text.primary,
-    borderColor: vars.border.color.muted,
-    background: vars.background.muted,
-  },
-});
-
 export const actionLink = style({
   display: 'inline-flex',
   alignItems: 'center',
@@ -64,6 +41,16 @@ export const actionLinkLarge = style({
   fontSize: '1.1rem',
 });
 
+export const backRow = style({
+  marginBottom: '1.5rem',
+});
+
+export const errorActions = style({
+  display: 'flex',
+  justifyContent: 'center',
+  marginTop: '1rem',
+});
+
 export const errorActionLink = style({
   display: 'inline-flex',
   alignItems: 'center',
@@ -80,47 +67,6 @@ export const errorActionLink = style({
     background: vars.colors.primaryHover,
     transform: 'translateY(-1px)',
   },
-});
-
-export const petHeader = style({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '1rem',
-  marginBottom: '2rem',
-  '@media': {
-    '(min-width: 768px)': {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-  },
-});
-
-export const petTitle = style({});
-
-globalStyle(`${petTitle} h1`, {
-  fontFamily: vars.typography.family.display,
-  fontSize: '2.5rem',
-  fontWeight: vars.typography.weight.bold,
-  marginBottom: '0.5rem',
-  color: vars.text.primary,
-  letterSpacing: '-0.025em',
-});
-
-globalStyle(`${petTitle} .subtitle`, {
-  fontSize: '1.2rem',
-  color: vars.text.secondary,
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.5rem',
-  flexWrap: 'wrap',
-});
-
-export const statusSection = style({
-  display: 'flex',
-  alignItems: 'center',
-  gap: '1rem',
-  flexWrap: 'wrap',
 });
 
 export const mainContent = style({
@@ -367,21 +313,6 @@ globalStyle(`${descriptionCard} p`, {
   lineHeight: '1.6',
   color: vars.text.secondary,
   whiteSpace: 'pre-wrap',
-});
-
-export const errorContainer = style({
-  textAlign: 'center',
-  padding: '3rem',
-  color: vars.text.danger,
-});
-
-globalStyle(`${errorContainer} h2`, {
-  fontSize: '1.5rem',
-  marginBottom: '1rem',
-});
-
-globalStyle(`${errorContainer} p`, {
-  marginBottom: '2rem',
 });
 
 export const contactButton = style({
