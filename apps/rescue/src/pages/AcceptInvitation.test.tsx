@@ -9,9 +9,18 @@ const getInvitationDetails = vi.fn();
 const acceptInvitation = vi.fn();
 
 vi.mock('../services/libraryServices', () => ({
+  // Methods read `this`, like the real InvitationsService: an unbound call fails.
   invitationService: {
-    getInvitationDetails: (...args: unknown[]) => getInvitationDetails(...args),
-    acceptInvitation: (...args: unknown[]) => acceptInvitation(...args),
+    handlers: {
+      getInvitationDetails: (...args: unknown[]) => getInvitationDetails(...args),
+      acceptInvitation: (...args: unknown[]) => acceptInvitation(...args),
+    },
+    getInvitationDetails(...args: unknown[]) {
+      return this.handlers.getInvitationDetails(...args);
+    },
+    acceptInvitation(...args: unknown[]) {
+      return this.handlers.acceptInvitation(...args);
+    },
   },
 }));
 
@@ -128,5 +137,18 @@ describe('AcceptInvitation', () => {
     expect(await screen.findByLabelText(/first name/i)).toBeInTheDocument();
     expect(screen.getByText(/newstaff@rescue.org/)).toBeInTheDocument();
     expect(screen.queryByText(/not found or has expired/i)).not.toBeInTheDocument();
+  });
+
+  it('shows the account created view once the invitation is accepted', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.type(await screen.findByLabelText(/first name/i), 'Sam');
+    await user.type(screen.getByLabelText(/last name/i), 'Smith');
+    await user.type(screen.getByLabelText(/^password/i), 'DevPassword123!');
+    await user.type(screen.getByLabelText(/confirm password/i), 'DevPassword123!');
+    await user.click(screen.getByRole('button', { name: /create account/i }));
+
+    expect(await screen.findByRole('heading', { name: 'Account Created!' })).toBeInTheDocument();
   });
 });
