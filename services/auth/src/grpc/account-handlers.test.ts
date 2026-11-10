@@ -474,6 +474,18 @@ describe('verifyEmail', () => {
       verifyEmail(mocks.deps, null, { verificationToken: 'expired' })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
+
+  it('only activates accounts still pending verification, never suspended or deactivated ones', async () => {
+    // The DB matches no row for a suspended/deactivated owner of the token.
+    mocks.clientScript([]);
+    await expect(
+      verifyEmail(mocks.deps, null, { verificationToken: 'suspended-users-token' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+
+    const sql = realQueries(mocks.clientMock.query)[0][0] as string;
+    expect(sql).toContain("status = 'pending_verification'");
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
 });
 
 describe('resendVerification', () => {
@@ -487,6 +499,16 @@ describe('resendVerification', () => {
     mocks.clientScript([]);
     const res = await resendVerification(mocks.deps, null, { email: 'whoever@example.com' });
     expect(res.ok).toBe(true);
+  });
+
+  it('issues no token for accounts that are not pending verification, with the same response', async () => {
+    mocks.clientScript([]); // suspended/deactivated owner: no row matches
+    const res = await resendVerification(mocks.deps, null, { email: 'suspended@example.com' });
+    expect(res.ok).toBe(true);
+
+    const sql = realQueries(mocks.clientMock.query)[0][0] as string;
+    expect(sql).toContain("status = 'pending_verification'");
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 });
 
