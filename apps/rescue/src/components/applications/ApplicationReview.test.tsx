@@ -12,8 +12,20 @@
  */
 import React, { useState } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render as rtlRender, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router';
+
+// The review looks up the pet's foster placement with a query, so every render
+// sits inside a QueryClientProvider (retries off).
+const render = (ui: React.ReactElement) =>
+  rtlRender(
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      {ui}
+    </QueryClientProvider>
+  );
 
 // ADS-644: ApplicationReview now renders cross-link <Link>s and calls
 // fosterService.list to find the pet's active foster placement. Stub the
@@ -217,10 +229,33 @@ vi.mock('@adopt-dont-shop/lib.components', async importOriginal => {
     dismiss: vi.fn(),
   });
 
-  // Real Tabs: the review's tab behaviour is part of what these tests cover.
-  const { Tabs } = await importOriginal<typeof import('@adopt-dont-shop/lib.components')>();
+  // Real shared components (Modal, Tabs, Button, ...): the review's dialog and tab
+  // behaviour is part of what these tests cover. Only the confirm flow, toasts and
+  // the Radix select (swapped for a native one so tests can drive it) are replaced.
+  const actual = await importOriginal<typeof import('@adopt-dont-shop/lib.components')>();
 
-  return { useConfirm, ConfirmDialog, toast, Tabs };
+  const SelectInput = ({
+    options = [],
+    value,
+    onChange,
+    label,
+  }: {
+    options?: { value: string; label: string }[];
+    value?: string;
+    onChange?: (value: string) => void;
+    label?: string;
+  }) => (
+    <select aria-label={label} value={value ?? ''} onChange={e => onChange?.(e.target.value)}>
+      <option value="">Select an option...</option>
+      {options.map(option => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
+
+  return { ...actual, useConfirm, ConfirmDialog, toast, SelectInput };
 });
 
 import ApplicationReview from './ApplicationReview';

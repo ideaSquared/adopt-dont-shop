@@ -1,84 +1,16 @@
-import { globalStyle, keyframes, style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 import { recipe } from '@vanilla-extract/recipes';
 
-const spin = keyframes({
-  '0%': { transform: 'rotate(0deg)' },
-  '100%': { transform: 'rotate(360deg)' },
-});
-
-export const overlay = style({
-  position: 'fixed',
-  inset: 0,
-  background: 'rgba(75, 85, 99, 0.5)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 50,
-});
-
-export const modal = style({
-  background: 'white',
-  borderRadius: '0.5rem',
-  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-  maxWidth: '72rem',
-  width: '100%',
-  margin: '1rem',
-  maxHeight: '90vh',
-  overflow: 'hidden',
-});
-
 export const loadingContainer = style({
-  background: 'white',
-  borderRadius: '0.5rem',
-  padding: '2rem',
+  padding: vars.spacing['4'],
   textAlign: 'center',
 });
 
-export const spinner = style({
-  display: 'inline-block',
-  width: '2rem',
-  height: '2rem',
-  border: '2px solid #e5e7eb',
-  borderTop: '2px solid #3b82f6',
-  borderRadius: '50%',
-  animation: `${spin} 1s linear infinite`,
-});
-
-export const loadingText = style({
-  marginTop: '0.5rem',
-  fontSize: '0.875rem',
-  color: '#6b7280',
-});
-
-export const errorContainer = style({
-  background: 'white',
-  borderRadius: '0.5rem',
-  padding: '2rem',
-  maxWidth: '28rem',
-});
-
-export const errorText = style({
-  color: '#ef4444',
-  marginBottom: '1rem',
-});
-
 export const errorMessage = style({
-  fontSize: '0.875rem',
-  color: '#374151',
-  marginBottom: '1rem',
-});
-
-export const closeButton = style({
-  padding: '0.5rem 1rem',
-  background: '#d1d5db',
-  color: '#374151',
-  borderRadius: '0.375rem',
-  border: 'none',
-  cursor: 'pointer',
-  transition: 'background-color 0.2s',
-  ':hover': {
-    background: '#9ca3af',
-  },
+  fontSize: vars.typography.size.sm,
+  color: vars.text.primary,
+  marginBottom: vars.spacing['4'],
 });
 
 export const header = style({
@@ -107,13 +39,6 @@ export const headerLeft = style({
   flexDirection: 'column',
 });
 
-export const headerTitle = style({
-  fontSize: '1.125rem',
-  fontWeight: '600',
-  color: '#111827',
-  margin: 0,
-});
-
 export const headerSubtitle = style({
   fontSize: '0.875rem',
   color: '#6b7280',
@@ -127,28 +52,6 @@ export const headerRight = style({
   // Allow the badges and action buttons to wrap onto multiple lines rather
   // than overflowing the modal width on small screens.
   flexWrap: 'wrap',
-});
-
-export const statusBadge = recipe({
-  base: {
-    display: 'inline-flex',
-    padding: '0.25rem 0.75rem',
-    fontSize: '0.75rem',
-    fontWeight: '600',
-    borderRadius: '9999px',
-  },
-  variants: {
-    status: {
-      submitted: { background: '#dbeafe', color: '#1e40af' },
-      approved: { background: '#dcfce7', color: '#166534' },
-      rejected: { background: '#fecaca', color: '#dc2626' },
-      withdrawn: { background: '#f3f4f6', color: '#374151' },
-      default: { background: '#f3f4f6', color: '#374151' },
-    },
-  },
-  defaultVariants: {
-    status: 'default',
-  },
 });
 
 export const stageBadge = style({
@@ -199,16 +102,13 @@ export const button = recipe({
 });
 
 // Root of the shared Tabs component: the tablist stays pinned while the panels scroll.
-export const content = style({
-  overflowY: 'auto',
-  maxHeight: 'calc(90vh - 120px)',
-});
+export const content = style({});
 
 globalStyle(`${content} [role="tablist"]`, {
   position: 'sticky',
   top: 0,
   zIndex: 1,
-  background: 'white',
+  background: vars.background.surface,
   padding: '0 1.5rem',
   marginBottom: 0,
   // The four tabs don't fit across a phone-width modal; allow horizontal
@@ -564,36 +464,6 @@ export const label = style({
   fontWeight: '500',
   color: '#374151',
   marginBottom: '0.25rem',
-});
-
-export const select = style({
-  width: '100%',
-  padding: '0.5rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '0.375rem',
-  fontSize: '0.875rem',
-  background: 'white',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#3b82f6',
-    boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
-  },
-});
-
-export const textArea = style({
-  width: '100%',
-  padding: '0.5rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '0.375rem',
-  fontSize: '0.875rem',
-  resize: 'vertical',
-  minHeight: '100px',
-  boxSizing: 'border-box',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#3b82f6',
-    boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
-  },
 });
 
 export const referenceCard = style({
