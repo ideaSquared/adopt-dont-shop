@@ -3,6 +3,7 @@ import { apiService } from '@/services/libraryServices';
 import {
   useInfiniteQuery,
   useMutation,
+  useQuery,
   useQueryClient,
   type InfiniteData,
 } from '@tanstack/react-query';
@@ -159,9 +160,26 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
     await fetchNextPage();
   }, [fetchNextPage]);
 
-  const unreadCount = useMemo(() => {
-    return notifications.filter(n => !n.readAt).length;
-  }, [notifications]);
+  // The badge counts every unread notification, not just the pages loaded so far. If the count
+  // is unavailable it falls back to the loaded ones.
+  const unreadCountKey = useMemo(
+    () => ['notifications', userId, 'unread-count'] as const,
+    [userId]
+  );
+  const unreadCountQuery = useQuery({
+    queryKey: unreadCountKey,
+    enabled: !!userId,
+    queryFn: async () => (await notificationsService.getUnreadCount(userId ?? '')).data.count,
+  });
+  const loadedUnreadCount = useMemo(
+    () => notifications.filter(n => !n.readAt).length,
+    [notifications]
+  );
+  const unreadCount = unreadCountQuery.data ?? loadedUnreadCount;
+  const refreshUnreadCount = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: unreadCountKey }),
+    [queryClient, unreadCountKey]
+  );
 
   const updateCached = useCallback(
     (update: (current: Notification[]) => Notification[]) =>
@@ -172,18 +190,23 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
   // These actions report failures to the console, not the app-wide generic toast, and never reject.
   const markAsReadMutation = useMutation({
     mutationFn: (id: string) => notificationsService.markAsRead([id]),
-    onSuccess: (_result, id) =>
+    onSuccess: (_result, id) => {
       updateCached(current =>
         current.map(notification =>
           notification.id === id ? markRead(notification) : notification
         )
-      ),
+      );
+      return refreshUnreadCount();
+    },
     onError: error => console.error('Failed to mark notification as read:', error),
   });
 
   const markAllAsReadMutation = useMutation({
     mutationFn: (currentUserId: string) => notificationsService.markAllAsRead(currentUserId),
-    onSuccess: () => updateCached(current => current.map(markRead)),
+    onSuccess: () => {
+      updateCached(current => current.map(markRead));
+      return refreshUnreadCount();
+    },
     onError: error => console.error('Failed to mark all notifications as read:', error),
   });
 
@@ -201,6 +224,7 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
       console.error('Failed to clear all notifications:', error);
       queryClient.setQueryData<CachedNotifications>(queryKey, context?.snapshot);
     },
+    onSettled: () => refreshUnreadCount(),
   });
 
   const { mutateAsync: markAsReadAsync } = markAsReadMutation;
