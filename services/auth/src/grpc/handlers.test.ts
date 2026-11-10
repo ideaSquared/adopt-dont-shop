@@ -213,14 +213,27 @@ describe('login', () => {
   // of these accounts must be indistinguishable from a wrong password
   // against a normal or unknown account.
 
-  it('returns PERMISSION_DENIED when account is locked AND the password is correct', async () => {
+  it('answers a locked account identically for a correct and a wrong password', async () => {
+    const lockedRow = userRowFixture({ locked_until: new Date(Date.now() + 60_000) });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [lockedRow] });
+    mocks.hasherMock.compare.mockResolvedValueOnce(false);
+    const wrong = await login(mocks.deps, null, BASE_LOGIN_REQ).catch((e: unknown) => e);
+
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [lockedRow] });
+    mocks.hasherMock.compare.mockResolvedValueOnce(true);
+    const right = await login(mocks.deps, null, BASE_LOGIN_REQ).catch((e: unknown) => e);
+
+    expect(wrong).toMatchObject({ code: 'UNAUTHENTICATED', message: 'invalid credentials' });
+    expect(right).toMatchObject({ code: 'UNAUTHENTICATED', message: 'invalid credentials' });
+  });
+
+  it('audits a denied login for a locked account with the correct password', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({
       rows: [userRowFixture({ locked_until: new Date(Date.now() + 60_000) })],
     });
     mocks.hasherMock.compare.mockResolvedValueOnce(true);
     await expect(login(mocks.deps, null, BASE_LOGIN_REQ)).rejects.toMatchObject({
-      code: 'PERMISSION_DENIED',
-      message: 'account is temporarily locked',
+      code: 'UNAUTHENTICATED',
     });
 
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.actionTaken');

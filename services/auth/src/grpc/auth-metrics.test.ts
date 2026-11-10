@@ -160,7 +160,7 @@ describe('auth_logins_total counter', () => {
 
     await expect(
       login(mocks.deps, null, { email: 'test@example.com', password: 'pw' })
-    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    ).rejects.toMatchObject({ code: 'UNAUTHENTICATED' });
 
     expect(await readCounter('auth_logins_total', { outcome: 'account_locked' })).toBe(1);
   });

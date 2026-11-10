@@ -546,10 +546,10 @@ export async function login(
     throw new HandlerError('UNAUTHENTICATED', 'invalid credentials');
   }
 
-  // The password is correct — only now is it safe to reveal account state
-  // (ADS-966). A locked/suspended/deactivated account still can't log in,
-  // but the distinct message is reserved for someone who has already
-  // proven they know the password.
+  // The password is correct. A locked account still can't log in and answers
+  // exactly like a wrong password; suspended/deactivated accounts get a
+  // distinct message, reserved for someone who has proven they know the
+  // password (ADS-966).
   if (user.locked_until && user.locked_until > new Date()) {
     loginCounter.inc({ outcome: 'account_locked' });
     await publishLoginActionTaken(deps, {
@@ -560,7 +560,10 @@ export async function login(
       ipAddress: req.ipAddress,
       userAgent: req.userAgent,
     });
-    throw new HandlerError('PERMISSION_DENIED', 'account is temporarily locked');
+    // Identical to the wrong-password response: while locked, a correct
+    // password must not be distinguishable from a wrong one, or the lock
+    // would still let an attacker keep guessing.
+    throw new HandlerError('UNAUTHENTICATED', 'invalid credentials');
   }
   // A timed suspension that has ended no longer blocks sign-in: lift it now
   // (audited) so a missed scheduled job can never keep someone out past their
