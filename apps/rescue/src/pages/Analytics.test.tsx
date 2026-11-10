@@ -71,7 +71,10 @@ describe('Analytics page', () => {
   describe('email report dialog', () => {
     const openDialog = async () => {
       renderWithProviders(<Analytics />);
-      fireEvent.click(await screen.findByRole('button', { name: /email report/i }));
+      const trigger = await screen.findByRole('button', { name: 'Export Report' });
+      await waitFor(() => expect(trigger).toBeEnabled());
+      fireEvent.click(trigger);
+      fireEvent.click(await screen.findByRole('menuitem', { name: 'Email Report' }));
       return screen.findByRole('dialog');
     };
 
