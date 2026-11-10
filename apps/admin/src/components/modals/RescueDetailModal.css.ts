@@ -319,29 +319,6 @@ export const skeletonRow = style({
   gap: '0.5rem',
 });
 
-export const tableWrapper = style({
-  overflowX: 'auto',
-});
-
-export const dataTable = style({
-  width: '100%',
-  borderCollapse: 'collapse',
-  fontSize: '0.875rem',
-});
-
-export const tableHeadRow = style({
-  textAlign: 'left',
-  borderBottom: '1px solid #e5e7eb',
-});
-
-export const tableCell = style({
-  padding: '0.5rem',
-});
-
-export const tableBodyRow = style({
-  borderBottom: '1px solid #f3f4f6',
-});
-
 export const manageLinkRow = style({
   marginTop: '0.75rem',
 });

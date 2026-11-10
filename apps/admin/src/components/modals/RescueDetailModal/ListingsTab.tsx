@@ -1,6 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router';
-import { DateTime, Skeleton } from '@adopt-dont-shop/lib.components';
+import { useQuery } from '@tanstack/react-query';
+import {
+  DataTable,
+  type DataTableColumn,
+  DateTime,
+  ErrorState,
+  Skeleton,
+} from '@adopt-dont-shop/lib.components';
 import * as styles from '../RescueDetailModal.css';
 import { petService, type AdminPet } from '@/services/petService';
 
@@ -10,35 +17,34 @@ type ListingsTabProps = {
 
 const RECENT_LIMIT = 5;
 
-export const ListingsTab: React.FC<ListingsTabProps> = ({ rescueId }) => {
-  const [pets, setPets] = useState<AdminPet[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const RECENT_COLUMNS: DataTableColumn[] = [
+  { key: 'name', label: 'Name', sortable: false },
+  { key: 'type', label: 'Type', sortable: false },
+  { key: 'breed', label: 'Breed', sortable: false },
+  {
+    key: 'createdAt',
+    label: 'Listed',
+    sortable: false,
+    render: value => <DateTime timestamp={String(value)} />,
+  },
+];
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const result = await petService.getAll({ rescueId, limit: 100 });
-        if (!cancelled) {
-          setPets(result.data);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Failed to load listings');
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [rescueId]);
+export const ListingsTab: React.FC<ListingsTabProps> = ({ rescueId }) => {
+  const {
+    data,
+    isLoading: loading,
+    error: queryError,
+    refetch,
+  } = useQuery({
+    queryKey: ['pets', 'by-rescue', rescueId],
+    queryFn: () => petService.getAll({ rescueId, limit: 100 }),
+  });
+  const pets: AdminPet[] = data?.data ?? [];
+  const error = queryError
+    ? queryError instanceof Error
+      ? queryError.message
+      : 'Failed to load listings'
+    : null;
 
   const counts = pets.reduce(
     (acc, pet) => {
@@ -67,7 +73,7 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({ rescueId }) => {
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>Listings Summary</h3>
 
-        {error && <div className={styles.errorMessage}>{error}</div>}
+        {error && <ErrorState message={error} onRetry={() => void refetch()} />}
 
         {loading && (
           <div aria-label='Loading listings' className={styles.skeletonRow}>
@@ -102,30 +108,12 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({ rescueId }) => {
       {!loading && !error && recent.length > 0 && (
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>Recent Listings</h3>
-          <div className={styles.tableWrapper}>
-            <table className={styles.dataTable}>
-              <thead>
-                <tr className={styles.tableHeadRow}>
-                  <th className={styles.tableCell}>Name</th>
-                  <th className={styles.tableCell}>Type</th>
-                  <th className={styles.tableCell}>Breed</th>
-                  <th className={styles.tableCell}>Listed</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recent.map(pet => (
-                  <tr key={pet.petId} className={styles.tableBodyRow}>
-                    <td className={styles.tableCell}>{pet.name}</td>
-                    <td className={styles.tableCell}>{pet.type}</td>
-                    <td className={styles.tableCell}>{pet.breed}</td>
-                    <td className={styles.tableCell}>
-                      <DateTime timestamp={pet.createdAt} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            frameless
+            columns={RECENT_COLUMNS}
+            rows={recent.map(pet => ({ ...pet }))}
+            getRowId={(_row, index) => recent[index]?.petId ?? String(index)}
+          />
           <div className={styles.manageLinkRow}>
             <Link to='/pets'>Manage all pets →</Link>
           </div>
