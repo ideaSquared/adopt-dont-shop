@@ -25,7 +25,13 @@ Delivery is then two-phase:
   (process died in the commit→publish window, or JetStream was unreachable) and
   deletes them on ack. This is the durability guarantee, and doubles as the
   reconciliation job. A row is deleted on successful publish, so the table is a
-  self-cleaning queue, not an append-only log.
+  self-cleaning queue, not an append-only log. A row that cannot publish (payload
+  over NATS `max_payload`, subject outside the stream) does not block later rows:
+  after `MAX_OUTBOX_ATTEMPTS` (10) row-attributable failures it is quarantined,
+  i.e. skipped by the claim query and kept in the table for manual triage, with an
+  error log and `events_outbox_quarantined_total`. A failure only counts toward
+  quarantine when another row published in the same sweep, so a NATS outage never
+  quarantines healthy rows.
 
 Each event-publishing service adds a migration that creates `event_outbox` in
 its own schema (re-exporting the DDL from

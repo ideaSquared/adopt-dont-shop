@@ -7,6 +7,7 @@ import { getMetricsRegistry, __resetMetricsForTest } from '@adopt-dont-shop/obse
 import {
   flushInline,
   insertOutboxRecords,
+  MAX_OUTBOX_ATTEMPTS,
   relayOutboxOnce,
   startOutboxRelay,
   toOutboxRecord,
@@ -167,6 +168,95 @@ describe('relayOutboxOnce', () => {
       ([sql, params]) => String(sql).includes('last_error') && params?.[1] === 'no stream ack'
     );
     expect(stamped).toBe(true);
+  });
+
+  describe('poison rows', () => {
+    const row = (id: string, attempts = 0) => ({
+      outbox_id: id,
+      event_id: id,
+      subject: `s.${id}`,
+      payload: {},
+      occurred_at: new Date(),
+      attempts,
+    });
+    const natsFailingFor = (...badSubjects: string[]) =>
+      ({
+        jetstream: vi.fn().mockReturnValue({
+          publish: vi.fn(async (subject: string) => {
+            if (badSubjects.includes(subject)) {
+              throw new Error('payload too large');
+            }
+            return { seq: 1 };
+          }),
+        }),
+      }) as unknown as NatsConnection;
+    const attemptIncrements = (query: ReturnType<typeof makePool>['query']) =>
+      Object.fromEntries(
+        query.mock.calls
+          .filter(([sql]) => String(sql).includes('SET attempts'))
+          .map(([, params]) => [params?.[0], params?.[2]])
+      );
+
+    it('publishes later rows past a row that cannot publish', async () => {
+      const { pool, query } = makePool([row('bad'), row('ok1'), row('ok2')]);
+
+      const published = await relayOutboxOnce({ pool, nats: natsFailingFor('s.bad') }, 100);
+
+      expect(published).toBe(2);
+      const deleted = query.mock.calls
+        .filter(([sql]) => String(sql).includes('DELETE'))
+        .map(([, params]) => params?.[0]);
+      expect(deleted).toEqual(['ok1', 'ok2']);
+      // The poison row is attributable (others published), so its attempt counts.
+      expect(attemptIncrements(query)).toEqual({ bad: 1 });
+    });
+
+    it('does not count attempts when nothing publishes (a NATS outage must not quarantine rows)', async () => {
+      const { pool, query } = makePool([row('a'), row('b')]);
+
+      await relayOutboxOnce({ pool, nats: natsFailingFor('s.a', 's.b') }, 100);
+
+      expect(attemptIncrements(query)).toEqual({ a: 0, b: 0 });
+    });
+
+    it('stops the sweep after several consecutive failures instead of hammering a dead NATS', async () => {
+      const rows = Array.from({ length: 20 }, (_, i) => row(`r${i}`));
+      const { pool } = makePool(rows);
+      const nats = natsFailingFor(...rows.map(r => r.subject));
+
+      await relayOutboxOnce({ pool, nats }, 100);
+
+      const publish = (nats.jetstream() as unknown as { publish: ReturnType<typeof vi.fn> })
+        .publish;
+      expect(publish.mock.calls.length).toBeLessThan(20);
+    });
+
+    it('skips quarantined rows in the claim query', async () => {
+      const { pool, query } = makePool([]);
+      const { nats } = makeNats();
+
+      await relayOutboxOnce({ pool, nats }, 100);
+
+      const [sql, params] = query.mock.calls.find(([s]) =>
+        String(s).includes('FOR UPDATE SKIP LOCKED')
+      ) as [string, unknown[]];
+      expect(sql).toContain('attempts < $2');
+      expect(params[1]).toBe(MAX_OUTBOX_ATTEMPTS);
+    });
+
+    it('quarantines a row on its final attempt: logs at error and counts it', async () => {
+      const { pool } = makePool([row('bad', MAX_OUTBOX_ATTEMPTS - 1), row('ok')]);
+      const logger = { warn: vi.fn(), error: vi.fn() };
+
+      await relayOutboxOnce({ pool, nats: natsFailingFor('s.bad'), logger }, 100);
+
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('quarantined'),
+        expect.objectContaining({ subject: 's.bad', attempts: MAX_OUTBOX_ATTEMPTS })
+      );
+      const text = await getMetricsRegistry().metrics();
+      expect(text).toContain('events_outbox_quarantined_total 1');
+    });
   });
 
   it('counts successes and failures on the shared metrics registry', async () => {

@@ -187,26 +187,47 @@ const rowToRecord = (row: {
 // backstop (the inline path handles the happy path), it runs on a bounded
 // batch, and it stops the batch at the first failure — so the hold is short.
 //
-// Each row is published then DELETEd (self-cleaning queue). A publish failure
-// stamps attempts/last_error, stops the batch (preserving per-subject order),
-// and COMMITs what already succeeded; the remaining rows wait for the next
-// sweep. Returns the count published so the caller can drain until a short
-// batch signals the backlog is empty.
+// Each row is published then DELETEd (self-cleaning queue). A failed row is
+// stamped (last_error / last_attempt_at) and the sweep CONTINUES with the rows
+// behind it, so one unpublishable row (payload over max_payload, subject
+// outside the stream) cannot block every later event from the service. After
+// MAX_SWEEP_CONSECUTIVE_FAILURES failures in a row the sweep stops instead:
+// that looks like an outage, and hammering a dead NATS would hold the claim
+// locks for a publish timeout per row.
+//
+// Whether a failure counts toward quarantine depends on evidence that NATS is
+// healthy: only when at least one other row published in the same sweep is the
+// failure attributed to the row itself and `attempts` incremented. Otherwise
+// `attempts` is left alone, so a NATS outage can never quarantine healthy
+// rows. Once a row reaches MAX_OUTBOX_ATTEMPTS it is quarantined: the claim
+// query skips it, it stays in the table for triage (and in the pending gauge),
+// and it is logged at error and counted on events_outbox_quarantined_total.
+// No schema change is needed: quarantine reuses the existing `attempts` column.
+//
+// Trade-offs: skipping a failed row lets a later event on the same subject
+// publish before it (consumers are idempotent and apply latest-wins on a
+// version key, see the event-driven skill); and more than
+// MAX_SWEEP_CONSECUTIVE_FAILURES poison rows at the head of the queue still
+// block it, as they are never attributable.
+//
+// Returns the count published so the caller can drain until a short batch
+// signals the backlog is empty.
 export const relayOutboxOnce = async (
-  deps: Pick<OutboxRelayDeps, 'pool' | 'nats'>,
+  deps: Pick<OutboxRelayDeps, 'pool' | 'nats' | 'logger'>,
   batchSize: number
 ): Promise<number> => {
-  const { pool, nats } = deps;
+  const { pool, nats, logger } = deps;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const { rows } = await client.query(
-      `SELECT outbox_id, event_id, subject, payload, occurred_at
+      `SELECT outbox_id, event_id, subject, payload, occurred_at, attempts
          FROM ${OUTBOX_TABLE}
+        WHERE attempts < $2
         ORDER BY seq
         LIMIT $1
         FOR UPDATE SKIP LOCKED`,
-      [batchSize]
+      [batchSize, MAX_OUTBOX_ATTEMPTS]
     );
     if (rows.length === 0) {
       await client.query('COMMIT');
@@ -214,24 +235,44 @@ export const relayOutboxOnce = async (
     }
     const js = nats.jetstream();
     let published = 0;
+    let consecutiveFailures = 0;
+    const failed: { rec: OutboxRecord; attempts: number; error: string }[] = [];
     for (const row of rows) {
+      if (consecutiveFailures >= MAX_SWEEP_CONSECUTIVE_FAILURES) {
+        break;
+      }
       const rec = rowToRecord(row);
       try {
         await publishRecord(js, rec);
         await deleteOutboxRow(client, rec.outboxId);
         recordOutboxPublished();
         published += 1;
+        consecutiveFailures = 0;
       } catch (err) {
         recordOutboxFailure();
-        await client.query(
-          `UPDATE ${OUTBOX_TABLE}
-              SET attempts = attempts + 1, last_attempt_at = now(), last_error = $2
-            WHERE outbox_id = $1`,
-          [rec.outboxId, err instanceof Error ? err.message : String(err)]
-        );
-        // Stop at the first failure — the remaining rows keep their lock until
-        // COMMIT and are retried next sweep, in order.
-        break;
+        consecutiveFailures += 1;
+        failed.push({
+          rec,
+          attempts: Number(row.attempts ?? 0),
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+    const rowAttributable = published > 0;
+    for (const { rec, attempts, error } of failed) {
+      await client.query(
+        `UPDATE ${OUTBOX_TABLE}
+            SET attempts = attempts + $3, last_attempt_at = now(), last_error = $2
+          WHERE outbox_id = $1`,
+        [rec.outboxId, error, rowAttributable ? 1 : 0]
+      );
+      if (rowAttributable && attempts + 1 >= MAX_OUTBOX_ATTEMPTS) {
+        recordOutboxQuarantined();
+        logger?.error?.('outbox row quarantined after repeated publish failures', {
+          subject: rec.subject,
+          outboxId: rec.outboxId,
+          attempts: attempts + 1,
+        });
       }
     }
     await client.query('COMMIT');
@@ -263,6 +304,13 @@ export type OutboxRelayOptions = {
 export type OutboxRelayHandle = {
   stop: () => void;
 };
+
+// Row-attributable publish failures after which a row is quarantined: skipped
+// by the claim query and kept in the table for manual triage.
+export const MAX_OUTBOX_ATTEMPTS = 10;
+
+// A sweep gives up after this many failed publishes in a row (likely an outage).
+const MAX_SWEEP_CONSECUTIVE_FAILURES = 5;
 
 const DEFAULT_INTERVAL_MS = 1_000;
 const DEFAULT_BATCH_SIZE = 100;
@@ -317,6 +365,7 @@ export const startOutboxRelay = (
 
 let _published: InstanceType<typeof Counter> | null = null;
 let _failures: InstanceType<typeof Counter> | null = null;
+let _quarantined: InstanceType<typeof Counter> | null = null;
 let _pending: InstanceType<typeof Gauge> | null = null;
 
 const publishedCounter = (): InstanceType<typeof Counter> => {
@@ -341,6 +390,17 @@ const failuresCounter = (): InstanceType<typeof Counter> => {
   return _failures;
 };
 
+const quarantinedCounter = (): InstanceType<typeof Counter> => {
+  if (!_quarantined) {
+    _quarantined = new Counter({
+      name: 'events_outbox_quarantined_total',
+      help: 'Outbox rows quarantined after repeated publish failures (need manual triage).',
+      registers: [getMetricsRegistry()],
+    });
+  }
+  return _quarantined;
+};
+
 const pendingGauge = (): InstanceType<typeof Gauge> => {
   if (!_pending) {
     _pending = new Gauge({
@@ -360,6 +420,10 @@ const recordOutboxFailure = (): void => {
   failuresCounter().inc();
 };
 
+const recordOutboxQuarantined = (): void => {
+  quarantinedCounter().inc();
+};
+
 const updatePendingGauge = async (pool: Pick<Pool, 'query'>): Promise<void> => {
   try {
     const { rows } = await pool.query<{ count: string }>(
@@ -376,5 +440,6 @@ const updatePendingGauge = async (pool: Pick<Pool, 'query'>): Promise<void> => {
 export const __resetOutboxMetricsForTest = (): void => {
   _published = null;
   _failures = null;
+  _quarantined = null;
   _pending = null;
 };
