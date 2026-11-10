@@ -1,8 +1,6 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
-import { recipe } from '@vanilla-extract/recipes';
-
 export const container = style({
   maxWidth: '1000px',
   margin: '0 auto',
@@ -10,71 +8,6 @@ export const container = style({
   '@media': {
     '(max-width: 768px)': {
       padding: '1rem',
-    },
-  },
-});
-
-export const header = style({
-  marginBottom: '3rem',
-  '@media': {
-    '(max-width: 768px)': {
-      marginBottom: '2rem',
-    },
-  },
-});
-
-globalStyle(`${header} h1`, {
-  fontSize: '2.5rem',
-  color: vars.text.primary,
-  marginBottom: '0.5rem',
-});
-
-globalStyle(`${header} p`, {
-  fontSize: '1.1rem',
-  color: vars.text.tertiary,
-});
-
-globalStyle(`${header} h1`, {
-  '@media': {
-    '(max-width: 768px)': {
-      fontSize: '2rem',
-    },
-  },
-});
-
-export const tabContainer = style({
-  borderBottom: `1px solid ${vars.border.color.default}`,
-  marginBottom: '2rem',
-});
-
-export const tabList = style({
-  display: 'flex',
-  gap: '2rem',
-});
-
-export const tab = recipe({
-  base: {
-    background: 'none',
-    border: 'none',
-    padding: '1rem 0',
-    fontSize: '1rem',
-    fontWeight: '500',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    ':hover': {
-      color: vars.colors.primaryHover,
-    },
-  },
-  variants: {
-    active: {
-      true: {
-        color: vars.colors.primaryHover,
-        borderBottom: '2px solid #4f46e5',
-      },
-      false: {
-        color: vars.text.tertiary,
-        borderBottom: '2px solid transparent',
-      },
     },
   },
 });
@@ -153,36 +86,6 @@ globalStyle(`${applicationInfo} h3`, {
 globalStyle(`${applicationInfo} p`, {
   color: vars.text.tertiary,
   fontSize: '0.875rem',
-});
-
-export const statusBadge = recipe({
-  base: {
-    padding: '0.25rem 0.75rem',
-    borderRadius: '20px',
-    fontSize: '0.75rem',
-    fontWeight: '500',
-    textTransform: 'uppercase',
-  },
-  variants: {
-    status: {
-      submitted: {
-        background: '#ede9fe',
-        color: '#6d28d9',
-      },
-      approved: {
-        background: vars.colors.successBgSubtle,
-        color: vars.colors.successTextEmphasis,
-      },
-      rejected: {
-        background: vars.colors.dangerBgSubtle,
-        color: vars.colors.dangerTextEmphasis,
-      },
-      default: {
-        background: vars.background.muted,
-        color: vars.text.secondary,
-      },
-    },
-  },
 });
 
 export const sectionGap = style({
