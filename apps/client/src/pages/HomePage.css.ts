@@ -174,15 +174,6 @@ globalStyle(`${ctaSection} p`, {
   color: 'rgba(255,255,255,0.92)',
 });
 
-export const errorMessage = style({
-  textAlign: 'center',
-  padding: '2rem',
-  color: vars.text.danger,
-  backgroundColor: vars.background.danger,
-  borderRadius: vars.border.radius.lg,
-  margin: '2rem 0',
-});
-
 export const heroPrimaryButton = style({
   background: 'white',
   color: '#BE123C',
