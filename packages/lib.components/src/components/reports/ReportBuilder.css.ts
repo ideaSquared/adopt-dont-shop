@@ -1,4 +1,5 @@
 import { style } from '@vanilla-extract/css';
+import { vars } from '../../styles/theme.css';
 
 export const layout = style({
   display: 'grid',
@@ -18,9 +19,9 @@ export const widgetRow = style({
   alignItems: 'center',
   justifyContent: 'space-between',
   padding: '8px 12px',
-  border: '1px solid var(--color-border, #e5e7eb)',
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '6px',
-  background: 'var(--color-surface, #fff)',
+  background: vars.background.surface,
   fontSize: '13px',
 });
 
@@ -35,7 +36,7 @@ export const columnsBar = style({
   alignItems: 'center',
   justifyContent: 'space-between',
   padding: '8px 12px',
-  border: '1px solid var(--color-border, #e5e7eb)',
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '8px',
 });
 
@@ -50,7 +51,7 @@ export const columnsButtons = style({
 
 export const columnsButton = style({
   padding: '4px 10px',
-  border: '1px solid var(--color-border, #e5e7eb)',
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '4px',
   background: 'transparent',
   color: 'inherit',
@@ -58,7 +59,7 @@ export const columnsButton = style({
 });
 
 export const columnsButtonActive = style({
-  background: 'var(--color-primary, #2563eb)',
+  background: vars.colors.primary,
   color: '#fff',
 });
 
@@ -88,7 +89,7 @@ export const saveButton = style({
 });
 
 export const emptyPreview = style({
-  border: '1px dashed var(--color-border, #e5e7eb)',
+  border: `1px dashed ${vars.border.color.muted}`,
   borderRadius: '8px',
   padding: '40px',
   textAlign: 'center',

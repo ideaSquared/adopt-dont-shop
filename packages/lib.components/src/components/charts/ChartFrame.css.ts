@@ -1,10 +1,11 @@
 import { style } from '@vanilla-extract/css';
+import { vars } from '../../styles/theme.css';
 
 export const frame = style({
   display: 'flex',
   flexDirection: 'column',
-  background: 'var(--color-surface, #fff)',
-  border: '1px solid var(--color-border, #e5e7eb)',
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '8px',
   padding: '16px',
   height: '100%',
@@ -23,13 +24,13 @@ export const header = style({
 export const title = style({
   fontSize: '14px',
   fontWeight: 600,
-  color: 'var(--color-text, #111827)',
+  color: vars.text.primary,
   margin: 0,
 });
 
 export const subtitle = style({
   fontSize: '12px',
-  color: 'var(--color-text-muted, #6b7280)',
+  color: vars.text.tertiary,
   marginTop: '2px',
 });
 
@@ -45,10 +46,10 @@ export const state = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  color: 'var(--color-text-muted, #6b7280)',
+  color: vars.text.tertiary,
   fontSize: '13px',
 });
 
 export const stateError = style({
-  color: 'var(--color-danger, #dc2626)',
+  color: vars.colors.danger,
 });

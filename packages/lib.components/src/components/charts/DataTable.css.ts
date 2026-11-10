@@ -17,10 +17,10 @@ export const table = style({
 export const th = style({
   textAlign: 'left',
   padding: 0,
-  borderBottom: '1px solid var(--color-border, #e5e7eb)',
-  color: 'var(--color-text-muted, #6b7280)',
+  borderBottom: `1px solid ${vars.border.color.muted}`,
+  color: vars.text.tertiary,
   fontWeight: 600,
-  background: 'var(--color-surface-muted, #f9fafb)',
+  background: vars.background.muted,
   position: 'sticky',
   top: 0,
 });
@@ -39,8 +39,8 @@ export const sortButton = style({
 
 export const td = style({
   padding: '8px 12px',
-  borderBottom: '1px solid var(--color-border, #e5e7eb)',
-  color: 'var(--color-text, #111827)',
+  borderBottom: `1px solid ${vars.border.color.muted}`,
+  color: vars.text.primary,
 });
 
 export const rowClickable = style({
@@ -56,7 +56,7 @@ export const pagination = style({
   justifyContent: 'flex-end',
   gap: '8px',
   fontSize: '12px',
-  color: 'var(--color-text-muted, #6b7280)',
+  color: vars.text.tertiary,
   paddingTop: '8px',
 });
 
@@ -91,7 +91,7 @@ globalStyle(`${cardsTable} tr`, {
     [MOBILE]: {
       display: 'block',
       marginBottom: '12px',
-      border: '1px solid var(--color-border, #e5e7eb)',
+      border: `1px solid ${vars.border.color.muted}`,
       borderRadius: '8px',
       padding: '4px 8px',
     },
@@ -117,7 +117,7 @@ globalStyle(`${cardsTable} td::before`, {
     [MOBILE]: {
       content: 'attr(data-label)',
       fontWeight: 600,
-      color: 'var(--color-text-muted, #6b7280)',
+      color: vars.text.tertiary,
       textAlign: 'left',
     },
   },
@@ -135,7 +135,7 @@ export const selectCell = style({
   width: '1%',
   padding: `${vars.spacing['2']} ${vars.spacing['2']}`,
   textAlign: 'center',
-  borderBottom: `${vars.border.width.thin} solid var(--color-border, #e5e7eb)`,
+  borderBottom: `${vars.border.width.thin} solid ${vars.border.color.muted}`,
 });
 
 export const selectHeaderCell = style([
@@ -143,7 +143,7 @@ export const selectHeaderCell = style([
   {
     position: 'sticky',
     top: 0,
-    background: 'var(--color-surface-muted, #f9fafb)',
+    background: vars.background.muted,
   },
 ]);
 
@@ -176,7 +176,7 @@ export const emptyFrameless = style({
 
 /** Frameless bordered shell — the admin list-table surface (no ChartFrame title). */
 export const surface = style({
-  border: `${vars.border.width.thin} solid var(--color-border, #e5e7eb)`,
+  border: `${vars.border.width.thin} solid ${vars.border.color.muted}`,
   borderRadius: vars.border.radius.base,
   overflow: 'hidden',
   backgroundColor: vars.background.surface,

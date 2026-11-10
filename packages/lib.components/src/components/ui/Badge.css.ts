@@ -118,17 +118,12 @@ export const badge = recipe({
           },
         },
       },
+      // These tokens already flip with the theme (dark grey fill, light text in
+      // dark mode), so no dark override: inverting them made a white pill.
       neutral: {
         background: vars.background.muted,
         color: vars.text.primary,
         border: `1px solid ${vars.border.color.muted}`,
-        selectors: {
-          [`:is(html.${darkThemeClass}) &`]: {
-            background: vars.text.primary,
-            color: vars.background.muted,
-            borderColor: vars.text.tertiary,
-          },
-        },
       },
       outline: {
         background: 'transparent',
