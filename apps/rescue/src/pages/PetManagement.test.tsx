@@ -128,7 +128,7 @@ describe('PetManagement deep link', () => {
 
     expect(await screen.findByText('Total Pets')).toBeInTheDocument();
     expect(screen.getByText('17')).toBeInTheDocument();
-    expect(screen.getByText('Available')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Available' })).toBeInTheDocument();
   });
 
   it('offers a retry when the pet list fails to load', async () => {
