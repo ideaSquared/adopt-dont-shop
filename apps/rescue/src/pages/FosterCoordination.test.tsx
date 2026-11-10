@@ -175,6 +175,27 @@ describe('FosterCoordination', () => {
     expect(screen.queryByText('Loading pets...')).not.toBeInTheDocument();
   });
 
+  it('loads every page of pets, beyond 200', async () => {
+    const totalPages = 13;
+    mockedPet.getPetsByRescue.mockImplementation(async (_rescueId: string, page: number) => ({
+      data: [{ pet_id: `pet-p${page}`, name: `Pet page ${page}`, breed: 'Mixed' }],
+      pagination: {
+        page,
+        limit: 20,
+        total: totalPages * 20,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+      },
+    }));
+    renderAt('/foster');
+    fireEvent.click(screen.getByRole('button', { name: 'New Placement' }));
+
+    expect(await screen.findByRole('option', { name: /Pet page 13/ })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /Pet page 1 \(/ })).toBeInTheDocument();
+    expect(mockedPet.getPetsByRescue).toHaveBeenCalledTimes(totalPages);
+  });
+
   it('looks pets up under the rescue from the staff membership and names them in the list', async () => {
     mockedFoster.list.mockResolvedValueOnce([
       {

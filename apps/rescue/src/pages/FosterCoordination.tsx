@@ -27,19 +27,26 @@ import * as styles from './FosterCoordination.css';
 
 const NO_PLACEMENTS: FosterPlacement[] = [];
 const NO_PETS: Pet[] = [];
-// Cap the pet picker's page fetches so it is populated without unbounded parallel requests.
-const MAX_PET_PAGES = 10;
+// The pets endpoint serves 20 per page. Fetch every page the API reports, in small batches so a
+// large rescue does not fire dozens of parallel requests. The cap is a safety net (2,000 pets).
+const MAX_PET_PAGES = 100;
+const PET_PAGE_BATCH_SIZE = 5;
 
 // Errors propagate so the query exposes a failed state instead of an empty list.
 const loadAllPets = async (rescueId: string): Promise<Pet[]> => {
   const first = await petService.getPetsByRescue(rescueId, 1);
-  const cappedPages = Math.min(first.pagination.totalPages, MAX_PET_PAGES);
-  const remaining = await Promise.all(
-    Array.from({ length: Math.max(cappedPages - 1, 0) }, (_, i) =>
-      petService.getPetsByRescue(rescueId, i + 2)
-    )
+  const lastPage = Math.min(first.pagination.totalPages, MAX_PET_PAGES);
+  const remainingPages = Array.from({ length: Math.max(lastPage - 1, 0) }, (_, i) => i + 2);
+  const batches = Array.from(
+    { length: Math.ceil(remainingPages.length / PET_PAGE_BATCH_SIZE) },
+    (_, i) => remainingPages.slice(i * PET_PAGE_BATCH_SIZE, (i + 1) * PET_PAGE_BATCH_SIZE)
   );
-  return [...first.data, ...remaining.flatMap(page => page.data)];
+  const loaded = await batches.reduce<Promise<Pet[]>>(async (acc, batch) => {
+    const soFar = await acc;
+    const pages = await Promise.all(batch.map(page => petService.getPetsByRescue(rescueId, page)));
+    return [...soFar, ...pages.flatMap(page => page.data)];
+  }, Promise.resolve(first.data));
+  return loaded;
 };
 
 const FosterCoordination: React.FC = () => {
