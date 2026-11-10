@@ -191,6 +191,7 @@ as `ApiError`.
 | New REST endpoint (proto → handler → route) | `backend-endpoint`         | `docs/backend/implementation-guide.md`, `docs/backend/api-endpoints.md` |
 | Schema change                               | `db-migration`             | `docs/backend/writing-migrations.md`                                    |
 | Audit trail for a state change              | `audit-logging`            | `services/audit/src/nats/event-types.ts`                                |
+| Events between services, copying their data | `event-driven`             | `packages/events/README.md`                                             |
 | Errors and HTTP status mapping              | `error-handling`           | `services/gateway/src/middleware/grpc-error.ts`                         |
 | Field-level read/write masking (backend)    | `field-permissions`        | `docs/adr/0006-field-permission-enforcement.md`                         |
 | Backend tests (handlers, routes)            | `backend-test`             | `docs/testing.md`                                                       |
