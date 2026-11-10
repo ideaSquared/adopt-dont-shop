@@ -21,7 +21,8 @@ const renderAt = (initialEntry: string) =>
 
 vi.mock('@adopt-dont-shop/lib.auth', () => ({
   useAuth: () => ({
-    user: { userId: 'user-1', rescueId: 'rescue-1' },
+    // GET /auth/me does not carry the rescue id, so the page must not rely on it.
+    user: { userId: 'user-1' },
   }),
 }));
 
@@ -42,6 +43,7 @@ vi.mock('../services/libraryServices', () => ({
 vi.mock('../services/staffService', () => ({
   staffService: {
     getRescueStaff: vi.fn(),
+    getMyRescueId: vi.fn(),
   },
 }));
 
@@ -87,6 +89,7 @@ const mockedPet = petService as unknown as {
 };
 const mockedStaff = staffService as unknown as {
   getRescueStaff: ReturnType<typeof vi.fn>;
+  getMyRescueId: ReturnType<typeof vi.fn>;
 };
 
 describe('FosterCoordination', () => {
@@ -103,6 +106,7 @@ describe('FosterCoordination', () => {
       ],
       pagination: { page: 1, limit: 20, total: 2, totalPages: 1, hasNext: false, hasPrev: false },
     });
+    mockedStaff.getMyRescueId.mockResolvedValue('rescue-1');
     mockedStaff.getRescueStaff.mockResolvedValue([
       {
         id: 's-1',
@@ -127,6 +131,28 @@ describe('FosterCoordination', () => {
     });
     expect(screen.getByRole('option', { name: /Whiskers/ })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: /Ada Lovelace/ })).toBeInTheDocument();
+  });
+
+  it('looks pets up under the rescue from the staff membership and names them in the list', async () => {
+    mockedFoster.list.mockResolvedValueOnce([
+      {
+        placementId: 'pl-1',
+        petId: 'pet-1',
+        fosterUserId: 'staff-1',
+        rescueId: 'rescue-1',
+        startDate: '2026-01-01',
+        endDate: null,
+        status: 'active',
+        notes: null,
+        createdAt: '2026-01-01',
+        updatedAt: '2026-01-01',
+      },
+    ]);
+
+    renderAt('/foster');
+
+    expect(await screen.findByText('Buddy (Labrador)')).toBeInTheDocument();
+    expect(mockedPet.getPetsByRescue).toHaveBeenCalledWith('rescue-1', 1);
   });
 
   it('creates a placement using the picker-selected pet and foster user', async () => {
