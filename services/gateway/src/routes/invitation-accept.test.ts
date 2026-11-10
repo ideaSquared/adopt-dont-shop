@@ -45,7 +45,7 @@ async function makeApp(
 
 const VALID_BODY = {
   token: 'tok-abc',
-  password: 'hunter22',
+  password: 'DevPassword123!',
   firstName: 'Jo',
   lastName: 'Bloggs',
 };
@@ -91,7 +91,7 @@ describe('POST /api/v1/invitations/accept', () => {
     // The invitee's trusted email is read from the invitation, not the body.
     expect(m.provisionInvitedUserMock.mock.calls[0][0]).toMatchObject({
       email: 'invitee@example.com',
-      password: 'hunter22',
+      password: 'DevPassword123!',
       firstName: 'Jo',
       lastName: 'Bloggs',
     });
@@ -111,7 +111,12 @@ describe('POST /api/v1/invitations/accept', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/invitations/accept',
-      payload: { token: 'tok-abc', password: 'hunter22', first_name: 'Jo', last_name: 'Bloggs' },
+      payload: {
+        token: 'tok-abc',
+        password: 'DevPassword123!',
+        first_name: 'Jo',
+        last_name: 'Bloggs',
+      },
     });
 
     expect(res.statusCode).toBe(201);
@@ -140,11 +145,22 @@ describe('POST /api/v1/invitations/accept', () => {
     expect(res.statusCode).toBe(400);
   });
 
+  it('returns 400 and provisions nothing for a long but weak password', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/invitations/accept',
+      payload: { ...VALID_BODY, password: 'longbutweakpassword' },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(m.getInvitationByTokenMock).not.toHaveBeenCalled();
+    expect(m.provisionInvitedUserMock).not.toHaveBeenCalled();
+  });
+
   it('returns 400 when names are missing', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/invitations/accept',
-      payload: { token: 'tok-abc', password: 'hunter22' },
+      payload: { token: 'tok-abc', password: 'DevPassword123!' },
     });
     expect(res.statusCode).toBe(400);
   });

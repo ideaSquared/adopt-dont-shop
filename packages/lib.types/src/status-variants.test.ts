@@ -57,11 +57,14 @@ describe('status variant maps', () => {
 });
 
 describe('statuses the apps used to colour differently', () => {
-  // Neither state is a problem, so both use the informational colour; amber
-  // stays reserved for states that need caution.
-  it('shows a submitted application and a fostered pet as informational', () => {
+  // Amber stays reserved for states that need caution.
+  it('shows a submitted application as informational', () => {
     expect(applicationStatusVariant('submitted')).toBe('info');
-    expect(petStatusVariant('foster')).toBe('info');
+  });
+
+  // Foster is an in-between state kept distinct from adopted (info).
+  it('shows a fostered pet as neutral', () => {
+    expect(petStatusVariant('foster')).toBe('neutral');
   });
 });
 

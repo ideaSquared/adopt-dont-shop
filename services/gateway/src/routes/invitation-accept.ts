@@ -18,6 +18,8 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
+import { NewPasswordSchema } from '@adopt-dont-shop/lib.validation';
+
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
@@ -123,6 +125,12 @@ export const registerInvitationAcceptRoutes = async (
       }
       if (!password) {
         return reply.code(400).send({ error: 'password is required' });
+      }
+      const passwordCheck = NewPasswordSchema.safeParse(password);
+      if (!passwordCheck.success) {
+        return reply
+          .code(400)
+          .send({ error: passwordCheck.error.issues[0]?.message ?? 'invalid password' });
       }
       if (!firstName || !lastName) {
         return reply.code(400).send({ error: 'firstName and lastName are required' });

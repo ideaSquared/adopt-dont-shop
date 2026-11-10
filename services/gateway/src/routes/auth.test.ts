@@ -948,7 +948,7 @@ describe('auth account-lifecycle input validation (ADS-853)', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/auth/register',
-        payload: { email: 'a@example.com', password: 'pw', termsAccepted: 'yes' },
+        payload: { email: 'a@example.com', password: 'Longenough1!', termsAccepted: 'yes' },
       });
       expect(res.statusCode).toBe(400);
       expect(m.registerMock).not.toHaveBeenCalled();
@@ -997,6 +997,22 @@ describe('auth account-lifecycle input validation (ADS-853)', () => {
         method: 'POST',
         url: '/api/v1/auth/register',
         payload: { email: 'a@example.com', password: 'short' },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.registerMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/register rejects a long but weak password with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: { email: 'a@example.com', password: 'longbutweakpassword' },
       });
       expect(res.statusCode).toBe(400);
       expect(m.registerMock).not.toHaveBeenCalled();
