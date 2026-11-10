@@ -137,7 +137,7 @@ The dev stack is configured for HMR on Windows/macOS/Linux. Since [ADS-766](http
 | Frontend apps (`app.*/src/**`)                    | Vite HMR — native inotify on Linux, polling on macOS/Windows (`CHOKIDAR_USEPOLLING`, `CHOKIDAR_INTERVAL`, `CHOKIDAR_AWAITWRITEFINISH`) | ~<500ms (Linux) / ~1-2s (macOS, Windows) |
 | Frontend libs (`lib.*/src/**` except `lib.types`) | Vite aliases point at lib `src/` — HMR picks them up                                                                                   | ~1-2s                                    |
 | Backend services (`services/*/src/**`)            | `tsx watch` (native fs events)                                                                                                         | ~1s                                      |
-| `lib.types/src/**`                                | `lib-types-watcher` sidecar runs `tsc --watch`; backend picks up dist changes via workspace symlink                                    | ~2-5s                                    |
+| `lib.types/src/**`, `lib.validation/src/**`       | `lib-types-watcher` sidecar runs `tsc --watch`; backend picks up dist changes via workspace symlink                                    | ~2-5s                                    |
 
 `pnpm bootstrap` auto-detects the host OS and appends the polling vars to `.env` on macOS/Windows. To verify per-container:
 

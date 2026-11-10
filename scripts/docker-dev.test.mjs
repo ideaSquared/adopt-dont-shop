@@ -4,7 +4,13 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { resolveComposeFiles, resolveHostIds, resolveProfiles } from './docker-dev.mjs';
+import {
+  composeUpArgs,
+  needsVolumeRenewal,
+  resolveComposeFiles,
+  resolveHostIds,
+  resolveProfiles,
+} from './docker-dev.mjs';
 
 // resolveProfiles maps the requested `--profile` onto the real compose profiles
 // `pnpm docker:dev` enables. The behaviour that matters to a developer booting
@@ -102,5 +108,75 @@ describe('lib-types-watcher in docker-compose.dev.yml', () => {
     const block = compose.split(/\r?\n {2}lib-types-watcher:\r?\n/)[1].split(/\r?\n\r?\n/)[0];
     expect(block).toMatch(/TSC_WATCHFILE: DynamicPriorityPolling/);
     expect(block).toMatch(/TSC_WATCHDIRECTORY: RecursiveDirectoryUsingDynamicPriorityPolling/);
+  });
+
+  // Services import lib.validation through its dist/ export too. Without a
+  // watcher, a dev stack runs whatever dist/ the host last built, so a schema
+  // added on main is a missing export (or a missing module on a fresh clone).
+  it('compiles lib.validation as well as lib.types', () => {
+    const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+    const compose = readFileSync(join(root, 'docker-compose.dev.yml'), 'utf8');
+    const block = compose.split(/\r?\n {2}lib-types-watcher:\r?\n/)[1].split(/\r?\n\r?\n/)[0];
+    expect(block).toMatch(/--filter @adopt-dont-shop\/lib\.types\b/);
+    expect(block).toMatch(/--filter @adopt-dont-shop\/lib\.validation\b/);
+  });
+});
+
+// Compose carries a container's anonymous volumes over when it recreates it, so
+// after a dependency change the baked node_modules in the new dev image stayed
+// hidden behind the old volumes. Any container still on an older dev image will
+// be recreated, so its volumes must be renewed. That includes containers a
+// previous, narrower `--profile` run left behind on the old image.
+describe('needsVolumeRenewal', () => {
+  const DEV = 'adopt-dont-shop-dev:latest';
+
+  it('renews when a container runs an older dev image than the current one', () => {
+    const containers = [
+      { configImage: DEV, imageId: 'sha256:new' },
+      { configImage: DEV, imageId: 'sha256:old' },
+    ];
+    expect(needsVolumeRenewal(containers, 'sha256:new')).toBe(true);
+  });
+
+  it('keeps volumes when every dev container already runs the current image', () => {
+    const containers = [
+      { configImage: DEV, imageId: 'sha256:new' },
+      { configImage: DEV, imageId: 'sha256:new' },
+    ];
+    expect(needsVolumeRenewal(containers, 'sha256:new')).toBe(false);
+  });
+
+  it('ignores infra containers that run other images', () => {
+    const containers = [
+      { configImage: DEV, imageId: 'sha256:new' },
+      { configImage: 'postgis/postgis:16-3.4-alpine', imageId: 'sha256:pg' },
+    ];
+    expect(needsVolumeRenewal(containers, 'sha256:new')).toBe(false);
+  });
+
+  it('keeps volumes when no containers exist yet', () => {
+    expect(needsVolumeRenewal([], 'sha256:new')).toBe(false);
+  });
+});
+
+describe('composeUpArgs', () => {
+  it('renews anonymous volumes when asked', () => {
+    expect(composeUpArgs(['services'], { detach: false, renewAnonVolumes: true })).toContain(
+      '--renew-anon-volumes'
+    );
+  });
+
+  // --renew-anon-volumes force-recreates every container, so it must not be on
+  // by default or each `pnpm docker:dev` restarts the whole stack.
+  it('keeps anonymous volumes otherwise', () => {
+    expect(composeUpArgs(['services'], { detach: false, renewAnonVolumes: false })).not.toContain(
+      '--renew-anon-volumes'
+    );
+  });
+
+  it('never builds, and detaches only when asked', () => {
+    expect(
+      composeUpArgs(['client', 'services'], { detach: true, renewAnonVolumes: false })
+    ).toEqual(['--profile', 'client', '--profile', 'services', 'up', '--no-build', '-d']);
   });
 });

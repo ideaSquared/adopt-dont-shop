@@ -165,19 +165,20 @@ services:
 
   # =========================================================================
   # lib-types-watcher — base uses raw node:alpine (no pnpm); override to the
-  # shared dev image so pnpm + the baked deps are available.
+  # shared dev image so pnpm + the baked deps are available. Also compiles
+  # lib.validation: services import both through their dist/ exports.
   # =========================================================================
   lib-types-watcher:
     <<: *dev-build
     environment:
       <<: *dev-env
       # Windows/macOS bind mounts don't forward inotify, so `tsc --watch`
-      # must poll or it never sees an edit. lib.types/src is small enough
-      # that polling on every host is free.
+      # must poll or it never sees an edit. lib.types/src and
+      # lib.validation/src are small enough that polling on every host is free.
       TSC_WATCHFILE: DynamicPriorityPolling
       TSC_WATCHDIRECTORY: RecursiveDirectoryUsingDynamicPriorityPolling
     volumes: *dev-volumes
-    command: sh -c "pnpm --filter @adopt-dont-shop/lib.types run dev"
+    command: sh -c "pnpm --parallel --filter @adopt-dont-shop/lib.types --filter @adopt-dont-shop/lib.validation run dev"
 
   # =========================================================================
   # Microservices. Each: shared dev image, source mount, node_modules anon
