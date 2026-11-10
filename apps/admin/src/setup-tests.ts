@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom';
 import React from 'react';
 import { expect, afterEach, vi } from 'vitest';
+import { getStatusDisplay, type StatusKind } from '@adopt-dont-shop/lib.types';
 import { cleanup } from '@testing-library/react';
 import * as matchers from '@testing-library/jest-dom/matchers';
 import { ReadableStream, WritableStream, TransformStream } from 'node:stream/web';
@@ -42,7 +43,118 @@ global.Image = class MockImage {
   src: string = '';
 } as any;
 
+type StubDropdownMenuItem = {
+  label: string;
+  to?: string;
+  onClick?: () => void;
+  disabled?: boolean;
+};
+
+type StubDropdownMenuProps = {
+  triggerLabel: string;
+  items: StubDropdownMenuItem[];
+  trigger?: React.ReactElement;
+  header?: React.ReactNode;
+  disabled?: boolean;
+};
+
+// Test double for the shared DropdownMenu / DropdownButton: a trigger button
+// that toggles a role="menu" list of role="menuitem" entries, closing on select.
+const StubDropdownMenu = ({ triggerLabel, items, header, disabled }: StubDropdownMenuProps) => {
+  const [open, setOpen] = React.useState(false);
+  return React.createElement(
+    'div',
+    null,
+    React.createElement(
+      'button',
+      {
+        type: 'button',
+        'aria-haspopup': 'menu',
+        'aria-expanded': open,
+        disabled,
+        onClick: () => setOpen(current => !current),
+      },
+      triggerLabel
+    ),
+    open
+      ? React.createElement(
+          'div',
+          { role: 'menu', 'aria-label': triggerLabel },
+          header,
+          items.map(item =>
+            item.to
+              ? React.createElement(
+                  'a',
+                  { key: item.label, role: 'menuitem', href: item.to },
+                  item.label
+                )
+              : React.createElement(
+                  'button',
+                  {
+                    key: item.label,
+                    type: 'button',
+                    role: 'menuitem',
+                    disabled: item.disabled,
+                    onClick: () => {
+                      setOpen(false);
+                      item.onClick?.();
+                    },
+                  },
+                  item.label
+                )
+          )
+        )
+      : null
+  );
+};
+
 vi.mock('@adopt-dont-shop/lib.components', () => ({
+  // Shared primitives added for the app migrations. Each stub mirrors the real
+  // component's accessible output (roles, names, text) and drops styling props.
+  PageHeader: ({
+    title,
+    description,
+    actions,
+    'data-testid': testId,
+  }: {
+    title: React.ReactNode;
+    description?: React.ReactNode;
+    actions?: React.ReactNode;
+    'data-testid'?: string;
+  }) =>
+    React.createElement(
+      'header',
+      { 'data-testid': testId },
+      React.createElement('h1', null, title),
+      description ? React.createElement('p', null, description) : null,
+      actions ? React.createElement('div', null, actions) : null
+    ),
+  StatusBadge: (props: {
+    kind?: StatusKind;
+    status?: string;
+    label?: string;
+    variant?: string;
+    'data-testid'?: string;
+  }) =>
+    React.createElement(
+      'span',
+      { role: 'status', 'data-testid': props['data-testid'] },
+      props.label ??
+        (props.kind && props.status !== undefined
+          ? getStatusDisplay(props.kind, props.status).label
+          : null)
+    ),
+  DropdownMenu: ({ triggerLabel, items, trigger, header, disabled }: StubDropdownMenuProps) =>
+    React.createElement(StubDropdownMenu, { triggerLabel, items, trigger, header, disabled }),
+  DropdownButton: ({ triggerLabel, items, header, disabled }: StubDropdownMenuProps) =>
+    React.createElement(StubDropdownMenu, { triggerLabel, items, header, disabled }),
+  Tooltip: ({ content, children }: { content: React.ReactNode; children: React.ReactElement }) =>
+    React.createElement(
+      React.Fragment,
+      null,
+      children,
+      React.createElement('span', { role: 'tooltip' }, content)
+    ),
   lightTheme: {},
   darkTheme: {},
   ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
