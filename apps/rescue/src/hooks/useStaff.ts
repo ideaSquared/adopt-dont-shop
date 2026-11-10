@@ -1,84 +1,68 @@
-import { useState, useEffect } from 'react';
-import { staffService, StaffMember } from '../services/staffService';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { staffService, type StaffMember } from '../services/staffService';
 import { NewStaffMember } from '../types/staff';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 
+const NO_STAFF: StaffMember[] = [];
+
 export const useStaff = () => {
-  const [staff, setStaff] = useState<StaffMember[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const userId = user?.userId;
+  const queryClient = useQueryClient();
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['staff'] });
 
-  useEffect(() => {
-    let cancelled = false;
+  // Fetch staff for the current user's rescue (automatically filtered by backend)
+  const query = useQuery({
+    queryKey: ['staff', userId],
+    queryFn: () => staffService.getRescueStaff(),
+    enabled: Boolean(userId),
+    staleTime: 0,
+  });
 
-    const fetchStaff = async () => {
-      if (!user?.userId) {
-        if (!cancelled) {
-          setStaff([]);
-          setLoading(false);
-        }
-        return;
-      }
+  const addMutation = useMutation({
+    mutationFn: ({ staffData, rescueId }: { staffData: NewStaffMember; rescueId: string }) =>
+      staffService.addStaffMember(staffData, rescueId),
+    onSuccess: invalidate,
+  });
+  const removeMutation = useMutation({
+    mutationFn: ({ memberUserId, rescueId }: { memberUserId: string; rescueId: string }) =>
+      staffService.removeStaffMember(memberUserId, rescueId),
+    onSuccess: invalidate,
+  });
+  const updateMutation = useMutation({
+    mutationFn: ({
+      memberUserId,
+      staffData,
+      rescueId,
+    }: {
+      memberUserId: string;
+      staffData: { title?: string };
+      rescueId: string;
+    }) => staffService.updateStaffMember(memberUserId, staffData, rescueId),
+    onSuccess: invalidate,
+  });
 
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Fetch staff for the current user's rescue (automatically filtered by backend)
-        const staffMembers = await staffService.getRescueStaff();
-        if (!cancelled) {
-          setStaff(staffMembers);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError('Failed to load staff members');
-          setStaff([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchStaff();
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.userId]);
+  const errorMessage = (() => {
+    if (!query.isError) {
+      return null;
+    }
+    return query.isRefetchError ? 'Failed to reload staff members' : 'Failed to load staff members';
+  })();
 
   return {
-    staff,
-    loading,
-    error,
+    staff: query.data ?? NO_STAFF,
+    loading: query.isFetching,
+    error: errorMessage,
     refetch: async () => {
-      if (user?.userId) {
-        setLoading(true);
-        try {
-          const staffMembers = await staffService.getRescueStaff();
-          setStaff(staffMembers);
-          setError(null);
-        } catch (err) {
-          setError('Failed to reload staff members');
-        } finally {
-          setLoading(false);
-        }
+      if (userId) {
+        await query.refetch();
       }
     },
-    addStaffMember: async (staffData: NewStaffMember, rescueId: string) => {
-      const newStaff = await staffService.addStaffMember(staffData, rescueId);
-      setStaff(prev => [...prev, newStaff]);
-      return newStaff;
-    },
-    removeStaffMember: async (userId: string, rescueId: string) => {
-      await staffService.removeStaffMember(userId, rescueId);
-      setStaff(prev => prev.filter(member => member.userId !== userId));
-    },
-    updateStaffMember: async (userId: string, staffData: { title?: string }, rescueId: string) => {
-      const updatedStaff = await staffService.updateStaffMember(userId, staffData, rescueId);
-      setStaff(prev => prev.map(member => (member.userId === userId ? updatedStaff : member)));
-      return updatedStaff;
-    },
+    addStaffMember: (staffData: NewStaffMember, rescueId: string) =>
+      addMutation.mutateAsync({ staffData, rescueId }),
+    removeStaffMember: (memberUserId: string, rescueId: string) =>
+      removeMutation.mutateAsync({ memberUserId, rescueId }),
+    updateStaffMember: (memberUserId: string, staffData: { title?: string }, rescueId: string) =>
+      updateMutation.mutateAsync({ memberUserId, staffData, rescueId }),
   };
 };

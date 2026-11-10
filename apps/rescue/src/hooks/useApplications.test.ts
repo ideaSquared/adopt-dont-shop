@@ -9,6 +9,7 @@
  * force a refresh now, same as it always effectively was in production.
  */
 import { act, renderHook, waitFor } from '@testing-library/react';
+import { QueryWrapper } from './query-test-wrapper';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // The module-level singleton in useApplications.ts is constructed at import
@@ -41,7 +42,7 @@ describe('useApplications', () => {
   });
 
   it('fetches applications on mount', async () => {
-    renderHook(() => useApplications());
+    renderHook(() => useApplications(), { wrapper: QueryWrapper });
 
     await waitFor(() => {
       expect(getApplicationsMock).toHaveBeenCalledTimes(1);
@@ -49,7 +50,7 @@ describe('useApplications', () => {
   });
 
   it('refetches when the filter changes and resets to page 1', async () => {
-    const { result } = renderHook(() => useApplications());
+    const { result } = renderHook(() => useApplications(), { wrapper: QueryWrapper });
 
     await waitFor(() => {
       expect(getApplicationsMock).toHaveBeenCalledTimes(1);
@@ -73,7 +74,7 @@ describe('useApplications', () => {
   });
 
   it('exposes a manual refetch that re-runs the last query', async () => {
-    const { result } = renderHook(() => useApplications());
+    const { result } = renderHook(() => useApplications(), { wrapper: QueryWrapper });
 
     await waitFor(() => {
       expect(getApplicationsMock).toHaveBeenCalledTimes(1);
