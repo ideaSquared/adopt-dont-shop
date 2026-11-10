@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { EmptyState, Skeleton } from '@adopt-dont-shop/lib.components';
 import clsx from 'clsx';
 import { StageDistribution } from '../../services/analyticsService';
 import * as styles from './StageDistributionChart.css';
@@ -17,7 +18,7 @@ const StageDistributionChart: React.FC<StageDistributionChartProps> = ({
   if (loading) {
     return (
       <div className={styles.chartContainer}>
-        <div className={styles.loadingSkeleton} />
+        <Skeleton width="100%" height="280px" />
       </div>
     );
   }
@@ -25,7 +26,7 @@ const StageDistributionChart: React.FC<StageDistributionChartProps> = ({
   if (!data || data.length === 0) {
     return (
       <div className={styles.chartContainer}>
-        <div className={styles.emptyState}>No data available</div>
+        <EmptyState title="No data available" size="sm" />
       </div>
     );
   }

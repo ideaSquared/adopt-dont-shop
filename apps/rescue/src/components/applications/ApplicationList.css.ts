@@ -1,15 +1,5 @@
-import { style, keyframes } from '@vanilla-extract/css';
+import { style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
-
-const spin = keyframes({
-  '0%': { transform: 'rotate(0deg)' },
-  '100%': { transform: 'rotate(360deg)' },
-});
-
-const pulse = keyframes({
-  '0%, 100%': { opacity: 1 },
-  '50%': { opacity: 0.7 },
-});
 
 export const container = style({
   display: 'flex',
@@ -195,11 +185,6 @@ export const actionsContainer = style({
   display: 'flex',
   gap: '0.25rem',
   alignItems: 'center',
-});
-
-const shimmer = keyframes({
-  '0%': { backgroundPosition: '-200% 0' },
-  '100%': { backgroundPosition: '200% 0' },
 });
 
 // Visually hidden, still announced by screen readers.

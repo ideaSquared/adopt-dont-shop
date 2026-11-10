@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { EmptyState, Skeleton } from '@adopt-dont-shop/lib.components';
 import * as styles from './ConversionFunnelChart.css';
 
 interface FunnelStage {
@@ -36,16 +37,16 @@ const ConversionFunnelChart: React.FC<ConversionFunnelChartProps> = ({ data, loa
 
   if (loading) {
     return (
-      <div>
+      <div className={styles.skeletonList}>
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className={styles.loadingSkeletonRow} />
+          <Skeleton key={i} width="100%" height="48px" />
         ))}
       </div>
     );
   }
 
   if (!data || data.length === 0) {
-    return <div className={styles.emptyState}>No funnel data available</div>;
+    return <EmptyState title="No funnel data available" size="sm" />;
   }
 
   const totalApplications = data[0]?.applicationsCount || 0;

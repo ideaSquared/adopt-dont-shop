@@ -1,10 +1,5 @@
-import { style, keyframes } from '@vanilla-extract/css';
+import { style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
-
-const shimmer = keyframes({
-  '0%': { transform: 'translateX(-100%)' },
-  '100%': { transform: 'translateX(100%)' },
-});
 
 export const chartContainer = style({
   width: '100%',
@@ -128,29 +123,4 @@ export const legendValue = style({
 export const percentage = style({
   fontWeight: '600',
   color: '#111827',
-});
-
-export const loadingSkeleton = style({
-  width: '100%',
-  height: '280px',
-  background: '#f3f4f6',
-  borderRadius: '8px',
-  position: 'relative',
-  overflow: 'hidden',
-  '::after': {
-    content: "''",
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    background: 'linear-gradient(90deg, transparent, #e5e7eb, transparent)',
-    animation: `${shimmer} 1.5s infinite`,
-  },
-});
-
-export const emptyState = style({
-  textAlign: 'center',
-  padding: '2rem',
-  color: '#6b7280',
 });
