@@ -1,15 +1,15 @@
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Button,
-  Card,
   FormField,
   Input,
+  Modal,
   SelectInput,
   type SelectOption,
+  TextArea,
 } from '@adopt-dont-shop/lib.components';
 import { apiService, type ImageUploadResponse } from '@adopt-dont-shop/lib.api';
 import { Pet, PetCreateData, PetUpdateData } from '@adopt-dont-shop/lib.pets';
-import { useDialogFocus } from '../../hooks/useDialogFocus';
 import { usePetBreeds } from '../../hooks/usePetBreeds';
 import { resolveFileUrl } from '@adopt-dont-shop/lib.utils';
 import * as styles from './PetFormModal.css';
@@ -22,6 +22,36 @@ import * as styles from './PetFormModal.css';
 // so we reject locally before the network round trip rather than after a
 // 413. The backend also magic-byte-checks the MIME so we still validate
 // `image/*` here to spare the user a server rejection.
+const PET_TYPE_OPTIONS: SelectOption[] = [
+  { value: 'dog', label: 'Dog' },
+  { value: 'cat', label: 'Cat' },
+  { value: 'rabbit', label: 'Rabbit' },
+  { value: 'bird', label: 'Bird' },
+  { value: 'other', label: 'Other' },
+];
+
+const AGE_GROUP_OPTIONS: SelectOption[] = [
+  { value: 'baby', label: 'Baby' },
+  { value: 'young', label: 'Young' },
+  { value: 'adult', label: 'Adult' },
+  { value: 'senior', label: 'Senior' },
+];
+
+const GENDER_OPTIONS: SelectOption[] = [
+  { value: 'male', label: 'Male' },
+  { value: 'female', label: 'Female' },
+];
+
+const SIZE_OPTIONS: SelectOption[] = [
+  { value: 'small', label: 'Small' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'large', label: 'Large' },
+  { value: 'extra_large', label: 'Extra Large' },
+];
+
+// SelectInput reports string[] for multi-selects; these single selects always get a string.
+const selectedValue = (next: string | string[]): string => (typeof next === 'string' ? next : '');
+
 const MAX_IMAGES = 10;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const ACCEPTED_IMAGE_TYPES = 'image/png,image/jpeg,image/jpg,image/webp,image/gif';
@@ -128,8 +158,6 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
   onSubmit,
   uploadImage = (file: File) => apiService.uploadImage(file),
 }) => {
-  const titleId = useId();
-  const dialog = useDialogFocus<HTMLDivElement>(isOpen);
   // ADS-646: minimal required fields to publish a pet are name + type +
   // gender + size. Everything else (breed, colour, descriptions, behaviour
   // flags, photos) is editable post-publish from the same modal. The
@@ -469,438 +497,406 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
     }
   };
 
-  if (!isOpen) {
-    return null;
-  }
-
   const remainingSlots = Math.max(0, MAX_IMAGES - images.length);
 
   return (
-    <div
-      className={styles.modalOverlay}
-      onClick={onClose}
-      onKeyDown={e => e.key === 'Escape' && onClose()}
-      role="presentation"
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={pet ? 'Edit Pet' : 'Add New Pet'}
+      size="xl"
+      closeOnEscape={!isSubmitting}
+      closeOnOverlayClick={!isSubmitting}
     >
-      <Card
-        ref={dialog.ref}
-        className={styles.modalContent}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        onKeyDown={dialog.onKeyDown}
-        onClick={(e: React.MouseEvent) => e.stopPropagation()}
-      >
-        <h2 id={titleId}>{pet ? 'Edit Pet' : 'Add New Pet'}</h2>
+      {!pet && (
+        <p className={styles.minimalFieldsHint}>
+          Only the pet&apos;s name is required to publish — type, gender, size and age group default
+          to sensible values. You can fill in breed, photos, descriptions and behaviour details now
+          or after publishing.
+        </p>
+      )}
 
-        {!pet && (
-          <p className={styles.minimalFieldsHint}>
-            Only the pet&apos;s name is required to publish — type, gender, size and age group
-            default to sensible values. You can fill in breed, photos, descriptions and behaviour
-            details now or after publishing.
-          </p>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          <div className={styles.formGrid}>
-            <FormField label="Pet Name" htmlFor="name" required error={errors.name}>
-              <Input
-                id="name"
-                type="text"
-                value={formData.name}
-                onChange={e => handleInputChange('name', e.target.value)}
-                placeholder="Enter pet's name"
-                aria-invalid={!!errors.name}
-              />
-            </FormField>
-
-            <div className={styles.formGroup()}>
-              <label htmlFor="type">Pet Type *</label>
-              <select
-                id="type"
-                value={formData.type}
-                onChange={e => handleTypeChange(e.target.value)}
-              >
-                <option value="dog">Dog</option>
-                <option value="cat">Cat</option>
-                <option value="rabbit">Rabbit</option>
-                <option value="bird">Bird</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-
-            <BreedField
-              id="breed"
-              label="Primary Breed"
-              emptyLabel="Not specified"
-              value={formData.breed}
-              breeds={breedsQuery.data}
-              isLoading={breedsQuery.isLoading}
-              isError={breedsQuery.isError}
-              onChange={value => handleInputChange('breed', value)}
+      <form onSubmit={handleSubmit}>
+        <div className={styles.formGrid}>
+          <FormField label="Pet Name" htmlFor="name" required error={errors.name}>
+            <Input
+              id="name"
+              type="text"
+              value={formData.name}
+              onChange={e => handleInputChange('name', e.target.value)}
+              placeholder="Enter pet's name"
+              aria-invalid={!!errors.name}
             />
+          </FormField>
 
-            <BreedField
-              id="secondaryBreed"
-              label="Secondary Breed"
-              emptyLabel="None"
-              value={formData.secondaryBreed || ''}
-              breeds={breedsQuery.data}
-              isLoading={breedsQuery.isLoading}
-              isError={breedsQuery.isError}
-              onChange={value => handleInputChange('secondaryBreed', value)}
+          <FormField label="Pet Type *" htmlFor="type">
+            <SelectInput
+              data-testid="type"
+              options={PET_TYPE_OPTIONS}
+              value={formData.type}
+              onChange={next => handleTypeChange(selectedValue(next))}
+              fullWidth
             />
+          </FormField>
 
-            <FormField label="Age (Years)" htmlFor="ageYears">
+          <BreedField
+            id="breed"
+            label="Primary Breed"
+            emptyLabel="Not specified"
+            value={formData.breed}
+            breeds={breedsQuery.data}
+            isLoading={breedsQuery.isLoading}
+            isError={breedsQuery.isError}
+            onChange={value => handleInputChange('breed', value)}
+          />
+
+          <BreedField
+            id="secondaryBreed"
+            label="Secondary Breed"
+            emptyLabel="None"
+            value={formData.secondaryBreed || ''}
+            breeds={breedsQuery.data}
+            isLoading={breedsQuery.isLoading}
+            isError={breedsQuery.isError}
+            onChange={value => handleInputChange('secondaryBreed', value)}
+          />
+
+          <FormField label="Age (Years)" htmlFor="ageYears">
+            <Input
+              id="ageYears"
+              type="number"
+              min={0}
+              max={30}
+              value={formData.ageYears}
+              onChange={e => handleInputChange('ageYears', parseInt(e.target.value) || 0)}
+            />
+          </FormField>
+
+          <FormField label="Age (Months)" htmlFor="ageMonths" error={errors.age}>
+            <Input
+              id="ageMonths"
+              type="number"
+              min={0}
+              max={11}
+              value={formData.ageMonths}
+              onChange={e => handleInputChange('ageMonths', parseInt(e.target.value) || 0)}
+              aria-invalid={!!errors.age}
+            />
+          </FormField>
+
+          <FormField label="Age Group" htmlFor="ageGroup">
+            <SelectInput
+              data-testid="ageGroup"
+              options={AGE_GROUP_OPTIONS}
+              value={formData.ageGroup ?? 'adult'}
+              onChange={next => handleInputChange('ageGroup', selectedValue(next))}
+              fullWidth
+            />
+          </FormField>
+
+          <FormField label="Gender *" htmlFor="gender">
+            <SelectInput
+              data-testid="gender"
+              options={GENDER_OPTIONS}
+              value={formData.gender}
+              onChange={next => handleInputChange('gender', selectedValue(next))}
+              fullWidth
+            />
+          </FormField>
+
+          <FormField label="Size *" htmlFor="size">
+            <SelectInput
+              data-testid="size"
+              options={SIZE_OPTIONS}
+              value={formData.size}
+              onChange={next => handleInputChange('size', selectedValue(next))}
+              fullWidth
+            />
+          </FormField>
+
+          <FormField label="Color" htmlFor="color" error={errors.color}>
+            <Input
+              id="color"
+              type="text"
+              value={formData.color}
+              onChange={e => handleInputChange('color', e.target.value)}
+              placeholder="Enter primary color"
+            />
+          </FormField>
+
+          <FormField label="Adoption Fee" htmlFor="adoptionFee" error={errors.adoptionFee}>
+            <div className={styles.currencyInputWrapper}>
+              <span className={styles.currencyAdornment} aria-hidden="true">
+                £
+              </span>
               <Input
-                id="ageYears"
+                id="adoptionFee"
                 type="number"
                 min={0}
-                max={30}
-                value={formData.ageYears}
-                onChange={e => handleInputChange('ageYears', parseInt(e.target.value) || 0)}
+                step={0.01}
+                inputMode="decimal"
+                value={formData.adoptionFee || ''}
+                onChange={e => handleInputChange('adoptionFee', e.target.value)}
+                placeholder="150.00"
+                aria-invalid={!!errors.adoptionFee}
               />
-            </FormField>
-
-            <FormField label="Age (Months)" htmlFor="ageMonths" error={errors.age}>
-              <Input
-                id="ageMonths"
-                type="number"
-                min={0}
-                max={11}
-                value={formData.ageMonths}
-                onChange={e => handleInputChange('ageMonths', parseInt(e.target.value) || 0)}
-                aria-invalid={!!errors.age}
-              />
-            </FormField>
-
-            <div className={styles.formGroup()}>
-              <label htmlFor="ageGroup">Age Group</label>
-              <select
-                id="ageGroup"
-                value={formData.ageGroup ?? 'adult'}
-                onChange={e => handleInputChange('ageGroup', e.target.value)}
-              >
-                <option value="baby">Baby</option>
-                <option value="young">Young</option>
-                <option value="adult">Adult</option>
-                <option value="senior">Senior</option>
-              </select>
             </div>
+          </FormField>
 
-            <div className={styles.formGroup()}>
-              <label htmlFor="gender">Gender *</label>
-              <select
-                id="gender"
-                value={formData.gender}
-                onChange={e => handleInputChange('gender', e.target.value)}
-              >
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-              </select>
-            </div>
-
-            <div className={styles.formGroup()}>
-              <label htmlFor="size">Size *</label>
-              <select
-                id="size"
-                value={formData.size}
-                onChange={e => handleInputChange('size', e.target.value)}
-              >
-                <option value="small">Small</option>
-                <option value="medium">Medium</option>
-                <option value="large">Large</option>
-                <option value="extra_large">Extra Large</option>
-              </select>
-            </div>
-
-            <FormField label="Color" htmlFor="color" error={errors.color}>
-              <Input
-                id="color"
-                type="text"
-                value={formData.color}
-                onChange={e => handleInputChange('color', e.target.value)}
-                placeholder="Enter primary color"
-              />
-            </FormField>
-
-            <FormField label="Adoption Fee" htmlFor="adoptionFee" error={errors.adoptionFee}>
-              <div className={styles.currencyInputWrapper}>
-                <span className={styles.currencyAdornment} aria-hidden="true">
-                  £
-                </span>
-                <Input
-                  id="adoptionFee"
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  inputMode="decimal"
-                  value={formData.adoptionFee || ''}
-                  onChange={e => handleInputChange('adoptionFee', e.target.value)}
-                  placeholder="150.00"
-                  aria-invalid={!!errors.adoptionFee}
-                />
-              </div>
-            </FormField>
-
-            <div className={styles.formGroup({ fullWidth: true })}>
-              <label htmlFor="shortDescription">Short Description</label>
-              <textarea
+          <div className={styles.formGroup({ fullWidth: true })}>
+            <FormField
+              label="Short Description"
+              htmlFor="shortDescription"
+              error={errors.shortDescription}
+            >
+              <TextArea
                 id="shortDescription"
                 value={formData.shortDescription || ''}
                 onChange={e => handleInputChange('shortDescription', e.target.value)}
                 placeholder="Brief description for listings (1-2 sentences)"
                 rows={2}
               />
-              {errors.shortDescription && <div className="error">{errors.shortDescription}</div>}
-            </div>
+            </FormField>
+          </div>
 
-            <div className={styles.formGroup({ fullWidth: true })}>
-              <label htmlFor="longDescription">Long Description</label>
-              <textarea
+          <div className={styles.formGroup({ fullWidth: true })}>
+            <FormField label="Long Description" htmlFor="longDescription">
+              <TextArea
                 id="longDescription"
                 value={formData.longDescription || ''}
                 onChange={e => handleInputChange('longDescription', e.target.value)}
                 placeholder="Detailed description of the pet's personality, history, and needs"
                 rows={4}
               />
+            </FormField>
+          </div>
+
+          <div className={styles.formGroup({ fullWidth: true })}>
+            <label htmlFor="petImages">Add Pet Photos</label>
+            <input
+              id="petImages"
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept={ACCEPTED_IMAGE_TYPES}
+              onChange={e => handleFilesSelected(e.target.files)}
+              disabled={remainingSlots === 0}
+            />
+            <div className={styles.imageHelper}>
+              {remainingSlots} of {MAX_IMAGES} slots remaining. First photo is the primary listing
+              image — drag a photo to reorder or use &ldquo;Make primary&rdquo; to promote one.
             </div>
+            {imageError && <div className="error">{imageError}</div>}
 
-            <div className={styles.formGroup({ fullWidth: true })}>
-              <label htmlFor="petImages">Add Pet Photos</label>
-              <input
-                id="petImages"
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept={ACCEPTED_IMAGE_TYPES}
-                onChange={e => handleFilesSelected(e.target.files)}
-                disabled={remainingSlots === 0}
-              />
-              <div className={styles.imageHelper}>
-                {remainingSlots} of {MAX_IMAGES} slots remaining. First photo is the primary listing
-                image — drag a photo to reorder or use &ldquo;Make primary&rdquo; to promote one.
-              </div>
-              {imageError && <div className="error">{imageError}</div>}
-
-              {images.length > 0 && (
-                <ul className={styles.imageList} aria-label="Attached pet photos">
-                  {images.map((img, index) => {
-                    const isPrimary = index === 0;
-                    // ADS-1343: same http(s)-only / same-origin guard as PetCard —
-                    // a stored image URL is untrusted until it clears this check.
-                    const previewSrc = resolveFileUrl(img.thumbnailUrl ?? img.url);
-                    return (
-                      <li
-                        key={img.localId}
-                        className={styles.imageItem}
-                        draggable={img.status === 'uploaded'}
-                        onDragStart={() => setDragIndex(index)}
-                        onDragOver={e => {
-                          if (dragIndex === null) {
-                            return;
-                          }
-                          e.preventDefault();
-                        }}
-                        onDrop={e => {
-                          if (dragIndex === null) {
-                            return;
-                          }
-                          e.preventDefault();
-                          reorderImages(dragIndex, index);
-                          setDragIndex(null);
-                        }}
-                        onDragEnd={() => setDragIndex(null)}
-                      >
-                        <div className={styles.imageThumbWrapper}>
-                          {previewSrc ? (
-                            <img
-                              className={styles.imageThumb}
-                              src={previewSrc}
-                              alt={img.filename}
-                            />
-                          ) : (
-                            <div className={styles.imageThumbPlaceholder} aria-hidden="true" />
-                          )}
-                          {isPrimary && <span className={styles.primaryBadge}>Primary</span>}
-                        </div>
-                        <div className={styles.imageMeta}>
-                          <span className={styles.imageFilename} title={img.filename}>
-                            {img.filename}
+            {images.length > 0 && (
+              <ul className={styles.imageList} aria-label="Attached pet photos">
+                {images.map((img, index) => {
+                  const isPrimary = index === 0;
+                  // ADS-1343: same http(s)-only / same-origin guard as PetCard —
+                  // a stored image URL is untrusted until it clears this check.
+                  const previewSrc = resolveFileUrl(img.thumbnailUrl ?? img.url);
+                  return (
+                    <li
+                      key={img.localId}
+                      className={styles.imageItem}
+                      draggable={img.status === 'uploaded'}
+                      onDragStart={() => setDragIndex(index)}
+                      onDragOver={e => {
+                        if (dragIndex === null) {
+                          return;
+                        }
+                        e.preventDefault();
+                      }}
+                      onDrop={e => {
+                        if (dragIndex === null) {
+                          return;
+                        }
+                        e.preventDefault();
+                        reorderImages(dragIndex, index);
+                        setDragIndex(null);
+                      }}
+                      onDragEnd={() => setDragIndex(null)}
+                    >
+                      <div className={styles.imageThumbWrapper}>
+                        {previewSrc ? (
+                          <img className={styles.imageThumb} src={previewSrc} alt={img.filename} />
+                        ) : (
+                          <div className={styles.imageThumbPlaceholder} aria-hidden="true" />
+                        )}
+                        {isPrimary && <span className={styles.primaryBadge}>Primary</span>}
+                      </div>
+                      <div className={styles.imageMeta}>
+                        <span className={styles.imageFilename} title={img.filename}>
+                          {img.filename}
+                        </span>
+                        {img.status === 'uploading' && (
+                          <span className={styles.imageStatus}>Uploading...</span>
+                        )}
+                        {img.status === 'error' && (
+                          <span className={styles.imageStatusError}>
+                            {img.errorMessage ?? 'Upload failed'}
                           </span>
-                          {img.status === 'uploading' && (
-                            <span className={styles.imageStatus}>Uploading...</span>
-                          )}
-                          {img.status === 'error' && (
-                            <span className={styles.imageStatusError}>
-                              {img.errorMessage ?? 'Upload failed'}
-                            </span>
-                          )}
-                        </div>
-                        <div className={styles.imageActions}>
-                          <button
-                            type="button"
-                            onClick={() => moveToPrimary(img.localId)}
-                            disabled={isPrimary || img.status !== 'uploaded'}
-                            aria-label={`Make primary: ${img.filename}`}
-                          >
-                            Make primary
-                          </button>
-                          {/* Keyboard-accessible reorder controls — the drag handlers
+                        )}
+                      </div>
+                      <div className={styles.imageActions}>
+                        <button
+                          type="button"
+                          onClick={() => moveToPrimary(img.localId)}
+                          disabled={isPrimary || img.status !== 'uploaded'}
+                          aria-label={`Make primary: ${img.filename}`}
+                        >
+                          Make primary
+                        </button>
+                        {/* Keyboard-accessible reorder controls — the drag handlers
                               above are mouse-only, so AT users need explicit buttons. */}
-                          <button
-                            type="button"
-                            onClick={() => reorderImages(index, index - 1)}
-                            disabled={index === 0 || img.status !== 'uploaded'}
-                            aria-label={`Move up: ${img.filename}`}
-                          >
-                            Move up
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => reorderImages(index, index + 1)}
-                            disabled={index === images.length - 1 || img.status !== 'uploaded'}
-                            aria-label={`Move down: ${img.filename}`}
-                          >
-                            Move down
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => removeImage(img.localId)}
-                            aria-label={`Remove image: ${img.filename}`}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-
-            <div className={styles.formGroup()}>
-              <label htmlFor="energyLevel">Energy Level</label>
-              <select
-                id="energyLevel"
-                value={formData.energyLevel}
-                onChange={e => handleInputChange('energyLevel', e.target.value)}
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="very_high">Very High</option>
-              </select>
-            </div>
-
-            <div className={styles.formGroup()}>
-              <div className={styles.checkboxGroup}>
-                <input
-                  type="checkbox"
-                  id="specialNeeds"
-                  checked={formData.specialNeeds}
-                  onChange={e => handleInputChange('specialNeeds', e.target.checked)}
-                />
-                <label htmlFor="specialNeeds">Special Needs</label>
-              </div>
-            </div>
-
-            <div className={styles.formGroup()}>
-              <div className={styles.checkboxGroup}>
-                <input
-                  type="checkbox"
-                  id="houseTrained"
-                  checked={formData.houseTrained}
-                  onChange={e => handleInputChange('houseTrained', e.target.checked)}
-                />
-                <label htmlFor="houseTrained">House Trained</label>
-              </div>
-            </div>
-
-            <div className={styles.formGroup()}>
-              <label htmlFor="goodWithChildren">Good with Children</label>
-              <select
-                id="goodWithChildren"
-                value={
-                  formData.goodWithChildren === null || formData.goodWithChildren === undefined
-                    ? ''
-                    : formData.goodWithChildren.toString()
-                }
-                onChange={e =>
-                  handleInputChange(
-                    'goodWithChildren',
-                    e.target.value === '' ? undefined : e.target.value === 'true'
-                  )
-                }
-              >
-                <option value="">Unknown</option>
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
-            </div>
-
-            <div className={styles.formGroup()}>
-              <label htmlFor="goodWithDogs">Good with Dogs</label>
-              <select
-                id="goodWithDogs"
-                value={
-                  formData.goodWithDogs === null || formData.goodWithDogs === undefined
-                    ? ''
-                    : formData.goodWithDogs.toString()
-                }
-                onChange={e =>
-                  handleInputChange(
-                    'goodWithDogs',
-                    e.target.value === '' ? undefined : e.target.value === 'true'
-                  )
-                }
-              >
-                <option value="">Unknown</option>
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
-            </div>
-
-            <div className={styles.formGroup()}>
-              <label htmlFor="goodWithCats">Good with Cats</label>
-              <select
-                id="goodWithCats"
-                value={
-                  formData.goodWithCats === null || formData.goodWithCats === undefined
-                    ? ''
-                    : formData.goodWithCats.toString()
-                }
-                onChange={e =>
-                  handleInputChange(
-                    'goodWithCats',
-                    e.target.value === '' ? undefined : e.target.value === 'true'
-                  )
-                }
-              >
-                <option value="">Unknown</option>
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
-            </div>
+                        <button
+                          type="button"
+                          onClick={() => reorderImages(index, index - 1)}
+                          disabled={index === 0 || img.status !== 'uploaded'}
+                          aria-label={`Move up: ${img.filename}`}
+                        >
+                          Move up
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => reorderImages(index, index + 1)}
+                          disabled={index === images.length - 1 || img.status !== 'uploaded'}
+                          aria-label={`Move down: ${img.filename}`}
+                        >
+                          Move down
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeImage(img.localId)}
+                          aria-label={`Remove image: ${img.filename}`}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
 
-          {errors.submit && <div className={styles.submitError}>{errors.submit}</div>}
-
-          <div className={styles.modalActions}>
-            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={isSubmitting || !formData.name.trim()}
+          <div className={styles.formGroup()}>
+            <label htmlFor="energyLevel">Energy Level</label>
+            <select
+              id="energyLevel"
+              value={formData.energyLevel}
+              onChange={e => handleInputChange('energyLevel', e.target.value)}
             >
-              {isSubmitting ? 'Saving...' : pet ? 'Update Pet' : 'Add Pet'}
-            </Button>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="very_high">Very High</option>
+            </select>
           </div>
-        </form>
-      </Card>
-    </div>
+
+          <div className={styles.formGroup()}>
+            <div className={styles.checkboxGroup}>
+              <input
+                type="checkbox"
+                id="specialNeeds"
+                checked={formData.specialNeeds}
+                onChange={e => handleInputChange('specialNeeds', e.target.checked)}
+              />
+              <label htmlFor="specialNeeds">Special Needs</label>
+            </div>
+          </div>
+
+          <div className={styles.formGroup()}>
+            <div className={styles.checkboxGroup}>
+              <input
+                type="checkbox"
+                id="houseTrained"
+                checked={formData.houseTrained}
+                onChange={e => handleInputChange('houseTrained', e.target.checked)}
+              />
+              <label htmlFor="houseTrained">House Trained</label>
+            </div>
+          </div>
+
+          <div className={styles.formGroup()}>
+            <label htmlFor="goodWithChildren">Good with Children</label>
+            <select
+              id="goodWithChildren"
+              value={
+                formData.goodWithChildren === null || formData.goodWithChildren === undefined
+                  ? ''
+                  : formData.goodWithChildren.toString()
+              }
+              onChange={e =>
+                handleInputChange(
+                  'goodWithChildren',
+                  e.target.value === '' ? undefined : e.target.value === 'true'
+                )
+              }
+            >
+              <option value="">Unknown</option>
+              <option value="true">Yes</option>
+              <option value="false">No</option>
+            </select>
+          </div>
+
+          <div className={styles.formGroup()}>
+            <label htmlFor="goodWithDogs">Good with Dogs</label>
+            <select
+              id="goodWithDogs"
+              value={
+                formData.goodWithDogs === null || formData.goodWithDogs === undefined
+                  ? ''
+                  : formData.goodWithDogs.toString()
+              }
+              onChange={e =>
+                handleInputChange(
+                  'goodWithDogs',
+                  e.target.value === '' ? undefined : e.target.value === 'true'
+                )
+              }
+            >
+              <option value="">Unknown</option>
+              <option value="true">Yes</option>
+              <option value="false">No</option>
+            </select>
+          </div>
+
+          <div className={styles.formGroup()}>
+            <label htmlFor="goodWithCats">Good with Cats</label>
+            <select
+              id="goodWithCats"
+              value={
+                formData.goodWithCats === null || formData.goodWithCats === undefined
+                  ? ''
+                  : formData.goodWithCats.toString()
+              }
+              onChange={e =>
+                handleInputChange(
+                  'goodWithCats',
+                  e.target.value === '' ? undefined : e.target.value === 'true'
+                )
+              }
+            >
+              <option value="">Unknown</option>
+              <option value="true">Yes</option>
+              <option value="false">No</option>
+            </select>
+          </div>
+        </div>
+
+        {errors.submit && <div className={styles.submitError}>{errors.submit}</div>}
+
+        <div className={styles.modalActions}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="primary" disabled={isSubmitting || !formData.name.trim()}>
+            {isSubmitting ? 'Saving...' : pet ? 'Update Pet' : 'Add Pet'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 };
 

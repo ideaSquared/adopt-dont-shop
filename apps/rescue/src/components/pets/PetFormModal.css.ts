@@ -1,35 +1,6 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
-export const modalOverlay = style({
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  background: 'rgba(0, 0, 0, 0.5)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 1000,
-  padding: '1rem',
-});
-
-export const modalContent = style({
-  width: '100%',
-  maxWidth: '800px',
-  maxHeight: '90vh',
-  overflowY: 'auto',
-  padding: '2rem',
-});
-
-globalStyle(`${modalContent} h2`, {
-  margin: '0 0 1.5rem 0',
-  color: '#111827',
-  fontSize: '1.5rem',
-  fontWeight: '600',
-});
-
 // ADS-646: small banner above the form explaining that only the name is
 // required up-front. Keeps the form approachable for new staff without
 // hiding the optional fields.
