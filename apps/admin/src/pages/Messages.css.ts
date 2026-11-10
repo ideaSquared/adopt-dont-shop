@@ -67,28 +67,6 @@ export const actionButtons = style({
   gap: '0.5rem',
 });
 
-export const actionButton = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '32px',
-  height: '32px',
-  border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '6px',
-  background: vars.background.surface,
-  color: vars.text.tertiary,
-  cursor: 'pointer',
-  transition: 'all 0.2s ease',
-  ':hover': {
-    background: vars.background.body,
-    color: vars.text.primary,
-    borderColor: vars.border.color.muted,
-  },
-  ':active': {
-    transform: 'scale(0.95)',
-  },
-});
-
 export const statusDotActive = style({
   width: '8px',
   height: '8px',
@@ -142,10 +120,4 @@ export const participantsList = style({
 export const participantMore = style({
   fontSize: '0.75rem',
   color: '#9ca3af',
-});
-
-export const errorBanner = style({
-  padding: '2rem',
-  textAlign: 'center',
-  color: '#ef4444',
 });

@@ -1,16 +1,43 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import clsx from 'clsx';
-import { Archive, Eye, Menu, Pencil, Plus, Search, Trash2 } from 'lucide-react';
-import { ConfirmDialog, useConfirm, toast } from '@adopt-dont-shop/lib.components';
+import React, { useState } from 'react';
+import { Archive, Eye, EyeOff, Menu, Pencil, Plus, Trash2 } from 'lucide-react';
 import {
-  cmsService,
-  type Content,
-  type ContentType,
-  type ContentStatus,
-  type NavigationMenu,
-  type CreateContentInput,
-  type UpdateContentInput,
-  type CreateMenuInput,
+  Alert,
+  Badge,
+  Button,
+  ConfirmDialog,
+  DataTable,
+  type DataTableColumn,
+  ErrorState,
+  FormField,
+  FormRow,
+  FormSection,
+  Input,
+  Modal,
+  PageHeader,
+  SearchToolbar,
+  SelectInput,
+  Stack,
+  Tabs,
+  TextArea,
+  toast,
+  useConfirm,
+} from '@adopt-dont-shop/lib.components';
+import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
+import {
+  useCmsContent,
+  useCmsMenus,
+  useContentMutations,
+  useGenerateSlug,
+  useMenuMutations,
+} from '../hooks/useCms';
+import type {
+  Content,
+  ContentType,
+  ContentStatus,
+  NavigationMenu,
+  CreateContentInput,
+  UpdateContentInput,
+  CreateMenuInput,
 } from '../services/cmsService';
 import * as styles from './ContentManagement.css';
 
@@ -21,6 +48,31 @@ const CONTENT_TYPE_LABELS: Record<ContentType, string> = {
   blog_post: 'Blog Post',
   help_article: 'Help Article',
 };
+
+const CONTENT_TYPES: ReadonlyArray<ContentType> = ['page', 'blog_post', 'help_article'];
+const CONTENT_STATUSES: ReadonlyArray<ContentStatus> = [
+  'draft',
+  'published',
+  'scheduled',
+  'archived',
+];
+const MENU_LOCATIONS: ReadonlyArray<MenuFormState['location']> = ['header', 'footer', 'sidebar'];
+
+const CONTENT_TYPE_OPTIONS = CONTENT_TYPES.map(value => ({
+  value,
+  label: CONTENT_TYPE_LABELS[value],
+}));
+
+const MENU_LOCATION_OPTIONS = [
+  { value: 'header', label: 'Header' },
+  { value: 'footer', label: 'Footer' },
+  { value: 'sidebar', label: 'Sidebar' },
+];
+
+const MENU_ACTIVE_OPTIONS = [
+  { value: 'true', label: 'Active' },
+  { value: 'false', label: 'Inactive' },
+];
 
 type ContentFormState = {
   title: string;
@@ -60,24 +112,26 @@ type MenuFormState = {
 
 const emptyMenuForm = (): MenuFormState => ({ name: '', location: 'header', isActive: true });
 
-const getStatusBadgeClass = (status: string): string => {
+type BadgeVariant = NonNullable<React.ComponentProps<typeof Badge>['variant']>;
+
+const getStatusVariant = (status: string): BadgeVariant => {
   if (status === 'published') {
-    return styles.statusBadgePublished;
+    return 'success';
   }
   if (status === 'draft') {
-    return styles.statusBadgeDraft;
+    return 'warning';
   }
   if (status === 'scheduled') {
-    return styles.statusBadgeScheduled;
+    return 'info';
   }
-  return styles.statusBadgeDefault;
+  return 'neutral';
 };
+
+const singleValue = (value: string | string[]): string =>
+  Array.isArray(value) ? (value[0] ?? '') : value;
 
 const ContentManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('content');
-  const [contentList, setContentList] = useState<Content[]>([]);
-  const [contentLoading, setContentLoading] = useState(false);
-  const [contentError, setContentError] = useState<string | null>(null);
   const [contentSearch, setContentSearch] = useState('');
   const [contentTypeFilter, setContentTypeFilter] = useState<ContentType | ''>('');
   const [statusFilter, setStatusFilter] = useState<ContentStatus | ''>('');
@@ -85,50 +139,37 @@ const ContentManagement: React.FC = () => {
   const [editingContent, setEditingContent] = useState<Content | null>(null);
   const [contentForm, setContentForm] = useState<ContentFormState>(emptyContentForm());
   const [formError, setFormError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [menus, setMenus] = useState<NavigationMenu[]>([]);
-  const [menusLoading, setMenusLoading] = useState(false);
   const [showMenuModal, setShowMenuModal] = useState(false);
   const [editingMenu, setEditingMenu] = useState<NavigationMenu | null>(null);
   const [menuForm, setMenuForm] = useState<MenuFormState>(emptyMenuForm());
   const { confirm, confirmProps } = useConfirm();
 
-  const fetchContent = useCallback(async () => {
-    setContentLoading(true);
-    setContentError(null);
-    try {
-      const result = await cmsService.listContent({
-        contentType: contentTypeFilter || undefined,
-        status: statusFilter || undefined,
-        search: contentSearch || undefined,
-      });
-      setContentList(result.content);
-    } catch {
-      setContentError('Failed to load content');
-    } finally {
-      setContentLoading(false);
-    }
-  }, [contentTypeFilter, statusFilter, contentSearch]);
+  const contentQuery = useCmsContent({
+    contentType: contentTypeFilter || undefined,
+    status: statusFilter || undefined,
+    search: contentSearch || undefined,
+  });
+  const menusQuery = useCmsMenus(activeTab === 'menus');
+  const contentMutations = useContentMutations();
+  const menuMutations = useMenuMutations();
+  const generateSlug = useGenerateSlug();
 
-  const fetchMenus = useCallback(async () => {
-    setMenusLoading(true);
-    try {
-      const result = await cmsService.listMenus();
-      setMenus(result);
-    } finally {
-      setMenusLoading(false);
-    }
-  }, []);
+  const contentList = contentQuery.data ?? [];
+  const menus = menusQuery.data ?? [];
+  const saving =
+    contentMutations.create.isPending ||
+    contentMutations.update.isPending ||
+    menuMutations.create.isPending ||
+    menuMutations.update.isPending;
 
-  useEffect(() => {
-    fetchContent();
-  }, [fetchContent]);
-
-  useEffect(() => {
-    if (activeTab === 'menus') {
-      fetchMenus();
+  const handleFilterChange = (name: string, value: string | boolean) => {
+    const next = String(value);
+    if (name === 'contentType') {
+      setContentTypeFilter(CONTENT_TYPES.find(type => type === next) ?? '');
+      return;
     }
-  }, [activeTab, fetchMenus]);
+    setStatusFilter(CONTENT_STATUSES.find(status => status === next) ?? '');
+  };
 
   const openCreateContent = () => {
     setEditingContent(null);
@@ -162,7 +203,7 @@ const ContentManagement: React.FC = () => {
       return;
     }
     try {
-      const slug = await cmsService.generateSlug(contentForm.title);
+      const slug = await generateSlug.mutateAsync(contentForm.title);
       setContentForm(f => ({ ...f, slug }));
     } catch {
       // ignore
@@ -174,7 +215,6 @@ const ContentManagement: React.FC = () => {
       setFormError('Title and content are required');
       return;
     }
-    setSaving(true);
     setFormError(null);
     try {
       const keywords = contentForm.metaKeywords
@@ -197,7 +237,10 @@ const ContentManagement: React.FC = () => {
           scheduledUnpublishAt: contentForm.scheduledUnpublishAt || undefined,
           changeNote: contentForm.changeNote || undefined,
         };
-        await cmsService.updateContent(editingContent.contentId, input);
+        await contentMutations.update.mutateAsync({
+          contentId: editingContent.contentId,
+          input,
+        });
       } else {
         const input: CreateContentInput = {
           title: contentForm.title,
@@ -212,23 +255,19 @@ const ContentManagement: React.FC = () => {
           scheduledPublishAt: contentForm.scheduledPublishAt || undefined,
           scheduledUnpublishAt: contentForm.scheduledUnpublishAt || undefined,
         };
-        await cmsService.createContent(input);
+        await contentMutations.create.mutateAsync(input);
       }
       toast.success(editingContent ? 'Content updated' : 'Content created');
       setShowContentModal(false);
-      fetchContent();
     } catch (err) {
       setFormError((err as Error).message ?? 'Failed to save content');
-    } finally {
-      setSaving(false);
     }
   };
 
   const handlePublish = async (item: Content) => {
     try {
-      await cmsService.publishContent(item.contentId);
+      await contentMutations.publish.mutateAsync(item.contentId);
       toast.success('Content published');
-      fetchContent();
     } catch {
       toast.error('Failed to publish content');
     }
@@ -236,9 +275,8 @@ const ContentManagement: React.FC = () => {
 
   const handleUnpublish = async (item: Content) => {
     try {
-      await cmsService.unpublishContent(item.contentId);
+      await contentMutations.unpublish.mutateAsync(item.contentId);
       toast.success('Content unpublished');
-      fetchContent();
     } catch {
       toast.error('Failed to unpublish content');
     }
@@ -256,9 +294,8 @@ const ContentManagement: React.FC = () => {
       return;
     }
     try {
-      await cmsService.archiveContent(item.contentId);
+      await contentMutations.archive.mutateAsync(item.contentId);
       toast.success('Content archived');
-      fetchContent();
     } catch {
       toast.error('Failed to archive content');
     }
@@ -276,9 +313,8 @@ const ContentManagement: React.FC = () => {
       return;
     }
     try {
-      await cmsService.deleteContent(item.contentId);
+      await contentMutations.remove.mutateAsync(item.contentId);
       toast.success('Content deleted');
-      fetchContent();
     } catch {
       toast.error('Failed to delete content');
     }
@@ -300,10 +336,9 @@ const ContentManagement: React.FC = () => {
     if (!menuForm.name.trim()) {
       return;
     }
-    setSaving(true);
     try {
       if (editingMenu) {
-        await cmsService.updateMenu(editingMenu.menuId, menuForm);
+        await menuMutations.update.mutateAsync({ menuId: editingMenu.menuId, input: menuForm });
       } else {
         const input: CreateMenuInput = {
           name: menuForm.name,
@@ -311,15 +346,12 @@ const ContentManagement: React.FC = () => {
           isActive: menuForm.isActive,
           items: [],
         };
-        await cmsService.createMenu(input);
+        await menuMutations.create.mutateAsync(input);
       }
       toast.success(editingMenu ? 'Menu updated' : 'Menu created');
       setShowMenuModal(false);
-      fetchMenus();
     } catch {
       toast.error('Failed to save menu');
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -335,528 +367,487 @@ const ContentManagement: React.FC = () => {
       return;
     }
     try {
-      await cmsService.deleteMenu(menu.menuId);
+      await menuMutations.remove.mutateAsync(menu.menuId);
       toast.success('Menu deleted');
-      fetchMenus();
     } catch {
       toast.error('Failed to delete menu');
     }
   };
 
+  const contentColumns: DataTableColumn[] = [
+    {
+      key: 'title',
+      label: 'Title',
+      sortable: false,
+      render: (_value, row) => <strong>{String(row.title)}</strong>,
+    },
+    {
+      key: 'slug',
+      label: 'Slug',
+      sortable: false,
+      render: (_value, row) => <span className={styles.slugCell}>/{String(row.slug)}</span>,
+    },
+    {
+      key: 'contentType',
+      label: 'Type',
+      sortable: false,
+      render: (_value, row) => {
+        const type = CONTENT_TYPES.find(t => t === row.contentType);
+        return type ? CONTENT_TYPE_LABELS[type] : String(row.contentType);
+      },
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: false,
+      render: (_value, row) => (
+        <Badge variant={getStatusVariant(String(row.status))}>{String(row.status)}</Badge>
+      ),
+    },
+    {
+      key: 'currentVersion',
+      label: 'Version',
+      sortable: false,
+      render: (_value, row) => `v${String(row.currentVersion)}`,
+    },
+    {
+      key: 'updatedAt',
+      label: 'Updated',
+      sortable: false,
+      render: (_value, row) => formatDisplayDate(String(row.updatedAt)),
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      sortable: false,
+      render: (_value, row) => {
+        const item = contentList.find(c => c.contentId === row.contentId);
+        if (!item) {
+          return null;
+        }
+        return (
+          <div className={styles.actionGroup}>
+            <Button
+              variant='ghost'
+              size='sm'
+              title='Edit'
+              aria-label='Edit'
+              onClick={() => openEditContent(item)}
+            >
+              <Pencil size='1em' aria-hidden />
+            </Button>
+            {item.status !== 'published' && (
+              <Button
+                variant='ghost'
+                size='sm'
+                title='Publish'
+                aria-label='Publish'
+                onClick={() => handlePublish(item)}
+              >
+                <Eye size='1em' aria-hidden />
+              </Button>
+            )}
+            {item.status === 'published' && (
+              <Button
+                variant='ghost'
+                size='sm'
+                title='Unpublish'
+                aria-label='Unpublish'
+                onClick={() => handleUnpublish(item)}
+              >
+                <EyeOff size='1em' aria-hidden />
+              </Button>
+            )}
+            {item.status !== 'archived' && (
+              <Button
+                variant='ghost'
+                size='sm'
+                title='Archive'
+                aria-label='Archive'
+                onClick={() => handleArchive(item)}
+              >
+                <Archive size='1em' aria-hidden />
+              </Button>
+            )}
+            <Button
+              variant='ghost'
+              size='sm'
+              title='Delete'
+              aria-label='Delete'
+              onClick={() => handleDeleteContent(item)}
+            >
+              <Trash2 size='1em' aria-hidden />
+            </Button>
+          </div>
+        );
+      },
+    },
+  ];
+
+  const menuColumns: DataTableColumn[] = [
+    {
+      key: 'name',
+      label: 'Name',
+      sortable: false,
+      render: (_value, row) => <strong>{String(row.name)}</strong>,
+    },
+    {
+      key: 'location',
+      label: 'Location',
+      sortable: false,
+      render: (_value, row) => <span className={styles.capitalize}>{String(row.location)}</span>,
+    },
+    {
+      key: 'items',
+      label: 'Items',
+      sortable: false,
+      render: (_value, row) => `${Array.isArray(row.items) ? row.items.length : 0} items`,
+    },
+    {
+      key: 'isActive',
+      label: 'Active',
+      sortable: false,
+      render: (_value, row) => (
+        <Badge variant={row.isActive ? 'success' : 'neutral'}>
+          {row.isActive ? 'Active' : 'Inactive'}
+        </Badge>
+      ),
+    },
+    {
+      key: 'updatedAt',
+      label: 'Updated',
+      sortable: false,
+      render: (_value, row) => formatDisplayDate(String(row.updatedAt)),
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      sortable: false,
+      render: (_value, row) => {
+        const menu = menus.find(m => m.menuId === row.menuId);
+        if (!menu) {
+          return null;
+        }
+        return (
+          <div className={styles.actionGroup}>
+            <Button
+              variant='ghost'
+              size='sm'
+              title='Edit'
+              aria-label='Edit'
+              onClick={() => openEditMenu(menu)}
+            >
+              <Pencil size='1em' aria-hidden />
+            </Button>
+            <Button
+              variant='ghost'
+              size='sm'
+              title='Delete'
+              aria-label='Delete'
+              onClick={() => handleDeleteMenu(menu)}
+            >
+              <Trash2 size='1em' aria-hidden />
+            </Button>
+          </div>
+        );
+      },
+    },
+  ];
+
+  const contentPanel = (
+    <Stack spacing='md'>
+      <SearchToolbar
+        searchValue={contentSearch}
+        onSearchChange={setContentSearch}
+        searchPlaceholder='Search by title or slug…'
+        filterConfig={[
+          {
+            name: 'contentType',
+            label: 'Type',
+            type: 'select',
+            options: [{ value: 'all', label: 'All types' }, ...CONTENT_TYPE_OPTIONS],
+          },
+          {
+            name: 'status',
+            label: 'Status',
+            type: 'select',
+            options: [
+              { value: 'all', label: 'All statuses' },
+              { value: 'draft', label: 'Draft' },
+              { value: 'published', label: 'Published' },
+              { value: 'scheduled', label: 'Scheduled' },
+              { value: 'archived', label: 'Archived' },
+            ],
+          },
+        ]}
+        filters={{ contentType: contentTypeFilter || 'all', status: statusFilter || 'all' }}
+        onFilterChange={handleFilterChange}
+      />
+
+      {contentQuery.isError && <ErrorState size='sm' title='Failed to load content' />}
+
+      <DataTable
+        frameless
+        surface
+        columns={contentColumns}
+        rows={contentList.map(item => ({ ...item }))}
+        loading={contentQuery.isLoading}
+        emptyMessage='No content found. Create your first page or article.'
+        getRowId={row => String(row.contentId)}
+      />
+    </Stack>
+  );
+
+  const menusPanel = (
+    <DataTable
+      frameless
+      surface
+      columns={menuColumns}
+      rows={menus.map(menu => ({ ...menu }))}
+      loading={menusQuery.isLoading}
+      emptyMessage='No navigation menus yet.'
+      getRowId={row => String(row.menuId)}
+    />
+  );
+
   return (
-    <div className={styles.pageContainer}>
-      <div className={styles.pageHeader}>
-        <div className={styles.headerLeft}>
-          <h1>Content Management</h1>
-          <p>Manage pages, articles, and navigation menus</p>
-        </div>
-        <div className={styles.headerActions}>
-          {activeTab === 'content' && (
-            <button className={styles.primaryButton} onClick={openCreateContent}>
-              <Plus size={16} />
+    <Stack spacing='lg'>
+      <PageHeader
+        title='Content Management'
+        description='Manage pages, articles, and navigation menus'
+        actions={
+          activeTab === 'content' ? (
+            <Button variant='primary' onClick={openCreateContent}>
+              <Plus size='1em' />
               New Content
-            </button>
-          )}
-          {activeTab === 'menus' && (
-            <button className={styles.primaryButton} onClick={openCreateMenu}>
-              <Plus size={16} />
+            </Button>
+          ) : (
+            <Button variant='primary' onClick={openCreateMenu}>
+              <Plus size='1em' />
               New Menu
-            </button>
-          )}
-        </div>
-      </div>
+            </Button>
+          )
+        }
+      />
 
-      <div className={styles.tabBar}>
-        <button
-          className={clsx(styles.tab, activeTab === 'content' && styles.tabActive)}
-          onClick={() => setActiveTab('content')}
-        >
-          Content
-        </button>
-        <button
-          className={clsx(styles.tab, activeTab === 'menus' && styles.tabActive)}
-          onClick={() => setActiveTab('menus')}
-        >
-          <Menu size={14} />
-          Navigation Menus
-        </button>
-      </div>
+      <Tabs
+        aria-label='Content sections'
+        value={activeTab}
+        onChange={id => setActiveTab(id === 'menus' ? 'menus' : 'content')}
+        tabs={[
+          { id: 'content', label: 'Content', content: contentPanel },
+          {
+            id: 'menus',
+            label: (
+              <>
+                <Menu size='1em' aria-hidden />
+                Navigation Menus
+              </>
+            ),
+            content: menusPanel,
+          },
+        ]}
+      />
 
-      {activeTab === 'content' && (
-        <div className={styles.card}>
-          <div className={styles.filterBar}>
-            <div className={styles.searchWrapper}>
-              <Search size={16} />
-              <input
-                className={styles.searchInput}
-                placeholder='Search by title or slug…'
-                value={contentSearch}
-                onChange={e => setContentSearch(e.target.value)}
-              />
-            </div>
-            <div className={styles.filterGroup}>
-              <label className={styles.filterLabel} htmlFor='cm-type-filter'>
-                Type
-              </label>
-              <select
-                id='cm-type-filter'
-                className={styles.select}
-                value={contentTypeFilter}
-                onChange={e => setContentTypeFilter(e.target.value as ContentType | '')}
-              >
-                <option value=''>All types</option>
-                <option value='page'>Page</option>
-                <option value='blog_post'>Blog Post</option>
-                <option value='help_article'>Help Article</option>
-              </select>
-            </div>
-            <div className={styles.filterGroup}>
-              <label className={styles.filterLabel} htmlFor='cm-status-filter'>
-                Status
-              </label>
-              <select
-                id='cm-status-filter'
-                className={styles.select}
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value as ContentStatus | '')}
-              >
-                <option value=''>All statuses</option>
-                <option value='draft'>Draft</option>
-                <option value='published'>Published</option>
-                <option value='scheduled'>Scheduled</option>
-                <option value='archived'>Archived</option>
-              </select>
-            </div>
-          </div>
-
-          {contentError && <p className={styles.errorMessage}>{contentError}</p>}
-
-          {contentLoading ? (
-            <div className={styles.emptyState}>Loading content…</div>
-          ) : contentList.length === 0 ? (
-            <div className={styles.emptyState}>
-              No content found. Create your first page or article.
-            </div>
-          ) : (
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th className={styles.th}>Title</th>
-                  <th className={styles.th}>Slug</th>
-                  <th className={styles.th}>Type</th>
-                  <th className={styles.th}>Status</th>
-                  <th className={styles.th}>Version</th>
-                  <th className={styles.th}>Updated</th>
-                  <th className={styles.th}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {contentList.map(item => (
-                  <tr key={item.contentId}>
-                    <td className={styles.td}>
-                      <strong>{item.title}</strong>
-                    </td>
-                    <td className={clsx(styles.td, styles.slugCell)}>/{item.slug}</td>
-                    <td className={styles.td}>{CONTENT_TYPE_LABELS[item.contentType]}</td>
-                    <td className={styles.td}>
-                      <span className={getStatusBadgeClass(item.status)}>{item.status}</span>
-                    </td>
-                    <td className={styles.td}>v{item.currentVersion}</td>
-                    <td className={styles.td}>{new Date(item.updatedAt).toLocaleDateString()}</td>
-                    <td className={styles.td}>
-                      <div className={styles.actionGroup}>
-                        <button
-                          className={styles.iconButtonPrimary}
-                          title='Edit'
-                          onClick={() => openEditContent(item)}
-                        >
-                          <Pencil size={14} />
-                        </button>
-                        {item.status !== 'published' && (
-                          <button
-                            className={styles.iconButtonPrimary}
-                            title='Publish'
-                            onClick={() => handlePublish(item)}
-                          >
-                            <Eye size={14} />
-                          </button>
-                        )}
-                        {item.status === 'published' && (
-                          <button
-                            className={styles.iconButton}
-                            title='Unpublish'
-                            onClick={() => handleUnpublish(item)}
-                          >
-                            <Eye size={14} />
-                          </button>
-                        )}
-                        {item.status !== 'archived' && (
-                          <button
-                            className={styles.iconButton}
-                            title='Archive'
-                            onClick={() => handleArchive(item)}
-                          >
-                            <Archive size={14} />
-                          </button>
-                        )}
-                        <button
-                          className={styles.iconButtonDanger}
-                          title='Delete'
-                          onClick={() => handleDeleteContent(item)}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
-
-      {activeTab === 'menus' && (
-        <div className={styles.card}>
-          {menusLoading ? (
-            <div className={styles.emptyState}>Loading menus…</div>
-          ) : menus.length === 0 ? (
-            <div className={styles.emptyState}>No navigation menus yet.</div>
-          ) : (
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th className={styles.th}>Name</th>
-                  <th className={styles.th}>Location</th>
-                  <th className={styles.th}>Items</th>
-                  <th className={styles.th}>Active</th>
-                  <th className={styles.th}>Updated</th>
-                  <th className={styles.th}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {menus.map(menu => (
-                  <tr key={menu.menuId}>
-                    <td className={styles.td}>
-                      <strong>{menu.name}</strong>
-                    </td>
-                    <td className={clsx(styles.td, styles.capitalize)}>{menu.location}</td>
-                    <td className={styles.td}>{menu.items.length} items</td>
-                    <td className={styles.td}>
-                      <span
-                        className={getStatusBadgeClass(menu.isActive ? 'published' : 'archived')}
-                      >
-                        {menu.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className={styles.td}>{new Date(menu.updatedAt).toLocaleDateString()}</td>
-                    <td className={styles.td}>
-                      <div className={styles.actionGroup}>
-                        <button
-                          className={styles.iconButtonPrimary}
-                          title='Edit'
-                          onClick={() => openEditMenu(menu)}
-                        >
-                          <Pencil size={14} />
-                        </button>
-                        <button
-                          className={styles.iconButtonDanger}
-                          title='Delete'
-                          onClick={() => handleDeleteMenu(menu)}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
-
-      {showContentModal && (
-        <div
-          className={styles.overlay}
-          onClick={e => e.target === e.currentTarget && setShowContentModal(false)}
-          onKeyDown={e => e.key === 'Escape' && setShowContentModal(false)}
-          role='presentation'
-        >
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h2>{editingContent ? 'Edit Content' : 'New Content'}</h2>
-              <button className={styles.closeButton} onClick={() => setShowContentModal(false)}>
-                ×
-              </button>
-            </div>
-            <div className={styles.formGrid}>
-              <div className={styles.formGroupFull}>
-                <label className={styles.formLabel} htmlFor='cm-title'>
-                  Title *
-                </label>
-                <input
-                  id='cm-title'
-                  className={styles.formInput}
-                  value={contentForm.title}
-                  onChange={e => setContentForm(f => ({ ...f, title: e.target.value }))}
-                  onBlur={() => !editingContent && !contentForm.slug && handleSlugGenerate()}
-                  placeholder='Enter content title'
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel} htmlFor='cm-slug'>
-                  Slug
-                </label>
-                <div className={styles.slugInputRow}>
-                  <input
-                    id='cm-slug'
-                    className={clsx(styles.formInput, styles.slugInputFlex)}
-                    value={contentForm.slug}
-                    onChange={e => setContentForm(f => ({ ...f, slug: e.target.value }))}
-                    placeholder='auto-generated'
-                    disabled={!!editingContent}
-                  />
-                  {!editingContent && (
-                    <button
-                      className={styles.secondaryButton}
-                      type='button'
-                      onClick={handleSlugGenerate}
-                    >
-                      Generate
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel} htmlFor='cm-content-type'>
-                  Content Type
-                </label>
-                <select
-                  id='cm-content-type'
-                  className={styles.formSelect}
-                  value={contentForm.contentType}
-                  onChange={e =>
-                    setContentForm(f => ({ ...f, contentType: e.target.value as ContentType }))
-                  }
+      <Modal
+        isOpen={showContentModal}
+        onClose={() => setShowContentModal(false)}
+        title={editingContent ? 'Edit Content' : 'New Content'}
+        size='lg'
+        footer={
+          <>
+            <Button variant='secondary' onClick={() => setShowContentModal(false)}>
+              Cancel
+            </Button>
+            <Button variant='primary' onClick={handleSaveContent} disabled={saving}>
+              {saving ? 'Saving…' : editingContent ? 'Save Changes' : 'Create Content'}
+            </Button>
+          </>
+        }
+      >
+        <Stack spacing='md'>
+          <FormField label='Title' htmlFor='cm-title' required>
+            <Input
+              id='cm-title'
+              value={contentForm.title}
+              onChange={e => setContentForm(f => ({ ...f, title: e.target.value }))}
+              onBlur={() => !editingContent && !contentForm.slug && handleSlugGenerate()}
+              placeholder='Enter content title'
+            />
+          </FormField>
+          <FormRow columns='two'>
+            <FormField label='Slug' htmlFor='cm-slug'>
+              <div className={styles.slugInputRow}>
+                <Input
+                  id='cm-slug'
+                  value={contentForm.slug}
+                  onChange={e => setContentForm(f => ({ ...f, slug: e.target.value }))}
+                  placeholder='auto-generated'
                   disabled={!!editingContent}
-                >
-                  <option value='page'>Page</option>
-                  <option value='blog_post'>Blog Post</option>
-                  <option value='help_article'>Help Article</option>
-                </select>
-              </div>
-              <div className={styles.formGroupFull}>
-                <label className={styles.formLabel} htmlFor='cm-content'>
-                  Content (HTML) *
-                </label>
-                <textarea
-                  id='cm-content'
-                  className={styles.formTextarea}
-                  value={contentForm.content}
-                  onChange={e => setContentForm(f => ({ ...f, content: e.target.value }))}
-                  placeholder='Enter HTML content…'
                 />
+                {!editingContent && (
+                  <Button variant='secondary' onClick={handleSlugGenerate}>
+                    Generate
+                  </Button>
+                )}
               </div>
-              <div className={styles.formGroupFull}>
-                <label className={styles.formLabel} htmlFor='cm-excerpt'>
-                  Excerpt
-                </label>
-                <textarea
-                  id='cm-excerpt'
-                  className={clsx(styles.formTextarea, styles.excerptTextarea)}
-                  value={contentForm.excerpt}
-                  onChange={e => setContentForm(f => ({ ...f, excerpt: e.target.value }))}
-                  placeholder='Short summary for listings and SEO'
+            </FormField>
+            <SelectInput
+              label='Content Type'
+              value={contentForm.contentType}
+              onChange={value =>
+                setContentForm(f => ({
+                  ...f,
+                  contentType: CONTENT_TYPES.find(t => t === singleValue(value)) ?? f.contentType,
+                }))
+              }
+              options={CONTENT_TYPE_OPTIONS}
+              disabled={!!editingContent}
+              fullWidth
+            />
+          </FormRow>
+          <FormField label='Content (HTML)' htmlFor='cm-content' required>
+            <TextArea
+              id='cm-content'
+              value={contentForm.content}
+              onChange={e => setContentForm(f => ({ ...f, content: e.target.value }))}
+              placeholder='Enter HTML content…'
+              rows={8}
+            />
+          </FormField>
+          <FormField label='Excerpt' htmlFor='cm-excerpt'>
+            <TextArea
+              id='cm-excerpt'
+              value={contentForm.excerpt}
+              onChange={e => setContentForm(f => ({ ...f, excerpt: e.target.value }))}
+              placeholder='Short summary for listings and SEO'
+              rows={3}
+            />
+          </FormField>
+          <FormSection title='SEO Settings'>
+            <Stack spacing='md'>
+              <FormField label='Meta Title' htmlFor='cm-meta-title'>
+                <Input
+                  id='cm-meta-title'
+                  value={contentForm.metaTitle}
+                  onChange={e => setContentForm(f => ({ ...f, metaTitle: e.target.value }))}
+                  placeholder='SEO title (defaults to content title)'
                 />
-              </div>
-              <div className={styles.seoSection}>
-                <p className={styles.seoTitle}>SEO Settings</p>
-                <div className={styles.formGroupFull}>
-                  <label className={styles.formLabel} htmlFor='cm-meta-title'>
-                    Meta Title
-                  </label>
-                  <input
-                    id='cm-meta-title'
-                    className={styles.formInput}
-                    value={contentForm.metaTitle}
-                    onChange={e => setContentForm(f => ({ ...f, metaTitle: e.target.value }))}
-                    placeholder='SEO title (defaults to content title)'
-                  />
-                </div>
-                <div className={styles.formGroupFull}>
-                  <label className={styles.formLabel} htmlFor='cm-meta-desc'>
-                    Meta Description
-                  </label>
-                  <textarea
-                    id='cm-meta-desc'
-                    className={clsx(styles.formTextarea, styles.metaDescTextarea)}
-                    value={contentForm.metaDescription}
-                    onChange={e => setContentForm(f => ({ ...f, metaDescription: e.target.value }))}
-                    placeholder='SEO description'
-                  />
-                </div>
-                <div className={styles.formGroupFull}>
-                  <label className={styles.formLabel} htmlFor='cm-meta-kw'>
-                    Meta Keywords (comma-separated)
-                  </label>
-                  <input
-                    id='cm-meta-kw'
-                    className={styles.formInput}
-                    value={contentForm.metaKeywords}
-                    onChange={e => setContentForm(f => ({ ...f, metaKeywords: e.target.value }))}
-                    placeholder='keyword1, keyword2, keyword3'
-                  />
-                </div>
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel} htmlFor='cm-featured-image'>
-                  Featured Image URL
-                </label>
-                <input
-                  id='cm-featured-image'
-                  className={styles.formInput}
-                  value={contentForm.featuredImageUrl}
-                  onChange={e => setContentForm(f => ({ ...f, featuredImageUrl: e.target.value }))}
-                  placeholder='https://…'
+              </FormField>
+              <FormField label='Meta Description' htmlFor='cm-meta-desc'>
+                <TextArea
+                  id='cm-meta-desc'
+                  value={contentForm.metaDescription}
+                  onChange={e => setContentForm(f => ({ ...f, metaDescription: e.target.value }))}
+                  placeholder='SEO description'
+                  rows={2}
                 />
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel} htmlFor='cm-schedule'>
-                  Schedule Publish At
-                </label>
-                <input
-                  id='cm-schedule'
-                  className={styles.formInput}
-                  type='datetime-local'
-                  value={contentForm.scheduledPublishAt}
-                  onChange={e =>
-                    setContentForm(f => ({ ...f, scheduledPublishAt: e.target.value }))
-                  }
+              </FormField>
+              <FormField label='Meta Keywords (comma-separated)' htmlFor='cm-meta-kw'>
+                <Input
+                  id='cm-meta-kw'
+                  value={contentForm.metaKeywords}
+                  onChange={e => setContentForm(f => ({ ...f, metaKeywords: e.target.value }))}
+                  placeholder='keyword1, keyword2, keyword3'
                 />
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel} htmlFor='cm-schedule-unpublish'>
-                  Schedule Unpublish At
-                </label>
-                <input
-                  id='cm-schedule-unpublish'
-                  className={styles.formInput}
-                  type='datetime-local'
-                  value={contentForm.scheduledUnpublishAt}
-                  onChange={e =>
-                    setContentForm(f => ({ ...f, scheduledUnpublishAt: e.target.value }))
-                  }
+              </FormField>
+            </Stack>
+          </FormSection>
+          <FormRow columns='two'>
+            <FormField label='Featured Image URL' htmlFor='cm-featured-image'>
+              <Input
+                id='cm-featured-image'
+                value={contentForm.featuredImageUrl}
+                onChange={e => setContentForm(f => ({ ...f, featuredImageUrl: e.target.value }))}
+                placeholder='https://…'
+              />
+            </FormField>
+            <FormField label='Schedule Publish At' htmlFor='cm-schedule'>
+              <Input
+                id='cm-schedule'
+                type='datetime-local'
+                value={contentForm.scheduledPublishAt}
+                onChange={e => setContentForm(f => ({ ...f, scheduledPublishAt: e.target.value }))}
+              />
+            </FormField>
+            <FormField label='Schedule Unpublish At' htmlFor='cm-schedule-unpublish'>
+              <Input
+                id='cm-schedule-unpublish'
+                type='datetime-local'
+                value={contentForm.scheduledUnpublishAt}
+                onChange={e =>
+                  setContentForm(f => ({ ...f, scheduledUnpublishAt: e.target.value }))
+                }
+              />
+            </FormField>
+            {editingContent && (
+              <FormField label='Change Note' htmlFor='cm-change-note'>
+                <Input
+                  id='cm-change-note'
+                  value={contentForm.changeNote}
+                  onChange={e => setContentForm(f => ({ ...f, changeNote: e.target.value }))}
+                  placeholder='Describe what changed (optional)'
                 />
-              </div>
-              {editingContent && (
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel} htmlFor='cm-change-note'>
-                    Change Note
-                  </label>
-                  <input
-                    id='cm-change-note'
-                    className={styles.formInput}
-                    value={contentForm.changeNote}
-                    onChange={e => setContentForm(f => ({ ...f, changeNote: e.target.value }))}
-                    placeholder='Describe what changed (optional)'
-                  />
-                </div>
-              )}
-            </div>
-            {formError && <p className={styles.errorMessage}>{formError}</p>}
-            <div className={styles.modalActions}>
-              <button className={styles.secondaryButton} onClick={() => setShowContentModal(false)}>
-                Cancel
-              </button>
-              <button
-                className={styles.primaryButton}
-                onClick={handleSaveContent}
-                disabled={saving}
-              >
-                {saving ? 'Saving…' : editingContent ? 'Save Changes' : 'Create Content'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              </FormField>
+            )}
+          </FormRow>
+          {formError && <Alert variant='error'>{formError}</Alert>}
+        </Stack>
+      </Modal>
 
-      {showMenuModal && (
-        <div
-          className={styles.overlay}
-          onClick={e => e.target === e.currentTarget && setShowMenuModal(false)}
-          onKeyDown={e => e.key === 'Escape' && setShowMenuModal(false)}
-          role='presentation'
-        >
-          <div className={clsx(styles.modal, styles.menuModalWidth)}>
-            <div className={styles.modalHeader}>
-              <h2>{editingMenu ? 'Edit Menu' : 'New Navigation Menu'}</h2>
-              <button className={styles.closeButton} onClick={() => setShowMenuModal(false)}>
-                ×
-              </button>
-            </div>
-            <div className={styles.formGrid}>
-              <div className={styles.formGroupFull}>
-                <label className={styles.formLabel} htmlFor='cm-menu-name'>
-                  Menu Name *
-                </label>
-                <input
-                  id='cm-menu-name'
-                  className={styles.formInput}
-                  value={menuForm.name}
-                  onChange={e => setMenuForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder='e.g. Main Navigation'
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel} htmlFor='cm-menu-location'>
-                  Location
-                </label>
-                <select
-                  id='cm-menu-location'
-                  className={styles.formSelect}
-                  value={menuForm.location}
-                  onChange={e =>
-                    setMenuForm(f => ({
-                      ...f,
-                      location: e.target.value as MenuFormState['location'],
-                    }))
-                  }
-                >
-                  <option value='header'>Header</option>
-                  <option value='footer'>Footer</option>
-                  <option value='sidebar'>Sidebar</option>
-                </select>
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel} htmlFor='cm-menu-active'>
-                  Active
-                </label>
-                <select
-                  id='cm-menu-active'
-                  className={styles.formSelect}
-                  value={menuForm.isActive ? 'true' : 'false'}
-                  onChange={e => setMenuForm(f => ({ ...f, isActive: e.target.value === 'true' }))}
-                >
-                  <option value='true'>Active</option>
-                  <option value='false'>Inactive</option>
-                </select>
-              </div>
-            </div>
-            <div className={styles.modalActions}>
-              <button className={styles.secondaryButton} onClick={() => setShowMenuModal(false)}>
-                Cancel
-              </button>
-              <button className={styles.primaryButton} onClick={handleSaveMenu} disabled={saving}>
-                {saving ? 'Saving…' : editingMenu ? 'Save Changes' : 'Create Menu'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={showMenuModal}
+        onClose={() => setShowMenuModal(false)}
+        title={editingMenu ? 'Edit Menu' : 'New Navigation Menu'}
+        size='md'
+        footer={
+          <>
+            <Button variant='secondary' onClick={() => setShowMenuModal(false)}>
+              Cancel
+            </Button>
+            <Button variant='primary' onClick={handleSaveMenu} disabled={saving}>
+              {saving ? 'Saving…' : editingMenu ? 'Save Changes' : 'Create Menu'}
+            </Button>
+          </>
+        }
+      >
+        <Stack spacing='md'>
+          <FormField label='Menu Name' htmlFor='cm-menu-name' required>
+            <Input
+              id='cm-menu-name'
+              value={menuForm.name}
+              onChange={e => setMenuForm(f => ({ ...f, name: e.target.value }))}
+              placeholder='e.g. Main Navigation'
+            />
+          </FormField>
+          <FormRow columns='two'>
+            <SelectInput
+              label='Location'
+              value={menuForm.location}
+              onChange={value =>
+                setMenuForm(f => ({
+                  ...f,
+                  location: MENU_LOCATIONS.find(l => l === singleValue(value)) ?? f.location,
+                }))
+              }
+              options={MENU_LOCATION_OPTIONS}
+              fullWidth
+            />
+            <SelectInput
+              label='Active'
+              value={menuForm.isActive ? 'true' : 'false'}
+              onChange={value =>
+                setMenuForm(f => ({ ...f, isActive: singleValue(value) === 'true' }))
+              }
+              options={MENU_ACTIVE_OPTIONS}
+              fullWidth
+            />
+          </FormRow>
+        </Stack>
+      </Modal>
 
       <ConfirmDialog {...confirmProps} />
-    </div>
+    </Stack>
   );
 };
 
