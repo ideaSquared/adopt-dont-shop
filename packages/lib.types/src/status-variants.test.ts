@@ -56,6 +56,15 @@ describe('status variant maps', () => {
   });
 });
 
+describe('statuses the apps used to colour differently', () => {
+  // Neither state is a problem, so both use the informational colour; amber
+  // stays reserved for states that need caution.
+  it('shows a submitted application and a fostered pet as informational', () => {
+    expect(applicationStatusVariant('submitted')).toBe('info');
+    expect(petStatusVariant('foster')).toBe('info');
+  });
+});
+
 describe('new status labels', () => {
   it('labels every pet status', () => {
     PET_STATUSES.forEach(status => expect(petStatusLabel(status)).toBeTruthy());

@@ -31,7 +31,7 @@ export type StatusBadgeVariant = 'success' | 'warning' | 'error' | 'info' | 'neu
 
 export const APPLICATION_STATUS_VARIANTS: Readonly<Record<ApplicationStatus, StatusBadgeVariant>> =
   {
-    submitted: 'warning',
+    submitted: 'info',
     approved: 'success',
     rejected: 'error',
     withdrawn: 'neutral',
@@ -41,7 +41,7 @@ export const PET_STATUS_VARIANTS: Readonly<Record<PetStatus, StatusBadgeVariant>
   available: 'success',
   pending: 'warning',
   adopted: 'info',
-  foster: 'warning',
+  foster: 'info',
   medical_hold: 'neutral',
   behavioral_hold: 'neutral',
   on_hold: 'warning',
