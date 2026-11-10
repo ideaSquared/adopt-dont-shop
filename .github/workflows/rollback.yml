@@ -61,6 +61,7 @@ jobs:
       - name: Verify image signatures
         env:
           SHA: ${{ github.event.inputs.sha }}
+          ENVIRONMENT: ${{ github.event.inputs.environment }}
           IMAGE_PREFIX: ghcr.io/ideasquared/adopt-dont-shop
         run: |
           set -euo pipefail
@@ -74,13 +75,24 @@ jobs:
           # verify; every image the release did publish is still verified.
           # shellcheck disable=SC2086
           IMAGES="$(bash scripts/deploy-release-images.sh "$IMAGE_PREFIX" "$SHA" $ALL_IMAGES)"
+          # Frontend images are baked per environment (VITE_* build args), so
+          # their tag is <sha>-<environment>; backend images keep the bare
+          # <sha>. A frontend image built for the OTHER environment (or before
+          # environment-qualified tags existed) must never be used here.
           for image in $IMAGES; do
-            digest=$(docker buildx imagetools inspect "$IMAGE_PREFIX/$image:$SHA" --format '{{.Manifest.Digest}}')
+            case "$image" in
+              app-*) tag="$SHA-$ENVIRONMENT" ;;
+              *) tag="$SHA" ;;
+            esac
+            if ! digest=$(docker buildx imagetools inspect "$IMAGE_PREFIX/$image:$tag" --format '{{.Manifest.Digest}}' 2>/dev/null); then
+              echo "::error::$image:$tag does not exist in GHCR. Frontend images are built per environment; $SHA has no $ENVIRONMENT build (it predates environment-qualified tags, or was only deployed to the other environment). Re-deploy it with deploy.yml to $ENVIRONMENT instead of rolling back."
+              exit 1
+            fi
             cosign verify \
               --certificate-identity-regexp "$IDENTITY_REGEX" \
               --certificate-oidc-issuer "$ISSUER" \
               "$IMAGE_PREFIX/$image@$digest" > /dev/null
-            echo "OK: $image@$digest signed by main."
+            echo "OK: $image:$tag@$digest signed by main."
           done
 
       # ADS-900/ADS-1312: the deploy host doesn't hold a full repo checkout —
@@ -197,7 +209,13 @@ jobs:
             # shellcheck disable=SC2086
             IMAGES="$(scripts/deploy-release-images.sh "$IMAGE_PREFIX" "$SHA" $ALL_IMAGES)"
             for image in $IMAGES; do
-              docker pull "$IMAGE_PREFIX/$image:$SHA"
+              # Frontend images are baked per environment: <sha>-<environment>
+              # (same tag the compose files resolve). Backend: bare <sha>.
+              case "$image" in
+                app-*) tag="$SHA-$ENV" ;;
+                *) tag="$SHA" ;;
+              esac
+              docker pull "$IMAGE_PREFIX/$image:$tag"
             done
 
             # ADS-1311: clear any per-service tag overrides before rewriting

@@ -379,6 +379,12 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           # ADS-1322: no :latest tag — see the backend build step above.
+          # Frontend images bake VITE_* values from the <environment>-vars
+          # GitHub Environment, so staging and production builds of one SHA
+          # differ. The tag is therefore environment-qualified
+          # (app-*:<sha>-<environment>); a shared app-*:<sha> tag would let
+          # whichever environment built last own it. Backend service images
+          # bake no per-environment values and keep the bare <sha> tag.
           docker build \
             -f Dockerfile.app \
             --target production \
@@ -391,11 +397,11 @@ jobs:
             --build-arg SENTRY_PROJECT="${{ vars.SENTRY_PROJECT_CLIENT }}" \
             --build-arg DEPLOY_SHA="${{ github.sha }}" \
             --secret id=sentry_auth,env=SENTRY_AUTH_TOKEN \
-            -t $IMAGE_PREFIX/app-client:${{ github.sha }} \
+            -t $IMAGE_PREFIX/app-client:${{ github.sha }}-${{ github.event.inputs.environment }} \
             .
-          docker push $IMAGE_PREFIX/app-client:${{ github.sha }}
+          docker push $IMAGE_PREFIX/app-client:${{ github.sha }}-${{ github.event.inputs.environment }}
           # ADS-673: cosign keyless sign by digest.
-          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-client:${{ github.sha }}" | cut -d@ -f2)
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-client:${{ github.sha }}-${{ github.event.inputs.environment }}" | cut -d@ -f2)
           echo "Signing $IMAGE_PREFIX/app-client@$DIGEST"
           cosign sign --yes "$IMAGE_PREFIX/app-client@$DIGEST"
 
@@ -417,11 +423,11 @@ jobs:
             --build-arg SENTRY_PROJECT="${{ vars.SENTRY_PROJECT_ADMIN }}" \
             --build-arg DEPLOY_SHA="${{ github.sha }}" \
             --secret id=sentry_auth,env=SENTRY_AUTH_TOKEN \
-            -t $IMAGE_PREFIX/app-admin:${{ github.sha }} \
+            -t $IMAGE_PREFIX/app-admin:${{ github.sha }}-${{ github.event.inputs.environment }} \
             .
-          docker push $IMAGE_PREFIX/app-admin:${{ github.sha }}
+          docker push $IMAGE_PREFIX/app-admin:${{ github.sha }}-${{ github.event.inputs.environment }}
           # ADS-673: cosign keyless sign by digest.
-          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-admin:${{ github.sha }}" | cut -d@ -f2)
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-admin:${{ github.sha }}-${{ github.event.inputs.environment }}" | cut -d@ -f2)
           echo "Signing $IMAGE_PREFIX/app-admin@$DIGEST"
           cosign sign --yes "$IMAGE_PREFIX/app-admin@$DIGEST"
 
@@ -443,11 +449,11 @@ jobs:
             --build-arg SENTRY_PROJECT="${{ vars.SENTRY_PROJECT_RESCUE }}" \
             --build-arg DEPLOY_SHA="${{ github.sha }}" \
             --secret id=sentry_auth,env=SENTRY_AUTH_TOKEN \
-            -t $IMAGE_PREFIX/app-rescue:${{ github.sha }} \
+            -t $IMAGE_PREFIX/app-rescue:${{ github.sha }}-${{ github.event.inputs.environment }} \
             .
-          docker push $IMAGE_PREFIX/app-rescue:${{ github.sha }}
+          docker push $IMAGE_PREFIX/app-rescue:${{ github.sha }}-${{ github.event.inputs.environment }}
           # ADS-673: cosign keyless sign by digest.
-          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-rescue:${{ github.sha }}" | cut -d@ -f2)
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-rescue:${{ github.sha }}-${{ github.event.inputs.environment }}" | cut -d@ -f2)
           echo "Signing $IMAGE_PREFIX/app-rescue@$DIGEST"
           cosign sign --yes "$IMAGE_PREFIX/app-rescue@$DIGEST"
 
@@ -477,6 +483,7 @@ jobs:
       - name: Verify image signatures
         env:
           SHA: ${{ github.sha }}
+          ENVIRONMENT: ${{ github.event.inputs.environment }}
           SKIP_VERIFY: ${{ github.event.inputs.skip_cosign_verify }}
           # Free text — passed via env, never interpolated into the script.
           TAG_OVERRIDES: ${{ github.event.inputs.tag_overrides }}
@@ -498,9 +505,19 @@ jobs:
             service-rescue service-applications service-chat service-moderation
             service-matching service-audit service-cms service-ops
             app-client app-admin app-rescue"
+          # Frontend images are baked per environment, so their tag carries
+          # the target environment (app-*:<sha>-<environment>); backend
+          # service images keep the bare <sha>. Same rule as the deploy step.
+          tag_for() {  # <image> <sha>
+            case "$1" in
+              app-*) printf '%s-%s' "$2" "$ENVIRONMENT" ;;
+              *) printf '%s' "$2" ;;
+            esac
+          }
+
           REFS=""
           for image in $IMAGES; do
-            REFS="$REFS $image:$SHA"
+            REFS="$REFS $image:$(tag_for "$image" "$SHA")"
           done
 
           # tag_overrides pin services to OTHER SHAs' images, which this run
@@ -516,7 +533,7 @@ jobs:
               echo "::error::Invalid tag override '$pair' — key must name a known image and the value must be a full 40-char git SHA."
               exit 1
             fi
-            REFS="$REFS $image:$value"
+            REFS="$REFS $image:$(tag_for "$image" "$value")"
           done < <(printf '%s\n' "$TAG_OVERRIDES" | tr ',' '\n')
 
           for image_tag in $REFS; do
@@ -817,9 +834,20 @@ jobs:
               service-matching service-audit service-cms service-ops
               app-client app-admin app-rescue"
 
+            # Frontend images are baked per environment (VITE_* build args come
+            # from <environment>-vars), so their tag is <sha>-<environment>;
+            # docker-compose.{prod,staging}.yml append the same suffix. Backend
+            # service images are environment-neutral and use the bare <sha>.
+            tag_for() {  # <image> <sha>
+              case "$1" in
+                app-*) printf '%s-%s' "$2" "$ENV" ;;
+                *) printf '%s' "$2" ;;
+              esac
+            }
+
             # Pull new images.
             for image in $IMAGES; do
-              docker pull "$IMAGE_PREFIX/$image:$SHA"
+              docker pull "$IMAGE_PREFIX/$image:$(tag_for "$image" "$SHA")"
             done
 
             # Pin DEPLOY_SHA and this run's per-service overrides (validated
@@ -839,7 +867,7 @@ jobs:
             # would otherwise fail the pipeline under pipefail.)
             { grep -E '^(SERVICE|APP)_[A-Z_]+_TAG=' .env || true; } | while IFS='=' read -r key value; do
               image="$(printf '%s' "${key%_TAG}" | tr 'A-Z_' 'a-z-')"
-              docker pull "$IMAGE_PREFIX/$image:$value"
+              docker pull "$IMAGE_PREFIX/$image:$(tag_for "$image" "$value")"
             done
 
             # Determine compose file
@@ -993,8 +1021,9 @@ jobs:
               # deploy, so a transient registry error is non-fatal when the image
               # is already present locally.
               for image in $ROLLBACK_IMAGES; do
-                docker pull "$IMAGE_PREFIX/$image:$LAST_GOOD" ||
-                  echo "warn: could not pull $image:$LAST_GOOD (using local copy if present)"
+                tag="$(tag_for "$image" "$LAST_GOOD")"
+                docker pull "$IMAGE_PREFIX/$image:$tag" ||
+                  echo "warn: could not pull $image:$tag (using local copy if present)"
               done
               case " $ROLLBACK_IMAGES " in
                 *" service-ops "*)
