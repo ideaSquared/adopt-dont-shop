@@ -620,6 +620,12 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
       title ? React.createElement('strong', null, title) : null,
       children
     ),
+  Avatar: ({ name = '', initials, alt }: { name?: string; initials?: string; alt?: string }) =>
+    React.createElement(
+      'div',
+      { role: 'img', 'aria-label': alt ?? `Avatar for ${name}` },
+      initials ?? name.charAt(0).toUpperCase()
+    ),
   Spinner: () => React.createElement('div', { 'aria-label': 'loading' }),
   Skeleton: ({ width, height, radius, className, style, ...props }: Record<string, unknown>) =>
     React.createElement('div', {
