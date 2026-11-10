@@ -7,12 +7,6 @@ export const container = style({
   padding: '24px',
 });
 
-export const header = style({
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-});
-
 export const section = style({
   padding: '16px',
   border: '1px solid #e5e7eb',

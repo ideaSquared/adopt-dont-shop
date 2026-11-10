@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import {
-  Heading,
+  Button,
+  FormField,
+  Input,
+  PageHeader,
   ReportBuilder,
-  Text,
   toast,
   type ReportBuilderConfig,
 } from '@adopt-dont-shop/lib.components';
@@ -107,35 +109,33 @@ const ReportBuilderPage: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.headerRow}>
-        <div>
-          <Heading level="h1">{id ? 'Edit report' : 'New report'}</Heading>
-          <Text>Build a custom report. Click Preview to run it.</Text>
-        </div>
-        <button type="button" onClick={runPreview} disabled={config.widgets.length === 0}>
-          {previewMutation.isPending ? 'Running…' : 'Preview'}
-        </button>
-      </div>
+      <PageHeader
+        title={id ? 'Edit report' : 'New report'}
+        description="Build a custom report. Click Preview to run it."
+        actions={
+          <Button variant="primary" onClick={runPreview} disabled={config.widgets.length === 0}>
+            {previewMutation.isPending ? 'Running…' : 'Preview'}
+          </Button>
+        }
+      />
 
       <div className={styles.formGrid}>
-        <label>
-          <span className={styles.fieldLabel}>Name</span>
-          <input
+        <FormField label="Name" htmlFor="report-name">
+          <Input
+            id="report-name"
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
-            className={styles.textInput}
           />
-        </label>
-        <label>
-          <span className={styles.fieldLabel}>Description</span>
-          <input
+        </FormField>
+        <FormField label="Description" htmlFor="report-description">
+          <Input
+            id="report-description"
             type="text"
             value={description}
             onChange={e => setDescription(e.target.value)}
-            className={styles.textInput}
           />
-        </label>
+        </FormField>
       </div>
 
       <ReportBuilder
