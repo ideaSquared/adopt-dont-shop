@@ -135,7 +135,7 @@ describe('PetFormModal — breed pickers', () => {
     await choose(user, /primary breed/i, 'Labrador Retriever');
     await choose(user, /secondary breed/i, 'Poodle');
 
-    await user.selectOptions(screen.getByLabelText(/pet type/i), 'cat');
+    await choose(user, /pet type/i, 'Cat');
 
     await waitFor(() =>
       expect(screen.getByRole('combobox', { name: /primary breed/i })).not.toHaveTextContent(
@@ -179,7 +179,7 @@ describe('PetFormModal — breed pickers', () => {
     const user = userEvent.setup();
     renderForm();
 
-    await user.selectOptions(screen.getByLabelText(/pet type/i), 'bird');
+    await choose(user, /pet type/i, 'Bird');
 
     expect((await screen.findAllByText(/no breeds are listed/i)).length).toBeGreaterThan(0);
   });

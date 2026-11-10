@@ -1,61 +1,45 @@
-/**
- * UX P2 I: the modal backdrop used to claim role="button" with tabIndex={-1}
- * and aria-label="Close modal" purely so the click-to-dismiss div didn't
- * trip lint. That announced a phantom button to screen readers. The real
- * close affordance is the ✕ button inside the modal header.
- */
-import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import InviteStaffModal from './InviteStaffModal';
 
-// vanilla-extract CSS modules can't be evaluated in JSDOM; replace with
-// simple class-string exports so the component renders.
-vi.mock('./InviteStaffModal.css', () => {
-  const EXPORTS = [
-    'actionButton',
-    'closeButton',
-    'form',
-    'formActions',
-    'formError',
-    'formGroup',
-    'formHelp',
-    'formInfo',
-    'formInput',
-    'formLabel',
-    'formModal',
-    'formOverlay',
-    'infoSection',
-    'loadingSpinner',
-    'modalHeader',
-    'modalTitle',
-    'requiredIndicator',
-  ] as const;
-  const out: Record<string, unknown> = {};
-  for (const name of EXPORTS) {
-    // Provide both call signature (for vanilla-extract recipes) and string
-    // value (for plain class names). Object.assign keeps the function but
-    // overrides toString to return the recipe name.
-    const fn = (..._args: unknown[]) => name;
-    out[name] = Object.assign(fn, { toString: () => name });
-  }
-  return out;
-});
-
-describe('InviteStaffModal backdrop accessibility (UX P2 I)', () => {
-  it('renders the modal backdrop without role="button"', () => {
+describe('InviteStaffModal', () => {
+  it('presents the invitation form as a dialog titled "Invite Staff Member"', () => {
     render(<InviteStaffModal onSubmit={vi.fn()} onCancel={vi.fn()} />);
 
-    // No backdrop "Close modal" button should be announced.
-    expect(screen.queryByRole('button', { name: /close modal/i })).toBeNull();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Invite Staff Member' })).toBeInTheDocument();
   });
 
-  it('keeps the explicit ✕ close affordance inside the modal header', () => {
-    render(<InviteStaffModal onSubmit={vi.fn()} onCancel={vi.fn()} />);
+  it('calls onCancel from the Cancel button', async () => {
+    const user = userEvent.setup();
+    const onCancel = vi.fn();
+    render(<InviteStaffModal onSubmit={vi.fn()} onCancel={onCancel} />);
 
-    // The header carries an unlabelled ✕ button — find it by its text content.
-    const closeButton = screen.getByText('✕').closest('button');
-    expect(closeButton).not.toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('submits the email and title', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<InviteStaffModal onSubmit={onSubmit} onCancel={vi.fn()} />);
+
+    await user.type(screen.getByLabelText(/email address/i), 'new@example.com');
+    await user.type(screen.getByLabelText(/title\/role/i), 'Coordinator');
+    await user.click(screen.getByRole('button', { name: 'Send Invitation' }));
+
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith({ email: 'new@example.com', title: 'Coordinator' })
+    );
+  });
+
+  it('disables the actions while an invitation is being sent', () => {
+    render(<InviteStaffModal onSubmit={vi.fn()} onCancel={vi.fn()} loading />);
+
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /sending invitation/i })).toBeDisabled();
   });
 });
 
@@ -63,14 +47,12 @@ describe('InviteStaffModal aria-required (a11y sweep — extends PR #673/#674 C1
   it('marks the required email input with aria-required="true"', () => {
     render(<InviteStaffModal onSubmit={vi.fn()} onCancel={vi.fn()} />);
 
-    const emailInput = screen.getByLabelText(/email address/i);
-    expect(emailInput).toHaveAttribute('aria-required', 'true');
+    expect(screen.getByLabelText(/email address/i)).toHaveAttribute('aria-required', 'true');
   });
 
   it('does not set aria-required on the optional title input', () => {
     render(<InviteStaffModal onSubmit={vi.fn()} onCancel={vi.fn()} />);
 
-    const titleInput = screen.getByLabelText(/title\/role/i);
-    expect(titleInput).not.toHaveAttribute('aria-required');
+    expect(screen.getByLabelText(/title\/role/i)).not.toHaveAttribute('aria-required');
   });
 });

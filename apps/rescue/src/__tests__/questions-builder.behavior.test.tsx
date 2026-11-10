@@ -57,6 +57,29 @@ vi.mock('@adopt-dont-shop/lib.components', async () => {
       React.createElement('div', { role: 'alert', ...props }, children as React.ReactNode),
     Input: ({ children: _children, ...props }: Record<string, unknown>) =>
       React.createElement('input', props),
+    TextArea: ({ children: _children, ...props }: Record<string, unknown>) =>
+      React.createElement('textarea', props),
+    FormField: ({
+      label,
+      htmlFor,
+      error,
+      description,
+      children,
+    }: {
+      label?: string;
+      htmlFor?: string;
+      error?: string;
+      description?: string;
+      children?: React.ReactNode;
+    }) =>
+      React.createElement(
+        'div',
+        null,
+        label ? React.createElement('label', { htmlFor }, label) : null,
+        children,
+        error ? React.createElement('p', { role: 'alert' }, error) : null,
+        !error && description ? React.createElement('p', null, description) : null
+      ),
     useConfirm: () => ({
       isOpen: false,
       confirm: confirmFn,

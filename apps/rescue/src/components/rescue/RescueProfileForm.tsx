@@ -6,7 +6,7 @@ import {
   FormField,
   SelectInput,
   TextArea as LibTextArea,
-  Alert,
+  toast,
 } from '@adopt-dont-shop/lib.components';
 import { validatePostcode, validatePhoneNumber } from '@adopt-dont-shop/lib.utils';
 import type { RescueProfile, RescueAddress } from '../../types/rescue';
@@ -91,8 +91,6 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
   const [formData, setFormData] = useState<Partial<RescueProfile>>(() => buildFormData(rescue));
   const [errors, setErrors] = useState<ProfileErrors>({});
   const [saving, setSaving] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
@@ -102,17 +100,11 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
     }
   }, [rescue]);
 
-  const clearFeedback = () => {
-    setSuccessMessage(null);
-    setErrorMessage(null);
-  };
-
   const handleField = (
     field: 'name' | 'email' | 'phone' | 'website' | 'description',
     value: string
   ) => {
     setHasChanges(true);
-    clearFeedback();
     setFormData(prev => ({ ...prev, [field]: value }));
     if (field !== 'description' && errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
@@ -121,7 +113,6 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
 
   const handleAddressField = (field: keyof RescueAddress, value: string) => {
     setHasChanges(true);
-    clearFeedback();
     setFormData(prev => ({
       ...prev,
       address: { ...(prev.address ?? emptyAddress), [field]: value },
@@ -134,7 +125,6 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
   const handleCountrySelect = (selected: string | string[]) => {
     const value = Array.isArray(selected) ? (selected[0] ?? '') : selected;
     setHasChanges(true);
-    clearFeedback();
     setFormData(prev => ({
       ...prev,
       address: { ...(prev.address ?? emptyAddress), country: value },
@@ -151,15 +141,14 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
 
     setErrors({});
     setSaving(true);
-    clearFeedback();
 
     try {
       await onSave(formData);
-      setSuccessMessage('Rescue profile updated successfully!');
+      toast.success('Rescue profile updated successfully!');
       setHasChanges(false);
     } catch (error) {
       console.error('Error saving rescue profile:', error);
-      setErrorMessage(
+      toast.error(
         error instanceof Error ? error.message : 'Failed to save rescue profile. Please try again.'
       );
     } finally {
@@ -172,16 +161,12 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
       setFormData(buildFormData(rescue));
       setErrors({});
       setHasChanges(false);
-      clearFeedback();
     }
   };
 
   return (
     <Card className={styles.formContainer}>
       <form onSubmit={handleSubmit} noValidate>
-        {successMessage && <Alert variant="success">{successMessage}</Alert>}
-        {errorMessage && <Alert variant="error">{errorMessage}</Alert>}
-
         <div className={styles.formSection}>
           <h3 className={styles.sectionTitle}>Basic Information</h3>
           <div className={styles.formRow}>

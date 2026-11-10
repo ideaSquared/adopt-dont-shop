@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Input, SelectInput, Spinner } from '@adopt-dont-shop/lib.components';
 import { StaffMember } from '../../types/staff';
 import StaffCard from './StaffCard';
 import * as styles from './StaffList.css';
@@ -14,6 +15,19 @@ interface StaffListProps {
   currentUserId?: string; // Add current user ID to prevent self-editing/removal
 }
 
+type StaffFilter = 'all' | 'verified' | 'pending';
+
+const STAFF_FILTER_OPTIONS: { value: StaffFilter; label: string }[] = [
+  { value: 'all', label: 'All Staff' },
+  { value: 'verified', label: 'Verified Only' },
+  { value: 'pending', label: 'Pending Only' },
+];
+
+const toStaffFilter = (value: string | string[]): StaffFilter => {
+  const match = STAFF_FILTER_OPTIONS.find(option => option.value === value);
+  return match ? match.value : 'all';
+};
+
 const StaffList: React.FC<StaffListProps> = ({
   staff,
   loading = false,
@@ -25,7 +39,7 @@ const StaffList: React.FC<StaffListProps> = ({
   currentUserId,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterBy, setFilterBy] = useState<'all' | 'verified' | 'pending'>('all');
+  const [filterBy, setFilterBy] = useState<StaffFilter>('all');
 
   const filteredStaff = staff.filter(member => {
     const matchesSearch =
@@ -46,7 +60,7 @@ const StaffList: React.FC<StaffListProps> = ({
     return (
       <div className={styles.loadingContainer}>
         <div className={styles.loadingSpinner}>
-          <div className={styles.spinner} />
+          <Spinner size="lg" label="Loading staff members" />
           <p>Loading staff members...</p>
         </div>
       </div>
@@ -58,22 +72,21 @@ const StaffList: React.FC<StaffListProps> = ({
       {showSearch && (
         <div className={styles.listControls}>
           <div className={styles.searchFilters}>
-            <input
+            <Input
               className={styles.searchInput}
               type="text"
+              aria-label="Search staff members"
               placeholder="Search staff members..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
-            <select
+            <SelectInput
               className={styles.filterSelect}
+              label="Filter by status"
               value={filterBy}
-              onChange={e => setFilterBy(e.target.value as 'all' | 'verified' | 'pending')}
-            >
-              <option value="all">All Staff</option>
-              <option value="verified">Verified Only</option>
-              <option value="pending">Pending Only</option>
-            </select>
+              onChange={value => setFilterBy(toStaffFilter(value))}
+              options={STAFF_FILTER_OPTIONS}
+            />
           </div>
           <div className={styles.staffCount}>
             Showing {filteredStaff.length} of {staff.length} staff members

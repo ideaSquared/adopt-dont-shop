@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Button, SelectInput } from '@adopt-dont-shop/lib.components';
 import type { PetStatus } from '@adopt-dont-shop/lib.pets';
 import * as styles from './PetBulkActionBar.css';
 
@@ -16,6 +17,11 @@ const STATUS_OPTIONS: { value: InlineStatus; label: string }[] = [
   { value: 'adopted', label: 'Adopted' },
   { value: 'on_hold', label: 'Hold' },
 ];
+
+const toInlineStatus = (value: string | string[]): InlineStatus => {
+  const match = STATUS_OPTIONS.find(option => option.value === value);
+  return match ? match.value : 'available';
+};
 
 export type PetBulkAction = { type: 'status'; status: PetStatus } | { type: 'archive' };
 
@@ -55,41 +61,23 @@ const PetBulkActionBar: React.FC<PetBulkActionBarProps> = ({
           <span>
             <strong>{selectedCount}</strong> selected
           </span>
-          <button type="button" onClick={onClearSelection} disabled={busy}>
+          <Button variant="ghost" size="sm" onClick={onClearSelection} disabled={busy}>
             Clear
-          </button>
+          </Button>
           <span className={styles.spacer} />
-          <label className={styles.statusLabel}>
-            Set status to{' '}
-            <select
-              value={pendingStatus}
-              onChange={e => setPendingStatus(e.target.value as InlineStatus)}
-              disabled={busy}
-              aria-label="Bulk status"
-            >
-              {STATUS_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            type="button"
-            onClick={handleStatusApply}
+          <SelectInput
+            label="Set status to"
+            value={pendingStatus}
+            onChange={value => setPendingStatus(toInlineStatus(value))}
             disabled={busy}
-            className={styles.applyButton}
-          >
+            options={STATUS_OPTIONS}
+          />
+          <Button variant="primary" size="sm" onClick={handleStatusApply} disabled={busy}>
             {busy ? 'Working…' : 'Apply status'}
-          </button>
-          <button
-            type="button"
-            onClick={handleArchive}
-            disabled={busy}
-            className={styles.archiveButton}
-          >
+          </Button>
+          <Button variant="warning" size="sm" onClick={handleArchive} disabled={busy}>
             Archive
-          </button>
+          </Button>
         </>
       )}
 

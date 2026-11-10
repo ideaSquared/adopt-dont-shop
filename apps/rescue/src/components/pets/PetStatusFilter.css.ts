@@ -8,47 +8,6 @@ export const statusFilterContainer = style({
   marginBottom: 0,
 });
 
-export const statusButton = recipe({
-  base: {
-    padding: '0.5rem 1rem',
-    fontSize: '0.875rem',
-    borderRadius: '20px',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    border: '1px solid',
-    ':focus': {
-      outline: '2px solid #60a5fa',
-      outlineOffset: '2px',
-    },
-  },
-  variants: {
-    active: {
-      true: {
-        borderColor: '#3b82f6',
-        background: '#3b82f6',
-        color: 'white',
-        ':hover': {
-          background: '#2563eb',
-          borderColor: '#2563eb',
-        },
-      },
-      false: {
-        borderColor: '#d1d5db',
-        background: 'white',
-        color: '#6b7280',
-        ':hover': {
-          borderColor: '#3b82f6',
-          background: '#eff6ff',
-          color: '#1d4ed8',
-        },
-      },
-    },
-  },
-  defaultVariants: {
-    active: false,
-  },
-});
-
 export const statusCount = recipe({
   base: {
     marginLeft: '0.5rem',

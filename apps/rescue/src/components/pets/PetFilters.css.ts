@@ -44,7 +44,7 @@ globalStyle(`${filterGroup} .label`, {
   color: '#111827',
 });
 
-globalStyle(`${filterGroup} select, ${filterGroup} input`, {
+globalStyle(`${filterGroup} select`, {
   width: '100%',
   padding: '0.75rem',
   border: '1px solid #d1d5db',

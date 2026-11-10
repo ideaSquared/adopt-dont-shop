@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Button } from '@adopt-dont-shop/lib.components';
+import { Button, FormField, Input } from '@adopt-dont-shop/lib.components';
 import * as styles from './PetFilters.css';
 
 interface PetFiltersProps {
@@ -73,16 +73,15 @@ const PetFilters: React.FC<PetFiltersProps> = ({ filters, onFilterChange, onClea
 
       <div className={styles.filtersGrid}>
         <div className={styles.filterGroup}>
-          <label className="label" htmlFor="pet-filter-search">
-            Search
-          </label>
-          <input
-            id="pet-filter-search"
-            type="text"
-            placeholder="Pet name, breed, or ID..."
-            value={localSearch}
-            onChange={e => handleSearchChange(e.target.value)}
-          />
+          <FormField label="Search" htmlFor="pet-filter-search">
+            <Input
+              id="pet-filter-search"
+              type="text"
+              placeholder="Pet name, breed, or ID..."
+              value={localSearch}
+              onChange={e => handleSearchChange(e.target.value)}
+            />
+          </FormField>
         </div>
 
         <div className={styles.filterGroup}>
@@ -141,16 +140,15 @@ const PetFilters: React.FC<PetFiltersProps> = ({ filters, onFilterChange, onClea
         </div>
 
         <div className={styles.filterGroup}>
-          <label className="label" htmlFor="pet-filter-breed">
-            Breed
-          </label>
-          <input
-            id="pet-filter-breed"
-            type="text"
-            placeholder="Enter breed..."
-            value={localBreed}
-            onChange={e => handleBreedChange(e.target.value)}
-          />
+          <FormField label="Breed" htmlFor="pet-filter-breed">
+            <Input
+              id="pet-filter-breed"
+              type="text"
+              placeholder="Enter breed..."
+              value={localBreed}
+              onChange={e => handleBreedChange(e.target.value)}
+            />
+          </FormField>
         </div>
 
         <div className={styles.filterGroup}>

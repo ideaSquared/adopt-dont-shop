@@ -10,6 +10,43 @@ describe('StaffForm', () => {
     expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
   });
 
+  it('presents the form as a dialog and cancels from the Cancel button', async () => {
+    const user = userEvent.setup();
+    const onCancel = vi.fn();
+    renderWithProviders(<StaffForm onSubmit={vi.fn()} onCancel={onCancel} />);
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Add New Staff Member' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the edit wording and locks the user ID when editing', () => {
+    renderWithProviders(
+      <StaffForm
+        isEditing
+        initialStaff={{
+          id: 'staff-1',
+          userId: 'user_0000abcd1234',
+          rescueId: 'rescue-1',
+          firstName: 'Sam',
+          lastName: 'Jones',
+          email: 'sam@example.com',
+          title: 'Coordinator',
+          isVerified: true,
+          addedAt: '2024-01-01T00:00:00Z',
+        }}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('heading', { name: 'Edit Staff Member' })).toBeInTheDocument();
+    expect(screen.getByLabelText(/user id/i)).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Update Staff Member' })).toBeInTheDocument();
+  });
+
   it('rejects an invalid user ID and does not submit', async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn().mockResolvedValue(undefined);

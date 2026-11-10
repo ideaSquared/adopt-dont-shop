@@ -1,9 +1,4 @@
-import { globalStyle, keyframes, style } from '@vanilla-extract/css';
-
-const loading = keyframes({
-  '0%': { backgroundPosition: '200% 0' },
-  '100%': { backgroundPosition: '-200% 0' },
-});
+import { globalStyle, style } from '@vanilla-extract/css';
 
 export const gridContainer = style({
   display: 'grid',
@@ -76,19 +71,6 @@ export const loadingGrid = style({
       gap: '1.5rem',
     },
   },
-});
-
-export const loadingCard = style({
-  padding: '1rem',
-  minHeight: '400px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
-  backgroundSize: '200% 100%',
-  animationName: loading,
-  animationDuration: '1.5s',
-  animationIterationCount: 'infinite',
 });
 
 export const paginationContainer = style({

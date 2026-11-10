@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router';
-import { Card, Button, ProgressiveImage } from '@adopt-dont-shop/lib.components';
+import {
+  Button,
+  Card,
+  FormField,
+  Modal,
+  ProgressiveImage,
+  StatusBadge,
+  TextArea,
+} from '@adopt-dont-shop/lib.components';
+import { getStatusDisplay } from '@adopt-dont-shop/lib.types';
 import { formatAge, Pet, PetStatus } from '@adopt-dont-shop/lib.pets';
 import { formatCurrency, formatRelativeDate, resolveFileUrl } from '@adopt-dont-shop/lib.utils';
 import * as styles from './PetCard.css';
@@ -8,41 +17,7 @@ import * as styles from './PetCard.css';
 // Pet schema fields are optional because different API responses return
 // different subsets (lib.pets/src/schemas.ts:55-57). Treat absent
 // status / age / created_at as "Unknown" rather than crashing the card.
-const getStatusLabel = (status: string | undefined) => {
-  switch (status) {
-    case 'available':
-      return 'Available';
-    case 'pending':
-      return 'Pending';
-    case 'adopted':
-      return 'Adopted';
-    case 'on_hold':
-      return 'On Hold';
-    case 'medical_care':
-      return 'Medical Care';
-    case 'foster':
-      return 'Foster';
-    default:
-      return status ?? 'Unknown';
-  }
-};
-
-const getStatusVariant = (
-  status: string | undefined
-): 'available' | 'pending' | 'adopted' | 'on_hold' | 'medical_care' | 'foster' | 'default' => {
-  const validStatuses = [
-    'available',
-    'pending',
-    'adopted',
-    'on_hold',
-    'medical_care',
-    'foster',
-  ] as const;
-  if (status && (validStatuses as readonly string[]).includes(status)) {
-    return status as 'available' | 'pending' | 'adopted' | 'on_hold' | 'medical_care' | 'foster';
-  }
-  return 'default';
-};
+const UNKNOWN_STATUS = 'unknown';
 
 interface PetCardProps {
   pet: Pet;
@@ -149,14 +124,12 @@ const PetCard: React.FC<PetCardProps> = ({
               <Link
                 to={`/foster?petId=${pet.pet_id}`}
                 aria-label={`View foster placement for ${pet.name}`}
-                className={styles.statusBadge({ status: 'foster' })}
+                className={styles.statusLink}
               >
-                {getStatusLabel(pet.status)}
+                <StatusBadge kind="pet" status="foster" />
               </Link>
             ) : (
-              <span className={styles.statusBadge({ status: getStatusVariant(pet.status) })}>
-                {getStatusLabel(pet.status)}
-              </span>
+              <StatusBadge kind="pet" status={pet.status ?? UNKNOWN_STATUS} />
             )}
           </div>
         </div>
@@ -217,7 +190,7 @@ const PetCard: React.FC<PetCardProps> = ({
               >
                 {!INLINE_STATUS_OPTIONS.some(o => o.value === pet.status) && (
                   <option value="" disabled>
-                    {getStatusLabel(pet.status)}
+                    {getStatusDisplay('pet', pet.status ?? UNKNOWN_STATUS).label}
                   </option>
                 )}
                 {INLINE_STATUS_OPTIONS.map(opt => (
@@ -240,51 +213,37 @@ const PetCard: React.FC<PetCardProps> = ({
         </div>
       </Card>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div
-          className={styles.statusUpdateModal}
-          onClick={cancelDelete}
-          onKeyDown={e => e.key === 'Escape' && cancelDelete()}
-          role="presentation"
-        >
-          <Card
-            className={styles.modalContent}
-            onClick={(e: React.MouseEvent) => e.stopPropagation()}
-          >
-            <h3>Delete Pet: {pet.name}</h3>
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={cancelDelete}
+        title={`Delete Pet: ${pet.name}`}
+        size="sm"
+        closeOnEscape={!isDeleting}
+        closeOnOverlayClick={!isDeleting}
+      >
+        <p className={styles.deleteWarning}>
+          Are you sure you want to delete this pet? This action cannot be undone.
+        </p>
 
-            <p className={styles.deleteWarning}>
-              Are you sure you want to delete this pet? This action cannot be undone.
-            </p>
+        <FormField label="Reason for deletion (optional):" htmlFor="delete-reason">
+          <TextArea
+            id="delete-reason"
+            value={deleteReason}
+            onChange={e => setDeleteReason(e.target.value)}
+            placeholder="e.g., Pet was adopted, medical issues, etc."
+            rows={3}
+          />
+        </FormField>
 
-            <div className="form-group">
-              <label htmlFor="delete-reason">Reason for deletion (optional):</label>
-              <textarea
-                id="delete-reason"
-                value={deleteReason}
-                onChange={e => setDeleteReason(e.target.value)}
-                placeholder="e.g., Pet was adopted, medical issues, etc."
-                rows={3}
-              />
-            </div>
-
-            <div className="form-actions">
-              <Button variant="outline" onClick={cancelDelete} disabled={isDeleting}>
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                onClick={confirmDelete}
-                disabled={isDeleting}
-                className={styles.dangerButton}
-              >
-                {isDeleting ? 'Deleting...' : 'Delete Pet'}
-              </Button>
-            </div>
-          </Card>
+        <div className={styles.modalActions}>
+          <Button variant="outline" onClick={cancelDelete} disabled={isDeleting}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={confirmDelete} disabled={isDeleting}>
+            {isDeleting ? 'Deleting...' : 'Delete Pet'}
+          </Button>
         </div>
-      )}
+      </Modal>
     </>
   );
 };

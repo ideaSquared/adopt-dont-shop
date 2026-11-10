@@ -1,7 +1,7 @@
 import React from 'react';
+import { Avatar, Button, StatusBadge } from '@adopt-dont-shop/lib.components';
 import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import { StaffMember } from '../../types/staff';
-import StatusBadge from '../common/StatusBadge';
 import * as styles from './StaffCard.css';
 
 interface StaffCardProps {
@@ -30,9 +30,11 @@ const StaffCard: React.FC<StaffCardProps> = ({
   return (
     <div className={styles.cardContainer}>
       <div className={styles.cardHeader}>
-        <div className={styles.staffAvatar}>
-          {getInitials(staffMember.firstName, staffMember.lastName)}
-        </div>
+        <Avatar
+          name={`${staffMember.firstName} ${staffMember.lastName}`}
+          initials={getInitials(staffMember.firstName, staffMember.lastName)}
+          size="lg"
+        />
         <div className={styles.staffInfo}>
           <h3 className={styles.staffName}>
             {staffMember.firstName} {staffMember.lastName}
@@ -41,7 +43,10 @@ const StaffCard: React.FC<StaffCardProps> = ({
           <p className={styles.staffEmail}>{staffMember.email}</p>
         </div>
         <div className={styles.staffStatus}>
-          <StatusBadge status={staffMember.isVerified ? 'verified' : 'pending'} />
+          <StatusBadge
+            variant={staffMember.isVerified ? 'success' : 'warning'}
+            label={staffMember.isVerified ? 'Verified' : 'Pending'}
+          />
         </div>
       </div>
 
@@ -57,20 +62,14 @@ const StaffCard: React.FC<StaffCardProps> = ({
       {(canEdit || canRemove) && (
         <div className={styles.cardActions}>
           {canEdit && (
-            <button
-              className={styles.actionButton({ variant: 'edit' })}
-              onClick={() => onEdit?.(staffMember)}
-            >
+            <Button variant="outline" size="sm" onClick={() => onEdit?.(staffMember)}>
               Edit
-            </button>
+            </Button>
           )}
           {canRemove && (
-            <button
-              className={styles.actionButton({ variant: 'danger' })}
-              onClick={() => onRemove?.(staffMember)}
-            >
+            <Button variant="danger" size="sm" onClick={() => onRemove?.(staffMember)}>
               Remove
-            </button>
+            </Button>
           )}
         </div>
       )}
