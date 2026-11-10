@@ -66,41 +66,6 @@ export const stageBadge = style({
   boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
 });
 
-export const button = recipe({
-  base: {
-    padding: '0.5rem 1rem',
-    fontSize: '0.875rem',
-    borderRadius: '0.375rem',
-    border: 'none',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-  },
-  variants: {
-    variant: {
-      primary: {
-        background: '#3b82f6',
-        color: 'white',
-        ':hover': { background: '#2563eb' },
-        ':disabled': { background: '#9ca3af', cursor: 'not-allowed' },
-      },
-      secondary: {
-        background: '#f3f4f6',
-        color: '#374151',
-        ':hover': { background: '#e5e7eb' },
-        ':disabled': { opacity: 0.5, cursor: 'not-allowed' },
-      },
-      danger: {
-        background: '#ef4444',
-        color: 'white',
-        ':hover': { background: '#dc2626' },
-      },
-    },
-  },
-  defaultVariants: {
-    variant: 'secondary',
-  },
-});
-
 // Root of the shared Tabs component: the tablist stays pinned while the panels scroll.
 export const content = style({});
 
@@ -299,80 +264,11 @@ export const formGroup = style({
   flex: 1,
 });
 
-export const formLabel = style({
-  display: 'block',
-  fontSize: '0.875rem',
-  fontWeight: '500',
-  color: '#374151',
-  marginBottom: '0.5rem',
-});
-
-export const formSelect = style({
-  width: '100%',
-  padding: '0.75rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '0.5rem',
-  fontSize: '0.875rem',
-  background: 'white',
-  transition: 'border-color 0.2s ease',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#3b82f6',
-    boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
-  },
-});
-
-export const formTextarea = style({
-  width: '100%',
-  padding: '0.75rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '0.5rem',
-  fontSize: '0.875rem',
-  minHeight: '5rem',
-  resize: 'vertical',
-  fontFamily: 'inherit',
-  transition: 'border-color 0.2s ease',
-  boxSizing: 'border-box',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#3b82f6',
-    boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
-  },
-  '::placeholder': {
-    color: '#9ca3af',
-  },
-});
-
 export const formActions = style({
   display: 'flex',
   gap: '0.75rem',
   justifyContent: 'flex-end',
   marginTop: '1rem',
-});
-
-export const emptyTimeline = style({
-  textAlign: 'center',
-  padding: '3rem 2rem',
-  color: '#6b7280',
-  background: '#fafbfc',
-  border: '2px dashed #d1d5db',
-  borderRadius: '0.75rem',
-});
-
-globalStyle(`${emptyTimeline} p`, {
-  margin: '0 0 0.5rem 0',
-});
-
-globalStyle(`${emptyTimeline} p:first-child`, {
-  fontSize: '1.125rem',
-  fontWeight: '500',
-  color: '#4b5563',
-  marginBottom: '1rem',
-});
-
-globalStyle(`${emptyTimeline} p:last-child`, {
-  fontSize: '0.9375rem',
-  lineHeight: '1.5',
 });
 
 export const section = style({
@@ -458,14 +354,6 @@ export const formField = style({
   marginBottom: '1rem',
 });
 
-export const label = style({
-  display: 'block',
-  fontSize: '0.875rem',
-  fontWeight: '500',
-  color: '#374151',
-  marginBottom: '0.25rem',
-});
-
 export const referenceCard = style({
   background: 'white',
   border: '1px solid #e5e7eb',
@@ -502,28 +390,6 @@ export const referenceRelation = style({
   margin: 0,
 });
 
-export const referenceStatus = recipe({
-  base: {
-    display: 'inline-flex',
-    padding: '0.25rem 0.5rem',
-    fontSize: '0.75rem',
-    fontWeight: '600',
-    borderRadius: '9999px',
-  },
-  variants: {
-    status: {
-      verified: { background: '#dcfce7', color: '#166534' },
-      contacted: { background: '#fef3c7', color: '#92400e' },
-      pending: { background: '#f3f4f6', color: '#374151' },
-      failed: { background: '#fecaca', color: '#dc2626' },
-      default: { background: '#f3f4f6', color: '#374151' },
-    },
-  },
-  defaultVariants: {
-    status: 'default',
-  },
-});
-
 export const referenceNotes = style({
   fontSize: '0.875rem',
   color: '#374151',
@@ -537,37 +403,6 @@ export const referenceActions = style({
   display: 'flex',
   gap: '0.5rem',
   marginTop: '1rem',
-});
-
-export const statusSelect = style({
-  padding: '0.375rem 0.5rem',
-  fontSize: '0.75rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '0.375rem',
-  background: 'white',
-  marginBottom: '0.5rem',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#3b82f6',
-    boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.1)',
-  },
-});
-
-export const notesInput = style({
-  width: '100%',
-  padding: '0.5rem',
-  fontSize: '0.875rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '0.375rem',
-  resize: 'vertical',
-  minHeight: '80px',
-  margin: '0.5rem 0',
-  boxSizing: 'border-box',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#3b82f6',
-    boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.1)',
-  },
 });
 
 export const referenceForm = style({
