@@ -186,19 +186,10 @@ export const loadMoreButton = style({
   display: 'block',
 });
 
-export const errorContainer = style({
-  textAlign: 'center',
-  padding: '3rem',
-  color: vars.colors.danger,
-});
-
-globalStyle(`${errorContainer} h2`, {
-  fontSize: '1.5rem',
-  marginBottom: '1rem',
-});
-
-globalStyle(`${errorContainer} p`, {
-  marginBottom: '2rem',
+export const errorActions = style({
+  display: 'flex',
+  justifyContent: 'center',
+  marginTop: '1rem',
 });
 
 export const emptyState = style({

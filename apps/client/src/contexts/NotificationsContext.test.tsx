@@ -7,6 +7,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const constructorArgs = vi.hoisted(() => ({ calls: [] as unknown[][] }));
 const sharedApiService = vi.hoisted(() => ({ name: 'shared-api-service' }));
@@ -25,7 +26,9 @@ vi.mock('@adopt-dont-shop/lib.notifications', () => ({
 import { NotificationsProvider, useNotifications } from './NotificationsContext';
 
 const wrapper = ({ children }: { children: ReactNode }) => (
-  <NotificationsProvider>{children}</NotificationsProvider>
+  <QueryClientProvider client={new QueryClient()}>
+    <NotificationsProvider>{children}</NotificationsProvider>
+  </QueryClientProvider>
 );
 
 describe('NotificationsContext', () => {

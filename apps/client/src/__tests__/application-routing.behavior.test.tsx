@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { ThemeProvider } from '@adopt-dont-shop/lib.components';
 import { AppShell } from '@/components/layout/AppShell';
@@ -58,16 +59,18 @@ import { ApplicationDetailsPage } from '@/pages/ApplicationDetailsPage';
 
 const renderAt = (path: string) =>
   render(
-    <ThemeProvider>
-      <MemoryRouter initialEntries={[path]}>
-        <Routes>
-          <Route element={<AppShell />}>
-            <Route path='/applications' element={<ApplicationDashboard />} />
-            <Route path='/applications/:id' element={<ApplicationDetailsPage />} />
-          </Route>
-        </Routes>
-      </MemoryRouter>
-    </ThemeProvider>
+    <QueryClientProvider client={new QueryClient()}>
+      <ThemeProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route element={<AppShell />}>
+              <Route path='/applications' element={<ApplicationDashboard />} />
+              <Route path='/applications/:id' element={<ApplicationDetailsPage />} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 
 describe('Application routing', () => {

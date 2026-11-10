@@ -13,10 +13,8 @@ import type { ReactNode } from 'react';
 
 const logEvent = vi.fn();
 const checkGate = vi.fn();
-const getExperiment = vi.fn();
-const getDynamicConfig = vi.fn();
 
-const mockClient = { logEvent, checkGate, getExperiment, getDynamicConfig };
+const mockClient = { logEvent, checkGate };
 
 let contextValue: { client: typeof mockClient | null } = { client: mockClient };
 
@@ -53,22 +51,6 @@ describe('useStatsig with a ready client', () => {
     expect(result.current.checkGate('beta')).toBe(true);
     expect(checkGate).toHaveBeenCalledWith('beta');
   });
-
-  it('returns the experiment from the client', () => {
-    const experiment = { get: vi.fn() };
-    getExperiment.mockReturnValue(experiment);
-    const { result } = renderHook(() => useStatsig());
-
-    expect(result.current.getExperiment('layout_test')).toBe(experiment);
-  });
-
-  it('returns the dynamic config from the client', () => {
-    const config = { get: vi.fn() };
-    getDynamicConfig.mockReturnValue(config);
-    const { result } = renderHook(() => useStatsig());
-
-    expect(result.current.getDynamicConfig('app_settings')).toBe(config);
-  });
 });
 
 describe('useStatsig with no client', () => {
@@ -87,17 +69,5 @@ describe('useStatsig with no client', () => {
     const { result } = renderHook(() => useStatsig());
 
     expect(result.current.checkGate('beta')).toBe(false);
-  });
-
-  it('getExperiment defaults to null', () => {
-    const { result } = renderHook(() => useStatsig());
-
-    expect(result.current.getExperiment('layout_test')).toBeNull();
-  });
-
-  it('getDynamicConfig defaults to null', () => {
-    const { result } = renderHook(() => useStatsig());
-
-    expect(result.current.getDynamicConfig('app_settings')).toBeNull();
   });
 });
