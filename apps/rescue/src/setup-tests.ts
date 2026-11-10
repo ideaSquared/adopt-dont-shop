@@ -616,6 +616,25 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
         .filter(tab => tab.id === value)
         .map(tab => React.createElement('div', { key: tab.id, role: 'tabpanel' }, tab.content))
     ),
+  // Shared Stepper: ordered list of step titles with the current step marked.
+  Stepper: ({
+    steps,
+    activeStep,
+  }: {
+    steps: Array<{ id: string; title: string }>;
+    activeStep: number;
+  }) =>
+    React.createElement(
+      'ol',
+      null,
+      ...steps.map((step, index) =>
+        React.createElement(
+          'li',
+          { key: step.id, 'aria-current': index === activeStep ? 'step' : undefined },
+          step.title
+        )
+      )
+    ),
   InstallPwaBanner: () => null,
   // ADS C4-5: rendered by lib.auth SanctionBannerHost; tests don't exercise sanctions.
   SanctionBanner: () => null,
