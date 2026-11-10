@@ -1,5 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { ConfirmDialog, useConfirm } from '@adopt-dont-shop/lib.components';
+import React, { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  Button,
+  ConfirmDialog,
+  ErrorState,
+  PageHeader,
+  toast,
+  useConfirm,
+} from '@adopt-dont-shop/lib.components';
 import {
   StaffList,
   StaffForm,
@@ -11,9 +19,11 @@ import { StaffMember, NewStaffMember } from '../types/staff';
 import { useStaff } from '../hooks/useStaff';
 import { useAuth, useHasPermission } from '@adopt-dont-shop/lib.auth';
 import { STAFF_CREATE, STAFF_DELETE, STAFF_UPDATE } from '@adopt-dont-shop/lib.permissions';
-import { InvitationPayload, PendingInvitation } from '@adopt-dont-shop/lib.invitations';
+import { InvitationPayload, type PendingInvitation } from '@adopt-dont-shop/lib.invitations';
 import { invitationService } from '../services/libraryServices';
 import * as styles from './StaffManagement.css';
+
+const NO_INVITATIONS: PendingInvitation[] = [];
 
 const StaffManagement: React.FC = () => {
   const { user } = useAuth();
@@ -33,14 +43,7 @@ const StaffManagement: React.FC = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
 
-  // State for invitations
-  const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
-  const [invitationsLoading, setInvitationsLoading] = useState(false);
-
-  // State for actions
   const [actionLoading, setActionLoading] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
   // ADS-586: confirm dialog for destructive staff/invitation actions.
   const { confirm, confirmProps } = useConfirm();
@@ -59,66 +62,50 @@ const StaffManagement: React.FC = () => {
     throw new Error('Unable to determine rescue ID. Please refresh the page.');
   };
 
-  // Load pending invitations
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadPendingInvitations = async () => {
-      if (staff.length === 0) {
-        return;
-      }
-
-      let rescueId: string;
+  // Pending invitations load once the rescue is known (it comes from the staff list).
+  const queryClient = useQueryClient();
+  const invitationsRescueId = staff[0]?.rescueId;
+  const invitationsQuery = useQuery({
+    queryKey: ['staff', 'invitations', invitationsRescueId],
+    queryFn: async (): Promise<PendingInvitation[]> => {
       try {
-        rescueId = getRescueId();
+        return await invitationService.getPendingInvitations(invitationsRescueId ?? '');
       } catch (err) {
-        console.error('Could not determine rescue ID:', err);
-        return;
+        console.error('Failed to load pending invitations:', err);
+        return [];
       }
+    },
+    enabled: invitationsRescueId !== undefined,
+  });
+  const pendingInvitations = invitationsQuery.data ?? NO_INVITATIONS;
+  const invitationsLoading = invitationsQuery.isFetching;
+  const reloadInvitations = () =>
+    queryClient.invalidateQueries({ queryKey: ['staff', 'invitations'] });
 
-      try {
-        setInvitationsLoading(true);
-        const invites = await invitationService.getPendingInvitations(rescueId);
-        if (!cancelled) {
-          setPendingInvitations(invites);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          console.error('Failed to load pending invitations:', err);
-          setPendingInvitations([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setInvitationsLoading(false);
-        }
-      }
-    };
-
-    loadPendingInvitations();
-    return () => {
-      cancelled = true;
-    };
-    // Depend on staff.length to avoid re-running when individual staff objects change
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [staff.length]);
+  const sendInvitationMutation = useMutation({
+    mutationFn: ({ rescueId, invitation }: { rescueId: string; invitation: InvitationPayload }) =>
+      invitationService.sendInvitation(rescueId, invitation),
+    onSuccess: reloadInvitations,
+    onError: () => undefined,
+  });
+  const cancelInvitationMutation = useMutation({
+    mutationFn: ({ rescueId, invitationId }: { rescueId: string; invitationId: number }) =>
+      invitationService.cancelInvitation(rescueId, invitationId),
+    onSuccess: reloadInvitations,
+    onError: () => undefined,
+  });
 
   const handleSendInvitation = async (invitation: InvitationPayload) => {
     setActionLoading(true);
-    setActionError(null);
-    setActionSuccess(null);
 
     try {
       const rescueId = getRescueId();
-      await invitationService.sendInvitation(rescueId, invitation);
+      await sendInvitationMutation.mutateAsync({ rescueId, invitation });
 
-      setActionSuccess(`Invitation sent to ${invitation.email}!`);
+      toast.success(`Invitation sent to ${invitation.email}!`);
       setShowInviteModal(false);
-
-      // Reload pending invitations
-      const invites = await invitationService.getPendingInvitations(rescueId);
-      setPendingInvitations(invites);
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : 'Failed to send invitation');
+      toast.error(error instanceof Error ? error.message : 'Failed to send invitation');
       throw error;
     } finally {
       setActionLoading(false);
@@ -138,20 +125,14 @@ const StaffManagement: React.FC = () => {
     }
 
     setActionLoading(true);
-    setActionError(null);
-    setActionSuccess(null);
 
     try {
       const rescueId = getRescueId();
-      await invitationService.cancelInvitation(rescueId, invitationId);
+      await cancelInvitationMutation.mutateAsync({ rescueId, invitationId });
 
-      setActionSuccess('Invitation cancelled successfully');
-
-      // Reload pending invitations
-      const invites = await invitationService.getPendingInvitations(rescueId);
-      setPendingInvitations(invites);
+      toast.success('Invitation cancelled successfully');
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : 'Failed to cancel invitation');
+      toast.error(error instanceof Error ? error.message : 'Failed to cancel invitation');
     } finally {
       setActionLoading(false);
     }
@@ -159,16 +140,14 @@ const StaffManagement: React.FC = () => {
 
   const handleAddStaff = async (staffData: NewStaffMember) => {
     setActionLoading(true);
-    setActionError(null);
-    setActionSuccess(null);
 
     try {
       const rescueId = getRescueId();
       await addStaffMember(staffData, rescueId);
       setShowAddForm(false);
-      setActionSuccess('Staff member added successfully!');
+      toast.success('Staff member added successfully!');
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : 'Failed to add staff member');
+      toast.error(error instanceof Error ? error.message : 'Failed to add staff member');
       throw error;
     } finally {
       setActionLoading(false);
@@ -177,7 +156,7 @@ const StaffManagement: React.FC = () => {
 
   const handleEditStaff = (staffMember: StaffMember) => {
     if (staffMember.userId === user?.userId) {
-      setActionError(
+      toast.error(
         'You cannot edit your own profile. Please ask another admin to make changes to your account.'
       );
       return;
@@ -192,16 +171,14 @@ const StaffManagement: React.FC = () => {
     }
 
     setActionLoading(true);
-    setActionError(null);
-    setActionSuccess(null);
 
     try {
       const rescueId = getRescueId();
       await updateStaffMember(editingStaff.userId, { title: staffData.title }, rescueId);
       setEditingStaff(null);
-      setActionSuccess('Staff member updated successfully!');
+      toast.success('Staff member updated successfully!');
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : 'Failed to update staff member');
+      toast.error(error instanceof Error ? error.message : 'Failed to update staff member');
       throw error;
     } finally {
       setActionLoading(false);
@@ -210,7 +187,7 @@ const StaffManagement: React.FC = () => {
 
   const handleRemoveStaff = async (staffMember: StaffMember) => {
     if (staffMember.userId === user?.userId) {
-      setActionError(
+      toast.error(
         'You cannot remove yourself from the rescue. Please ask another admin to remove you.'
       );
       return;
@@ -228,15 +205,13 @@ const StaffManagement: React.FC = () => {
     }
 
     setActionLoading(true);
-    setActionError(null);
-    setActionSuccess(null);
 
     try {
       const rescueId = getRescueId();
       await removeStaffMember(staffMember.userId, rescueId);
-      setActionSuccess('Staff member removed successfully!');
+      toast.success('Staff member removed successfully!');
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : 'Failed to remove staff member');
+      toast.error(error instanceof Error ? error.message : 'Failed to remove staff member');
     } finally {
       setActionLoading(false);
     }
@@ -246,79 +221,43 @@ const StaffManagement: React.FC = () => {
     setShowAddForm(false);
     setShowInviteModal(false);
     setEditingStaff(null);
-    setActionError(null);
   };
 
   if (error) {
     return (
       <div className={styles.pageContainer}>
-        <div className={styles.pageHeader}>
-          <div className={styles.headerContent}>
-            <h1>Staff & Volunteer Management</h1>
-          </div>
-        </div>
-
-        <div className={styles.errorState}>
-          <div className={styles.errorIcon}>⚠️</div>
-          <h3 className={styles.errorTitle}>Unable to Load Staff</h3>
-          <p className={styles.errorText}>{error}</p>
-          <button className={styles.retryButton} onClick={refetch}>
-            Try Again
-          </button>
-        </div>
+        <PageHeader title="Staff & Volunteer Management" />
+        <ErrorState title="Unable to Load Staff" message={error} onRetry={refetch} />
       </div>
     );
   }
 
   return (
     <div className={styles.pageContainer}>
-      <div className={styles.pageHeader}>
-        <div className={styles.headerContent}>
-          <h1>Staff & Volunteer Management</h1>
-          <p>Manage your rescue team, send invitations, and coordinate activities.</p>
-        </div>
-
-        {canAddStaff && (
-          <div className={styles.headerActions}>
-            <button
-              className={styles.actionButtonPrimary}
-              onClick={() => setShowInviteModal(true)}
-              disabled={actionLoading}
-            >
-              Invite Staff Member
-            </button>
-            <button
-              className={styles.actionButtonSecondary}
-              onClick={() => setShowAddForm(true)}
-              disabled={actionLoading}
-            >
-              Add Existing User
-            </button>
-          </div>
-        )}
-      </div>
-
-      {actionError && (
-        <div className={styles.alertError}>
-          <span>
-            <strong>Error:</strong> {actionError}
-          </span>
-          <button className={styles.alertClose} onClick={() => setActionError(null)}>
-            ✕
-          </button>
-        </div>
-      )}
-
-      {actionSuccess && (
-        <div className={styles.alertSuccess}>
-          <span>
-            <strong>Success:</strong> {actionSuccess}
-          </span>
-          <button className={styles.alertClose} onClick={() => setActionSuccess(null)}>
-            ✕
-          </button>
-        </div>
-      )}
+      <PageHeader
+        title="Staff & Volunteer Management"
+        description="Manage your rescue team, send invitations, and coordinate activities."
+        actions={
+          canAddStaff ? (
+            <div className={styles.headerActions}>
+              <Button
+                variant="primary"
+                onClick={() => setShowInviteModal(true)}
+                disabled={actionLoading}
+              >
+                Invite Staff Member
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowAddForm(true)}
+                disabled={actionLoading}
+              >
+                Add Existing User
+              </Button>
+            </div>
+          ) : undefined
+        }
+      />
 
       <div className={styles.pageContent}>
         <div className={styles.section}>

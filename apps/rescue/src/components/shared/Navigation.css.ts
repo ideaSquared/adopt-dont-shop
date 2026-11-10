@@ -27,18 +27,9 @@ export const mobileBar = style({
 });
 
 export const mobileMenuButton = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
   width: '44px',
   height: '44px',
-  background: 'transparent',
-  border: 'none',
   color: 'white',
-  fontSize: '1.5rem',
-  lineHeight: 1,
-  cursor: 'pointer',
-  borderRadius: '6px',
   ':hover': {
     background: 'rgba(255, 255, 255, 0.1)',
   },
@@ -54,15 +45,7 @@ export const userInfo = style({
 });
 
 export const userAvatar = style({
-  width: '40px',
-  height: '40px',
-  borderRadius: '50%',
-  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  marginRight: '0.75rem',
-  fontSize: '1.25rem',
+  marginRight: vars.spacing['3'],
 });
 
 export const userDetails = style({
@@ -82,20 +65,9 @@ export const userRole = style({
 });
 
 export const logoutButton = style({
-  background: 'rgba(255, 255, 255, 0.1)',
-  border: '1px solid rgba(255, 255, 255, 0.2)',
   color: 'white',
-  padding: '0.5rem 1rem',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  fontSize: '0.8rem',
-  transition: 'all 0.2s ease',
-  width: '100%',
+  borderColor: 'rgba(255, 255, 255, 0.2)',
   ':hover': {
     background: 'rgba(255, 255, 255, 0.2)',
-  },
-  ':disabled': {
-    opacity: 0.5,
-    cursor: 'not-allowed',
   },
 });
