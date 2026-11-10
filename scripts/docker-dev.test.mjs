@@ -4,7 +4,12 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { resolveComposeFiles, resolveHostIds, resolveProfiles } from './docker-dev.mjs';
+import {
+  composeUpArgs,
+  resolveComposeFiles,
+  resolveHostIds,
+  resolveProfiles,
+} from './docker-dev.mjs';
 
 // resolveProfiles maps the requested `--profile` onto the real compose profiles
 // `pnpm docker:dev` enables. The behaviour that matters to a developer booting
@@ -102,5 +107,45 @@ describe('lib-types-watcher in docker-compose.dev.yml', () => {
     const block = compose.split(/\r?\n {2}lib-types-watcher:\r?\n/)[1].split(/\r?\n\r?\n/)[0];
     expect(block).toMatch(/TSC_WATCHFILE: DynamicPriorityPolling/);
     expect(block).toMatch(/TSC_WATCHDIRECTORY: RecursiveDirectoryUsingDynamicPriorityPolling/);
+  });
+
+  // Services import lib.validation through its dist/ export too. Without a
+  // watcher, a dev stack runs whatever dist/ the host last built, so a schema
+  // added on main is a missing export (or a missing module on a fresh clone).
+  it('compiles lib.validation as well as lib.types', () => {
+    const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+    const compose = readFileSync(join(root, 'docker-compose.dev.yml'), 'utf8');
+    const block = compose.split(/\r?\n {2}lib-types-watcher:\r?\n/)[1].split(/\r?\n\r?\n/)[0];
+    expect(block).toMatch(/--filter @adopt-dont-shop\/lib\.types\b/);
+    expect(block).toMatch(/--filter @adopt-dont-shop\/lib\.validation\b/);
+  });
+});
+
+// Compose carries a container's anonymous volumes over when it recreates it, so
+// after a dependency change the baked node_modules in the new dev image stayed
+// hidden behind the old volumes. A changed image must renew them.
+describe('composeUpArgs', () => {
+  it('renews anonymous volumes when the dev image changed', () => {
+    expect(composeUpArgs(['services'], { detach: false, imageChanged: true })).toContain(
+      '--renew-anon-volumes'
+    );
+  });
+
+  it('keeps anonymous volumes when the dev image is unchanged', () => {
+    expect(composeUpArgs(['services'], { detach: false, imageChanged: false })).not.toContain(
+      '--renew-anon-volumes'
+    );
+  });
+
+  it('never builds, and detaches only when asked', () => {
+    expect(composeUpArgs(['client', 'services'], { detach: true, imageChanged: false })).toEqual([
+      '--profile',
+      'client',
+      '--profile',
+      'services',
+      'up',
+      '--no-build',
+      '-d',
+    ]);
   });
 });

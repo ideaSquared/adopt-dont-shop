@@ -401,21 +401,35 @@ export function resolveProfiles(profile) {
 // heavy per-service Dockerfile build mid-`up` (exactly how service-cms used to
 // slip onto the slow path). It only disables BUILDING — missing infra images
 // (postgres/redis/nats/…) are still pulled automatically.
-function up() {
+//
+// --renew-anon-volumes when the image changed: compose copies a container's
+// anonymous volumes onto its replacement, so without it every per-package
+// node_modules volume keeps the OLD image's deps and a newly added workspace
+// dependency is ERR_MODULE_NOT_FOUND. The dev stack's only anonymous volumes
+// are node_modules paths, so renewing them loses nothing.
+export function composeUpArgs(profiles, { detach, imageChanged }) {
+  return [
+    ...profiles.flatMap(p => ['--profile', p]),
+    'up',
+    '--no-build',
+    ...(imageChanged ? ['--renew-anon-volumes'] : []),
+    ...(detach ? ['-d'] : []),
+  ];
+}
+
+function up(imageChanged) {
   const profiles = resolveProfiles(PROFILE);
   step(`Starting stack (profile: ${profiles.join(', ')}${DETACH ? ', detached' : ''})`);
-  const profileArgs = profiles.flatMap(p => ['--profile', p]);
-  const parts = ['docker compose', ...COMPOSE, ...profileArgs, 'up', '--no-build'];
-  if (DETACH) parts.push('-d');
-  run(parts.join(' '));
+  const args = composeUpArgs(profiles, { detach: DETACH, imageChanged });
+  run(['docker compose', ...COMPOSE, ...args].join(' '));
 }
 
 // Tell the developer what this run will actually do, so "pull from main and
 // keep working" is legible. A source-only pull leaves the image untouched:
 // `up` then recreates only the containers whose compose config changed, because
 // your code is already live under the bind mount. A dependency change rebuilds
-// the shared image, so every app/service container is recreated to pick up the
-// new node_modules.
+// the shared image, so every app/service container is recreated with fresh
+// anonymous node_modules volumes (see composeUpArgs) to pick up the new deps.
 function reportRefreshPlan(imageChanged) {
   if (imageChanged) {
     warn(
@@ -457,7 +471,7 @@ async function main() {
   }
   await checkPostgresVolume();
   reportRefreshPlan(imageChanged);
-  up();
+  up(imageChanged);
   if (DETACH) {
     log('');
     ok('Stack started in background.');

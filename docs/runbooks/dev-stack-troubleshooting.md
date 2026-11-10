@@ -246,14 +246,24 @@ pnpm docker:dev:build
 into `.turbo/.docker-dev-state.json`) — this manual step is for the rare
 case that detection misses (e.g. you edited the lockfile outside git).
 
+When the image changes, `docker-dev.mjs` starts the stack with
+`--renew-anon-volumes`. Without it, compose copies each container's old
+`node_modules` volumes onto its replacement, so the new image's deps stay
+hidden. If you recreate containers by hand after a rebuild, pass the flag
+yourself:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --no-build --renew-anon-volumes
+```
+
 ---
 
 ### 8. Type checker complains about `@adopt-dont-shop/lib.*` missing exports
 
-**Diagnosis.** `lib.types` is special-cased: instead of Vite watch, a
-sidecar container (`lib-types-watcher`) runs `tsc --watch` and writes to
-`packages/lib.types/dist/`. Every other package (including the backend
-services, which import `lib.types` via its built `dist/`, not source)
+**Diagnosis.** `lib.types` and `lib.validation` are special-cased: instead
+of Vite watch, a sidecar container (`lib-types-watcher`) runs `tsc --watch`
+for both and writes to their `dist/`. Every other package (including the
+backend services, which import both via their built `dist/`, not source)
 depends on that sidecar staying up. If it crashed, exited, or was never
 started (e.g. you brought up a partial profile), consumers see stale or
 missing exports.
