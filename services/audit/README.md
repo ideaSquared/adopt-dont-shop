@@ -77,6 +77,10 @@ gated on the `view Audit` ability (admin+). `super_admin` bypasses.
 | `GetReportShareByToken`                                         | none (the share token is the credential)                  |
 | `GetGdprErasureRequest`                                         | `admin.gdpr.read` (or the subject reading their own saga) |
 
+`Query`'s optional `search` matches, case-insensitively and across every page,
+the actor email snapshot, `action` and `aggregate_type` (wildcards escaped), or
+an exact `actor_user_id`. It backs the admin Audit page's search box.
+
 Schema (`audit`): `audit_events` (append-only, PK `event_id`),
 `gdpr_erasure_requests` (saga state per `correlation_id`), `saved_reports`,
 `report_templates`, `saved_report_schedules`, `saved_report_shares`, and

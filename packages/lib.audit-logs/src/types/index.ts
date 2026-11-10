@@ -40,6 +40,8 @@ export type AuditLogFilters = {
   entity?: string;
   level?: AuditLogLevel;
   status?: AuditLogStatus;
+  // Free-text search, matched server-side across every page.
+  search?: string;
   startDate?: string;
   endDate?: string;
   page?: number;

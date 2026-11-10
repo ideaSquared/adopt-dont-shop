@@ -13,6 +13,7 @@ import {
   Stack,
   type DataTableColumn,
   type FilterConfig,
+  useDebouncedValue,
 } from '@adopt-dont-shop/lib.components';
 import { formatCustomDate } from '@adopt-dont-shop/lib.utils';
 import { RefreshCw, Shield, SquarePen, Trash, User } from 'lucide-react';
@@ -46,6 +47,7 @@ const getActionIconClass = (action: string): string => {
 
 const Audit: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
   const [filters, setFilters] = useState({ action: 'all', resource: 'all', status: 'all' });
   const [page, setPage] = useState(1);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
@@ -56,7 +58,7 @@ const Audit: React.FC = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [filters]);
+  }, [filters, debouncedSearchQuery]);
 
   const sevenDaysAgo = useMemo(() => {
     const date = new Date();
@@ -67,9 +69,17 @@ const Audit: React.FC = () => {
   const now = useMemo(() => new Date().toISOString(), []);
 
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['auditLogs', page, filters.action, filters.resource, filters.status],
+    queryKey: [
+      'auditLogs',
+      page,
+      filters.action,
+      filters.resource,
+      filters.status,
+      debouncedSearchQuery,
+    ],
     queryFn: () =>
       AuditLogsService.getAuditLogs({
+        search: debouncedSearchQuery || undefined,
         action: filters.action !== 'all' ? filters.action : undefined,
         entity: filters.resource !== 'all' ? filters.resource : undefined,
         status:
@@ -88,21 +98,6 @@ const Audit: React.FC = () => {
   });
 
   const logs = data?.data || [];
-
-  const filteredLogs = useMemo(() => {
-    if (!searchQuery) {
-      return logs;
-    }
-
-    return logs.filter(log => {
-      const searchLower = searchQuery.toLowerCase();
-      return (
-        (log.userName && log.userName.toLowerCase().includes(searchLower)) ||
-        log.action.toLowerCase().includes(searchLower) ||
-        log.category.toLowerCase().includes(searchLower)
-      );
-    });
-  }, [logs, searchQuery]);
 
   const getActionIcon = (action: string) => {
     switch (action) {
@@ -341,7 +336,7 @@ const Audit: React.FC = () => {
         frameless
         surface
         columns={columns}
-        rows={filteredLogs as unknown as Record<string, unknown>[]}
+        rows={logs as unknown as Record<string, unknown>[]}
         loading={isLoading}
         emptyMessage='No audit logs found matching your criteria'
         page={page}

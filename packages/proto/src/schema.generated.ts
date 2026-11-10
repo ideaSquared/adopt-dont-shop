@@ -2921,6 +2921,17 @@ export const PROTO_SCHEMA: ProtoSchema = {
           sensitivity: 'INTERNAL',
           comment: 'Filter by aggregate type (the "entity" the action targeted).',
         },
+        {
+          name: 'search',
+          jsonName: 'search',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: false,
+          optional: true,
+          sensitivity: 'PII',
+          comment:
+            'Free-text search: case-insensitive substring match on the actor email\nsnapshot, action and aggregate type, or an exact actor user id.',
+        },
       ],
     },
     'adopt_dont_shop.audit.v1.QueryResponse': {

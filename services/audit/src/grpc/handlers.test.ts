@@ -132,6 +132,47 @@ describe('query', () => {
     expect(qmock.mock.calls[0][1]).toEqual(['login', 'user', 11]);
   });
 
+  it('search matches actor email, action and aggregate type case-insensitively, or an exact actor id', async () => {
+    const { deps, query: qmock } = makeDeps([]);
+    await query(deps, makePrincipal(), { search: 'Login', limit: 10 } as AuditQueryRequest);
+    const sql = qmock.mock.calls[0][0] as string;
+    expect(sql).toContain(
+      '(actor_email_snapshot ILIKE $1 OR action ILIKE $1 OR aggregate_type ILIKE $1 OR actor_user_id::text = lower($2))'
+    );
+    expect(qmock.mock.calls[0][1]).toEqual(['%Login%', 'Login', 11]);
+  });
+
+  it('search escapes LIKE wildcards so they match literally', async () => {
+    const { deps, query: qmock } = makeDeps([]);
+    await query(deps, makePrincipal(), { search: '100%_a\\b', limit: 10 } as AuditQueryRequest);
+    expect(qmock.mock.calls[0][1][0]).toBe('%100\\%\\_a\\\\b%');
+  });
+
+  it('search trims the term and ignores a blank one', async () => {
+    const { deps, query: qmock } = makeDeps([]);
+    await query(deps, makePrincipal(), { search: '   ', limit: 10 } as AuditQueryRequest);
+    expect(qmock.mock.calls[0][0]).not.toContain('ILIKE');
+    expect(qmock.mock.calls[0][1]).toEqual([11]);
+  });
+
+  it('page mode: search narrows both the COUNT and the page slice', async () => {
+    const qmock = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [{ total: '3' }] })
+      .mockResolvedValueOnce({ rows: [makeRow()] });
+    const deps = { pool: { query: qmock }, nats: {} } as unknown as HandlerDeps;
+    const res = await query(deps, makePrincipal(), {
+      page: 2,
+      limit: 20,
+      search: ' alice@example.com ',
+    } as AuditQueryRequest);
+    expect(res.total).toBe(3);
+    expect(String(qmock.mock.calls[0][0])).toContain('ILIKE $1');
+    expect(qmock.mock.calls[0][1]).toEqual(['%alice@example.com%', 'alice@example.com']);
+    expect(String(qmock.mock.calls[1][0])).toContain('ILIKE $1');
+    expect(qmock.mock.calls[1][1]).toEqual(['%alice@example.com%', 'alice@example.com', 20, 20]);
+  });
+
   it('page mode: returns a total via COUNT + an OFFSET slice, no cursor', async () => {
     const qmock = vi
       .fn()

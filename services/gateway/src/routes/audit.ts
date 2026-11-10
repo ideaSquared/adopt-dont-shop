@@ -182,6 +182,7 @@ export const registerAuditRoutes = async (
             entity: { type: 'string' },
             level: { type: 'string' },
             status: { type: 'string' },
+            search: { type: 'string' },
             page: { type: 'string' },
             limit: { type: 'string' },
           },
@@ -228,6 +229,7 @@ export const registerAuditRoutes = async (
         outcome: parseOutcome(query.status),
         occurredAtFrom: query.startDate,
         occurredAtTo: query.endDate,
+        search: query.search,
       };
       try {
         const meta = buildMetadata(req);

@@ -27,6 +27,7 @@ import type {
 import { HandlerError, type HandlerDeps } from './adapter.js';
 import { decodeCursor, encodeCursor, InvalidCursorError } from './cursor.js';
 import { outcomeToDb } from './enum-map.js';
+import { escapeLikePattern } from './escape-like.js';
 import { rowToProto, type AuditEventRow } from './mapper.js';
 
 const DEFAULT_LIMIT = 50;
@@ -99,6 +100,18 @@ export async function query(
   if (req.aggregateType !== undefined && req.aggregateType !== '') {
     where.push(`aggregate_type = $${p++}`);
     params.push(req.aggregateType);
+  }
+  // Free-text search over audit's own columns: the actor email snapshot
+  // (what the admin list shows as the user), action and aggregate type, or an
+  // exact actor id. Comparing the id as text avoids a uuid cast error on
+  // arbitrary input.
+  const search = req.search?.trim() ?? '';
+  if (search !== '') {
+    where.push(
+      `(actor_email_snapshot ILIKE $${p} OR action ILIKE $${p} OR aggregate_type ILIKE $${p} OR actor_user_id::text = lower($${p + 1}))`
+    );
+    p += 2;
+    params.push(`%${escapeLikePattern(search)}%`, search);
   }
 
   // Page (offset) mode — the admin audit-logs surface needs a total count

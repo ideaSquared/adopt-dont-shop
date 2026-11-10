@@ -149,6 +149,16 @@ describe('AuditLogsService', () => {
       expect(callArgs).not.toContain('entity=');
       expect(callArgs).not.toContain('level=');
       expect(callArgs).not.toContain('status=');
+      expect(callArgs).not.toContain('search=');
+    });
+
+    it('sends the search term to the server', async () => {
+      mockApi.get.mockResolvedValue(mockResponse);
+
+      await AuditLogsService.getAuditLogs({ search: 'alice@example.com' });
+
+      const callArgs = mockApi.get.mock.calls[0][0];
+      expect(callArgs).toContain('search=alice%40example.com');
     });
 
     it('should calculate 7-day default date range correctly', async () => {
