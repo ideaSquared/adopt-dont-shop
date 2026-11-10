@@ -8,6 +8,8 @@ import { uniqueText } from '../../helpers/factories';
 import { createAvailablePet, expectOk, patchWithCsrf, postWithCsrf } from '../../helpers/seeds';
 import { skipSwipeIntro } from '../../helpers/swipe-intro';
 import { URLS } from '../../playwright.config';
+import { chooseSelectOption } from '../../helpers/radix-select';
+import { auditRowsForUser } from '../../helpers/audit';
 
 const SUSPEND_REASON = 'E2E: confirmed abuse';
 
@@ -68,7 +70,7 @@ test.describe('X-003 report and moderate', () => {
 
       // 3) Admin: suspend an account from the Users page.
       await admin.goto('/users');
-      await admin.getByRole('textbox', { name: /search by name or email/i }).fill(target.email);
+      await admin.getByPlaceholder(/search by name or email/i).fill(target.email);
       await expect(admin.getByRole('row')).toHaveCount(2, { timeout: 15_000 });
       const row = admin.getByRole('row').filter({ hasText: target.email });
       await row.getByRole('cell').filter({ hasText: target.email }).click();
@@ -118,9 +120,8 @@ test.describe('X-003 report and moderate', () => {
       await admin.getByPlaceholder('Search reports...').fill(reportTitle);
       const row = admin.getByRole('row').filter({ hasText: reportTitle });
       await row.getByRole('button', { name: 'Take Action' }).click();
-      // The modal is not a labelled dialog: find it by its form.
-      const modal = admin.locator('form').filter({ has: admin.getByLabel('Action Type *') });
-      await modal.getByLabel('Action Type *').selectOption('warning_issued');
+      const modal = admin.getByRole('dialog', { name: 'Take Moderation Action' });
+      await chooseSelectOption(admin, modal.getByLabel('Action Type'), 'Issue Warning');
       await modal.getByLabel(/^Reason/).fill('E2E: a formal warning');
       await modal.getByRole('button', { name: 'Take Action' }).click();
       await expect(admin.getByText(/error loading reports/i)).toHaveCount(0);
@@ -150,7 +151,7 @@ test.describe('X-003 report and moderate', () => {
       await admin.goto('/audit');
 
       // The page is loaded and lists this user's own sign-in...
-      const entries = admin.getByRole('row').filter({ hasText: `ID: ${userId}` });
+      const entries = auditRowsForUser(admin, userId);
       await expect(entries.filter({ hasText: /login/i })).toBeVisible({ timeout: 30_000 });
       // ...and also an entry for the suspension itself.
       await expect(entries.filter({ hasNotText: /login/i })).toBeVisible();

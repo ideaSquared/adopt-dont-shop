@@ -5,6 +5,7 @@ import { createVerifiedAdopter, loginAccountViaApi } from '../../helpers/account
 import { dismissCookieBannerPatiently } from '../../helpers/cookie-banner-patient';
 import { fetchCsrfToken } from '../../helpers/csrf';
 import { URLS } from '../../playwright.config';
+import { auditRowsForUser } from '../../helpers/audit';
 
 /**
  * The audit log lists who did what and when. Rows are created by signing a
@@ -54,7 +55,7 @@ test.describe('admin audit log', () => {
     await chooseFilter(page, 'All Resources', 'User');
     await searchAuditBy(page, account.email);
 
-    const entry = page.getByRole('row').filter({ hasText: `ID: ${userId}` });
+    const entry = auditRowsForUser(page, userId);
     await expect(entry).toHaveCount(1, { timeout: 15_000 });
     await expect(entry).toContainText('login User');
     await expect(entry).toContainText(account.email);
@@ -63,7 +64,7 @@ test.describe('admin audit log', () => {
 
     // Narrowing by a different action removes it again.
     await chooseFilter(page, 'Login', 'Logout');
-    await expect(page.getByRole('row').filter({ hasText: `ID: ${userId}` })).toHaveCount(0, {
+    await expect(auditRowsForUser(page, userId)).toHaveCount(0, {
       timeout: 15_000,
     });
   });

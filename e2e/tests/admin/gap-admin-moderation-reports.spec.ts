@@ -5,6 +5,7 @@ import { createVerifiedAdopter, loginAccountViaApi } from '../../helpers/account
 import { dismissCookieBannerPatiently } from '../../helpers/cookie-banner-patient';
 import { uniqueText } from '../../helpers/factories';
 import { createAvailablePet, expectOk, postWithCsrf } from '../../helpers/seeds';
+import { chooseSelectOption } from '../../helpers/radix-select';
 
 /**
  * Reports raised by adopters reach the admin moderation queue (ADM-071) and an
@@ -101,7 +102,7 @@ test.describe('closing out a report (ADM-072)', () => {
     await expect(row.getByRole('button', { name: 'Take Action' })).toHaveCount(0);
 
     await page.reload();
-    await page.getByLabel('Status', { exact: true }).selectOption('dismissed');
+    await chooseSelectOption(page, page.getByLabel('Status', { exact: true }), 'Dismissed');
     await page.getByPlaceholder('Search reports...').fill(title);
     await expect(page.getByRole('row').filter({ hasText: title })).toHaveCount(1, {
       timeout: 30_000,
@@ -119,9 +120,8 @@ test.describe('closing out a report (ADM-072)', () => {
 
     const row = await findReport(page, title);
     await row.getByRole('button', { name: 'Take Action' }).click();
-    // The modal is not a labelled dialog: find it by its form.
-    const modal = page.locator('form').filter({ has: page.getByLabel('Action Type *') });
-    await modal.getByLabel('Action Type *').selectOption('warning_issued');
+    const modal = page.getByRole('dialog', { name: 'Take Moderation Action' });
+    await chooseSelectOption(page, modal.getByLabel('Action Type'), 'Issue Warning');
     await modal.getByLabel(/^Reason/).fill(actionReason);
     await modal.getByRole('button', { name: 'Take Action' }).click();
 

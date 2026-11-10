@@ -19,7 +19,7 @@ test.describe('suspending a user in the admin app', () => {
 
     await page.goto('/users');
     await dismissCookieBannerWhenShown(page);
-    await page.getByRole('textbox', { name: /search by name or email/i }).fill(target.email);
+    await page.getByPlaceholder(/search by name or email/i).fill(target.email);
     const row = page.getByRole('row').filter({ hasText: target.email });
     // Wait for the debounced search to settle (header row + the one match):
     // its refetch re-renders the table and the detail panel.
