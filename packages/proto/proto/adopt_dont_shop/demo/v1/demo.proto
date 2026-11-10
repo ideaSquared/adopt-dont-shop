@@ -18,6 +18,16 @@ service DemoService {
   // Remove a rescue made by CreateRescue: soft-delete its pets and the
   // rescue, then deactivate its owner. Refuses rescues it did not create.
   rpc DeleteRescue(DeleteRescueRequest) returns (DeleteRescueResponse);
+
+  // Create a demo adopter and a submitted adoption application from them for
+  // one of a rescue's available pets, optionally moved on to a later stage.
+  // The adopter's generated password is returned once in the response.
+  rpc CreateApplication(CreateApplicationRequest) returns (CreateApplicationResponse);
+
+  // Remove an application made by CreateApplication: withdraw it, then
+  // deactivate its demo adopter. Refuses applications whose adopter is not a
+  // generated demo account.
+  rpc DeleteApplication(DeleteApplicationRequest) returns (DeleteApplicationResponse);
 }
 
 message CreateRescueRequest {
@@ -49,4 +59,44 @@ message DeleteRescueResponse {
   string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   repeated string deleted_pet_ids = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   repeated string deactivated_user_ids = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+}
+
+message CreateApplicationRequest {
+  // The rescue the application goes to.
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  // A pet of that rescue. Defaults to the rescue's first available pet.
+  optional string pet_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  // Where to leave the application: submitted (default), under_review,
+  // home_visit_scheduled, home_visit_completed, approved or rejected.
+  optional string stage = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+}
+
+message CreateApplicationResponse {
+  string application_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string adopter_user_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  // A generated demo-<id>@example.com address, not a real person's.
+  string adopter_email = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  // The adopter's generated password. service.ops shows it once, in the
+  // execute result only.
+  string adopter_password = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
+  string pet_id = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string stage = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  // Where to look and what to do next.
+  string next_steps = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+}
+
+message DeleteApplicationRequest {
+  string application_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  // The rescue the application belongs to. Needed because the applications
+  // service only shows a submitted application to staff scoped to its rescue.
+  string rescue_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+}
+
+message DeleteApplicationResponse {
+  string application_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  // "withdrawn", or "left as is" when the application was already decided
+  // (approved, rejected, withdrawn or adopted) and cannot be withdrawn.
+  string action = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  string status = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  repeated string deactivated_user_ids = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }

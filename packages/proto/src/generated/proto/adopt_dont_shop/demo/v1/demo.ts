@@ -56,6 +56,56 @@ export interface DeleteRescueResponse {
   deactivatedUserIds: string[];
 }
 
+export interface CreateApplicationRequest {
+  /** The rescue the application goes to. */
+  rescueId: string;
+  /** A pet of that rescue. Defaults to the rescue's first available pet. */
+  petId?:
+    | string
+    | undefined;
+  /**
+   * Where to leave the application: submitted (default), under_review,
+   * home_visit_scheduled, home_visit_completed, approved or rejected.
+   */
+  stage?: string | undefined;
+}
+
+export interface CreateApplicationResponse {
+  applicationId: string;
+  adopterUserId: string;
+  /** A generated demo-<id>@example.com address, not a real person's. */
+  adopterEmail: string;
+  /**
+   * The adopter's generated password. service.ops shows it once, in the
+   * execute result only.
+   */
+  adopterPassword: string;
+  petId: string;
+  stage: string;
+  /** Where to look and what to do next. */
+  nextSteps: string;
+}
+
+export interface DeleteApplicationRequest {
+  applicationId: string;
+  /**
+   * The rescue the application belongs to. Needed because the applications
+   * service only shows a submitted application to staff scoped to its rescue.
+   */
+  rescueId: string;
+}
+
+export interface DeleteApplicationResponse {
+  applicationId: string;
+  /**
+   * "withdrawn", or "left as is" when the application was already decided
+   * (approved, rejected, withdrawn or adopted) and cannot be withdrawn.
+   */
+  action: string;
+  status: string;
+  deactivatedUserIds: string[];
+}
+
 function createBaseCreateRescueRequest(): CreateRescueRequest {
   return { name: undefined, petCount: undefined };
 }
@@ -496,6 +546,494 @@ export const DeleteRescueResponse: MessageFns<DeleteRescueResponse> = {
   },
 };
 
+function createBaseCreateApplicationRequest(): CreateApplicationRequest {
+  return { rescueId: "", petId: undefined, stage: undefined };
+}
+
+export const CreateApplicationRequest: MessageFns<CreateApplicationRequest> = {
+  encode(message: CreateApplicationRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rescueId !== "") {
+      writer.uint32(10).string(message.rescueId);
+    }
+    if (message.petId !== undefined) {
+      writer.uint32(18).string(message.petId);
+    }
+    if (message.stage !== undefined) {
+      writer.uint32(26).string(message.stage);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateApplicationRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreateApplicationRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.petId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.stage = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreateApplicationRequest {
+    return {
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+        ? globalThis.String(object.rescue_id)
+        : "",
+      petId: isSet(object.petId)
+        ? globalThis.String(object.petId)
+        : isSet(object.pet_id)
+        ? globalThis.String(object.pet_id)
+        : undefined,
+      stage: isSet(object.stage) ? globalThis.String(object.stage) : undefined,
+    };
+  },
+
+  toJSON(message: CreateApplicationRequest): unknown {
+    const obj: any = {};
+    if (message.rescueId !== "") {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.petId !== undefined) {
+      obj.petId = message.petId;
+    }
+    if (message.stage !== undefined) {
+      obj.stage = message.stage;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CreateApplicationRequest>, I>>(base?: I): CreateApplicationRequest {
+    return CreateApplicationRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CreateApplicationRequest>, I>>(object: I): CreateApplicationRequest {
+    const message = createBaseCreateApplicationRequest();
+    message.rescueId = object.rescueId ?? "";
+    message.petId = object.petId ?? undefined;
+    message.stage = object.stage ?? undefined;
+    return message;
+  },
+};
+
+function createBaseCreateApplicationResponse(): CreateApplicationResponse {
+  return {
+    applicationId: "",
+    adopterUserId: "",
+    adopterEmail: "",
+    adopterPassword: "",
+    petId: "",
+    stage: "",
+    nextSteps: "",
+  };
+}
+
+export const CreateApplicationResponse: MessageFns<CreateApplicationResponse> = {
+  encode(message: CreateApplicationResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.applicationId !== "") {
+      writer.uint32(10).string(message.applicationId);
+    }
+    if (message.adopterUserId !== "") {
+      writer.uint32(18).string(message.adopterUserId);
+    }
+    if (message.adopterEmail !== "") {
+      writer.uint32(26).string(message.adopterEmail);
+    }
+    if (message.adopterPassword !== "") {
+      writer.uint32(34).string(message.adopterPassword);
+    }
+    if (message.petId !== "") {
+      writer.uint32(42).string(message.petId);
+    }
+    if (message.stage !== "") {
+      writer.uint32(50).string(message.stage);
+    }
+    if (message.nextSteps !== "") {
+      writer.uint32(58).string(message.nextSteps);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateApplicationResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreateApplicationResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.applicationId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.adopterUserId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.adopterEmail = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.adopterPassword = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.petId = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.stage = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.nextSteps = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreateApplicationResponse {
+    return {
+      applicationId: isSet(object.applicationId)
+        ? globalThis.String(object.applicationId)
+        : isSet(object.application_id)
+        ? globalThis.String(object.application_id)
+        : "",
+      adopterUserId: isSet(object.adopterUserId)
+        ? globalThis.String(object.adopterUserId)
+        : isSet(object.adopter_user_id)
+        ? globalThis.String(object.adopter_user_id)
+        : "",
+      adopterEmail: isSet(object.adopterEmail)
+        ? globalThis.String(object.adopterEmail)
+        : isSet(object.adopter_email)
+        ? globalThis.String(object.adopter_email)
+        : "",
+      adopterPassword: isSet(object.adopterPassword)
+        ? globalThis.String(object.adopterPassword)
+        : isSet(object.adopter_password)
+        ? globalThis.String(object.adopter_password)
+        : "",
+      petId: isSet(object.petId)
+        ? globalThis.String(object.petId)
+        : isSet(object.pet_id)
+        ? globalThis.String(object.pet_id)
+        : "",
+      stage: isSet(object.stage) ? globalThis.String(object.stage) : "",
+      nextSteps: isSet(object.nextSteps)
+        ? globalThis.String(object.nextSteps)
+        : isSet(object.next_steps)
+        ? globalThis.String(object.next_steps)
+        : "",
+    };
+  },
+
+  toJSON(message: CreateApplicationResponse): unknown {
+    const obj: any = {};
+    if (message.applicationId !== "") {
+      obj.applicationId = message.applicationId;
+    }
+    if (message.adopterUserId !== "") {
+      obj.adopterUserId = message.adopterUserId;
+    }
+    if (message.adopterEmail !== "") {
+      obj.adopterEmail = message.adopterEmail;
+    }
+    if (message.adopterPassword !== "") {
+      obj.adopterPassword = message.adopterPassword;
+    }
+    if (message.petId !== "") {
+      obj.petId = message.petId;
+    }
+    if (message.stage !== "") {
+      obj.stage = message.stage;
+    }
+    if (message.nextSteps !== "") {
+      obj.nextSteps = message.nextSteps;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CreateApplicationResponse>, I>>(base?: I): CreateApplicationResponse {
+    return CreateApplicationResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CreateApplicationResponse>, I>>(object: I): CreateApplicationResponse {
+    const message = createBaseCreateApplicationResponse();
+    message.applicationId = object.applicationId ?? "";
+    message.adopterUserId = object.adopterUserId ?? "";
+    message.adopterEmail = object.adopterEmail ?? "";
+    message.adopterPassword = object.adopterPassword ?? "";
+    message.petId = object.petId ?? "";
+    message.stage = object.stage ?? "";
+    message.nextSteps = object.nextSteps ?? "";
+    return message;
+  },
+};
+
+function createBaseDeleteApplicationRequest(): DeleteApplicationRequest {
+  return { applicationId: "", rescueId: "" };
+}
+
+export const DeleteApplicationRequest: MessageFns<DeleteApplicationRequest> = {
+  encode(message: DeleteApplicationRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.applicationId !== "") {
+      writer.uint32(10).string(message.applicationId);
+    }
+    if (message.rescueId !== "") {
+      writer.uint32(18).string(message.rescueId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteApplicationRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteApplicationRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.applicationId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteApplicationRequest {
+    return {
+      applicationId: isSet(object.applicationId)
+        ? globalThis.String(object.applicationId)
+        : isSet(object.application_id)
+        ? globalThis.String(object.application_id)
+        : "",
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+        ? globalThis.String(object.rescue_id)
+        : "",
+    };
+  },
+
+  toJSON(message: DeleteApplicationRequest): unknown {
+    const obj: any = {};
+    if (message.applicationId !== "") {
+      obj.applicationId = message.applicationId;
+    }
+    if (message.rescueId !== "") {
+      obj.rescueId = message.rescueId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteApplicationRequest>, I>>(base?: I): DeleteApplicationRequest {
+    return DeleteApplicationRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteApplicationRequest>, I>>(object: I): DeleteApplicationRequest {
+    const message = createBaseDeleteApplicationRequest();
+    message.applicationId = object.applicationId ?? "";
+    message.rescueId = object.rescueId ?? "";
+    return message;
+  },
+};
+
+function createBaseDeleteApplicationResponse(): DeleteApplicationResponse {
+  return { applicationId: "", action: "", status: "", deactivatedUserIds: [] };
+}
+
+export const DeleteApplicationResponse: MessageFns<DeleteApplicationResponse> = {
+  encode(message: DeleteApplicationResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.applicationId !== "") {
+      writer.uint32(10).string(message.applicationId);
+    }
+    if (message.action !== "") {
+      writer.uint32(18).string(message.action);
+    }
+    if (message.status !== "") {
+      writer.uint32(26).string(message.status);
+    }
+    for (const v of message.deactivatedUserIds) {
+      writer.uint32(34).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteApplicationResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteApplicationResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.applicationId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.action = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.status = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.deactivatedUserIds.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteApplicationResponse {
+    return {
+      applicationId: isSet(object.applicationId)
+        ? globalThis.String(object.applicationId)
+        : isSet(object.application_id)
+        ? globalThis.String(object.application_id)
+        : "",
+      action: isSet(object.action) ? globalThis.String(object.action) : "",
+      status: isSet(object.status) ? globalThis.String(object.status) : "",
+      deactivatedUserIds: globalThis.Array.isArray(object?.deactivatedUserIds)
+        ? object.deactivatedUserIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.deactivated_user_ids)
+        ? object.deactivated_user_ids.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: DeleteApplicationResponse): unknown {
+    const obj: any = {};
+    if (message.applicationId !== "") {
+      obj.applicationId = message.applicationId;
+    }
+    if (message.action !== "") {
+      obj.action = message.action;
+    }
+    if (message.status !== "") {
+      obj.status = message.status;
+    }
+    if (message.deactivatedUserIds?.length) {
+      obj.deactivatedUserIds = message.deactivatedUserIds;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteApplicationResponse>, I>>(base?: I): DeleteApplicationResponse {
+    return DeleteApplicationResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteApplicationResponse>, I>>(object: I): DeleteApplicationResponse {
+    const message = createBaseDeleteApplicationResponse();
+    message.applicationId = object.applicationId ?? "";
+    message.action = object.action ?? "";
+    message.status = object.status ?? "";
+    message.deactivatedUserIds = object.deactivatedUserIds?.map((e) => e) || [];
+    return message;
+  },
+};
+
 /**
  * DemoService creates and removes throwaway rescues for testing in dev and
  * staging. No service process serves it over gRPC: service.ops handles it
@@ -534,6 +1072,38 @@ export const DemoServiceService = {
       Buffer.from(DeleteRescueResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): DeleteRescueResponse => DeleteRescueResponse.decode(value),
   },
+  /**
+   * Create a demo adopter and a submitted adoption application from them for
+   * one of a rescue's available pets, optionally moved on to a later stage.
+   * The adopter's generated password is returned once in the response.
+   */
+  createApplication: {
+    path: "/adopt_dont_shop.demo.v1.DemoService/CreateApplication" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: CreateApplicationRequest): Buffer =>
+      Buffer.from(CreateApplicationRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CreateApplicationRequest => CreateApplicationRequest.decode(value),
+    responseSerialize: (value: CreateApplicationResponse): Buffer =>
+      Buffer.from(CreateApplicationResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CreateApplicationResponse => CreateApplicationResponse.decode(value),
+  },
+  /**
+   * Remove an application made by CreateApplication: withdraw it, then
+   * deactivate its demo adopter. Refuses applications whose adopter is not a
+   * generated demo account.
+   */
+  deleteApplication: {
+    path: "/adopt_dont_shop.demo.v1.DemoService/DeleteApplication" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: DeleteApplicationRequest): Buffer =>
+      Buffer.from(DeleteApplicationRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): DeleteApplicationRequest => DeleteApplicationRequest.decode(value),
+    responseSerialize: (value: DeleteApplicationResponse): Buffer =>
+      Buffer.from(DeleteApplicationResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): DeleteApplicationResponse => DeleteApplicationResponse.decode(value),
+  },
 } as const;
 
 export interface DemoServiceServer extends UntypedServiceImplementation {
@@ -547,6 +1117,18 @@ export interface DemoServiceServer extends UntypedServiceImplementation {
    * rescue, then deactivate its owner. Refuses rescues it did not create.
    */
   deleteRescue: handleUnaryCall<DeleteRescueRequest, DeleteRescueResponse>;
+  /**
+   * Create a demo adopter and a submitted adoption application from them for
+   * one of a rescue's available pets, optionally moved on to a later stage.
+   * The adopter's generated password is returned once in the response.
+   */
+  createApplication: handleUnaryCall<CreateApplicationRequest, CreateApplicationResponse>;
+  /**
+   * Remove an application made by CreateApplication: withdraw it, then
+   * deactivate its demo adopter. Refuses applications whose adopter is not a
+   * generated demo account.
+   */
+  deleteApplication: handleUnaryCall<DeleteApplicationRequest, DeleteApplicationResponse>;
 }
 
 export interface DemoServiceClient extends Client {
@@ -587,6 +1169,46 @@ export interface DemoServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: DeleteRescueResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Create a demo adopter and a submitted adoption application from them for
+   * one of a rescue's available pets, optionally moved on to a later stage.
+   * The adopter's generated password is returned once in the response.
+   */
+  createApplication(
+    request: CreateApplicationRequest,
+    callback: (error: ServiceError | null, response: CreateApplicationResponse) => void,
+  ): ClientUnaryCall;
+  createApplication(
+    request: CreateApplicationRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: CreateApplicationResponse) => void,
+  ): ClientUnaryCall;
+  createApplication(
+    request: CreateApplicationRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: CreateApplicationResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Remove an application made by CreateApplication: withdraw it, then
+   * deactivate its demo adopter. Refuses applications whose adopter is not a
+   * generated demo account.
+   */
+  deleteApplication(
+    request: DeleteApplicationRequest,
+    callback: (error: ServiceError | null, response: DeleteApplicationResponse) => void,
+  ): ClientUnaryCall;
+  deleteApplication(
+    request: DeleteApplicationRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: DeleteApplicationResponse) => void,
+  ): ClientUnaryCall;
+  deleteApplication(
+    request: DeleteApplicationRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: DeleteApplicationResponse) => void,
   ): ClientUnaryCall;
 }
 
