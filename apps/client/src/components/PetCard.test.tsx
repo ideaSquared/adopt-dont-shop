@@ -30,6 +30,24 @@ const makePet = (overrides: Partial<Pet> = {}): Pet =>
     ...overrides,
   }) as Pet;
 
+describe('PetCard status', () => {
+  it.each([
+    ['available', 'Available'],
+    ['on_hold', 'On Hold'],
+    ['medical_care', 'Medical Care'],
+  ])('labels a %s pet as %s', (status, label) => {
+    render(<PetCard pet={makePet({ status })} />);
+
+    expect(screen.getByRole('status')).toHaveTextContent(label);
+  });
+
+  it('labels a pet with no status as Unknown', () => {
+    render(<PetCard pet={makePet({ status: undefined })} />);
+
+    expect(screen.getByRole('status')).toHaveTextContent('Unknown');
+  });
+});
+
 describe('PetCard distance', () => {
   it('shows miles to one decimal place, including whole numbers', () => {
     render(<PetCard pet={makePet({ distance: 5 })} />);

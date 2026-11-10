@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card } from '@adopt-dont-shop/lib.components';
+import { formatCurrency } from '@adopt-dont-shop/lib.utils';
 import { CircleCheck, DollarSign, House, PawPrint, Users } from 'lucide-react';
 import * as styles from './AdoptionPoliciesDisplay.css';
 
@@ -46,13 +47,6 @@ export const AdoptionPoliciesDisplay: React.FC<AdoptionPoliciesDisplayProps> = (
       </Card>
     );
   }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP',
-    }).format(amount);
-  };
 
   return (
     <Card className={styles.policyCard}>
