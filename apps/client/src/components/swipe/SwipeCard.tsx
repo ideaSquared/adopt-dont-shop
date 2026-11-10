@@ -76,11 +76,6 @@ const getMatchTier = (score: number | null): MatchTier | null => {
   return { label: 'Great Match', variant: 'match' };
 };
 
-// The backend phrases this label as "Pets like <name> adopted in <30 days", which
-// overflows the card for long names. Show a short, name-free line instead.
-const activityLabelText = (label: { kind: string; text: string }): string =>
-  label.kind === 'similar_adopted_fast' ? 'Pets like this get adopted fast' : label.text;
-
 export const SwipeCard: React.FC<SwipeCardProps> = ({
   pet,
   onSwipe,
@@ -436,7 +431,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
                 data-testid='activity-label'
                 data-label-kind={pet.activityLabel.kind}
               >
-                {pet.activityLabel.icon ?? ''} {activityLabelText(pet.activityLabel)}
+                {pet.activityLabel.icon ?? ''} {pet.activityLabel.text}
               </span>
             )}
             {pet.matchReasons && pet.matchReasons.length > 0 && (

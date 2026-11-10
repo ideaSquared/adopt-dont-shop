@@ -53,26 +53,6 @@ describe('SwipeCard — activity label (ADS-632)', () => {
     expect(label).toHaveAttribute('data-label-kind', 'views_today');
   });
 
-  it('shows short name-free copy for the similar-pets-adopted-fast label', () => {
-    renderWithProviders(
-      <SwipeCard
-        pet={makePet({
-          name: 'Sir Reginald Fluffington the Third',
-          activityLabel: {
-            kind: 'similar_adopted_fast',
-            text: 'Pets like Sir Reginald Fluffington the Third adopted in <30 days',
-          },
-        })}
-        onSwipe={vi.fn()}
-        isTop
-        zIndex={1}
-      />
-    );
-    expect(screen.getByTestId('activity-label')).toHaveTextContent(
-      'Pets like this get adopted fast'
-    );
-  });
-
   it('logs card_activity_label_shown when the card is on top', () => {
     renderWithProviders(
       <SwipeCard
@@ -97,7 +77,7 @@ describe('SwipeCard — activity label (ADS-632)', () => {
         pet={makePet({
           activityLabel: {
             kind: 'similar_adopted_fast',
-            text: 'Pets like Buddy adopted in <30 days',
+            text: 'Pets like this get adopted fast',
           },
         })}
         onSwipe={vi.fn()}

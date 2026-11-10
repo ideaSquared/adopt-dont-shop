@@ -560,7 +560,7 @@ async function similarAdoptedLabels(
         pet.petId,
         {
           kind: 'similar_adopted_fast',
-          text: `Pets like ${pet.name} adopted in <${SIMILAR_ADOPTED_MAX_MEDIAN_DAYS} days`,
+          text: 'Pets like this get adopted fast',
         },
       ])
   );
