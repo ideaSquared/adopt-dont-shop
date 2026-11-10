@@ -57,6 +57,18 @@ describe('BulkActionBar (ADS-642)', () => {
     expect(container.firstChild).toBeNull();
   });
 
+  it('groups its controls in a labelled toolbar', () => {
+    render(
+      <BulkActionBar
+        selectedApplications={[buildApp({ id: 'a' })]}
+        onClearSelection={onClearSelection}
+        onBulkAction={onBulkAction}
+      />
+    );
+    const toolbar = screen.getByRole('toolbar', { name: 'Bulk actions' });
+    expect(within(toolbar).getByRole('button', { name: 'Approve' })).toBeInTheDocument();
+  });
+
   it('shows the stage-aware action buttons when at least one row is selected', () => {
     render(
       <BulkActionBar
