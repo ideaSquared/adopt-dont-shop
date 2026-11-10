@@ -41,7 +41,7 @@ export const PET_STATUS_VARIANTS: Readonly<Record<PetStatus, StatusBadgeVariant>
   available: 'success',
   pending: 'warning',
   adopted: 'info',
-  foster: 'info',
+  foster: 'neutral',
   medical_hold: 'neutral',
   behavioral_hold: 'neutral',
   on_hold: 'warning',
