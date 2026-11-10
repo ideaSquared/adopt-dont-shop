@@ -7,13 +7,17 @@
 
 import type { UserId } from '@adopt-dont-shop/lib.types';
 
-// chat.messageCreated — service.chat publishes after a message lands.
-// Used for auto-report triggers on inappropriate text content.
+// chat.messageCreated — service.chat publishes after a message lands
+// (sendMessage in services/chat/src/grpc/handlers.ts). Used for
+// auto-report triggers on inappropriate text content. Field names match
+// the producer's payload; it also carries attachments and
+// participantUserIds, which moderation does not read.
 export type ChatMessageCreatedEvent = {
   messageId: string;
   chatId: string;
-  senderId: UserId;
-  content: string;
+  senderUserId: UserId;
+  // Empty for an image-only message.
+  body: string;
 };
 
 // pets.created — service.pets publishes after a new pet record is

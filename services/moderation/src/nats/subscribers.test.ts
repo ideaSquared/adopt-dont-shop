@@ -84,11 +84,14 @@ describe('registerSubscribers', () => {
     registerSubscribers({ nats, deps, logger });
 
     // 'go kill yourself' is a harassment term → high severity in the scanner.
+    // The payload is the exact shape service.chat's sendMessage publishes.
     await handlerFor('chat.messageCreated')({
       messageId: 'msg-1',
       chatId: 'chat-1',
-      senderId: 'usr-sender',
-      content: 'go kill yourself',
+      senderUserId: 'usr-sender',
+      body: 'go kill yourself',
+      attachments: [],
+      participantUserIds: ['usr-sender', 'usr-rescue'],
     });
 
     expect(fileReportMock).toHaveBeenCalledTimes(1);
@@ -102,6 +105,8 @@ describe('registerSubscribers', () => {
     expect(principal).toBe(SYSTEM_PRINCIPAL);
     expect(req.reportedEntityType).toBe(ModerationV1.ReportEntityType.REPORT_ENTITY_TYPE_MESSAGE);
     expect(req.reportedEntityId).toBe('msg-1');
+    expect(req.reportedUserId).toBe('usr-sender');
+    expect(req.description).toContain('go kill yourself');
     expect(req.category).toBe(ModerationV1.ReportCategory.REPORT_CATEGORY_HARASSMENT);
     expect(req.severity).toBe(ModerationV1.Severity.SEVERITY_HIGH);
   });
@@ -164,8 +169,10 @@ describe('registerSubscribers', () => {
     const event = {
       messageId: 'msg-dup',
       chatId: 'chat-1',
-      senderId: 'usr-sender',
-      content: 'go kill yourself',
+      senderUserId: 'usr-sender',
+      body: 'go kill yourself',
+      attachments: [],
+      participantUserIds: ['usr-sender'],
     };
 
     await handlerFor('chat.messageCreated')(event);
