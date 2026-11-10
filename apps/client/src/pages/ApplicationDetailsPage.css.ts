@@ -4,10 +4,10 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 export const container = style({
   maxWidth: '800px',
   margin: '0 auto',
-  padding: '2rem',
+  padding: vars.spacing['5'],
   '@media': {
     '(max-width: 768px)': {
-      padding: '1rem',
+      padding: vars.spacing['3'],
     },
   },
 });
@@ -16,26 +16,26 @@ export const messageRescueRow = style({
   display: 'flex',
   flexDirection: 'column',
   gap: '0.75rem',
-  marginBottom: '2rem',
+  marginBottom: vars.spacing['5'],
 });
 
 export const section = style({
   background: vars.background.surface,
   border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '12px',
-  padding: '2rem',
-  marginBottom: '2rem',
+  borderRadius: vars.border.radius.lg,
+  padding: vars.spacing['5'],
+  marginBottom: vars.spacing['5'],
 });
 
 export const sectionTitle = style({
-  fontSize: '1.25rem',
+  fontSize: vars.typography.size.xl,
   color: vars.text.primary,
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const infoGrid = style({
   display: 'grid',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const infoItem = style({
@@ -52,7 +52,7 @@ export const infoItem = style({
 });
 
 export const infoLabel = style({
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
   color: vars.text.tertiary,
   minWidth: '120px',
 });
@@ -65,8 +65,8 @@ export const infoValue = style({
 
 export const buttonGroup = style({
   display: 'flex',
-  gap: '1rem',
-  marginTop: '2rem',
+  gap: vars.spacing['3'],
+  marginTop: vars.spacing['5'],
 });
 
 export const withdrawButton = style({

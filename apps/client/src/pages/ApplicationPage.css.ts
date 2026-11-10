@@ -1,12 +1,13 @@
 import { style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const container = style({
   maxWidth: '800px',
   margin: '0 auto',
-  padding: '2rem',
+  padding: vars.spacing['5'],
   '@media': {
     '(max-width: 768px)': {
-      padding: '1rem',
+      padding: vars.spacing['3'],
     },
   },
 });
@@ -19,9 +20,9 @@ export const loadingContainer = style({
 });
 
 export const backToSearchButton = style({
-  marginTop: '1rem',
+  marginTop: vars.spacing['3'],
 });
 
 export const sectionAlert = style({
-  marginBottom: '2rem',
+  marginBottom: vars.spacing['5'],
 });

@@ -6,12 +6,12 @@ import { recipe } from '@vanilla-extract/recipes';
 export const container = style({
   maxWidth: '800px',
   margin: '0 auto',
-  padding: '2rem',
+  padding: vars.spacing['5'],
 });
 
 export const notificationCard = recipe({
   base: {
-    marginBottom: '1rem',
+    marginBottom: vars.spacing['3'],
     cursor: 'pointer',
     ':hover': {
       transform: 'translateY(-2px)',
@@ -33,22 +33,22 @@ export const notificationCard = recipe({
 });
 
 export const notificationContent = style({
-  padding: '1rem',
+  padding: vars.spacing['3'],
 });
 
 globalStyle(`${notificationContent} .title`, {
-  fontWeight: '600',
-  marginBottom: '0.5rem',
+  fontWeight: vars.typography.weight.semibold,
+  marginBottom: vars.spacing['2'],
   color: vars.text.primary,
 });
 
 globalStyle(`${notificationContent} .message`, {
   color: vars.text.tertiary,
-  marginBottom: '0.5rem',
+  marginBottom: vars.spacing['2'],
 });
 
 globalStyle(`${notificationContent} .timestamp`, {
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: vars.text.muted,
 });
 

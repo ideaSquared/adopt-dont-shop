@@ -28,7 +28,7 @@ export const identity = style({
 });
 
 export const name = style({
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
 });
 

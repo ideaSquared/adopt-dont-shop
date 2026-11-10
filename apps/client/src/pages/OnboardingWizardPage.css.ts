@@ -7,7 +7,7 @@ export const container = style({
   display: 'flex',
   alignItems: 'flex-start',
   justifyContent: 'center',
-  padding: '2rem 1rem 6rem',
+  padding: `${vars.spacing['5']} ${vars.spacing['3']} ${vars.spacing['8']}`,
   background: `linear-gradient(135deg, ${vars.background.surface} 0%, ${vars.background.body} 100%)`,
 });
 
@@ -18,12 +18,12 @@ export const card = style({
 });
 
 export const header = style({
-  marginBottom: '2rem',
+  marginBottom: vars.spacing['5'],
   textAlign: 'center',
 });
 
 export const heroIcon = style({
-  fontSize: '3rem',
+  fontSize: vars.typography.size['5xl'],
   lineHeight: 1,
   marginBottom: '0.75rem',
   display: 'inline-block',
@@ -31,28 +31,28 @@ export const heroIcon = style({
 
 globalStyle(`${header} h1`, {
   fontSize: '2rem',
-  marginBottom: '0.5rem',
+  marginBottom: vars.spacing['2'],
   color: vars.text.primary,
 });
 
 globalStyle(`${header} p`, {
   color: vars.text.tertiary,
   lineHeight: '1.6',
-  fontSize: '1rem',
+  fontSize: vars.typography.size.base,
   margin: 0,
 });
 
 export const stepper = style({
-  marginBottom: '2rem',
+  marginBottom: vars.spacing['5'],
 });
 
 export const section = style({
-  marginBottom: '2rem',
+  marginBottom: vars.spacing['5'],
 });
 
 globalStyle(`${section} h3`, {
   fontSize: '1.05rem',
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
   marginBottom: '0.75rem',
   color: vars.text.primary,
 });
@@ -66,7 +66,7 @@ globalStyle(`${section} p.hint`, {
 export const chipGroup = style({
   display: 'flex',
   flexWrap: 'wrap',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const chip = style({
@@ -104,7 +104,7 @@ export const chipSelected = style({
   background: vars.colors.primaryBgSubtle,
   borderColor: vars.colors.primary,
   color: vars.colors.primaryTextEmphasis,
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
 });
 
 export const srInput = style({
@@ -133,7 +133,7 @@ export const tile = style({
   gap: '0.35rem',
   padding: '1rem 0.75rem',
   border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '0.75rem',
+  borderRadius: vars.border.radius.lg,
   cursor: 'pointer',
   fontSize: '0.9rem',
   background: vars.background.surface,
@@ -157,7 +157,7 @@ export const tileSelected = style({
   background: vars.colors.primaryBgSubtle,
   borderColor: vars.colors.primary,
   color: vars.colors.primaryTextEmphasis,
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
 });
 
 export const tileIcon = style({
@@ -169,7 +169,7 @@ export const sliderField = style({
   display: 'flex',
   flexDirection: 'column',
   gap: '0.6rem',
-  marginTop: '0.25rem',
+  marginTop: vars.spacing['1'],
 });
 
 export const sliderHeader = style({
@@ -181,8 +181,8 @@ export const sliderHeader = style({
 });
 
 export const sliderValue = style({
-  fontSize: '1rem',
-  fontWeight: 600,
+  fontSize: vars.typography.size.base,
+  fontWeight: vars.typography.weight.semibold,
   color: vars.colors.primaryTextEmphasis,
 });
 
@@ -196,20 +196,20 @@ export const actions = style({
   display: 'flex',
   justifyContent: 'space-between',
   gap: '0.75rem',
-  marginTop: '2rem',
-  paddingTop: '1.5rem',
+  marginTop: vars.spacing['5'],
+  paddingTop: vars.spacing['4'],
   borderTop: `1px solid ${vars.border.color.default}`,
 });
 
 export const alertWrap = style({
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const reviewSection = style({
-  marginBottom: '1.5rem',
-  padding: '1rem',
+  marginBottom: vars.spacing['4'],
+  padding: vars.spacing['3'],
   border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '0.75rem',
+  borderRadius: vars.border.radius.lg,
   background: vars.background.surface,
 });
 
@@ -219,8 +219,8 @@ globalStyle(`${reviewSection} h4`, {
   alignItems: 'baseline',
   gap: vars.spacing['3'],
   fontSize: '0.95rem',
-  fontWeight: 600,
-  marginBottom: '0.5rem',
+  fontWeight: vars.typography.weight.semibold,
+  marginBottom: vars.spacing['2'],
   color: vars.text.primary,
 });
 
@@ -228,7 +228,7 @@ export const reviewItem = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  padding: '0.25rem 0',
+  padding: `${vars.spacing['1']} 0`,
   fontSize: '0.9rem',
   color: vars.text.secondary,
 });

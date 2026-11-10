@@ -5,12 +5,12 @@ export const banner = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   padding: '1rem 1.25rem',
-  marginBottom: '1.5rem',
+  marginBottom: vars.spacing['4'],
   background: vars.background.surface,
   border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '0.5rem',
+  borderRadius: vars.border.radius.base,
   '@media': {
     'screen and (max-width: 640px)': {
       flexDirection: 'column',
@@ -27,7 +27,7 @@ export const message = style({
 
 export const title = style({
   fontSize: '0.9375rem',
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
 });
 
@@ -38,5 +38,5 @@ export const timestamp = style({
 
 export const actions = style({
   display: 'flex',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });

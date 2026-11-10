@@ -2,31 +2,31 @@ import { style } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const modalContent = style({
-  padding: '1.5rem',
+  padding: vars.spacing['4'],
   maxWidth: '500px',
 });
 
 export const title = style({
   color: vars.text.primary,
-  marginBottom: '1rem',
-  fontSize: '1.5rem',
+  marginBottom: vars.spacing['3'],
+  fontSize: vars.typography.size['2xl'],
 });
 
 export const description = style({
   color: vars.text.secondary,
-  marginBottom: '1.5rem',
+  marginBottom: vars.spacing['4'],
   lineHeight: 1.6,
 });
 
 export const reasonSection = style({
-  marginBottom: '1.5rem',
+  marginBottom: vars.spacing['4'],
 });
 
 export const label = style({
   display: 'block',
-  fontWeight: 500,
+  fontWeight: vars.typography.weight.medium,
   color: vars.text.primary,
-  marginBottom: '0.5rem',
+  marginBottom: vars.spacing['2'],
 });
 
 export const textArea = style({
@@ -34,7 +34,7 @@ export const textArea = style({
   minHeight: '100px',
   padding: '0.75rem',
   border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '0.5rem',
+  borderRadius: vars.border.radius.base,
   fontFamily: 'inherit',
   fontSize: '0.9rem',
   resize: 'vertical',
@@ -47,23 +47,23 @@ export const textArea = style({
 
 export const actionButtons = style({
   display: 'flex',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   justifyContent: 'flex-end',
 });
 
 export const warningText = style({
-  marginBottom: '1.5rem',
+  marginBottom: vars.spacing['4'],
 });
 
 export const charCounter = style({
   fontSize: '0.8rem',
   color: '#666',
   textAlign: 'right',
-  marginTop: '0.25rem',
+  marginTop: vars.spacing['1'],
 });
 
 export const errorAlert = style({
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const dangerButton = style({
@@ -73,5 +73,5 @@ export const dangerButton = style({
 });
 
 export const buttonSpinner = style({
-  marginRight: '0.5rem',
+  marginRight: vars.spacing['2'],
 });

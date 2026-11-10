@@ -4,30 +4,30 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const iconContainer = style({
   textAlign: 'center',
-  marginBottom: '1.5rem',
+  marginBottom: vars.spacing['4'],
   fontSize: '4rem',
 });
 
 export const buttonGroup = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '1rem',
-  marginTop: '2rem',
+  gap: vars.spacing['3'],
+  marginTop: vars.spacing['5'],
 });
 
 export const resendSection = style({
   textAlign: 'center',
-  marginTop: '1.5rem',
-  paddingTop: '1.5rem',
+  marginTop: vars.spacing['4'],
+  paddingTop: vars.spacing['4'],
   borderTop: `1px solid ${vars.border.color.default}`,
 });
 
 globalStyle(`${resendSection} p`, {
   color: vars.text.tertiary,
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
   fontSize: '0.95rem',
 });
 
 export const resendAlert = style({
-  marginTop: '1rem',
+  marginTop: vars.spacing['3'],
 });

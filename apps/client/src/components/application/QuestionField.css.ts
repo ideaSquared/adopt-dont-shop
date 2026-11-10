@@ -11,7 +11,7 @@ export const fieldGroup = style({
 
 export const label = style({
   fontSize: '0.9375rem',
-  fontWeight: 500,
+  fontWeight: vars.typography.weight.medium,
   color: vars.text.primary,
 });
 
@@ -94,7 +94,7 @@ export const select = recipe({
 export const checkboxGroup = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const errorText = style({

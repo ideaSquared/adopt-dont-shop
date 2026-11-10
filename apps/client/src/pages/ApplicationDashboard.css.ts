@@ -4,17 +4,17 @@ import { globalStyle, style } from '@vanilla-extract/css';
 export const container = style({
   maxWidth: '1200px',
   margin: '0 auto',
-  padding: '2rem',
+  padding: vars.spacing['5'],
 });
 
 export const applicationGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-  gap: '1.5rem',
+  gap: vars.spacing['4'],
 });
 
 export const applicationCard = style({
-  padding: '1.5rem',
+  padding: vars.spacing['4'],
   cursor: 'pointer',
   transition: `transform ${vars.transitions.fast}, box-shadow ${vars.transitions.fast}`,
   ':hover': {
@@ -26,8 +26,8 @@ export const applicationCard = style({
 export const petInfo = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '1rem',
-  marginBottom: '1rem',
+  gap: vars.spacing['3'],
+  marginBottom: vars.spacing['3'],
 });
 
 export const petThumbnail = style({
@@ -46,14 +46,14 @@ export const petThumbnailPlaceholder = style([
     alignItems: 'center',
     justifyContent: 'center',
     color: vars.text.muted,
-    fontSize: '0.75rem',
+    fontSize: vars.typography.size.xs,
   },
 ]);
 
 export const rescueName = style({
   margin: '0',
   color: vars.text.secondary,
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   fontWeight: vars.typography.weight.medium,
   overflow: 'hidden',
   textOverflow: 'ellipsis',
@@ -65,13 +65,13 @@ export const cardTopRow = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'flex-start',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const petDetailsH3 = style({
-  margin: '0 0 0.25rem 0',
+  margin: `0 0 ${vars.spacing['1']} 0`,
   fontFamily: vars.typography.family.display,
-  fontSize: '1.25rem',
+  fontSize: vars.typography.size.xl,
   fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
   overflow: 'hidden',
@@ -83,36 +83,36 @@ export const petDetailsH3 = style({
 export const petDetailsP = style({
   margin: '0',
   color: vars.text.tertiary,
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });
 
 export const applicationDetails = style({
-  marginTop: '1rem',
+  marginTop: vars.spacing['3'],
 });
 
 globalStyle(`${applicationDetails} p`, {
-  margin: '0.5rem 0',
-  fontSize: '0.875rem',
+  margin: `${vars.spacing['2']} 0`,
+  fontSize: vars.typography.size.sm,
   color: vars.text.tertiary,
 });
 
 export const actionButtons = style({
   display: 'flex',
   gap: '0.75rem',
-  marginTop: '1rem',
+  marginTop: vars.spacing['3'],
 });
 
 export const emptyState = style({
   textAlign: 'center',
-  padding: '4rem 2rem',
+  padding: `${vars.spacing['7']} ${vars.spacing['5']}`,
 });
 
 globalStyle(`${emptyState} h2`, {
   color: vars.text.secondary,
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 globalStyle(`${emptyState} p`, {
   color: vars.text.tertiary,
-  marginBottom: '2rem',
+  marginBottom: vars.spacing['5'],
 });

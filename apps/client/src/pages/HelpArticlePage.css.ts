@@ -3,18 +3,18 @@ import { globalStyle, style } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const pageContainer = style({
-  padding: '3rem 0',
+  padding: `${vars.spacing['6']} 0`,
   maxWidth: '800px',
 });
 
 export const backLink = style({
   display: 'inline-flex',
   alignItems: 'center',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   color: vars.text.tertiary,
   textDecoration: 'none',
   fontSize: '0.9rem',
-  marginBottom: '2rem',
+  marginBottom: vars.spacing['5'],
   ':hover': {
     color: vars.text.primary,
   },
@@ -30,7 +30,7 @@ globalStyle(
   `${articleContent} h1, ${articleContent} h2, ${articleContent} h3, ${articleContent} h4, ${articleContent} h5, ${articleContent} h6`,
   {
     color: vars.text.primary,
-    margin: '2rem 0 1rem',
+    margin: `${vars.spacing['5']} 0 ${vars.spacing['3']}`,
   }
 );
 
@@ -48,19 +48,19 @@ globalStyle(`${articleContent} a:hover`, {
 
 globalStyle(`${articleContent} img`, {
   maxWidth: '100%',
-  borderRadius: '8px',
-  margin: '1rem 0',
+  borderRadius: vars.border.radius.base,
+  margin: `${vars.spacing['3']} 0`,
 });
 
 globalStyle(`${articleContent} ul, ${articleContent} ol`, {
-  paddingLeft: '1.5rem',
+  paddingLeft: vars.spacing['4'],
   marginBottom: '1.2rem',
 });
 
 globalStyle(`${articleContent} blockquote`, {
   borderLeft: `4px solid ${vars.colors.infoHover}`,
-  margin: '1.5rem 0',
-  padding: '0.5rem 1.5rem',
+  margin: `${vars.spacing['4']} 0`,
+  padding: `${vars.spacing['2']} ${vars.spacing['4']}`,
   color: vars.text.tertiary,
   fontStyle: 'italic',
 });
@@ -68,5 +68,5 @@ globalStyle(`${articleContent} blockquote`, {
 export const spinnerWrapper = style({
   display: 'flex',
   justifyContent: 'center',
-  padding: '4rem',
+  padding: vars.spacing['7'],
 });

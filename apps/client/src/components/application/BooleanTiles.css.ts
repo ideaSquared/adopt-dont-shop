@@ -18,9 +18,9 @@ export const tile = style({
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   padding: '1.125rem 1rem',
-  borderRadius: '0.75rem',
+  borderRadius: vars.border.radius.lg,
   border: '2px solid',
   cursor: 'pointer',
   textAlign: 'center',
@@ -85,7 +85,7 @@ export const label = style({
 });
 
 export const labelVariants = styleVariants({
-  yesSelected: { fontWeight: '600', color: vars.colors.successActive },
-  noSelected: { fontWeight: '600', color: vars.text.secondary },
-  unselected: { fontWeight: '500', color: vars.text.primary },
+  yesSelected: { fontWeight: vars.typography.weight.semibold, color: vars.colors.successActive },
+  noSelected: { fontWeight: vars.typography.weight.semibold, color: vars.text.secondary },
+  unselected: { fontWeight: vars.typography.weight.medium, color: vars.text.primary },
 });

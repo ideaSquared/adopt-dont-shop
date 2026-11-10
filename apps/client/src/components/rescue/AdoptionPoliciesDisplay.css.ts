@@ -2,18 +2,18 @@ import { globalStyle, style } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const policyCard = style({
-  padding: '2rem',
-  marginBottom: '2rem',
+  padding: vars.spacing['5'],
+  marginBottom: vars.spacing['5'],
 });
 
 export const sectionTitle = style({
-  fontSize: '1.5rem',
-  fontWeight: 600,
+  fontSize: vars.typography.size['2xl'],
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
-  margin: '0 0 1.5rem 0',
+  margin: `0 0 ${vars.spacing['4']} 0`,
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 globalStyle(`${sectionTitle} .icon`, {
@@ -24,17 +24,17 @@ globalStyle(`${sectionTitle} .icon`, {
 export const requirementsGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-  gap: '1rem',
-  marginBottom: '2rem',
+  gap: vars.spacing['3'],
+  marginBottom: vars.spacing['5'],
 });
 
 export const requirementItem = style({
   display: 'flex',
   alignItems: 'flex-start',
   gap: '0.75rem',
-  padding: '1rem',
+  padding: vars.spacing['3'],
   background: vars.background.surface,
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
 });
 
 globalStyle(`${requirementItem} .icon`, {
@@ -54,11 +54,11 @@ globalStyle(`${requirementItem} .text`, {
 export const feeRange = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '1rem',
-  padding: '1.5rem',
+  gap: vars.spacing['3'],
+  padding: vars.spacing['4'],
   background: vars.background.surface,
-  borderRadius: '12px',
-  marginBottom: '2rem',
+  borderRadius: vars.border.radius.lg,
+  marginBottom: vars.spacing['5'],
 });
 
 globalStyle(`${feeRange} .icon`, {
@@ -72,26 +72,26 @@ globalStyle(`${feeRange} .fee-info`, {
 });
 
 globalStyle(`${feeRange} .fee-info .label`, {
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: vars.text.secondary,
-  marginBottom: '0.25rem',
+  marginBottom: vars.spacing['1'],
 });
 
 globalStyle(`${feeRange} .fee-info .amount`, {
-  fontSize: '1.5rem',
-  fontWeight: 700,
+  fontSize: vars.typography.size['2xl'],
+  fontWeight: vars.typography.weight.bold,
   color: vars.text.primary,
 });
 
 export const listSection = style({
-  marginBottom: '2rem',
+  marginBottom: vars.spacing['5'],
 });
 
 globalStyle(`${listSection} h3`, {
-  fontSize: '1.125rem',
-  fontWeight: 600,
+  fontSize: vars.typography.size.lg,
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
-  margin: '0 0 1rem 0',
+  margin: `0 0 ${vars.spacing['3']} 0`,
 });
 
 globalStyle(`${listSection} ul`, {
@@ -118,7 +118,7 @@ globalStyle(`${listSection} li .bullet`, {
   background: vars.colors.primaryHover,
   borderRadius: '50%',
   flexShrink: 0,
-  marginTop: '0.5rem',
+  marginTop: vars.spacing['2'],
 });
 
 globalStyle(`${listSection} li .text`, {
@@ -128,12 +128,12 @@ globalStyle(`${listSection} li .text`, {
 });
 
 export const policyDetailSection = style({
-  marginBottom: '2rem',
+  marginBottom: vars.spacing['5'],
 });
 
 globalStyle(`${policyDetailSection} h3`, {
-  fontSize: '1.125rem',
-  fontWeight: 600,
+  fontSize: vars.typography.size.lg,
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
   margin: '0 0 0.75rem 0',
 });
@@ -143,28 +143,28 @@ globalStyle(`${policyDetailSection} p`, {
   color: vars.text.secondary,
   lineHeight: 1.6,
   margin: 0,
-  padding: '1rem',
+  padding: vars.spacing['3'],
   background: vars.background.surface,
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
 });
 
 export const emptyState = style({
   textAlign: 'center',
-  padding: '3rem 2rem',
+  padding: `${vars.spacing['6']} ${vars.spacing['5']}`,
   color: vars.text.secondary,
 });
 
 globalStyle(`${emptyState} .icon`, {
   width: '64px',
   height: '64px',
-  margin: '0 auto 1rem',
+  margin: `0 auto ${vars.spacing['3']}`,
   opacity: 0.4,
 });
 
 globalStyle(`${emptyState} h3`, {
-  fontSize: '1.25rem',
+  fontSize: vars.typography.size.xl,
   color: vars.text.primary,
-  margin: '0 0 0.5rem 0',
+  margin: `0 0 ${vars.spacing['2']} 0`,
 });
 
 globalStyle(`${emptyState} p`, {

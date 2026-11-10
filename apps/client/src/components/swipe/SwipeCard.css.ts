@@ -1,5 +1,6 @@
 import { globalStyle, keyframes, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const spinAnimation = keyframes({
   from: { transform: 'rotate(0deg)' },
@@ -13,7 +14,7 @@ export const cardContainer = recipe({
     maxWidth: '380px',
     height: '620px',
     background: '#fff',
-    borderRadius: '24px',
+    borderRadius: vars.border.radius['2xl'],
     boxShadow: '0 20px 40px -12px rgba(0, 0, 0, 0.25), 0 8px 16px -8px rgba(0, 0, 0, 0.1)',
     userSelect: 'none',
     overflow: 'hidden',
@@ -86,14 +87,14 @@ export const placeholderIconSpin = style({
 });
 
 export const placeholderText = style({
-  fontSize: '1.5rem',
-  fontWeight: 700,
-  marginBottom: '8px',
+  fontSize: vars.typography.size['2xl'],
+  fontWeight: vars.typography.weight.bold,
+  marginBottom: vars.spacing['2'],
   textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
 });
 
 export const placeholderSubtext = style({
-  fontSize: '1rem',
+  fontSize: vars.typography.size.base,
   opacity: 0.9,
   textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
 });
@@ -126,7 +127,7 @@ export const imageDots = style({
   left: '12px',
   right: '12px',
   display: 'flex',
-  gap: '4px',
+  gap: vars.spacing['1'],
   zIndex: 5,
   pointerEvents: 'none',
 });
@@ -223,11 +224,11 @@ export const topBadge = recipe({
   base: {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '4px',
+    gap: vars.spacing['1'],
     padding: '4px 10px',
     borderRadius: '999px',
-    fontSize: '0.75rem',
-    fontWeight: 700,
+    fontSize: vars.typography.size.xs,
+    fontWeight: vars.typography.weight.bold,
     backdropFilter: 'blur(8px)',
     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
   },
@@ -256,8 +257,8 @@ export const topBadge = recipe({
         boxShadow: '0 2px 12px rgba(99, 102, 241, 0.5)',
         textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)',
         font: 'inherit',
-        fontWeight: 700,
-        fontSize: '0.75rem',
+        fontWeight: vars.typography.weight.bold,
+        fontSize: vars.typography.size.xs,
         transition: 'transform 120ms ease, box-shadow 120ms ease',
         ':hover': {
           transform: 'translateY(-1px)',
@@ -304,7 +305,7 @@ export const petName = style({
 
 export const petAge = style({
   fontSize: '1.4rem',
-  fontWeight: 500,
+  fontWeight: vars.typography.weight.medium,
   color: 'rgba(255, 255, 255, 0.92)',
   textShadow: '0 2px 8px rgba(0, 0, 0, 0.4)',
 });
@@ -317,13 +318,13 @@ export const metaRow = style({
   fontSize: '0.95rem',
   color: 'rgba(255, 255, 255, 0.95)',
   textShadow: '0 1px 4px rgba(0, 0, 0, 0.4)',
-  marginBottom: '8px',
+  marginBottom: vars.spacing['2'],
 });
 
 export const metaItem = style({
   display: 'inline-flex',
   alignItems: 'center',
-  gap: '4px',
+  gap: vars.spacing['1'],
 });
 
 export const metaDot = style({
@@ -382,9 +383,9 @@ export const loginPromptOverlay = recipe({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 20,
-    borderRadius: '24px',
+    borderRadius: vars.border.radius['2xl'],
     textAlign: 'center',
-    padding: '2rem',
+    padding: vars.spacing['5'],
   },
   variants: {
     show: {
@@ -397,21 +398,21 @@ export const loginPromptOverlay = recipe({
 
 export const promptIcon = style({
   fontSize: '3.5rem',
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const promptTitle = style({
   color: 'white',
   fontSize: '1.4rem',
-  marginBottom: '0.5rem',
-  fontWeight: 700,
+  marginBottom: vars.spacing['2'],
+  fontWeight: vars.typography.weight.bold,
 });
 
 export const promptText = style({
   color: 'rgba(255, 255, 255, 0.85)',
   fontSize: '0.95rem',
   lineHeight: 1.5,
-  marginBottom: '1.5rem',
+  marginBottom: vars.spacing['4'],
   maxWidth: '280px',
 });
 
@@ -421,7 +422,7 @@ export const promptButton = style({
   border: 'none',
   padding: '0.85rem 1.75rem',
   borderRadius: '999px',
-  fontWeight: 700,
+  fontWeight: vars.typography.weight.bold,
   fontSize: '0.95rem',
   cursor: 'pointer',
   transition: 'all 0.2s ease',
@@ -438,12 +439,12 @@ export const promptButton = style({
 export const activityLabel = style({
   display: 'inline-flex',
   alignItems: 'center',
-  gap: '0.25rem',
-  padding: '0.25rem 0.5rem',
+  gap: vars.spacing['1'],
+  padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
   background: 'rgba(0, 0, 0, 0.55)',
   color: 'white',
   borderRadius: '999px',
-  fontSize: '0.75rem',
-  fontWeight: 600,
+  fontSize: vars.typography.size.xs,
+  fontWeight: vars.typography.weight.semibold,
   backdropFilter: 'blur(8px)',
 });

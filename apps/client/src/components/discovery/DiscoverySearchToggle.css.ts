@@ -4,8 +4,8 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const toggle = style({
   display: 'inline-flex',
-  gap: '0.25rem',
-  padding: '0.25rem',
+  gap: vars.spacing['1'],
+  padding: vars.spacing['1'],
   borderRadius: vars.border.radius.pill,
   background: vars.background.surface,
   border: `1px solid ${vars.border.color.default}`,
@@ -18,10 +18,10 @@ export const option = recipe({
     gap: '0.4rem',
     // Meets the 44px minimum touch target (ADS-C4).
     minHeight: '44px',
-    padding: '0 1rem',
+    padding: `0 ${vars.spacing['3']}`,
     borderRadius: vars.border.radius.pill,
     fontSize: '0.9rem',
-    fontWeight: 600,
+    fontWeight: vars.typography.weight.semibold,
     textDecoration: 'none',
     cursor: 'pointer',
     color: vars.text.secondary,

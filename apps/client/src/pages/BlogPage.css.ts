@@ -3,14 +3,14 @@ import { style } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const pageContainer = style({
-  padding: '3rem 0',
+  padding: `${vars.spacing['6']} 0`,
   minHeight: 'calc(100vh - 200px)',
 });
 
 export const postGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-  gap: '2rem',
+  gap: vars.spacing['5'],
 });
 
 export const postCard = style({
@@ -18,7 +18,7 @@ export const postCard = style({
   flexDirection: 'column',
   background: vars.background.surface,
   border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '12px',
+  borderRadius: vars.border.radius.lg,
   overflow: 'hidden',
   textDecoration: 'none',
   transition: 'transform 0.2s, box-shadow 0.2s',
@@ -41,20 +41,20 @@ export const postImagePlaceholder = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  fontSize: '3rem',
+  fontSize: vars.typography.size['5xl'],
 });
 
 export const postBody = style({
-  padding: '1.5rem',
+  padding: vars.spacing['4'],
   flex: '1',
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const postTitle = style({
-  fontSize: '1.25rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.xl,
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
   margin: '0',
   lineHeight: '1.4',
@@ -75,11 +75,11 @@ export const postExcerpt = style({
 export const postDate = style({
   fontSize: '0.8rem',
   color: vars.text.tertiary,
-  marginTop: '0.5rem',
+  marginTop: vars.spacing['2'],
 });
 
 export const spinnerWrapper = style({
   display: 'flex',
   justifyContent: 'center',
-  padding: '4rem',
+  padding: vars.spacing['7'],
 });

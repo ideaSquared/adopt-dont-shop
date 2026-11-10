@@ -4,10 +4,10 @@ import { globalStyle, style } from '@vanilla-extract/css';
 export const pageContainer = style({
   maxWidth: '1200px',
   margin: '0 auto',
-  padding: '2rem',
+  padding: vars.spacing['5'],
   '@media': {
     '(max-width: 768px)': {
-      padding: '1rem',
+      padding: vars.spacing['3'],
     },
   },
 });
@@ -21,7 +21,7 @@ export const actionLink = style({
   padding: '0.75rem 1.5rem',
   textDecoration: 'none',
   borderRadius: vars.border.radius.lg,
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
   transition: `all ${vars.transitions.fast}`,
   width: '100%',
 });
@@ -37,18 +37,18 @@ export const actionLinkPrimary = style({
 });
 
 export const actionLinkLarge = style({
-  padding: '1rem 2rem',
+  padding: `${vars.spacing['3']} ${vars.spacing['5']}`,
   fontSize: '1.1rem',
 });
 
 export const backRow = style({
-  marginBottom: '1.5rem',
+  marginBottom: vars.spacing['4'],
 });
 
 export const errorActions = style({
   display: 'flex',
   justifyContent: 'center',
-  marginTop: '1rem',
+  marginTop: vars.spacing['3'],
 });
 
 export const errorActionLink = style({
@@ -59,7 +59,7 @@ export const errorActionLink = style({
   padding: '0.75rem 1.5rem',
   textDecoration: 'none',
   borderRadius: vars.border.radius.lg,
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
   transition: `all ${vars.transitions.fast}`,
   background: vars.colors.primary,
   color: 'white',
@@ -72,7 +72,7 @@ export const errorActionLink = style({
 export const mainContent = style({
   display: 'grid',
   gridTemplateColumns: '1fr',
-  gap: '2rem',
+  gap: vars.spacing['5'],
   '@media': {
     '(min-width: 768px)': {
       gridTemplateColumns: '2fr 1fr',
@@ -87,7 +87,7 @@ globalStyle(`${imageSection} .primary-image`, {
   height: '400px',
   borderRadius: vars.border.radius['2xl'],
   overflow: 'hidden',
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
   position: 'relative',
   boxShadow: vars.shadows.base,
 });
@@ -101,7 +101,7 @@ globalStyle(`${imageSection} .primary-image img`, {
 globalStyle(`${imageSection} .thumbnail-grid`, {
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   maxHeight: '200px',
   overflowY: 'auto',
 });
@@ -188,7 +188,7 @@ export const thumbnailPlaceholder = style({
 export const sidebar = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '2rem',
+  gap: vars.spacing['5'],
   '@media': {
     // C4: on desktop the details column is long, so pin the sidebar (which
     // holds the Apply CTA) so the primary action stays in view while the
@@ -211,20 +211,20 @@ export const sidebar = style({
 });
 
 export const infoCard = style({
-  padding: '2rem',
+  padding: vars.spacing['5'],
 });
 
 globalStyle(`${infoCard} h2`, {
   fontFamily: vars.typography.family.display,
-  fontSize: '1.5rem',
+  fontSize: vars.typography.size['2xl'],
   fontWeight: vars.typography.weight.semibold,
-  marginBottom: '1.5rem',
+  marginBottom: vars.spacing['4'],
   color: vars.text.primary,
 });
 
 globalStyle(`${infoCard} .info-grid`, {
   display: 'grid',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 globalStyle(`${infoCard} .info-item`, {
@@ -240,42 +240,42 @@ globalStyle(`${infoCard} .info-item:last-child`, {
 });
 
 globalStyle(`${infoCard} .info-item .label`, {
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
   color: vars.text.tertiary,
   textTransform: 'uppercase',
   letterSpacing: '0.04em',
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
 });
 
 globalStyle(`${infoCard} .info-item .value`, {
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
 });
 
 export const actionCard = style({
-  padding: '2rem',
+  padding: vars.spacing['5'],
   textAlign: 'center',
 });
 
 globalStyle(`${actionCard} h3`, {
   fontFamily: vars.typography.family.display,
-  fontSize: '1.25rem',
+  fontSize: vars.typography.size.xl,
   fontWeight: vars.typography.weight.semibold,
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
   color: vars.text.primary,
 });
 
 globalStyle(`${actionCard} .rescue-info`, {
   background: vars.background.muted,
   borderRadius: vars.border.radius.lg,
-  padding: '1rem',
-  marginBottom: '1.5rem',
+  padding: vars.spacing['3'],
+  marginBottom: vars.spacing['4'],
 });
 
 globalStyle(`${actionCard} .rescue-info .rescue-name`, {
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
-  marginBottom: '0.25rem',
+  marginBottom: vars.spacing['1'],
 });
 
 globalStyle(`${actionCard} .rescue-info .rescue-location`, {
@@ -286,11 +286,11 @@ globalStyle(`${actionCard} .rescue-info .rescue-location`, {
 globalStyle(`${actionCard} .actions`, {
   display: 'flex',
   flexDirection: 'column',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const descriptionCard = style({
-  padding: '2rem',
+  padding: vars.spacing['5'],
   gridColumn: '1 / -1',
   '@media': {
     // Sits under the images, beside the sidebar, instead of spanning under it.
@@ -303,9 +303,9 @@ export const descriptionCard = style({
 
 globalStyle(`${descriptionCard} h2`, {
   fontFamily: vars.typography.family.display,
-  fontSize: '1.5rem',
+  fontSize: vars.typography.size['2xl'],
   fontWeight: vars.typography.weight.semibold,
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
   color: vars.text.primary,
 });
 
@@ -317,7 +317,7 @@ globalStyle(`${descriptionCard} p`, {
 
 export const contactButton = style({
   width: '100%',
-  marginTop: '0.5rem',
+  marginTop: vars.spacing['2'],
 });
 
 // ADS-639: "View Rescue Profile" is a tertiary inline link below the
@@ -329,7 +329,7 @@ export const tertiaryLink = style({
   justifyContent: 'center',
   // C4: even the low-emphasis link keeps a comfortable tap target.
   minHeight: vars.spacing['6'],
-  marginTop: '0.5rem',
+  marginTop: vars.spacing['2'],
   fontSize: '0.9rem',
   color: vars.text.secondary,
   textDecoration: 'underline',

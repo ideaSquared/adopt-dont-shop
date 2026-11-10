@@ -6,20 +6,20 @@ export const stepContainer = style({
 });
 
 export const stepTitle = style({
-  fontSize: '1.5rem',
+  fontSize: vars.typography.size['2xl'],
   color: vars.text.primary,
-  margin: '0 0 0.5rem 0',
+  margin: `0 0 ${vars.spacing['2']} 0`,
 });
 
 export const stepDescription = style({
   color: vars.text.secondary,
-  margin: '0 0 2rem 0',
+  margin: `0 0 ${vars.spacing['5']} 0`,
 });
 
 export const requiredNote = style({
   fontSize: '0.8125rem',
   color: vars.text.secondary,
-  margin: '0 0 1.5rem 0',
+  margin: `0 0 ${vars.spacing['4']} 0`,
 });
 
 export const errorSummary = style({
@@ -27,7 +27,7 @@ export const errorSummary = style({
   background: vars.colors.dangerBgSubtle,
   padding: '0.75rem 1rem',
   borderRadius: '0.375rem',
-  margin: '0 0 1.5rem 0',
+  margin: `0 0 ${vars.spacing['4']} 0`,
   color: vars.colors.dangerActive,
 });
 

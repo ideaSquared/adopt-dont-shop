@@ -3,7 +3,7 @@ import { style } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const pageContainer = style({
-  padding: '3rem 0',
+  padding: `${vars.spacing['6']} 0`,
   minHeight: 'calc(100vh - 200px)',
 });
 
@@ -12,12 +12,12 @@ export const articleList = style({
   margin: '0 auto',
   display: 'flex',
   flexDirection: 'column',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const articleCard = style({
   display: 'block',
-  padding: '1.5rem',
+  padding: vars.spacing['4'],
   background: vars.background.surface,
   border: `1px solid ${vars.border.color.default}`,
   borderRadius: '10px',
@@ -31,7 +31,7 @@ export const articleCard = style({
 
 export const articleTitle = style({
   fontSize: '1.1rem',
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
   margin: '0 0 0.4rem 0',
 });
@@ -46,5 +46,5 @@ export const articleExcerpt = style({
 export const spinnerWrapper = style({
   display: 'flex',
   justifyContent: 'center',
-  padding: '4rem',
+  padding: vars.spacing['7'],
 });

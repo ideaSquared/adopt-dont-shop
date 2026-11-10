@@ -3,16 +3,16 @@ import { recipe } from '@vanilla-extract/recipes';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const wrap = style({
-  marginTop: '2rem',
-  padding: '1.5rem',
+  marginTop: vars.spacing['5'],
+  padding: vars.spacing['4'],
   background: vars.background.surface,
   border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '0.75rem',
+  borderRadius: vars.border.radius.lg,
 });
 
 export const title = style({
-  margin: '0 0 0.25rem 0',
-  fontSize: '1.125rem',
+  margin: `0 0 ${vars.spacing['1']} 0`,
+  fontSize: vars.typography.size.lg,
   color: vars.text.primary,
 });
 
@@ -39,8 +39,8 @@ export const statusPill = recipe({
     alignItems: 'center',
     gap: '0.375rem',
     padding: '0.625rem 0.875rem',
-    borderRadius: '0.5rem',
-    fontSize: '0.875rem',
+    borderRadius: vars.border.radius.base,
+    fontSize: vars.typography.size.sm,
     color: vars.text.primary,
   },
   variants: {
@@ -59,7 +59,7 @@ export const statusPill = recipe({
 });
 
 export const icon = style({
-  fontSize: '1.125rem',
+  fontSize: vars.typography.size.lg,
 });
 
 export const emptyHint = style({

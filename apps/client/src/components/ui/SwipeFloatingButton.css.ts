@@ -1,5 +1,6 @@
 import { globalStyle, keyframes, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const bounce = keyframes({
   '0%, 20%, 53%, 80%, 100%': { transform: 'translate3d(0,0,0)' },
@@ -27,7 +28,7 @@ export const floatingContainer = recipe({
     zIndex: 999,
     flexDirection: 'column',
     alignItems: 'flex-end',
-    gap: '1rem',
+    gap: vars.spacing['3'],
     animationName: slideUp,
     animationDuration: '0.5s',
     animationTimingFunction: 'ease-out',
@@ -56,7 +57,7 @@ export const floatingContainer = recipe({
 
 export const calloutBubbleBase = style({
   background: 'white',
-  padding: '1rem 1.5rem',
+  padding: `${vars.spacing['3']} ${vars.spacing['4']}`,
   borderRadius: '20px',
   boxShadow: '0 8px 25px rgba(0, 0, 0, 0.15)',
   position: 'relative',
@@ -87,14 +88,14 @@ export const calloutBubbleBase = style({
 });
 
 globalStyle(`${calloutBubbleBase} h4`, {
-  fontSize: '0.875rem',
-  fontWeight: 600,
-  margin: '0 0 0.5rem 0',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.semibold,
+  margin: `0 0 ${vars.spacing['2']} 0`,
   color: '#333',
 });
 
 globalStyle(`${calloutBubbleBase} p`, {
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   margin: 0,
   color: '#666',
   lineHeight: 1.4,
@@ -131,7 +132,7 @@ export const closeButton = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   ':hover': {
     color: '#666',
   },
@@ -168,7 +169,7 @@ export const floatingButton = style({
 });
 
 globalStyle(`${floatingButton} .icon`, {
-  fontSize: '1.5rem',
+  fontSize: vars.typography.size['2xl'],
 });
 
 globalStyle(`${floatingButton} .icon`, {

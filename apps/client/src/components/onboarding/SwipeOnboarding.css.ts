@@ -1,4 +1,5 @@
 import { globalStyle, keyframes, style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const swipeDemo = keyframes({
   '0%': { transform: 'translateX(0) rotate(0deg)' },
@@ -13,7 +14,7 @@ export const modalContent = style({
 });
 
 export const iconContainer = style({
-  marginBottom: '1.5rem',
+  marginBottom: vars.spacing['4'],
 });
 
 export const swipeIcon = style({
@@ -32,11 +33,11 @@ export const swipeIcon = style({
 export const subtitle = style({
   fontSize: '1.1rem',
   color: '#666',
-  marginBottom: '2rem',
+  marginBottom: vars.spacing['5'],
   lineHeight: 1.5,
   '@media': {
     '(max-width: 768px)': {
-      fontSize: '1rem',
+      fontSize: vars.typography.size.base,
     },
   },
 });
@@ -44,22 +45,22 @@ export const subtitle = style({
 export const features = style({
   display: 'grid',
   gridTemplateColumns: '1fr',
-  gap: '1rem',
-  marginBottom: '2rem',
+  gap: vars.spacing['3'],
+  marginBottom: vars.spacing['5'],
   textAlign: 'left',
 });
 
 export const feature = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   padding: '0.75rem',
   background: '#f8f9fa',
-  borderRadius: '12px',
+  borderRadius: vars.border.radius.lg,
 });
 
 globalStyle(`${feature} .icon`, {
-  fontSize: '1.5rem',
+  fontSize: vars.typography.size['2xl'],
   color: '#ff4081',
   flexShrink: 0,
 });
@@ -69,9 +70,9 @@ globalStyle(`${feature} .content`, {
 });
 
 globalStyle(`${feature} .title`, {
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
   color: '#333',
-  margin: '0 0 0.25rem 0',
+  margin: `0 0 ${vars.spacing['1']} 0`,
   fontSize: '0.9rem',
 });
 
@@ -84,7 +85,7 @@ globalStyle(`${feature} .desc`, {
 
 export const buttonContainer = style({
   display: 'flex',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   justifyContent: 'center',
   '@media': {
     '(max-width: 768px)': {
@@ -96,13 +97,13 @@ export const buttonContainer = style({
 export const primaryButton = style({
   display: 'inline-flex',
   alignItems: 'center',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   background: 'linear-gradient(45deg, #ff4081, #ff6ec7)',
   color: 'white',
-  padding: '1rem 2rem',
+  padding: `${vars.spacing['3']} ${vars.spacing['5']}`,
   borderRadius: '50px',
   textDecoration: 'none',
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
   transition: 'all 0.3s ease',
   boxShadow: '0 4px 15px rgba(255, 64, 129, 0.3)',
   ':hover': {

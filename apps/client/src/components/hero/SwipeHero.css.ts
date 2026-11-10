@@ -1,4 +1,5 @@
 import { globalStyle, keyframes, style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 const float = keyframes({
   '0%, 100%': { transform: 'translateY(0px)' },
@@ -43,7 +44,7 @@ export const heroContainer = style({
   },
   '@media': {
     '(max-width: 768px)': {
-      padding: '3rem 0 4rem',
+      padding: `${vars.spacing['6']} 0 ${vars.spacing['7']}`,
     },
   },
 });
@@ -57,13 +58,13 @@ globalStyle(`${heroContainer}::before`, {
 export const heroContent = style({
   maxWidth: '1200px',
   margin: '0 auto',
-  padding: '0 2rem',
+  padding: `0 ${vars.spacing['5']}`,
   textAlign: 'center',
   position: 'relative',
   zIndex: 1,
   '@media': {
     '(max-width: 768px)': {
-      padding: '0 1rem',
+      padding: `0 ${vars.spacing['3']}`,
     },
   },
 });
@@ -71,7 +72,7 @@ export const heroContent = style({
 export const mainHeading = style({
   fontSize: '3.5rem',
   fontWeight: 800,
-  marginBottom: '1.5rem',
+  marginBottom: vars.spacing['4'],
   lineHeight: 1.2,
   background: 'linear-gradient(45deg, #ffffff, #f8f9fa)',
   WebkitBackgroundClip: 'text',
@@ -80,7 +81,7 @@ export const mainHeading = style({
   '@media': {
     '(max-width: 768px)': {
       fontSize: '2.5rem',
-      marginBottom: '1rem',
+      marginBottom: vars.spacing['3'],
     },
     '(max-width: 480px)': {
       fontSize: '2rem',
@@ -89,8 +90,8 @@ export const mainHeading = style({
 });
 
 export const subtitle = style({
-  fontSize: '1.25rem',
-  marginBottom: '3rem',
+  fontSize: vars.typography.size.xl,
+  marginBottom: vars.spacing['6'],
   opacity: 0.9,
   maxWidth: '600px',
   marginLeft: 'auto',
@@ -99,17 +100,17 @@ export const subtitle = style({
   '@media': {
     '(max-width: 768px)': {
       fontSize: '1.1rem',
-      marginBottom: '2rem',
+      marginBottom: vars.spacing['5'],
     },
   },
 });
 
 export const ctaContainer = style({
   display: 'flex',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   justifyContent: 'center',
   alignItems: 'center',
-  marginBottom: '3rem',
+  marginBottom: vars.spacing['6'],
   '@media': {
     '(max-width: 768px)': {
       flexDirection: 'column',
@@ -127,10 +128,10 @@ export const primaryButton = style({
   // failing 4.5:1 AA. This darker pink pair clears ~5.8-9.4:1 at both ends.
   background: 'linear-gradient(45deg, #c2185b, #880e4f)',
   color: 'white',
-  padding: '1rem 2rem',
+  padding: `${vars.spacing['3']} ${vars.spacing['5']}`,
   borderRadius: '50px',
   textDecoration: 'none',
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
   fontSize: '1.1rem',
   boxShadow: '0 8px 30px rgba(255, 64, 129, 0.3)',
   transition: 'all 0.3s ease',
@@ -160,7 +161,7 @@ export const primaryButton = style({
   '@media': {
     '(max-width: 768px)': {
       padding: '0.875rem 1.75rem',
-      fontSize: '1rem',
+      fontSize: vars.typography.size.base,
       width: '100%',
       maxWidth: '280px',
       justifyContent: 'center',
@@ -176,7 +177,7 @@ globalStyle(`${primaryButton}::before`, {
 });
 
 export const primaryButtonIcon = style({
-  fontSize: '1.5rem',
+  fontSize: vars.typography.size['2xl'],
   animationName: floatIcon,
   animationDuration: '2s',
   animationTimingFunction: 'ease-in-out',
@@ -189,7 +190,7 @@ export const primaryButtonIcon = style({
 export const secondaryButton = style({
   display: 'inline-flex',
   alignItems: 'center',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   // ADS-1326: a rgba(255,255,255,0.15) overlay on the purple heroContainer
   // gradient measured ~2.9-4.5:1 against white text depending on gradient
   // position — axe-core's smoke gate caught it failing 4.5:1 AA. A dark
@@ -198,11 +199,11 @@ export const secondaryButton = style({
   background: 'rgba(0, 0, 0, 0.35)',
   backdropFilter: 'blur(10px)',
   color: 'white',
-  padding: '1rem 2rem',
+  padding: `${vars.spacing['3']} ${vars.spacing['5']}`,
   borderRadius: '50px',
   textDecoration: 'none',
-  fontWeight: 500,
-  fontSize: '1rem',
+  fontWeight: vars.typography.weight.medium,
+  fontSize: vars.typography.size.base,
   border: '1px solid rgba(255, 255, 255, 0.2)',
   transition: 'all 0.3s ease',
   ':hover': {
@@ -222,12 +223,12 @@ export const secondaryButton = style({
 export const featureCards = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-  gap: '2rem',
-  marginTop: '2rem',
+  gap: vars.spacing['5'],
+  marginTop: vars.spacing['5'],
   '@media': {
     '(max-width: 768px)': {
       gridTemplateColumns: '1fr',
-      gap: '1.5rem',
+      gap: vars.spacing['4'],
     },
   },
 });
@@ -237,7 +238,7 @@ export const featureCard = style({
   backdropFilter: 'blur(10px)',
   border: '1px solid rgba(255, 255, 255, 0.2)',
   borderRadius: '20px',
-  padding: '2rem',
+  padding: vars.spacing['5'],
   textAlign: 'center',
   transition: 'transform 0.3s ease, box-shadow 0.3s ease',
   ':hover': {
@@ -247,15 +248,15 @@ export const featureCard = style({
 });
 
 globalStyle(`${featureCard} .icon`, {
-  fontSize: '3rem',
-  marginBottom: '1rem',
+  fontSize: vars.typography.size['5xl'],
+  marginBottom: vars.spacing['3'],
   color: '#ff4081',
   display: 'block',
 });
 
 globalStyle(`${featureCard} h3`, {
-  fontSize: '1.25rem',
-  fontWeight: 600,
+  fontSize: vars.typography.size.xl,
+  fontWeight: vars.typography.weight.semibold,
   marginBottom: '0.75rem',
 });
 
@@ -267,7 +268,7 @@ globalStyle(`${featureCard} p`, {
 export const swipeBadge = style({
   display: 'inline-flex',
   alignItems: 'center',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   // ADS-1326: a rgba(255,255,255,0.2) overlay on the purple heroContainer
   // gradient measured ~1.9-2.9:1 against the gold (#ffd700) text — axe-core's
   // smoke gate caught it failing 4.5:1 AA badly. A dark overlay darkens
@@ -275,11 +276,11 @@ export const swipeBadge = style({
   background: 'rgba(0, 0, 0, 0.35)',
   backdropFilter: 'blur(10px)',
   border: '1px solid rgba(255, 255, 255, 0.3)',
-  padding: '0.5rem 1rem',
+  padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
   borderRadius: '50px',
-  fontSize: '0.875rem',
-  fontWeight: 500,
-  marginBottom: '1rem',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.medium,
+  marginBottom: vars.spacing['3'],
   color: '#ffd700',
 });
 

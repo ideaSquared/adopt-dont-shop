@@ -5,7 +5,7 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 export const form = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '1.5rem',
+  gap: vars.spacing['4'],
 });
 
 export const backToLoginLink = style({
@@ -13,7 +13,7 @@ export const backToLoginLink = style({
   color: vars.colors.primary,
   textDecoration: 'none',
   textAlign: 'center',
-  marginTop: '1rem',
+  marginTop: vars.spacing['3'],
   display: 'block',
   ':hover': {
     textDecoration: 'underline',
@@ -21,7 +21,7 @@ export const backToLoginLink = style({
 });
 
 export const styledAlert = style({
-  marginBottom: '1.5rem',
+  marginBottom: vars.spacing['4'],
 });
 
 export const successContainer = style({
@@ -31,20 +31,20 @@ export const successContainer = style({
 globalStyle(`${successContainer} p`, {
   color: vars.text.tertiary,
   lineHeight: '1.6',
-  marginBottom: '1.5rem',
+  marginBottom: vars.spacing['4'],
 });
 
 globalStyle(`${successContainer} .email-highlight`, {
   color: vars.text.primary,
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
 });
 
 export const infoBox = style({
   background: vars.background.body,
   border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '8px',
-  padding: '1rem',
-  marginTop: '1rem',
+  borderRadius: vars.border.radius.base,
+  padding: vars.spacing['3'],
+  marginTop: vars.spacing['3'],
 });
 
 globalStyle(`${infoBox} p`, {

@@ -4,19 +4,19 @@ import { globalStyle, style } from '@vanilla-extract/css';
 export const container = style({
   maxWidth: '1200px',
   margin: '0 auto',
-  padding: '0 2rem',
+  padding: `0 ${vars.spacing['5']}`,
   '@media': {
     '(max-width: 768px)': {
-      padding: '0 1rem',
+      padding: `0 ${vars.spacing['3']}`,
     },
   },
 });
 
 export const section = style({
-  padding: '4rem 0',
+  padding: `${vars.spacing['7']} 0`,
   '@media': {
     '(max-width: 768px)': {
-      padding: '3rem 0',
+      padding: `${vars.spacing['6']} 0`,
     },
   },
 });
@@ -102,38 +102,38 @@ export const heroActions = style({
 export const petGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-  gap: '2rem',
-  marginBottom: '3rem',
+  gap: vars.spacing['5'],
+  marginBottom: vars.spacing['6'],
   '@media': {
     '(max-width: 768px)': {
       gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-      gap: '1.5rem',
+      gap: vars.spacing['4'],
     },
   },
 });
 
 export const statsSection = style({
   backgroundColor: vars.background.muted,
-  padding: '4rem 0',
+  padding: `${vars.spacing['7']} 0`,
 });
 
 globalStyle(`${statsSection} .stats-grid`, {
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-  gap: '2rem',
+  gap: vars.spacing['5'],
   textAlign: 'center',
 });
 
 globalStyle(`${statsSection} .stat-item h3`, {
   fontFamily: vars.typography.family.display,
-  fontSize: '3rem',
+  fontSize: vars.typography.size['5xl'],
   fontWeight: vars.typography.weight.bold,
   color: vars.colors.primaryHover,
-  marginBottom: '0.5rem',
+  marginBottom: vars.spacing['2'],
 });
 
 globalStyle(`${statsSection} .stat-item p`, {
-  fontSize: '1.25rem',
+  fontSize: vars.typography.size.xl,
   color: vars.text.secondary,
 });
 
@@ -148,7 +148,7 @@ globalStyle(`${statsSection} .stat-item h3`, {
 globalStyle(`${statsSection} .stat-item p`, {
   '@media': {
     '(max-width: 768px)': {
-      fontSize: '1rem',
+      fontSize: vars.typography.size.base,
     },
   },
 });
@@ -156,18 +156,18 @@ globalStyle(`${statsSection} .stat-item p`, {
 export const ctaSection = style({
   background: vars.colors.gradientPrimary,
   color: vars.background.body,
-  padding: '4rem 0',
+  padding: `${vars.spacing['7']} 0`,
   textAlign: 'center',
 });
 
 globalStyle(`${ctaSection} h2`, {
   color: 'white',
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 globalStyle(`${ctaSection} p`, {
-  fontSize: '1.25rem',
-  marginBottom: '2rem',
+  fontSize: vars.typography.size.xl,
+  marginBottom: vars.spacing['5'],
   maxWidth: '500px',
   marginLeft: 'auto',
   marginRight: 'auto',

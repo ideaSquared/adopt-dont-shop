@@ -3,14 +3,14 @@ import { globalStyle, style } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const section = style({
-  marginBlock: '2rem',
+  marginBlock: vars.spacing['5'],
 });
 
 export const header = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'baseline',
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 globalStyle(`${header} h2`, {
@@ -23,7 +23,7 @@ export const seeAll = style({
   fontSize: '0.9rem',
   color: vars.colors.primary,
   textDecoration: 'none',
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
   selectors: {
     '&:hover': {
       textDecoration: 'underline',
@@ -34,7 +34,7 @@ export const seeAll = style({
 export const grid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const card = style({
@@ -92,12 +92,12 @@ export const titleRow = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const name = style({
   fontSize: '1.05rem',
-  fontWeight: 700,
+  fontWeight: vars.typography.weight.bold,
   margin: 0,
   color: vars.text.primary,
   whiteSpace: 'nowrap',
@@ -112,7 +112,7 @@ export const scoreChip = style({
   padding: '0.15rem 0.55rem',
   borderRadius: '999px',
   fontSize: '0.7rem',
-  fontWeight: 700,
+  fontWeight: vars.typography.weight.bold,
   letterSpacing: '0.02em',
   whiteSpace: 'nowrap',
 });
@@ -127,7 +127,7 @@ export const meta = style({
 });
 
 export const rescue = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: vars.text.tertiary,
   margin: 0,
   whiteSpace: 'nowrap',
@@ -136,5 +136,5 @@ export const rescue = style({
 });
 
 export const reasons = style({
-  marginTop: '0.25rem',
+  marginTop: vars.spacing['1'],
 });

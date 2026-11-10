@@ -4,10 +4,10 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 export const container = style({
   maxWidth: '1000px',
   margin: '0 auto',
-  padding: '2rem',
+  padding: vars.spacing['5'],
   '@media': {
     '(max-width: 768px)': {
-      padding: '1rem',
+      padding: vars.spacing['3'],
     },
   },
 });
@@ -15,27 +15,27 @@ export const container = style({
 export const section = style({
   background: vars.background.surface,
   border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '12px',
-  padding: '2rem',
-  marginBottom: '2rem',
+  borderRadius: vars.border.radius.lg,
+  padding: vars.spacing['5'],
+  marginBottom: vars.spacing['5'],
 });
 
 export const sectionTitle = style({
-  fontSize: '1.5rem',
+  fontSize: vars.typography.size['2xl'],
   color: vars.text.primary,
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const profileInfo = style({
   display: 'grid',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const infoItem = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  padding: '1rem 0',
+  padding: `${vars.spacing['3']} 0`,
   borderBottom: `1px solid ${vars.border.color.default}`,
   selectors: {
     '&:last-child': {
@@ -45,7 +45,7 @@ export const infoItem = style({
 });
 
 export const infoLabel = style({
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
   color: vars.text.tertiary,
 });
 
@@ -55,18 +55,18 @@ export const infoValue = style({
 
 export const applicationsGrid = style({
   display: 'grid',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const applicationCard = style({
   background: vars.background.body,
   border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '8px',
-  padding: '1.5rem',
+  borderRadius: vars.border.radius.base,
+  padding: vars.spacing['4'],
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   '@media': {
     '(max-width: 768px)': {
       flexDirection: 'column',
@@ -80,31 +80,31 @@ export const applicationInfo = style({});
 globalStyle(`${applicationInfo} h3`, {
   fontSize: '1.1rem',
   color: vars.text.primary,
-  marginBottom: '0.5rem',
+  marginBottom: vars.spacing['2'],
 });
 
 globalStyle(`${applicationInfo} p`, {
   color: vars.text.tertiary,
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });
 
 export const sectionGap = style({
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const sectionTopGap = style({
-  marginTop: '2rem',
+  marginTop: vars.spacing['5'],
 });
 
 export const smallTopGap = style({
-  marginTop: '0.5rem',
+  marginTop: vars.spacing['2'],
 });
 
 export const buttonTopGap = style({
-  marginTop: '1rem',
+  marginTop: vars.spacing['3'],
 });
 
 export const centeredEmpty = style({
   textAlign: 'center',
-  padding: '2rem',
+  padding: vars.spacing['5'],
 });
