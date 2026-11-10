@@ -7,6 +7,8 @@ import {
   type EntityInspectorTab,
   useConfirm,
   ConfirmDialog,
+  Spinner,
+  StatusBadge,
   toast,
 } from '@adopt-dont-shop/lib.components';
 import {
@@ -36,13 +38,13 @@ type ChatDetailModalProps = {
 const getStatusBadge = (status?: string) => {
   switch (status) {
     case 'active':
-      return <span className={styles.badge({ variant: 'success' })}>Active</span>;
+      return <StatusBadge variant='success' label='Active' />;
     case 'archived':
-      return <span className={styles.badge({ variant: 'neutral' })}>Archived</span>;
+      return <StatusBadge variant='neutral' label='Archived' />;
     case 'blocked':
-      return <span className={styles.badge({ variant: 'danger' })}>Blocked</span>;
+      return <StatusBadge variant='error' label='Blocked' />;
     default:
-      return <span className={styles.badge({ variant: 'neutral' })}>{status || 'Active'}</span>;
+      return <StatusBadge variant='neutral' label={status || 'Active'} />;
   }
 };
 
@@ -189,7 +191,9 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
         />
 
         {chatLoading ? (
-          <div className={styles.loadingState}>Loading...</div>
+          <div className={styles.loadingState}>
+            <Spinner size='sm' label='Loading conversation' />
+          </div>
         ) : (
           <EntityInspector
             data-testid='chat-detail-panel'

@@ -174,29 +174,6 @@ export const participantRole = style({
   color: '#6b7280',
 });
 
-export const badge = recipe({
-  base: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '0.25rem',
-    padding: '0.25rem 0.75rem',
-    borderRadius: '9999px',
-    fontSize: '0.75rem',
-    fontWeight: '600',
-  },
-  variants: {
-    variant: {
-      success: { background: '#d1fae5', color: '#065f46' },
-      warning: { background: '#fef3c7', color: '#92400e' },
-      danger: { background: '#fee2e2', color: '#991b1b' },
-      neutral: { background: '#f3f4f6', color: '#374151' },
-    },
-  },
-  defaultVariants: {
-    variant: 'neutral',
-  },
-});
-
 export const detailGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(2, 1fr)',
