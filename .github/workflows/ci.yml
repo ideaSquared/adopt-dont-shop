@@ -617,6 +617,8 @@ jobs:
         run: |
           pnpm --filter @adopt-dont-shop/service.gateway test:contracts:consumer
           pnpm --filter @adopt-dont-shop/service.notifications test:contracts:consumer
+          pnpm --filter @adopt-dont-shop/service.applications test:contracts:consumer
+          pnpm --filter @adopt-dont-shop/service.moderation test:contracts:consumer
 
       # Phase 2 — providers verify against the generated pact files
       - name: Contract tests — provider phase

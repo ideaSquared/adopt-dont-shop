@@ -1,24 +1,28 @@
 // Provider verification: service.auth → auth.* NATS events
 //
-// Reads the pact file written by
-// services/notifications/test/contracts/notifications-auth-events.consumer.test.ts
-// and proves auth.userLoggedIn and auth.roleAssigned carry what
-// service.notifications reads.
+// Reads the pact files written by the consumers of service.auth's events:
+//   - service.applications (auth.userProfileChanged)
+//     services/applications/test/contracts/applications-auth-user-profile-changed.consumer.test.ts
+//   - service.notifications (auth.userLoggedIn, auth.roleAssigned)
+//     services/notifications/test/contracts/notifications-auth-events.consumer.test.ts
 //
-// Each message provider runs the real login / assignRole handler with a
-// stubbed pool and a NATS double, and returns the payload it actually
-// published. See ADR 0005.
+// Each message provider runs the real code that publishes the event — the
+// login and assignRole handlers with a stubbed pool and a NATS double, and
+// publishProfileChanged (the one builder every name / email edit goes
+// through) — and returns the payload it actually published. See ADR 0005.
 
 import { resolve } from 'node:path';
 import type { Pool } from 'pg';
 import { describe, expect, it, vi } from 'vitest';
 import { MessageProviderPact } from '@pact-foundation/pact';
 
+import type { DomainEvent } from '@adopt-dont-shop/events';
 import { ADMIN_SECURITY_MANAGE, type UserId } from '@adopt-dont-shop/lib.types';
 import { AuthV1 } from '@adopt-dont-shop/proto';
 import { makeNatsDouble, testPrincipal } from '@adopt-dont-shop/test-utils';
 
 import { assignRole, login, type HandlerDeps } from '../../src/grpc/handlers.js';
+import { publishProfileChanged } from '../../src/grpc/profile-events.js';
 
 // Repo-root pacts/ directory: test/contracts/ → test/ → auth/ → services/ → root/ → pacts/
 const PACT_DIR = resolve(__dirname, '../../../../pacts');
@@ -102,6 +106,23 @@ function payloadPublishedOn(nats: ReturnType<typeof makeNatsDouble>, subject: st
 
 // --- Message providers ---------------------------------------------------
 
+// "auth.userProfileChanged event" — state: 'a user changes their name and email'
+function provideUserProfileChanged(): unknown {
+  const published: DomainEvent[] = [];
+  publishProfileChanged(event => published.push(event), {
+    user_id: 'usr-001',
+    first_name: 'Alex',
+    last_name: 'Jenkinson',
+    email: 'alex@example.com',
+    updated_at: new Date('2026-06-18T10:00:00.000Z'),
+  });
+  const event = published.find(e => e.type === 'auth.userProfileChanged');
+  if (!event) {
+    throw new Error('nothing was published on auth.userProfileChanged');
+  }
+  return event.payload;
+}
+
 // "auth.userLoggedIn event" — state: 'a user signs in from a known IP address and browser'
 async function provideUserLoggedIn(): Promise<unknown> {
   const { deps, nats } = makeDeps([
@@ -139,6 +160,16 @@ async function provideRoleAssigned(): Promise<unknown> {
 // --- Verification suites -------------------------------------------------
 
 describe('service.auth — provider verification for auth.* events', () => {
+  it('fulfils the auth.userProfileChanged interaction declared by service.applications', async () => {
+    const verifier = new MessageProviderPact({
+      provider: 'service.auth',
+      logLevel: 'warn',
+      pactUrls: [resolve(PACT_DIR, 'service.applications-service.auth.json')],
+      messageProviders: { 'auth.userProfileChanged event': provideUserProfileChanged },
+    });
+    await expect(verifier.verify()).resolves.not.toThrow();
+  });
+
   it('fulfils the auth.userLoggedIn and auth.roleAssigned interactions declared by service.notifications', async () => {
     const verifier = new MessageProviderPact({
       provider: 'service.auth',
