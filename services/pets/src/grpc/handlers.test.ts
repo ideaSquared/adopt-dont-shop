@@ -263,6 +263,23 @@ describe('createPet', () => {
     expect(order).toEqual(['BEGIN', 'INSERT', 'COMMIT', 'NATS_PUBLISH']);
   });
 
+  it("carries the listing's descriptions on pets.created so moderation can scan them", async () => {
+    mocks.clientMock.query.mockResolvedValue({ rows: [petRow()] });
+
+    await createPet(mocks.deps, STAFF, {
+      ...BASE_CREATE,
+      shortDescription: 'Friendly lab',
+      longDescription: 'Loves walks and other dogs.',
+    });
+
+    const data = mocks.natsMock.publish.mock.calls[0][1] as Uint8Array | string;
+    const text = typeof data === 'string' ? data : new TextDecoder().decode(data);
+    expect(JSON.parse(text).payload).toMatchObject({
+      shortDescription: 'Friendly lab',
+      longDescription: 'Loves walks and other dogs.',
+    });
+  });
+
   it('super_admin can create for any rescue', async () => {
     mocks.clientMock.query.mockResolvedValue({ rows: [petRow()] });
     const res = await createPet(mocks.deps, SUPER_ADMIN, BASE_CREATE);

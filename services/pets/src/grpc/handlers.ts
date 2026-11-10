@@ -391,7 +391,14 @@ export async function createPet(
     publish({
       type: 'pets.created',
       id: `pets.created.${petId}`,
-      payload: { petId, rescueId, type: typeToDb(req.type) },
+      // The descriptions are what service.moderation's pets.created scanner checks.
+      payload: {
+        petId,
+        rescueId,
+        type: typeToDb(req.type),
+        shortDescription: req.shortDescription ?? null,
+        longDescription: req.longDescription ?? null,
+      },
     });
   });
 
