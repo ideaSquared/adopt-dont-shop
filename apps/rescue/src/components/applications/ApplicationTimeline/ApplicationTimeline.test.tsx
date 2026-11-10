@@ -48,11 +48,6 @@ vi.mock('../ApplicationReview.css', () => {
   return out;
 });
 
-// formatStatusName converts snake_case to Title Case
-vi.mock('../../../utils/statusUtils', () => ({
-  formatStatusName: (s: string) => s,
-}));
-
 const sampleEvent = {
   id: 'evt-1',
   applicationId: 'app-1',
