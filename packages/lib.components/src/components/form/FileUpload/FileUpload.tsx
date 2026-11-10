@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useId, useRef, useState } from 'react';
 import clsx from 'clsx';
 
 import * as styles from './FileUpload.css';
@@ -77,6 +77,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const inputId = useId();
 
   const combinedInputRef = (node: HTMLInputElement | null) => {
     (inputRef as React.MutableRefObject<HTMLInputElement | null>).current = node;
@@ -214,11 +215,15 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   return (
     <div className={clsx(styles.container({ fullWidth }), className)} data-testid={testId}>
       {label && (
-        <label className={clsx(styles.label, required && styles.labelRequired)}>{label}</label>
+        <label htmlFor={inputId} className={clsx(styles.label, required && styles.labelRequired)}>
+          {label}
+        </label>
       )}
 
       <input
         ref={combinedInputRef}
+        id={inputId}
+        tabIndex={-1}
         className={styles.hiddenInput}
         type='file'
         accept={accept}
@@ -237,6 +242,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         role='button'
+        aria-disabled={disabled || undefined}
         tabIndex={disabled ? -1 : 0}
       >
         <div className={styles.uploadIcon}>

@@ -57,6 +57,10 @@ export const dropZone = recipe({
         borderColor: vars.colors.primary,
         backgroundColor: vars.colors.primaryBgSubtle,
       },
+      '&:focus-visible': {
+        outline: `2px solid ${vars.colors.primary}`,
+        outlineOffset: '2px',
+      },
     },
   },
   variants: {

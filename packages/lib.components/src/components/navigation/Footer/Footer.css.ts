@@ -46,5 +46,9 @@ export const footerLink = style({
     '&:hover': {
       color: vars.text.primary,
     },
+    '&:focus-visible': {
+      outline: `2px solid ${vars.border.color.focus}`,
+      outlineOffset: '2px',
+    },
   },
 });

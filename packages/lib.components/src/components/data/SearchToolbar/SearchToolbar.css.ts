@@ -7,6 +7,10 @@ export const container = style({
   flexDirection: 'column',
   gap: vars.spacing['3'],
   width: '100%',
+  padding: vars.spacing['4'],
+  background: vars.background.surface,
+  border: `${vars.border.width.thin} solid ${vars.border.color.muted}`,
+  borderRadius: vars.border.radius.base,
 });
 
 export const searchRow = style({
