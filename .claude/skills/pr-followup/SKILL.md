@@ -59,9 +59,18 @@ exit code as failure or append a fallback to its output.
 ```bash
 # Failures so far
 gh pr checks <n> --json name,bucket,link --jq '.[] | select(.bucket=="fail" or .bucket=="cancel") | "\(.name) \(.link)"'
-# Finished yet?
-gh pr checks <n> --json bucket --jq 'if length>0 and all(.[]; .bucket!="pending") then "done" else "pending" end'
+# Finished yet? Only once the "CI Required" check exists and nothing is pending
+gh pr checks <n> --json name,bucket --jq 'if any(.[]; .name=="CI Required") and all(.[]; .bucket!="pending") then "done" else "pending" end'
 ```
+
+Wait for "CI Required" itself, not just "no pending checks". The auto-label
+workflow finishes in seconds, so before `ci.yml` registers its jobs (or when it
+never runs) a PR shows one passing check and no pending ones: that is not green.
+
+`ci.yml` runs only for PRs whose base is `main` (or `develop`), on `opened`,
+`synchronize`, `reopened` and `labeled`. Changing a PR's base does not start a
+run, and a push made while the base was another branch was skipped. If a PR
+shows no "CI Required" check, close and reopen it to trigger CI.
 
 Re-check after every push: a new commit starts a new run. "CI Required" is an
 aggregate — find the underlying failed job.
