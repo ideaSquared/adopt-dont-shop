@@ -76,8 +76,18 @@ describe('demo create-rescue', () => {
         .services.find(s => s.name === 'demo');
       return demo?.methods.map(m => m.command) ?? [];
     };
-    expect(await commandsIn('dev')).toEqual(['create-rescue', 'delete-rescue']);
-    expect(await commandsIn('staging')).toEqual(['create-rescue', 'delete-rescue']);
+    expect(await commandsIn('dev')).toEqual([
+      'create-rescue',
+      'delete-rescue',
+      'create-adopter',
+      'delete-adopter',
+    ]);
+    expect(await commandsIn('staging')).toEqual([
+      'create-rescue',
+      'delete-rescue',
+      'create-adopter',
+      'delete-adopter',
+    ]);
     expect(await commandsIn('prod')).toEqual([]);
   });
 

@@ -26,6 +26,12 @@ import {
   validateCreateRequest,
   validateDeleteRequest,
 } from './demo-rescue.js';
+import {
+  createDemoAdopterAccount,
+  deleteDemoAdopterAccount,
+  validateCreateAdopterRequest,
+  validateDeleteAdopterRequest,
+} from './demo-adopter.js';
 
 // The explicit allow-list of RPCs service.ops will invoke. Keys are
 // '<service>.<Method>' where <service> is the proto package segment
@@ -266,6 +272,31 @@ export const REGISTRY: Readonly<Record<string, RegistryEntry>> = {
     local: deleteDemoRescue,
     summary: 'Remove a demo rescue: its pets, the rescue, and its demo owner login.',
     warnings: ['Refuses rescues not made by `demo create-rescue`.'],
+  },
+  'demo.CreateAdopter': {
+    kind: 'write',
+    permissions: [ADMIN_USERS_SEARCH, ADMIN_USERS_UPDATE],
+    // preview-only: sign-up and activation are separate writes in auth.
+    dryRun: 'preview-only',
+    envs: ['dev', 'staging'],
+    validate: validateCreateAdopterRequest,
+    local: createDemoAdopterAccount,
+    revealOnExecute: ['email', 'password'],
+    summary: 'Create a verified, active demo adopter login for the client app.',
+    warnings: [
+      'Creates a real account in auth. Remove it with `pnpm ops demo delete-adopter <userId>`.',
+      'The password is shown once, in the result. It is not stored by service.ops.',
+    ],
+  },
+  'demo.DeleteAdopter': {
+    kind: 'write',
+    permissions: [ADMIN_USERS_READ, ADMIN_USERS_DEACTIVATE],
+    dryRun: 'preview-only',
+    envs: ['dev', 'staging'],
+    validate: validateDeleteAdopterRequest,
+    local: deleteDemoAdopterAccount,
+    summary: 'Deactivate a demo adopter login so it can no longer sign in.',
+    warnings: ['Refuses accounts not made by `demo create-adopter`.'],
   },
 };
 
