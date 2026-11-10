@@ -36,7 +36,7 @@ test.describe('rescue pet listing management', () => {
       .getByRole('heading', { name, level: 3 })
       .locator('xpath=ancestor::*[.//input[@type="checkbox"]][1]');
     await expect(card).toBeVisible({ timeout: 30_000 });
-    await expect(card.locator('span', { hasText: /^Available$/ })).toBeVisible();
+    await expect(card.getByRole('status', { name: 'Available', exact: true })).toBeVisible();
     await expect(card.getByText('Type:').locator('xpath=following-sibling::*[1]')).toHaveText(
       'cat'
     );

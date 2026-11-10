@@ -49,12 +49,12 @@ test.describe('editing and archiving a pet', () => {
 
     // Change the status from the card.
     await card.getByLabel(`Change status for ${name}`).selectOption('pending');
-    await expect(card.locator('span', { hasText: /^Pending$/ })).toBeVisible();
+    await expect(card.getByRole('status', { name: 'Pending', exact: true })).toBeVisible();
 
     // Both survive a reload.
     await page.reload();
     await expect(card.getByText(shortDescription)).toBeVisible({ timeout: 30_000 });
-    await expect(card.locator('span', { hasText: /^Pending$/ })).toBeVisible();
+    await expect(card.getByRole('status', { name: 'Pending', exact: true })).toBeVisible();
 
     // The adopter sees them on the client pet page.
     const adopter = await openAdopterBrowser(browser);

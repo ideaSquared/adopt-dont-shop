@@ -38,17 +38,18 @@ test.describe('foster coordination', () => {
   }) => {
     const rescueApi = await apiAs('rescue');
     const { petId } = await createAvailablePet(rescueApi, 'Foster');
-    const { fosterUserId, placementId } = await startPlacement(rescueApi, petId);
+    const { placementId } = await startPlacement(rescueApi, petId);
 
     try {
       await page.goto('/foster');
       await dismissCookieBannerWhenShown(page);
 
-      // The list shows the placement against the pet and the carer. (Both appear as
-      // ids because the page cannot load its name lookups — see the first fixme.)
+      // The list shows the placement against the pet and the carer, who is named by
+      // "First Last <email>" (the pet still appears as its id here, because the pets
+      // lookup needs a rescue id the page cannot read — see the second fixme).
       const row = page.getByRole('row', { name: new RegExp(petId) });
       await expect(row).toBeVisible();
-      await expect(row).toContainText(fosterUserId);
+      await expect(row).toContainText('Sarah Johnson <sarah.johnson@pawsrescue.dev>');
       await expect(row).toContainText('15/06/2030');
 
       await page.reload();
