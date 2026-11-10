@@ -1,0 +1,93 @@
+import DOMPurify from 'dompurify';
+import { marked, type Token, type Tokens } from 'marked';
+
+export type LegalSection = {
+  id: string;
+  title: string;
+};
+
+export type ParsedLegalDocument = {
+  title: string | null;
+  version: string | null;
+  lastUpdated: string | null;
+  sections: ReadonlyArray<LegalSection>;
+  /** Sanitized HTML for the readable body only. */
+  html: string;
+};
+
+const VERSION_LINE = /^\*\*Version:\*\*\s*(.+)$/m;
+const LAST_UPDATED_LINE = /^\*\*Last updated:\*\*\s*(.+)$/m;
+// The markdown files cross-link with repo-relative paths (`./privacy.md`);
+// on the site those documents live at /privacy, /terms and /cookies.
+const SIBLING_DOCUMENT_LINK = /\]\(\.\/(terms|privacy|cookies)\.md\)/g;
+
+const isHeading = (token: Token, depth: number): token is Tokens.Heading =>
+  token.type === 'heading' && token.depth === depth;
+
+const isMetadata = (token: Token): boolean =>
+  token.type === 'paragraph' && (VERSION_LINE.test(token.raw) || LAST_UPDATED_LINE.test(token.raw));
+
+const plainText = (inlineMarkdown: string): string => inlineMarkdown.replace(/[*_`]/g, '').trim();
+
+const slugify = (text: string): string =>
+  text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+const toSections = (headings: ReadonlyArray<Tokens.Heading>): ReadonlyArray<LegalSection> =>
+  headings.map((heading, index) => {
+    const title = plainText(heading.text);
+    const slug = slugify(title);
+    const isDuplicate = headings
+      .slice(0, index)
+      .some(other => slugify(plainText(other.text)) === slug);
+    return { id: `section-${slug}${isDuplicate ? `-${index + 1}` : ''}`, title };
+  });
+
+const anchorHeadings = (html: string, sections: ReadonlyArray<LegalSection>): string => {
+  const nextSection = sections[Symbol.iterator]();
+  return html.replace(/<h2>/g, () => {
+    const next = nextSection.next();
+    return next.done ? '<h2>' : `<h2 id="${next.value.id}">`;
+  });
+};
+
+const wrapTables = (html: string): string =>
+  html.replace(/<table>/g, '<div data-legal-table><table>').replace(/<\/table>/g, '</table></div>');
+
+/**
+ * Turns a versioned legal markdown document (served by the gateway from
+ * docs/legal/*.md) into what the page needs: the title, version and
+ * last-updated date lifted out of the body, a section list for navigation,
+ * and sanitized HTML. The block between the title and the first `##` section
+ * holds maintainer notes ("source of truth…", "placeholder copy…") and the
+ * metadata lines; none of that is policy text, so it is not rendered.
+ */
+export const parseLegalDocument = (markdown: string): ParsedLegalDocument => {
+  const tokens = marked.lexer(markdown.replace(SIBLING_DOCUMENT_LINK, '](/$1)'));
+  const firstSection = tokens.findIndex(token => isHeading(token, 2));
+  const cutoff = firstSection === -1 ? tokens.length : firstSection;
+  const preamble = tokens.slice(0, cutoff);
+  const body = tokens.slice(cutoff);
+
+  const title = preamble.find((token): token is Tokens.Heading => isHeading(token, 1));
+  const metadata = preamble
+    .filter(isMetadata)
+    .map(token => token.raw)
+    .join('\n');
+  const readablePreamble = preamble.filter(
+    token => !isHeading(token, 1) && token.type !== 'blockquote' && !isMetadata(token)
+  );
+
+  const sections = toSections(body.filter((token): token is Tokens.Heading => isHeading(token, 2)));
+  const html = wrapTables(anchorHeadings(marked.parser([...readablePreamble, ...body]), sections));
+
+  return {
+    title: title ? plainText(title.text) : null,
+    version: VERSION_LINE.exec(metadata)?.[1].trim() ?? null,
+    lastUpdated: LAST_UPDATED_LINE.exec(metadata)?.[1].trim() ?? null,
+    sections,
+    html: DOMPurify.sanitize(html),
+  };
+};

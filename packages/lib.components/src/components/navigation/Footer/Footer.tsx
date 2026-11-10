@@ -35,6 +35,9 @@ export const Footer: React.FC<FooterProps> = ({ className, extraLinks }) => {
           <Link to='/terms' className={footerLink}>
             Terms
           </Link>
+          <Link to='/cookies' className={footerLink}>
+            Cookies
+          </Link>
           <Link to='/contact' className={footerLink}>
             Contact
           </Link>
