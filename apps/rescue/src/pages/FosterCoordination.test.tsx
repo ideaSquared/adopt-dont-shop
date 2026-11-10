@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import FosterCoordination from './FosterCoordination';
 import { fosterService } from '../services/fosterService';
 import { petService } from '../services/libraryServices';
@@ -9,9 +10,13 @@ import { staffService } from '../services/staffService';
 
 const renderAt = (initialEntry: string) =>
   render(
-    <MemoryRouter initialEntries={[initialEntry]}>
-      <FosterCoordination />
-    </MemoryRouter>
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <FosterCoordination />
+      </MemoryRouter>
+    </QueryClientProvider>
   );
 
 vi.mock('@adopt-dont-shop/lib.auth', () => ({

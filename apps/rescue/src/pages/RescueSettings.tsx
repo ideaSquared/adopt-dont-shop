@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Navigate, useLocation, useNavigate } from 'react-router';
 import { useAuth, useHasPermission } from '@adopt-dont-shop/lib.auth';
-import { Tabs, toast } from '@adopt-dont-shop/lib.components';
+import { ErrorState, PageHeader, Tabs, toast } from '@adopt-dont-shop/lib.components';
 import { SettingsFormSkeleton } from '../components/skeletons';
 import { apiService, rescueService } from '../services/libraryServices';
 import { RESCUE_SETTINGS_UPDATE } from '@adopt-dont-shop/lib.permissions';
@@ -96,62 +97,48 @@ const RescueSettings: React.FC = () => {
     },
     [navigate, location.pathname]
   );
-  const [rescue, setRescue] = useState<RescueProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    let cancelled = false;
+  const profileQuery = useQuery({
+    queryKey: ['rescue', 'settings-profile', user?.userId],
+    queryFn: fetchRescueProfile,
+    staleTime: 0,
+  });
+  const rescue = profileQuery.data ?? null;
+  const loading = profileQuery.isLoading;
+  const error = profileQuery.error
+    ? profileQuery.error instanceof Error
+      ? profileQuery.error.message
+      : 'Failed to load rescue settings. Please try again.'
+    : null;
+  const reloadRescue = () =>
+    queryClient.invalidateQueries({ queryKey: ['rescue', 'settings-profile'] });
 
-    const loadRescueData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const profile = await fetchRescueProfile();
-        if (!cancelled) {
-          setRescue(profile);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : 'Failed to load rescue settings. Please try again.'
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadRescueData();
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.userId]);
-
-  const loadRescueData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      setRescue(await fetchRescueProfile());
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to load rescue settings. Please try again.'
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // The forms report their own save failures, so opt out of the generic toast.
+  const saveProfileMutation = useMutation({
+    mutationFn: ({
+      rescueId,
+      profileData,
+    }: {
+      rescueId: string;
+      profileData: Partial<RescueProfile>;
+    }) => apiService.put(`/api/v1/rescues/${rescueId}`, profileData),
+    onSuccess: reloadRescue,
+    onError: () => undefined,
+  });
+  const savePoliciesMutation = useMutation({
+    mutationFn: ({ rescueId, policies }: { rescueId: string; policies: AdoptionPolicy }) =>
+      rescueService.updateAdoptionPolicies(rescueId, policies),
+    onSuccess: reloadRescue,
+    onError: () => undefined,
+  });
 
   const handleSaveProfile = async (profileData: Partial<RescueProfile>) => {
     if (!rescue) {
       return;
     }
 
-    await apiService.put(`/api/v1/rescues/${rescue.rescueId}`, profileData);
-
-    await loadRescueData();
+    await saveProfileMutation.mutateAsync({ rescueId: rescue.rescueId, profileData });
     // ADS-125
     toast.success('Rescue details saved');
   };
@@ -161,9 +148,7 @@ const RescueSettings: React.FC = () => {
       return;
     }
 
-    await rescueService.updateAdoptionPolicies(rescue.rescueId, policies);
-
-    await loadRescueData();
+    await savePoliciesMutation.mutateAsync({ rescueId: rescue.rescueId, policies });
   };
 
   if (USER_SETTINGS_HASHES.has(location.hash)) {
@@ -181,14 +166,11 @@ const RescueSettings: React.FC = () => {
   if (error) {
     return (
       <div className={styles.pageContainer}>
-        <div className={styles.pageHeader}>
-          <h1>Rescue Settings</h1>
-          <p>Configure your rescue profile, adoption policies, and application questions.</p>
-        </div>
-        <div className={styles.errorContainer}>
-          <h3>Unable to Load Settings</h3>
-          <p>{error}</p>
-        </div>
+        <PageHeader
+          title="Rescue Settings"
+          description="Configure your rescue profile, adoption policies, and application questions."
+        />
+        <ErrorState title="Unable to Load Settings" message={error} />
       </div>
     );
   }
@@ -196,10 +178,10 @@ const RescueSettings: React.FC = () => {
   if (permissionsLoading) {
     return (
       <div className={styles.pageContainer}>
-        <div className={styles.pageHeader}>
-          <h1>Rescue Settings</h1>
-          <p>Configure your rescue profile, adoption policies, and application questions.</p>
-        </div>
+        <PageHeader
+          title="Rescue Settings"
+          description="Configure your rescue profile, adoption policies, and application questions."
+        />
         <SettingsFormSkeleton />
       </div>
     );
@@ -208,24 +190,24 @@ const RescueSettings: React.FC = () => {
   if (!canEdit) {
     return (
       <div className={styles.pageContainer}>
-        <div className={styles.pageHeader}>
-          <h1>Rescue Settings</h1>
-          <p>Configure your rescue profile, adoption policies, and application questions.</p>
-        </div>
-        <div className={styles.errorContainer}>
-          <h3>Access Denied</h3>
-          <p>You don't have permission to modify rescue settings.</p>
-        </div>
+        <PageHeader
+          title="Rescue Settings"
+          description="Configure your rescue profile, adoption policies, and application questions."
+        />
+        <ErrorState
+          title="Access Denied"
+          message="You don't have permission to modify rescue settings."
+        />
       </div>
     );
   }
 
   return (
     <div className={styles.pageContainer}>
-      <div className={styles.pageHeader}>
-        <h1>Rescue Settings</h1>
-        <p>Configure your rescue profile, adoption policies, and application questions.</p>
-      </div>
+      <PageHeader
+        title="Rescue Settings"
+        description="Configure your rescue profile, adoption policies, and application questions."
+      />
 
       <Tabs
         value={activeTab}
@@ -236,7 +218,11 @@ const RescueSettings: React.FC = () => {
             id: 'profile',
             label: 'Rescue Profile',
             content: (
-              <RescueProfileForm rescue={rescue} onSave={handleSaveProfile} loading={loading} />
+              <RescueProfileForm
+                rescue={rescue}
+                onSave={handleSaveProfile}
+                loading={profileQuery.isFetching}
+              />
             ),
           },
           {
@@ -246,7 +232,7 @@ const RescueSettings: React.FC = () => {
               <AdoptionPolicyForm
                 policy={rescue?.adoptionPolicies || null}
                 onSave={handleSavePolicies}
-                loading={loading}
+                loading={profileQuery.isFetching}
               />
             ),
           },

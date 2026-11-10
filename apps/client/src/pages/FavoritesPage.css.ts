@@ -6,28 +6,6 @@ export const pageContainer = style({
   padding: '2rem 0',
 });
 
-export const header = style({
-  textAlign: 'center',
-  marginBottom: '3rem',
-});
-
-globalStyle(`${header} h1`, {
-  fontFamily: vars.typography.family.display,
-  fontSize: '2.5rem',
-  fontWeight: vars.typography.weight.bold,
-  color: vars.text.primary,
-  marginBottom: '1rem',
-  letterSpacing: '-0.025em',
-});
-
-globalStyle(`${header} p`, {
-  fontSize: '1.1rem',
-  color: vars.text.secondary,
-  maxWidth: '600px',
-  margin: '0 auto',
-  lineHeight: '1.6',
-});
-
 export const petGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',

@@ -11,10 +11,12 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@/test-utils/render';
 import userEvent from '@testing-library/user-event';
+import { toast } from '@adopt-dont-shop/lib.components';
 
 const navigateMock = vi.fn();
 const getApplicationByIdMock = vi.fn();
 const startConversationMock = vi.fn();
+const withdrawApplicationMock = vi.fn();
 
 type MockConversation = {
   id: string;
@@ -46,7 +48,7 @@ vi.mock('@/services', async () => {
     ...actual,
     applicationService: {
       getApplicationById: (...args: unknown[]) => getApplicationByIdMock(...args),
-      withdrawApplication: vi.fn(),
+      withdrawApplication: (...args: unknown[]) => withdrawApplicationMock(...args),
     },
   };
 });
@@ -172,5 +174,45 @@ describe('ApplicationDetailsPage pet and rescue', () => {
     expect(await screen.findByText('Reviewed')).toBeInTheDocument();
     expect(screen.queryByText(/reviewed by/i)).not.toBeInTheDocument();
     expect(screen.queryByText('staff-user-42')).not.toBeInTheDocument();
+  });
+});
+
+describe('ApplicationDetailsPage withdrawing', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getApplicationByIdMock.mockResolvedValue(makeApplication());
+  });
+
+  it('withdraws the application, confirms with a toast and shows the withdrawn status', async () => {
+    withdrawApplicationMock.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+
+    render(<ApplicationDetailsPage />);
+    await screen.findByRole('button', { name: /message rescue/i });
+    // The modal's confirm button is rendered after the page's own trigger button.
+    const buttons = screen.getAllByRole('button', { name: /^withdraw application$/i });
+    await user.click(buttons[buttons.length - 1]);
+
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalledWith('Application withdrawn successfully');
+    });
+    expect(withdrawApplicationMock).toHaveBeenCalledWith('app-1', undefined);
+    expect(await screen.findByText(/this application was withdrawn/i)).toBeInTheDocument();
+  });
+
+  it('keeps the application as submitted when the withdrawal fails', async () => {
+    withdrawApplicationMock.mockRejectedValue(new Error('boom'));
+    const user = userEvent.setup();
+
+    render(<ApplicationDetailsPage />);
+    await screen.findByRole('button', { name: /message rescue/i });
+    const buttons = screen.getAllByRole('button', { name: /^withdraw application$/i });
+    await user.click(buttons[buttons.length - 1]);
+
+    await waitFor(() => {
+      expect(withdrawApplicationMock).toHaveBeenCalled();
+    });
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(screen.queryByText(/this application was withdrawn/i)).not.toBeInTheDocument();
   });
 });

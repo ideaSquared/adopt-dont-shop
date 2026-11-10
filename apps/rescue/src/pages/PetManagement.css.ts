@@ -1,6 +1,4 @@
-import { globalStyle, style } from '@vanilla-extract/css';
-
-import { vars } from '@adopt-dont-shop/lib.components/theme';
+import { style } from '@vanilla-extract/css';
 
 export const pageContainer = style({
   maxWidth: '1200px',
@@ -23,36 +21,6 @@ export const contentWrapper = style({
       gap: '1.25rem',
     },
   },
-});
-
-export const pageHeader = style({
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'flex-start',
-  gap: '2rem',
-  '@media': {
-    'screen and (max-width: 768px)': {
-      flexDirection: 'column',
-      gap: '1rem',
-    },
-  },
-});
-
-export const headerContent = style({
-  flex: 1,
-});
-
-globalStyle(`${headerContent} h1`, {
-  fontSize: '2.5rem',
-  fontWeight: 700,
-  color: vars.text.primary,
-  margin: '0 0 0.5rem 0',
-});
-
-globalStyle(`${headerContent} p`, {
-  fontSize: '1.1rem',
-  color: vars.text.tertiary,
-  margin: 0,
 });
 
 export const headerActions = style({
@@ -88,38 +56,6 @@ export const statsContainer = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
   gap: '1rem',
-});
-
-export const statCard = style({
-  padding: '1.5rem',
-  textAlign: 'center',
-});
-
-export const statNumber = style({
-  fontSize: '2rem',
-  fontWeight: 700,
-  color: vars.colors.infoHover,
-  marginBottom: '0.5rem',
-});
-
-export const statLabel = style({
-  fontSize: '0.875rem',
-  color: vars.text.tertiary,
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-});
-
-export const errorContainer = style({
-  padding: '2rem',
-  textAlign: 'center',
-  border: `1px solid ${vars.colors.danger}`,
-  backgroundColor: vars.colors.dangerBgSubtle,
-  color: vars.colors.dangerHover,
-  borderRadius: '0.5rem',
-});
-
-export const retryButton = style({
-  marginTop: '1rem',
 });
 
 export const setupCard = style({
@@ -162,8 +98,4 @@ export const devNoteSteps = style({
   textAlign: 'left',
   fontSize: '0.875rem',
   margin: 0,
-});
-
-export const dismissButton = style({
-  marginTop: '0.5rem',
 });

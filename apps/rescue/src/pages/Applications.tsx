@@ -9,8 +9,8 @@ import { applicationService } from '../services/applicationService';
 import type { ApplicationListItem } from '../types/applications';
 import { buildBulkUpdatePayload, type BulkStageAction } from '../utils/applicationStageTransitions';
 import type { StageAction } from '../types/applicationStages';
+import { Button, PageHeader } from '@adopt-dont-shop/lib.components';
 import * as styles from './Applications.css';
-import * as pageLayout from './PageLayout.css';
 
 const Applications: React.FC = () => {
   // ADS-644: when deep-linked from a pet card or foster row, scope the
@@ -192,20 +192,20 @@ const Applications: React.FC = () => {
   };
 
   return (
-    <div className={pageLayout.pageContainer}>
-      <div className={pageLayout.pageHeader}>
-        <h1>Application Management</h1>
-        <p>Review and process adoption applications.</p>
-      </div>
+    <div className={styles.pageContainer}>
+      <PageHeader
+        title="Application Management"
+        description="Review and process adoption applications."
+      />
 
       {filteredPetName && (
         <div data-testid="pet-filter-banner" className={styles.petFilterBanner}>
           <span>
             Filtered by: <strong>{filteredPetName}</strong>
           </span>
-          <button type="button" onClick={clearPetFilter} className={styles.petFilterClearButton}>
+          <Button variant="outline" size="sm" onClick={clearPetFilter}>
             Clear filter
-          </button>
+          </Button>
         </div>
       )}
 

@@ -1,7 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import {
+  Button,
   Card,
+  FormField,
+  Input,
   MetricCard,
+  Modal,
+  PageHeader,
+  SelectInput,
   toast,
   DateRangePicker,
   createDefaultDateRangePresets,
@@ -32,14 +39,9 @@ const toIsoDate = (date: Date): string => {
 const dateRangePresets = createDefaultDateRangePresets();
 
 // Services
-import {
-  analyticsService,
-  DateRange,
-  AdoptionMetrics,
-  ApplicationAnalytics,
-  PetPerformance,
-  StageDistribution,
-} from '../services/analyticsService';
+import { analyticsService, DateRange, StageDistribution } from '../services/analyticsService';
+
+const NO_STAGES: StageDistribution[] = [];
 
 const Analytics: React.FC = () => {
   // Date range state
@@ -53,23 +55,48 @@ const Analytics: React.FC = () => {
   // Filter state
   const [petTypeFilter, setPetTypeFilter] = useState<string>('all');
 
-  // Data state
-  const [adoptionMetrics, setAdoptionMetrics] = useState<AdoptionMetrics | null>(null);
-  const [applicationAnalytics, setApplicationAnalytics] = useState<ApplicationAnalytics | null>(
-    null
-  );
-  const [petPerformance, setPetPerformance] = useState<PetPerformance | null>(null);
-  const [stageDistribution, setStageDistribution] = useState<StageDistribution[]>([]);
-
-  // Loading state
-  const [loading, setLoading] = useState(true);
+  // Each metric is its own query so that one failing endpoint doesn't blank
+  // the whole dashboard: the affected section just falls through to its
+  // existing "No Data Available" empty state.
+  const rangeKey = { start: toIsoDate(dateRange.start), end: toIsoDate(dateRange.end) };
+  const adoptionQuery = useQuery({
+    queryKey: ['analytics', 'adoption-metrics', rangeKey],
+    queryFn: () => analyticsService.getAdoptionMetrics(dateRange),
+    placeholderData: keepPreviousData,
+    retry: false,
+  });
+  const applicationQuery = useQuery({
+    queryKey: ['analytics', 'application-analytics', rangeKey],
+    queryFn: () => analyticsService.getApplicationAnalytics(dateRange),
+    placeholderData: keepPreviousData,
+    retry: false,
+  });
+  const petQuery = useQuery({
+    queryKey: ['analytics', 'pet-performance', rangeKey],
+    queryFn: () => analyticsService.getPetPerformance(dateRange),
+    placeholderData: keepPreviousData,
+    retry: false,
+  });
+  const stageQuery = useQuery({
+    queryKey: ['analytics', 'stage-distribution'],
+    queryFn: () => analyticsService.getStageDistribution(),
+    retry: false,
+  });
+  const adoptionMetrics = adoptionQuery.data ?? null;
+  const applicationAnalytics = applicationQuery.data ?? null;
+  const petPerformance = petQuery.data ?? null;
+  const stageDistribution = stageQuery.data ?? NO_STAGES;
+  const loading =
+    adoptionQuery.isFetching ||
+    applicationQuery.isFetching ||
+    petQuery.isFetching ||
+    stageQuery.isFetching;
 
   // Email report modal state
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailAddress, setEmailAddress] = useState('');
   const [emailError, setEmailError] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
-  const emailInputRef = useRef<HTMLInputElement>(null);
 
   const handleDateRangeChange = (value: DateRangeValue) => {
     if (!value.from || !value.to) {
@@ -77,60 +104,6 @@ const Analytics: React.FC = () => {
     }
     setDateRange({ start: new Date(value.from), end: new Date(value.to) });
   };
-
-  // Fetch analytics data. Each metric is fetched and applied independently
-  // so that one failing endpoint doesn't blank the whole dashboard — the
-  // affected section just falls through to its existing "No Data Available"
-  // empty state.
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchAnalytics = async () => {
-      setLoading(true);
-
-      const [adoption, application, pet, stages] = await Promise.allSettled([
-        analyticsService.getAdoptionMetrics(dateRange),
-        analyticsService.getApplicationAnalytics(dateRange),
-        analyticsService.getPetPerformance(dateRange),
-        analyticsService.getStageDistribution(),
-      ]);
-
-      if (cancelled) {
-        return;
-      }
-
-      if (adoption.status === 'fulfilled') {
-        setAdoptionMetrics(adoption.value);
-      } else {
-        console.error('Failed to fetch adoption metrics:', adoption.reason);
-      }
-
-      if (application.status === 'fulfilled') {
-        setApplicationAnalytics(application.value);
-      } else {
-        console.error('Failed to fetch application analytics:', application.reason);
-      }
-
-      if (pet.status === 'fulfilled') {
-        setPetPerformance(pet.value);
-      } else {
-        console.error('Failed to fetch pet performance:', pet.reason);
-      }
-
-      if (stages.status === 'fulfilled') {
-        setStageDistribution(stages.value);
-      } else {
-        console.error('Failed to fetch stage distribution:', stages.reason);
-      }
-
-      setLoading(false);
-    };
-
-    fetchAnalytics();
-    return () => {
-      cancelled = true;
-    };
-  }, [dateRange]);
 
   // Export handlers
   const handleExportCSV = async () => {
@@ -218,13 +191,10 @@ const Analytics: React.FC = () => {
 
   return (
     <div className={styles.pageContainer}>
-      <div className={styles.pageHeader}>
-        <div className={styles.headerTop}>
-          <div className={styles.headerTitle}>
-            <h1>Analytics & Reporting</h1>
-            <p>Comprehensive insights into your rescue's performance and operations</p>
-          </div>
-
+      <PageHeader
+        title="Analytics & Reporting"
+        description="Comprehensive insights into your rescue's performance and operations"
+        actions={
           <div className={styles.headerActions}>
             <DateRangePicker
               value={{ from: toIsoDate(dateRange.start), to: toIsoDate(dateRange.end) }}
@@ -238,21 +208,22 @@ const Analytics: React.FC = () => {
               disabled={loading}
             />
           </div>
-        </div>
+        }
+      />
 
-        <div className={styles.filterBar}>
-          <select
-            className={styles.filterSelect}
-            value={petTypeFilter}
-            onChange={e => setPetTypeFilter(e.target.value)}
-          >
-            <option value="all">All Pet Types</option>
-            <option value="dog">Dogs</option>
-            <option value="cat">Cats</option>
-            <option value="rabbit">Rabbits</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
+      <div className={styles.filterBar}>
+        <SelectInput
+          label="Pet type"
+          value={petTypeFilter}
+          onChange={value => setPetTypeFilter(String(value))}
+          options={[
+            { value: 'all', label: 'All Pet Types' },
+            { value: 'dog', label: 'Dogs' },
+            { value: 'cat', label: 'Cats' },
+            { value: 'rabbit', label: 'Rabbits' },
+            { value: 'other', label: 'Other' },
+          ]}
+        />
       </div>
 
       {/* Key Metrics */}
@@ -400,70 +371,50 @@ const Analytics: React.FC = () => {
         </Card>
       </div>
       {/* Email Report Modal */}
-      {showEmailModal && (
-        <div
-          className={styles.emailModalOverlay}
-          onClick={e => e.target === e.currentTarget && setShowEmailModal(false)}
-          onKeyDown={e => e.key === 'Escape' && setShowEmailModal(false)}
-          role="presentation"
-        >
-          <div className={styles.emailModalContent}>
-            <div className={styles.emailModalHeader}>
-              <h2 className={styles.emailModalTitle}>Email Report</h2>
-              <button
-                type="button"
-                className={styles.emailModalCloseButton}
-                onClick={() => setShowEmailModal(false)}
-                disabled={sendingEmail}
-              >
-                ✕
-              </button>
-            </div>
-            <form onSubmit={handleEmailModalSubmit} className={styles.emailModalForm}>
-              <div className={styles.emailModalFormGroup}>
-                <label className={styles.emailModalLabel} htmlFor="report-email">
-                  Email Address <span className={styles.requiredMark}>*</span>
-                </label>
-                <input
-                  ref={emailInputRef}
-                  id="report-email"
-                  type="email"
-                  autoFocus
-                  className={styles.emailModalInput}
-                  value={emailAddress}
-                  onChange={e => {
-                    setEmailAddress(e.target.value);
-                    if (emailError) {
-                      setEmailError('');
-                    }
-                  }}
-                  placeholder="recipient@example.com"
-                  disabled={sendingEmail}
-                  required
-                />
-                {emailError && <span className={styles.emailModalError}>{emailError}</span>}
-              </div>
-              <div className={styles.emailModalActions}>
-                <button
-                  type="button"
-                  onClick={() => setShowEmailModal(false)}
-                  disabled={sendingEmail}
-                  className={styles.emailModalCancelButton}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={sendingEmail}
-                  className={styles.emailModalSubmitButton}
-                >
-                  {sendingEmail ? 'Sending...' : 'Send Report'}
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
+        title="Email Report"
+        closeOnEscape={!sendingEmail}
+        closeOnOverlayClick={!sendingEmail}
+      >
+        <form onSubmit={handleEmailModalSubmit} className={styles.emailModalForm}>
+          <FormField
+            label="Email Address"
+            htmlFor="report-email"
+            required
+            error={emailError || undefined}
+          >
+            <Input
+              id="report-email"
+              type="email"
+              autoFocus
+              value={emailAddress}
+              onChange={e => {
+                setEmailAddress(e.target.value);
+                if (emailError) {
+                  setEmailError('');
+                }
+              }}
+              placeholder="recipient@example.com"
+              disabled={sendingEmail}
+              required
+            />
+          </FormField>
+          <div className={styles.emailModalActions}>
+            <Button
+              variant="outline"
+              onClick={() => setShowEmailModal(false)}
+              disabled={sendingEmail}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={sendingEmail}>
+              {sendingEmail ? 'Sending...' : 'Send Report'}
+            </Button>
           </div>
-        </div>
-      )}
+        </form>
+      </Modal>
     </div>
   );
 };

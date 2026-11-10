@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import * as styles from './ExportButton.css';
+import React from 'react';
+import { Button, DropdownMenu } from '@adopt-dont-shop/lib.components';
 import { Download, File, FileText } from 'lucide-react';
 import type { ExportFormat } from '../../services/exportService';
 
@@ -14,69 +14,33 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
   disabled = false,
   isExporting = false,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
-
-  const handleExport = (format: ExportFormat) => {
-    setIsOpen(false);
-    onExport(format);
-  };
-
-  const isDisabled = disabled || isExporting;
+  const label = isExporting ? 'Exporting...' : 'Export';
 
   return (
-    <div className={styles.container} ref={containerRef}>
-      <button
-        className={styles.triggerButton({ disabled: isDisabled })}
-        onClick={() => setIsOpen(prev => !prev)}
-        disabled={isDisabled}
-        aria-haspopup='true'
-        aria-expanded={isOpen}
-        data-testid='export-button'
-      >
-        <Download size='1em' />
-        {isExporting ? 'Exporting...' : 'Export'}
-      </button>
-
-      <div className={styles.dropdown({ isOpen })} role='menu' aria-label='Export options'>
-        <div className={styles.dropdownHeader}>Export as</div>
-        <button
-          className={styles.formatItem}
-          role='menuitem'
-          onClick={() => handleExport('csv')}
-          data-testid='export-csv'
-        >
-          <FileText size='1em' />
-          <div className={styles.formatLabel}>
-            CSV
-            <div className={styles.formatDesc}>Spreadsheet-compatible</div>
-          </div>
-        </button>
-        <button
-          className={styles.formatItem}
-          role='menuitem'
-          onClick={() => handleExport('pdf')}
-          data-testid='export-pdf'
-        >
-          <File size='1em' />
-          <div className={styles.formatLabel}>
-            PDF
-            <div className={styles.formatDesc}>Formatted report</div>
-          </div>
-        </button>
-      </div>
-    </div>
+    <DropdownMenu
+      triggerLabel={label}
+      align='end'
+      disabled={disabled || isExporting}
+      header='Export as'
+      trigger={
+        <Button variant='outline' startIcon={<Download size='1em' />}>
+          {label}
+        </Button>
+      }
+      items={[
+        {
+          label: 'CSV',
+          description: 'Spreadsheet-compatible',
+          icon: <FileText size='1em' />,
+          onClick: () => onExport('csv'),
+        },
+        {
+          label: 'PDF',
+          description: 'Formatted report',
+          icon: <File size='1em' />,
+          onClick: () => onExport('pdf'),
+        },
+      ]}
+    />
   );
 };

@@ -118,7 +118,7 @@ describe('Export functionality - Users page', () => {
       refetch: vi.fn(),
     });
     renderWithProviders(<Users />);
-    expect(screen.getByTestId('export-button')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Export' })).toBeInTheDocument();
   });
 
   it('shows Export dropdown with CSV and PDF options when clicked', async () => {
@@ -131,10 +131,10 @@ describe('Export functionality - Users page', () => {
     });
     renderWithProviders(<Users />);
 
-    await user.click(screen.getByTestId('export-button'));
+    await user.click(screen.getByRole('button', { name: 'Export' }));
 
-    expect(screen.getByTestId('export-csv')).toBeInTheDocument();
-    expect(screen.getByTestId('export-pdf')).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /^CSV/ })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /^PDF/ })).toBeInTheDocument();
   });
 
   it('disables the Export button while users are loading', () => {
@@ -145,7 +145,7 @@ describe('Export functionality - Users page', () => {
       refetch: vi.fn(),
     });
     renderWithProviders(<Users />);
-    expect(screen.getByTestId('export-button')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
   });
 
   it('disables the Export button when no users are available', () => {
@@ -156,7 +156,7 @@ describe('Export functionality - Users page', () => {
       refetch: vi.fn(),
     });
     renderWithProviders(<Users />);
-    expect(screen.getByTestId('export-button')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
   });
 
   it('triggers CSV export with user data when CSV option is selected', async () => {
@@ -170,8 +170,8 @@ describe('Export functionality - Users page', () => {
     });
     renderWithProviders(<Users />);
 
-    await user.click(screen.getByTestId('export-button'));
-    await user.click(screen.getByTestId('export-csv'));
+    await user.click(screen.getByRole('button', { name: 'Export' }));
+    await user.click(screen.getByRole('menuitem', { name: /^CSV/ }));
 
     expect(mockExportToCSV).toHaveBeenCalledTimes(1);
     const call = mockExportToCSV.mock.calls[0][0];
@@ -190,8 +190,8 @@ describe('Export functionality - Users page', () => {
     });
     renderWithProviders(<Users />);
 
-    await user.click(screen.getByTestId('export-button'));
-    await user.click(screen.getByTestId('export-pdf'));
+    await user.click(screen.getByRole('button', { name: 'Export' }));
+    await user.click(screen.getByRole('menuitem', { name: /^PDF/ }));
 
     expect(mockExportToPDF).toHaveBeenCalledTimes(1);
     const call = mockExportToPDF.mock.calls[0][0];
@@ -209,11 +209,14 @@ describe('Export functionality - Users page', () => {
     });
     renderWithProviders(<Users />);
 
-    await user.click(screen.getByTestId('export-button'));
-    expect(screen.getByTestId('export-csv')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Export' }));
+    expect(screen.getByRole('menuitem', { name: /^CSV/ })).toBeVisible();
 
-    await user.click(screen.getByTestId('export-csv'));
-    expect(screen.getByTestId('export-button')).toHaveAttribute('aria-expanded', 'false');
+    await user.click(screen.getByRole('menuitem', { name: /^CSV/ }));
+    expect(screen.getByRole('button', { name: 'Export' })).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
   });
 });
 
@@ -234,7 +237,7 @@ describe('ExportButton component', () => {
     const user = userEvent.setup();
     renderWithProviders(<ExportButton onExport={vi.fn()} />);
 
-    await user.click(screen.getByTestId('export-button'));
+    await user.click(screen.getByRole('button', { name: 'Export' }));
 
     expect(screen.getByText('CSV')).toBeInTheDocument();
     expect(screen.getByText('PDF')).toBeInTheDocument();
@@ -245,8 +248,8 @@ describe('ExportButton component', () => {
     const onExport = vi.fn();
     renderWithProviders(<ExportButton onExport={onExport} />);
 
-    await user.click(screen.getByTestId('export-button'));
-    await user.click(screen.getByTestId('export-csv'));
+    await user.click(screen.getByRole('button', { name: 'Export' }));
+    await user.click(screen.getByRole('menuitem', { name: /^CSV/ }));
 
     expect(onExport).toHaveBeenCalledWith('csv');
   });
@@ -256,8 +259,8 @@ describe('ExportButton component', () => {
     const onExport = vi.fn();
     renderWithProviders(<ExportButton onExport={onExport} />);
 
-    await user.click(screen.getByTestId('export-button'));
-    await user.click(screen.getByTestId('export-pdf'));
+    await user.click(screen.getByRole('button', { name: 'Export' }));
+    await user.click(screen.getByRole('menuitem', { name: /^PDF/ }));
 
     expect(onExport).toHaveBeenCalledWith('pdf');
   });

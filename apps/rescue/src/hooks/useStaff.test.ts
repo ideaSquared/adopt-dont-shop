@@ -1,4 +1,5 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
+import { QueryWrapper } from './query-test-wrapper';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { StaffMember } from '../services/staffService';
 
@@ -49,7 +50,7 @@ describe('useStaff', () => {
   });
 
   it('loads staff for the signed-in user', async () => {
-    const { result } = renderHook(() => useStaff());
+    const { result } = renderHook(() => useStaff(), { wrapper: QueryWrapper });
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
@@ -61,7 +62,7 @@ describe('useStaff', () => {
   it('does not fetch and clears staff when there is no signed-in user', async () => {
     authState.current = { user: null };
 
-    const { result } = renderHook(() => useStaff());
+    const { result } = renderHook(() => useStaff(), { wrapper: QueryWrapper });
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
@@ -72,25 +73,26 @@ describe('useStaff', () => {
   it('surfaces an error message when loading fails', async () => {
     staffServiceMock.getRescueStaff.mockRejectedValue(new Error('boom'));
 
-    const { result } = renderHook(() => useStaff());
+    const { result } = renderHook(() => useStaff(), { wrapper: QueryWrapper });
 
     await waitFor(() => expect(result.current.error).toBe('Failed to load staff members'));
     expect(result.current.staff).toEqual([]);
   });
 
   it('adds a staff member to the list', async () => {
-    const { result } = renderHook(() => useStaff());
+    const { result } = renderHook(() => useStaff(), { wrapper: QueryWrapper });
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     const added = member({ id: 's2', userId: 'su2', firstName: 'New' });
     staffServiceMock.addStaffMember.mockResolvedValue(added);
+    staffServiceMock.getRescueStaff.mockResolvedValue([member(), added]);
 
     await act(async () => {
       await result.current.addStaffMember({ email: 'new@x.com' } as never, 'r1');
     });
 
     expect(staffServiceMock.addStaffMember).toHaveBeenCalledWith({ email: 'new@x.com' }, 'r1');
-    expect(result.current.staff.map(s => s.firstName)).toContain('New');
+    await waitFor(() => expect(result.current.staff.map(s => s.firstName)).toContain('New'));
   });
 
   it('removes a staff member from the list', async () => {
@@ -98,34 +100,40 @@ describe('useStaff', () => {
       member({ userId: 'keep' }),
       member({ id: 's2', userId: 'drop' }),
     ]);
-    staffServiceMock.removeStaffMember.mockResolvedValue(undefined);
+    staffServiceMock.removeStaffMember.mockImplementation(async () => {
+      staffServiceMock.getRescueStaff.mockResolvedValue([member({ userId: 'keep' })]);
+    });
 
-    const { result } = renderHook(() => useStaff());
+    const { result } = renderHook(() => useStaff(), { wrapper: QueryWrapper });
     await waitFor(() => expect(result.current.staff).toHaveLength(2));
 
     await act(async () => {
       await result.current.removeStaffMember('drop', 'r1');
     });
 
-    expect(result.current.staff.map(s => s.userId)).toEqual(['keep']);
+    await waitFor(() => expect(result.current.staff.map(s => s.userId)).toEqual(['keep']));
   });
 
   it('updates a staff member in place', async () => {
     staffServiceMock.getRescueStaff.mockResolvedValue([member({ userId: 'su1', title: 'Old' })]);
-    staffServiceMock.updateStaffMember.mockResolvedValue(member({ userId: 'su1', title: 'Lead' }));
+    staffServiceMock.updateStaffMember.mockImplementation(async () => {
+      const updated = member({ userId: 'su1', title: 'Lead' });
+      staffServiceMock.getRescueStaff.mockResolvedValue([updated]);
+      return updated;
+    });
 
-    const { result } = renderHook(() => useStaff());
+    const { result } = renderHook(() => useStaff(), { wrapper: QueryWrapper });
     await waitFor(() => expect(result.current.staff).toHaveLength(1));
 
     await act(async () => {
       await result.current.updateStaffMember('su1', { title: 'Lead' }, 'r1');
     });
 
-    expect(result.current.staff[0].title).toBe('Lead');
+    await waitFor(() => expect(result.current.staff[0].title).toBe('Lead'));
   });
 
   it('refetches the staff list on demand', async () => {
-    const { result } = renderHook(() => useStaff());
+    const { result } = renderHook(() => useStaff(), { wrapper: QueryWrapper });
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     staffServiceMock.getRescueStaff.mockResolvedValue([member({ firstName: 'Refetched' })]);
@@ -134,6 +142,6 @@ describe('useStaff', () => {
       await result.current.refetch();
     });
 
-    expect(result.current.staff[0].firstName).toBe('Refetched');
+    await waitFor(() => expect(result.current.staff[0].firstName).toBe('Refetched'));
   });
 });

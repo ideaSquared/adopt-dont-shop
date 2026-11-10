@@ -16,7 +16,7 @@ import React from 'react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router';
-import { ThemeProvider } from '@adopt-dont-shop/lib.components';
+import { ThemeProvider, toast } from '@adopt-dont-shop/lib.components';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
 import Users from '../pages/Users';
@@ -308,7 +308,7 @@ describe('User Management page', () => {
 
     it('shows the User Type filter', () => {
       renderUsersPage();
-      expect(screen.getByText('User Type')).toBeInTheDocument();
+      expect(screen.getByRole('combobox', { name: 'User Type' })).toBeInTheDocument();
       expect(screen.getByDisplayValue('All Types')).toBeInTheDocument();
     });
 
@@ -544,7 +544,7 @@ describe('User Management page', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('User suspended successfully')).toBeInTheDocument();
+        expect(toast.success).toHaveBeenCalledWith('User suspended successfully');
       });
     });
 
@@ -567,7 +567,7 @@ describe('User Management page', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('Failed to suspend user — Permission denied')).toBeInTheDocument();
+        expect(toast.error).toHaveBeenCalledWith('Failed to suspend user — Permission denied');
       });
     });
 
@@ -590,7 +590,7 @@ describe('User Management page', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('Failed to suspend user — please try again')).toBeInTheDocument();
+        expect(toast.error).toHaveBeenCalledWith('Failed to suspend user — please try again');
       });
     });
 
@@ -607,7 +607,7 @@ describe('User Management page', () => {
       await user.click(screen.getByText('Unsuspend User'));
 
       await waitFor(() => {
-        expect(screen.getByText('User unsuspended successfully')).toBeInTheDocument();
+        expect(toast.success).toHaveBeenCalledWith('User unsuspended successfully');
       });
     });
 
@@ -624,9 +624,7 @@ describe('User Management page', () => {
       await user.click(screen.getByText('Unsuspend User'));
 
       await waitFor(() => {
-        expect(
-          screen.getByText('Failed to unsuspend user — Server unavailable')
-        ).toBeInTheDocument();
+        expect(toast.error).toHaveBeenCalledWith('Failed to unsuspend user — Server unavailable');
       });
     });
 
@@ -643,7 +641,7 @@ describe('User Management page', () => {
       await user.click(screen.getByText('Unsuspend User'));
 
       await waitFor(() => {
-        expect(screen.getByText('Failed to unsuspend user — please try again')).toBeInTheDocument();
+        expect(toast.error).toHaveBeenCalledWith('Failed to unsuspend user — please try again');
       });
     });
   });

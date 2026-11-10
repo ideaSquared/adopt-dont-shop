@@ -260,3 +260,28 @@ describe('Applications page deep-link wiring', () => {
     expect(screen.getByTestId('location-probe')).toHaveTextContent('/applications/app-loading');
   });
 });
+
+describe('Applications page filters', () => {
+  it('writes the chosen status to the URL and shows it as the selected filter', async () => {
+    setApplicationsResult();
+    const user = userEvent.setup();
+    renderApplicationsAt('/applications');
+
+    await user.selectOptions(screen.getByLabelText('Status'), 'approved');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location-probe')).toHaveTextContent('status=approved');
+    });
+    expect(screen.getByLabelText('Status')).toHaveValue('approved');
+  });
+
+  it('shows each application with its status label and an en-GB submitted date', async () => {
+    setApplicationsResult({
+      data: [buildApplication({ status: 'rejected', createdAt: '2026-05-01T00:00:00Z' })],
+    });
+    renderApplicationsAt('/applications');
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Rejected');
+    expect(screen.getByText('1 May 2026')).toBeInTheDocument();
+  });
+});

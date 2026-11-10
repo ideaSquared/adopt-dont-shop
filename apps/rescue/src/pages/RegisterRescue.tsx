@@ -1,10 +1,25 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Button, FormField, Heading, Input, Text } from '@adopt-dont-shop/lib.components';
+import {
+  Alert,
+  Button,
+  FormField,
+  Heading,
+  Input,
+  Stepper,
+  Text,
+} from '@adopt-dont-shop/lib.components';
 import { apiService } from '@adopt-dont-shop/lib.api';
 import * as styles from './RegisterRescue.css';
 
-const TOTAL_STEPS = 5;
+const STEPS = [
+  { id: 'owner', title: 'Owner' },
+  { id: 'organisation', title: 'Organisation' },
+  { id: 'location', title: 'Location' },
+  { id: 'registration', title: 'Registration' },
+  { id: 'review', title: 'Review' },
+];
+const TOTAL_STEPS = STEPS.length;
 
 type FormData = {
   // Step 1: Owner
@@ -216,28 +231,9 @@ const RegisterRescue = () => {
   return (
     <div className={styles.pageContainer}>
       <div className={styles.card}>
-        {/* Step indicator */}
-        <div
-          className={styles.stepIndicator}
-          role="progressbar"
-          aria-valuenow={step}
-          aria-valuemin={1}
-          aria-valuemax={TOTAL_STEPS}
-        >
-          {Array.from({ length: TOTAL_STEPS }, (_, i) => {
-            const stepNum = i + 1;
-            let dotClass = styles.stepDot;
-            if (stepNum === step) dotClass += ` ${styles.stepDotActive}`;
-            else if (stepNum < step) dotClass += ` ${styles.stepDotCompleted}`;
-            return <div key={stepNum} className={dotClass} />;
-          })}
-        </div>
+        <Stepper steps={STEPS} activeStep={step - 1} className={styles.stepper} />
 
-        {submitError && (
-          <div className={styles.errorAlert} role="alert">
-            {submitError}
-          </div>
-        )}
+        {submitError && <Alert variant="error">{submitError}</Alert>}
 
         {/* Step 1: Owner Account */}
         {step === 1 && (

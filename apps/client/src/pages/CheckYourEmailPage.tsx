@@ -1,70 +1,55 @@
 import { authService } from '@/services';
-import { Alert, Button, Card } from '@adopt-dont-shop/lib.components';
-import React, { useState } from 'react';
+import { AuthLayout } from '@adopt-dont-shop/lib.auth';
+import { Alert, Button, toast } from '@adopt-dont-shop/lib.components';
+import { useMutation } from '@tanstack/react-query';
+import { Mail } from 'lucide-react';
+import React from 'react';
 import { useNavigate } from 'react-router';
 import * as styles from './CheckYourEmailPage.css';
 
 export const CheckYourEmailPage: React.FC = () => {
   const navigate = useNavigate();
-  const [isResending, setIsResending] = useState(false);
-  const [resendSuccess, setResendSuccess] = useState(false);
-  const [resendError, setResendError] = useState('');
+  const resend = useMutation({
+    mutationFn: () => authService.resendVerificationEmail(),
+    onSuccess: () => {
+      toast.success('Verification email sent! Please check your inbox.');
+    },
+  });
 
-  const handleResend = async () => {
-    try {
-      setIsResending(true);
-      setResendSuccess(false);
-      setResendError('');
-      await authService.resendVerificationEmail();
-      setResendSuccess(true);
-    } catch (error) {
-      setResendError(
-        error instanceof Error ? error.message : 'Failed to resend verification email'
-      );
-    } finally {
-      setIsResending(false);
-    }
-  };
+  const resendError = resend.error
+    ? resend.error.message || 'Failed to resend verification email'
+    : '';
 
   return (
-    <div className={styles.container}>
-      <Card className={styles.card}>
-        <div className={styles.iconContainer}>📧</div>
-        <div className={styles.header}>
-          <h1>Check Your Email</h1>
-          <p>
-            We've sent a verification link to your email address. Click the link to activate your
-            account and access all features.
-          </p>
-        </div>
+    <AuthLayout
+      title='Check Your Email'
+      subtitle="We've sent a verification link to your email address. Click the link to activate your account and access all features."
+    >
+      <div className={styles.iconContainer} aria-hidden='true'>
+        <Mail size='1em' />
+      </div>
 
-        <Alert variant='info'>
-          The link expires after 24 hours. Check your spam folder if you don't see it.
-        </Alert>
+      <Alert variant='info'>
+        The link expires after 24 hours. Check your spam folder if you don't see it.
+      </Alert>
 
-        <div className={styles.resendSection}>
-          <p>Didn't receive the email?</p>
-          <Button onClick={handleResend} disabled={isResending} isFullWidth>
-            {isResending ? 'Sending...' : 'Resend Verification Email'}
-          </Button>
-          {resendSuccess && (
-            <div className={styles.resendAlert}>
-              <Alert variant='success'>Verification email sent! Please check your inbox.</Alert>
-            </div>
-          )}
-          {resendError && (
-            <div className={styles.resendAlert}>
-              <Alert variant='error'>{resendError}</Alert>
-            </div>
-          )}
-        </div>
+      <div className={styles.resendSection}>
+        <p>Didn't receive the email?</p>
+        <Button onClick={() => resend.mutate()} disabled={resend.isPending} isFullWidth>
+          {resend.isPending ? 'Sending...' : 'Resend Verification Email'}
+        </Button>
+        {resendError && (
+          <div className={styles.resendAlert}>
+            <Alert variant='error'>{resendError}</Alert>
+          </div>
+        )}
+      </div>
 
-        <div className={styles.buttonGroup}>
-          <Button variant='secondary' onClick={() => navigate('/login')} isFullWidth>
-            Back to Login
-          </Button>
-        </div>
-      </Card>
-    </div>
+      <div className={styles.buttonGroup}>
+        <Button variant='secondary' onClick={() => navigate('/login')} isFullWidth>
+          Back to Login
+        </Button>
+      </div>
+    </AuthLayout>
   );
 };

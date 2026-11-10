@@ -1,12 +1,19 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router';
 import { fosterService, type FosterPlacement } from '../services/fosterService';
 import { petService } from '../services/libraryServices';
-import { staffService, type StaffMember } from '../services/staffService';
+import { useStaff } from '../hooks/useStaff';
 import type { Pet } from '@adopt-dont-shop/lib.pets';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import {
+  Alert,
+  Button,
+  FormField,
+  Input,
   Modal,
+  PageHeader,
+  TextArea,
   useConfirm,
   ConfirmDialog,
   SkeletonCard,
@@ -15,20 +22,38 @@ import {
 } from '@adopt-dont-shop/lib.components';
 import { formatDate } from '@adopt-dont-shop/lib.utils';
 import * as styles from './FosterCoordination.css';
-import * as pageLayout from './PageLayout.css';
+
+const NO_PLACEMENTS: FosterPlacement[] = [];
+const NO_PETS: Pet[] = [];
+// Cap the pet picker's page fetches so it is populated without unbounded parallel requests.
+const MAX_PET_PAGES = 10;
+
+const loadAllPets = async (rescueId: string): Promise<Pet[]> => {
+  try {
+    const first = await petService.getPetsByRescue(rescueId, 1);
+    const cappedPages = Math.min(first.pagination.totalPages, MAX_PET_PAGES);
+    const remaining = await Promise.all(
+      Array.from({ length: Math.max(cappedPages - 1, 0) }, (_, i) =>
+        petService.getPetsByRescue(rescueId, i + 2)
+      )
+    );
+    return [...first.data, ...remaining.flatMap(page => page.data)];
+  } catch {
+    return [];
+  }
+};
 
 const FosterCoordination: React.FC = () => {
   const { user } = useAuth();
   const rescueId = user?.rescueId ?? null;
+  const queryClient = useQueryClient();
   const { confirm, confirmProps } = useConfirm();
   // ADS-644: cross-linking. When deep-linked from a pet card we scope the
   // placement list to that pet so the user lands on the relevant placement.
   const [searchParams] = useSearchParams();
   const petIdFilter = searchParams.get('petId');
 
-  const [placements, setPlacements] = useState<FosterPlacement[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed'>('active');
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ petId: '', fosterUserId: '', startDate: '', notes: '' });
@@ -40,82 +65,61 @@ const FosterCoordination: React.FC = () => {
     outcome: 'return_to_rescue',
     notes: '',
   });
-
-  const [pets, setPets] = useState<Pet[]>([]);
-  const [staff, setStaff] = useState<StaffMember[]>([]);
   const [petSearch, setPetSearch] = useState('');
 
-  const load = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await fosterService.list(
-        statusFilter === 'all' ? {} : { status: statusFilter }
-      );
-      setPlacements(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load placements');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const placementsQuery = useQuery({
+    queryKey: ['foster', 'placements', statusFilter],
+    queryFn: () => fosterService.list(statusFilter === 'all' ? {} : { status: statusFilter }),
+    staleTime: 0,
+  });
+  const placements = placementsQuery.data ?? NO_PLACEMENTS;
+  const loading = placementsQuery.isLoading;
+  const queryError = placementsQuery.error
+    ? placementsQuery.error instanceof Error
+      ? placementsQuery.error.message
+      : 'Failed to load placements'
+    : null;
+  const error = actionError ?? queryError;
 
-  useEffect(() => {
-    load();
-  }, [statusFilter]);
+  // Pickers load once we know the rescue.
+  const petsQuery = useQuery({
+    queryKey: ['foster', 'pets', rescueId],
+    queryFn: () => loadAllPets(rescueId ?? ''),
+    enabled: rescueId !== null,
+  });
+  const pets = petsQuery.data ?? NO_PETS;
+  const { staff } = useStaff();
 
-  // Load pickers once we know the rescue. Fetch up to MAX_PET_PAGES pages so
-  // the pet picker is populated without unbounded parallel fetches.
-  const MAX_PET_PAGES = 10;
-  useEffect(() => {
-    if (!rescueId) {
-      return;
-    }
-    let cancelled = false;
-    const loadAllPets = async () => {
-      try {
-        const first = await petService.getPetsByRescue(rescueId, 1);
-        if (cancelled) return;
-        let allPets = [...first.data];
-        const cappedPages = Math.min(first.pagination.totalPages, MAX_PET_PAGES);
-        if (cappedPages > 1) {
-          const remaining = await Promise.all(
-            Array.from({ length: cappedPages - 1 }, (_, i) =>
-              petService.getPetsByRescue(rescueId, i + 2)
-            )
-          );
-          if (cancelled) return;
-          for (const page of remaining) {
-            allPets = [...allPets, ...page.data];
-          }
-        }
-        setPets(allPets);
-      } catch {
-        if (!cancelled) setPets([]);
-      }
-    };
-    loadAllPets();
-    staffService
-      .getRescueStaff()
-      .then(result => {
-        if (!cancelled) setStaff(result);
-      })
-      .catch(() => {
-        if (!cancelled) setStaff([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [rescueId]);
+  const invalidatePlacements = () =>
+    queryClient.invalidateQueries({ queryKey: ['foster', 'placements'] });
+  const createMutation = useMutation({
+    mutationFn: (payload: Parameters<typeof fosterService.create>[0]) =>
+      fosterService.create(payload),
+    onSuccess: invalidatePlacements,
+    // Failures show in the page's own error banner.
+    onError: () => undefined,
+  });
+  const endMutation = useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: Parameters<typeof fosterService.end>[1];
+    }) => fosterService.end(id, payload),
+    onSuccess: invalidatePlacements,
+    onError: () => undefined,
+  });
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!rescueId) {
-      setError('Your account is not associated with a rescue.');
+      setActionError('Your account is not associated with a rescue.');
       return;
     }
     try {
-      await fosterService.create({
+      setActionError(null);
+      await createMutation.mutateAsync({
         petId: form.petId.trim(),
         fosterUserId: form.fosterUserId.trim(),
         rescueId,
@@ -125,9 +129,8 @@ const FosterCoordination: React.FC = () => {
       setShowCreate(false);
       setForm({ petId: '', fosterUserId: '', startDate: '', notes: '' });
       setPetSearch('');
-      load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create placement');
+      setActionError(err instanceof Error ? err.message : 'Failed to create placement');
     }
   };
 
@@ -148,15 +151,15 @@ const FosterCoordination: React.FC = () => {
       return;
     }
     try {
-      await fosterService.end(endingId, {
-        outcome: endForm.outcome,
-        notes: endForm.notes.trim() || undefined,
+      setActionError(null);
+      await endMutation.mutateAsync({
+        id: endingId,
+        payload: { outcome: endForm.outcome, notes: endForm.notes.trim() || undefined },
       });
       setEndingId(null);
       setEndForm({ outcome: 'return_to_rescue', notes: '' });
-      load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to end placement');
+      setActionError(err instanceof Error ? err.message : 'Failed to end placement');
     }
   };
 
@@ -213,9 +216,9 @@ const FosterCoordination: React.FC = () => {
       sortable: false,
       render: (_value, row) =>
         row.status === 'active' ? (
-          <button type="button" onClick={() => setEndingId(String(row.placementId))}>
+          <Button variant="outline" size="sm" onClick={() => setEndingId(String(row.placementId))}>
             End placement
-          </button>
+          </Button>
         ) : null,
     },
   ];
@@ -231,23 +234,19 @@ const FosterCoordination: React.FC = () => {
   }));
 
   return (
-    <div className={`${pageLayout.pageContainer} ${styles.pageContainer}`}>
-      <div className={`${pageLayout.pageHeader} ${styles.pageHeader}`}>
-        <div>
-          <h1>Foster Coordination</h1>
-          <p>Manage active and historical foster placements for your rescue.</p>
-        </div>
-        <button type="button" onClick={() => setShowCreate(true)}>
-          New Placement
-        </button>
-      </div>
+    <div className={styles.pageContainer}>
+      <PageHeader
+        title="Foster Coordination"
+        description="Manage active and historical foster placements for your rescue."
+        actions={<Button onClick={() => setShowCreate(true)}>New Placement</Button>}
+      />
 
-      {error && <div className={styles.errorBanner}>{error}</div>}
+      {error && <Alert variant="error">{error}</Alert>}
 
       <div className={styles.filterRow}>
-        <label>
-          Filter:{' '}
+        <FormField label="Filter:" htmlFor="foster-status-filter">
           <select
+            id="foster-status-filter"
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value as typeof statusFilter)}
           >
@@ -255,7 +254,7 @@ const FosterCoordination: React.FC = () => {
             <option value="completed">Completed</option>
             <option value="all">All</option>
           </select>
-        </label>
+        </FormField>
       </div>
 
       {loading ? (
@@ -275,38 +274,40 @@ const FosterCoordination: React.FC = () => {
 
       <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="New Foster Placement">
         <form onSubmit={handleCreate} className={styles.modalForm}>
-          <label>
-            Pet
-            <input
-              type="text"
-              placeholder="Search pets by name or breed..."
-              value={petSearch}
-              onChange={e => setPetSearch(e.target.value)}
-              className={styles.petSearchInput}
-            />
-            <select
-              value={form.petId}
-              onChange={e => setForm({ ...form, petId: e.target.value })}
-              required
-              aria-required={true}
-            >
-              <option value="">
-                {pets.length === 0
-                  ? 'Loading pets...'
-                  : filteredPets.length === 0
-                    ? 'No pets match your search'
-                    : `Select a pet (${filteredPets.length} of ${pets.length})`}
-              </option>
-              {filteredPets.map(pet => (
-                <option key={pet.pet_id} value={pet.pet_id}>
-                  {pet.name} {pet.breed ? `(${pet.breed})` : ''}
+          <FormField label="Pet" htmlFor="foster-pet">
+            <>
+              <Input
+                type="text"
+                aria-label="Search pets by name or breed"
+                placeholder="Search pets by name or breed..."
+                value={petSearch}
+                onChange={e => setPetSearch(e.target.value)}
+              />
+              <select
+                id="foster-pet"
+                value={form.petId}
+                onChange={e => setForm({ ...form, petId: e.target.value })}
+                required
+                aria-required={true}
+              >
+                <option value="">
+                  {pets.length === 0
+                    ? 'Loading pets...'
+                    : filteredPets.length === 0
+                      ? 'No pets match your search'
+                      : `Select a pet (${filteredPets.length} of ${pets.length})`}
                 </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Foster user
+                {filteredPets.map(pet => (
+                  <option key={pet.pet_id} value={pet.pet_id}>
+                    {pet.name} {pet.breed ? `(${pet.breed})` : ''}
+                  </option>
+                ))}
+              </select>
+            </>
+          </FormField>
+          <FormField label="Foster user" htmlFor="foster-user">
             <select
+              id="foster-user"
               value={form.fosterUserId}
               onChange={e => setForm({ ...form, fosterUserId: e.target.value })}
               required
@@ -319,29 +320,29 @@ const FosterCoordination: React.FC = () => {
                 </option>
               ))}
             </select>
-          </label>
-          <label>
-            Start date
-            <input
+          </FormField>
+          <FormField label="Start date" htmlFor="foster-start-date">
+            <Input
+              id="foster-start-date"
               type="date"
               value={form.startDate}
               onChange={e => setForm({ ...form, startDate: e.target.value })}
               required
               aria-required={true}
             />
-          </label>
-          <label>
-            Notes
-            <textarea
+          </FormField>
+          <FormField label="Notes" htmlFor="foster-notes">
+            <TextArea
+              id="foster-notes"
               value={form.notes}
               onChange={e => setForm({ ...form, notes: e.target.value })}
             />
-          </label>
+          </FormField>
           <div className={styles.modalActions}>
-            <button type="button" onClick={() => setShowCreate(false)}>
+            <Button variant="outline" onClick={() => setShowCreate(false)}>
               Cancel
-            </button>
-            <button type="submit">Create</button>
+            </Button>
+            <Button type="submit">Create</Button>
           </div>
         </form>
       </Modal>
@@ -352,9 +353,9 @@ const FosterCoordination: React.FC = () => {
         title="End Foster Placement"
       >
         <form onSubmit={handleEnd} className={styles.modalForm}>
-          <label>
-            Outcome
+          <FormField label="Outcome" htmlFor="foster-end-outcome">
             <select
+              id="foster-end-outcome"
               value={endForm.outcome}
               onChange={e =>
                 setEndForm({ ...endForm, outcome: e.target.value as typeof endForm.outcome })
@@ -364,19 +365,19 @@ const FosterCoordination: React.FC = () => {
               <option value="adopted_by_foster">Adopted by foster</option>
               <option value="cancelled">Cancelled</option>
             </select>
-          </label>
-          <label>
-            Notes
-            <textarea
+          </FormField>
+          <FormField label="Notes" htmlFor="foster-end-notes">
+            <TextArea
+              id="foster-end-notes"
               value={endForm.notes}
               onChange={e => setEndForm({ ...endForm, notes: e.target.value })}
             />
-          </label>
+          </FormField>
           <div className={styles.modalActions}>
-            <button type="button" onClick={() => setEndingId(null)}>
+            <Button variant="outline" onClick={() => setEndingId(null)}>
               Cancel
-            </button>
-            <button type="submit">Confirm</button>
+            </Button>
+            <Button type="submit">Confirm</Button>
           </div>
         </form>
       </Modal>

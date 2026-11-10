@@ -67,4 +67,41 @@ describe('Analytics page', () => {
     const empties = await screen.findAllByText('No data available');
     expect(empties).toHaveLength(4);
   });
+
+  describe('email report dialog', () => {
+    const openDialog = async () => {
+      renderWithProviders(<Analytics />);
+      fireEvent.click(await screen.findByRole('button', { name: /email report/i }));
+      return screen.findByRole('dialog');
+    };
+
+    it('rejects an invalid address without sending', async () => {
+      await openDialog();
+
+      fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'a@b' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Send Report' }));
+
+      expect(await screen.findByText('Please enter a valid email address')).toBeInTheDocument();
+      expect(analyticsService.emailReport).not.toHaveBeenCalled();
+    });
+
+    it('sends the report to the entered address and closes the dialog', async () => {
+      vi.mocked(analyticsService.emailReport).mockResolvedValue(undefined);
+      await openDialog();
+
+      fireEvent.change(screen.getByLabelText(/email address/i), {
+        target: { value: 'team@rescue.org' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Send Report' }));
+
+      await waitFor(() =>
+        expect(analyticsService.emailReport).toHaveBeenCalledWith(
+          'full-analytics',
+          expect.anything(),
+          ['team@rescue.org']
+        )
+      );
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    });
+  });
 });

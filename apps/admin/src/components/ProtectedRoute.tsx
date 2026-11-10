@@ -1,6 +1,8 @@
 import React from 'react';
 import { Navigate } from 'react-router';
 import { useAuth, usePermissions } from '@adopt-dont-shop/lib.auth';
+import { Button, Card, Heading, Spinner, Text } from '@adopt-dont-shop/lib.components';
+import { Lock, TriangleAlert } from 'lucide-react';
 import type { Permission } from '@adopt-dont-shop/lib.permissions';
 import { ADMIN_USER_TYPES } from '@/types';
 import * as styles from './ProtectedRoute.css';
@@ -31,8 +33,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (isLoading || permissionsLoading) {
     return (
       <div className={styles.loadingContainer}>
-        <div className={styles.loadingSpinner} />
-        <p className={styles.loadingText}>Verifying admin access...</p>
+        <Spinner />
+        <Text className={styles.loadingText}>Verifying admin access...</Text>
       </div>
     );
   }
@@ -48,17 +50,21 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (!isAdmin) {
     return (
       <div className={styles.unauthorizedContainer}>
-        <div className={styles.unauthorizedCard}>
-          <div className={styles.unauthorizedIcon}>🔒</div>
-          <h1 className={styles.unauthorizedTitle}>Access Denied</h1>
-          <p className={styles.unauthorizedMessage}>
+        <Card className={styles.unauthorizedCard}>
+          <div className={styles.unauthorizedIcon} aria-hidden='true'>
+            <Lock size='1em' />
+          </div>
+          <Heading level='h1' size='xl'>
+            Access Denied
+          </Heading>
+          <Text className={styles.unauthorizedMessage}>
             You don't have permission to access the admin panel. This area is restricted to platform
             administrators only.
-          </p>
-          <button className={styles.backButton} onClick={() => (window.location.href = '/')}>
+          </Text>
+          <Button variant='primary' onClick={() => (window.location.href = '/')}>
             Return to Home
-          </button>
-        </div>
+          </Button>
+        </Card>
       </div>
     );
   }
@@ -69,17 +75,21 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (!allowed) {
     return (
       <div className={styles.unauthorizedContainer}>
-        <div className={styles.unauthorizedCard}>
-          <div className={styles.unauthorizedIcon}>⚠️</div>
-          <h1 className={styles.unauthorizedTitle}>Insufficient Permissions</h1>
-          <p className={styles.unauthorizedMessage}>
+        <Card className={styles.unauthorizedCard}>
+          <div className={styles.unauthorizedIcon} aria-hidden='true'>
+            <TriangleAlert size='1em' />
+          </div>
+          <Heading level='h1' size='xl'>
+            Insufficient Permissions
+          </Heading>
+          <Text className={styles.unauthorizedMessage}>
             You don't have permission to view this section. Please contact your system administrator
             if you need access.
-          </p>
-          <button className={styles.backButton} onClick={() => window.history.back()}>
+          </Text>
+          <Button variant='primary' onClick={() => window.history.back()}>
             Go Back
-          </button>
-        </div>
+          </Button>
+        </Card>
       </div>
     );
   }

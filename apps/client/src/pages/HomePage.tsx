@@ -5,17 +5,17 @@ import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useStatsig } from '@/hooks/useStatsig';
 import { useFeatureGate } from '@adopt-dont-shop/lib.feature-flags';
-import { petService, Pet } from '@/services';
-import { Button } from '@adopt-dont-shop/lib.components';
+import { petService } from '@/services';
+import { Button, ErrorState } from '@adopt-dont-shop/lib.components';
+import { useQuery } from '@tanstack/react-query';
 import { PetCardSkeletonGrid } from '@/components/skeletons';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router';
 import * as styles from './HomePage.css';
 
+const FEATURED_PET_COUNT = 8;
+
 export const HomePage: React.FC = () => {
-  const [featuredPets, setFeaturedPets] = useState<Pet[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { isAuthenticated } = useAuth();
   const { logEvent } = useStatsig();
   const { trackPageView, trackEvent } = useAnalytics();
@@ -43,60 +43,73 @@ export const HomePage: React.FC = () => {
       user_authenticated: isAuthenticated.toString(),
       timestamp: new Date().toISOString(),
     });
-
-    const loadFeaturedPets = async () => {
-      try {
-        setIsLoading(true);
-        const pets = await petService.getFeaturedPets(8);
-        setFeaturedPets(pets);
-
-        // Track with new analytics service
-        trackEvent({
-          category: 'homepage',
-          action: 'featured_pets_loaded',
-          label: 'pet_loading_success',
-          value: pets.length,
-          sessionId: 'homepage-session', // This would normally come from a session manager
-          timestamp: new Date(),
-          properties: {
-            pet_count: pets.length,
-            user_authenticated: isAuthenticated,
-          },
-        });
-
-        // Log successful load (existing Statsig tracking)
-        logEvent('featured_pets_loaded', pets.length, {
-          pet_count: pets.length.toString(),
-          load_time_ms: (Date.now() - performance.now()).toString(),
-        });
-      } catch (err) {
-        setError('Failed to load featured pets. Please try again later.');
-        console.error('Error loading featured pets:', err);
-
-        // Track error with new analytics service
-        trackEvent({
-          category: 'homepage',
-          action: 'featured_pets_load_error',
-          label: 'pet_loading_failed',
-          sessionId: 'homepage-session',
-          timestamp: new Date(),
-          properties: {
-            error_message: err instanceof Error ? err.message : 'Unknown error',
-            user_authenticated: isAuthenticated,
-          },
-        });
-
-        // Log error (existing Statsig tracking)
-        logEvent('featured_pets_load_error', 1, {
-          error_message: err instanceof Error ? err.message : 'Unknown error',
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadFeaturedPets();
   }, [isAuthenticated, logEvent, trackPageView, trackEvent, showNewHero]);
+
+  const featuredQuery = useQuery({
+    queryKey: ['pets', 'featured', FEATURED_PET_COUNT],
+    queryFn: () => petService.getFeaturedPets(FEATURED_PET_COUNT),
+  });
+  const featuredPets = featuredQuery.data ?? [];
+  const isLoading = featuredQuery.isLoading;
+  const error = featuredQuery.isError
+    ? 'Failed to load featured pets. Please try again later.'
+    : null;
+
+  useEffect(() => {
+    const pets = featuredQuery.data;
+    if (!pets) {
+      return;
+    }
+    // Track with new analytics service
+    trackEvent({
+      category: 'homepage',
+      action: 'featured_pets_loaded',
+      label: 'pet_loading_success',
+      value: pets.length,
+      sessionId: 'homepage-session', // This would normally come from a session manager
+      timestamp: new Date(),
+      properties: {
+        pet_count: pets.length,
+        user_authenticated: isAuthenticated,
+      },
+    });
+
+    // Log successful load (existing Statsig tracking)
+    logEvent('featured_pets_loaded', pets.length, {
+      pet_count: pets.length.toString(),
+      load_time_ms: (Date.now() - performance.now()).toString(),
+    });
+    // Fire once per successful fetch, not on every identity change of the trackers.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [featuredQuery.dataUpdatedAt]);
+
+  useEffect(() => {
+    const err = featuredQuery.error;
+    if (!err) {
+      return;
+    }
+    console.error('Error loading featured pets:', err);
+
+    // Track error with new analytics service
+    trackEvent({
+      category: 'homepage',
+      action: 'featured_pets_load_error',
+      label: 'pet_loading_failed',
+      sessionId: 'homepage-session',
+      timestamp: new Date(),
+      properties: {
+        error_message: err.message || 'Unknown error',
+        user_authenticated: isAuthenticated,
+      },
+    });
+
+    // Log error (existing Statsig tracking)
+    logEvent('featured_pets_load_error', 1, {
+      error_message: err.message || 'Unknown error',
+    });
+    // Fire once per failed fetch, not on every identity change of the trackers.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [featuredQuery.errorUpdatedAt]);
 
   const handleViewAllPetsClick = () => {
     // Track with new analytics service
@@ -191,7 +204,7 @@ export const HomePage: React.FC = () => {
             </div>
           )}
 
-          {error && <div className={styles.errorMessage}>{error}</div>}
+          {error && <ErrorState message={error} onRetry={() => void featuredQuery.refetch()} />}
 
           {!isLoading && !error && (
             <>

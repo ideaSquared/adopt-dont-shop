@@ -18,12 +18,6 @@ export const petFilterBanner = style({
   color: vars.text.info,
 });
 
-export const petFilterClearButton = style({
-  background: 'transparent',
-  border: `${vars.border.width.thin} solid ${vars.border.color.info}`,
-  borderRadius: vars.border.radius.sm,
-  cursor: 'pointer',
-  padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
-  fontSize: vars.typography.size.xs,
-  color: vars.text.info,
+export const pageContainer = style({
+  width: '100%',
 });

@@ -164,6 +164,10 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     React.createElement('div', props, children),
   Card: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
+  CardHeader: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
+    React.createElement('div', props, children),
+  CardContent: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
+    React.createElement('div', props, children),
   // ADS-B3: shared Badge now backs the admin status pills (Audit, Messages).
   // Mirror the real component's text output + status role; badge-specific props
   // (variant/size/etc.) are dropped so they don't leak onto the DOM node.
@@ -286,8 +290,15 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
       error ? React.createElement('span', { role: 'alert' }, error) : null,
       description ? React.createElement('span', null, description) : null
     ),
-  Button: ({ children, ...props }: React.ComponentPropsWithoutRef<'button'>) =>
-    React.createElement('button', props, children),
+  Button: ({
+    children,
+    startIcon,
+    endIcon,
+    ...props
+  }: React.ComponentPropsWithoutRef<'button'> & {
+    startIcon?: React.ReactNode;
+    endIcon?: React.ReactNode;
+  }) => React.createElement('button', props, startIcon, children, endIcon),
   Text: ({ children, ...props }: React.ComponentPropsWithoutRef<'span'>) =>
     React.createElement('span', props, children),
   Heading: ({ children, ...props }: React.ComponentPropsWithoutRef<'h1'>) =>
@@ -597,10 +608,11 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     );
     return React.createElement(React.Fragment, null, table, pager);
   },
-  // Mirrors the real Modal's accessible output: nothing when closed, a labelled
-  // aria-modal dialog with a Close button, Escape-to-close, and header/footer slots.
+  // Mirrors the real Modal's accessible output: nothing when closed; otherwise a
+  // dialog named by its title (as an aria-label, so the title text is not repeated
+  // in the DOM), a "Close modal" button, the body and footer.
   Modal: ({
-    isOpen = true,
+    isOpen,
     onClose,
     title,
     children,
@@ -608,72 +620,45 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     footer,
     showCloseButton = true,
     closeOnEscape = true,
-    className,
     'data-testid': testId,
   }: {
-    isOpen?: boolean;
-    onClose?: () => void;
+    isOpen: boolean;
+    onClose: () => void;
     title?: string;
     children?: React.ReactNode;
     header?: React.ReactNode;
     footer?: React.ReactNode;
     showCloseButton?: boolean;
     closeOnEscape?: boolean;
-    className?: string;
     'data-testid'?: string;
     [k: string]: unknown;
-  }) => {
-    const titleId = React.useId();
-    if (!isOpen) {
-      return null;
-    }
-    return React.createElement(
-      'div',
-      {
-        role: 'dialog',
-        'aria-modal': 'true',
-        'aria-labelledby': title ? titleId : undefined,
-        'data-testid': testId,
-        className,
-        onKeyDown: (e: React.KeyboardEvent) => {
-          if (e.key === 'Escape' && closeOnEscape) {
-            onClose?.();
-          }
-        },
-      },
-      title || header ? (header ?? React.createElement('h2', { id: titleId }, title)) : null,
-      children,
-      showCloseButton
-        ? React.createElement(
-            'button',
-            { type: 'button', onClick: onClose, 'aria-label': 'Close modal' },
-            '✕'
-          )
-        : null,
-      footer ?? null
-    );
-  },
-  Alert: ({
-    children,
-    title,
-    variant: _variant,
-    size: _size,
-    closable: _closable,
-    onClose: _onClose,
-    showIcon: _showIcon,
-    icon: _icon,
-    ...props
-  }: {
-    children?: React.ReactNode;
-    title?: string;
-    [k: string]: unknown;
   }) =>
-    React.createElement(
-      'div',
-      { role: 'alert', ...props },
-      title ? React.createElement('div', null, title) : null,
-      children
-    ),
+    isOpen
+      ? React.createElement(
+          'div',
+          {
+            role: 'dialog',
+            'aria-modal': 'true',
+            'aria-label': title,
+            'data-testid': testId,
+            onKeyDown: (e: React.KeyboardEvent) => {
+              if (e.key === 'Escape' && closeOnEscape) {
+                onClose();
+              }
+            },
+          },
+          header ?? null,
+          children,
+          showCloseButton
+            ? React.createElement(
+                'button',
+                { type: 'button', onClick: onClose, 'aria-label': 'Close modal' },
+                '×'
+              )
+            : null,
+          footer
+        )
+      : null,
   TextArea: ({
     label,
     id,
@@ -857,6 +842,64 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
         'div',
         { key: 'text' },
         ...Array.from({ length: lines as number }, (_, i) => React.createElement('div', { key: i }))
+      )
+    ),
+  Avatar: ({ name = '', initials }: { name?: string; initials?: string }) =>
+    React.createElement(
+      'span',
+      null,
+      initials ??
+        name
+          .split(' ')
+          .map(part => part[0])
+          .join('')
+          .toUpperCase()
+          .slice(0, 2)
+    ),
+  // Mirrors the real Alert: an alert-role region with optional title and body.
+  Alert: ({ children, title }: { children?: React.ReactNode; title?: string }) =>
+    React.createElement(
+      'div',
+      { role: 'alert' },
+      title ? React.createElement('strong', null, title) : null,
+      children
+    ),
+  // Mirrors the real Tabs: a tablist of role="tab" buttons and the active panel.
+  Tabs: ({
+    tabs,
+    value,
+    onChange,
+    'aria-label': ariaLabel,
+  }: {
+    tabs: ReadonlyArray<{ id: string; label: React.ReactNode; content: React.ReactNode }>;
+    value: string;
+    onChange: (id: string) => void;
+    'aria-label'?: string;
+  }) =>
+    React.createElement(
+      'div',
+      null,
+      React.createElement(
+        'div',
+        { role: 'tablist', 'aria-label': ariaLabel },
+        ...tabs.map(tab =>
+          React.createElement(
+            'button',
+            {
+              key: tab.id,
+              type: 'button',
+              role: 'tab',
+              'aria-selected': tab.id === value,
+              onClick: () => onChange(tab.id),
+            },
+            tab.label
+          )
+        )
+      ),
+      React.createElement(
+        'div',
+        { role: 'tabpanel' },
+        tabs.find(tab => tab.id === value)?.content ?? null
       )
     ),
   DateTime: ({ value }: { value: string }) => React.createElement('span', null, value),

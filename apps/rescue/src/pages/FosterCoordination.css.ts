@@ -5,18 +5,6 @@ export const pageContainer = style({
   padding: '1.5rem',
 });
 
-export const pageHeader = style({
-  display: 'flex',
-  justifyContent: 'space-between',
-});
-
-export const errorBanner = style({
-  background: vars.background.danger,
-  color: vars.text.danger,
-  padding: '0.75rem',
-  margin: '1rem 0',
-});
-
 export const filterRow = style({
   margin: '1rem 0',
 });
@@ -25,12 +13,6 @@ export const skeletonStack = style({
   display: 'flex',
   flexDirection: 'column',
   gap: vars.spacing['3'],
-});
-
-export const petSearchInput = style({
-  width: '100%',
-  marginBottom: vars.spacing['1'],
-  padding: vars.spacing['2'],
 });
 
 export const modalForm = style({

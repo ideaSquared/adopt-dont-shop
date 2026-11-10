@@ -30,13 +30,9 @@ describe('BulkConfirmationModal accessibility', () => {
     expect(dialog).toHaveAttribute('aria-modal', 'true');
   });
 
-  it('labels the dialog with its visible title via aria-labelledby', () => {
+  it('names the dialog with its visible title', () => {
     render(<BulkConfirmationModal {...defaultProps} />);
-    const dialog = screen.getByRole('dialog');
-    const labelId = dialog.getAttribute('aria-labelledby');
-    expect(labelId).toBeTruthy();
-    const titleEl = document.getElementById(labelId!);
-    expect(titleEl).toHaveTextContent('Suspend 3 users');
+    expect(screen.getByRole('dialog', { name: 'Suspend 3 users' })).toBeInTheDocument();
   });
 
   it('calls onClose when Escape is pressed', async () => {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, beforeEach, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { renderWithProviders } from '../test-utils';
 
 // SelectInput (Radix, portal-based) and CheckboxInput (visually-hidden input
 // behind a role="button" wrapper) are stubbed with plain, label-associated
@@ -53,22 +54,6 @@ vi.mock('@adopt-dont-shop/lib.components', async () => {
   };
 });
 
-vi.mock('../components/ui', () => ({
-  PageContainer: ({ children }: { children: React.ReactNode }) =>
-    React.createElement('div', null, children),
-  PageHeader: ({ children }: { children: React.ReactNode }) =>
-    React.createElement('header', null, children),
-  HeaderLeft: ({ children }: { children: React.ReactNode }) =>
-    React.createElement('div', null, children),
-  Card: ({ children }: { children: React.ReactNode }) => React.createElement('div', null, children),
-  CardHeader: ({ children }: { children: React.ReactNode }) =>
-    React.createElement('div', null, children),
-  CardTitle: ({ children }: { children: React.ReactNode }) =>
-    React.createElement('h2', null, children),
-  CardContent: ({ children }: { children: React.ReactNode }) =>
-    React.createElement('div', null, children),
-}));
-
 const mockSendBroadcast = vi.fn();
 const mockPreviewBroadcast = vi.fn();
 vi.mock('../services/broadcastService', () => ({
@@ -85,7 +70,7 @@ describe('BroadcastNotifications page', () => {
   });
 
   it('shows inline validation errors and does not preview when title and body are empty', async () => {
-    render(<BroadcastNotifications />);
+    renderWithProviders(<BroadcastNotifications />);
 
     fireEvent.click(screen.getByRole('button', { name: /preview & send/i }));
 
@@ -95,7 +80,7 @@ describe('BroadcastNotifications page', () => {
   });
 
   it('requires at least one channel to be selected', async () => {
-    render(<BroadcastNotifications />);
+    renderWithProviders(<BroadcastNotifications />);
 
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Hello' } });
     fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'Body text' } });
@@ -109,7 +94,7 @@ describe('BroadcastNotifications page', () => {
   });
 
   it('clears a field error once the user edits the field', async () => {
-    render(<BroadcastNotifications />);
+    renderWithProviders(<BroadcastNotifications />);
 
     fireEvent.click(screen.getByRole('button', { name: /preview & send/i }));
     expect(await screen.findByText('Title is required')).toBeInTheDocument();
@@ -132,7 +117,7 @@ describe('BroadcastNotifications page', () => {
       channels: ['in_app'],
     });
 
-    render(<BroadcastNotifications />);
+    renderWithProviders(<BroadcastNotifications />);
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Hello' } });
     fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'Body text' } });
 
@@ -162,7 +147,7 @@ describe('BroadcastNotifications page', () => {
     mockPreviewBroadcast.mockResolvedValue(5);
     mockSendBroadcast.mockRejectedValue(new Error('Boom'));
 
-    render(<BroadcastNotifications />);
+    renderWithProviders(<BroadcastNotifications />);
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'x' } });
     fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'y' } });
     fireEvent.click(screen.getByRole('button', { name: /preview & send/i }));
@@ -170,5 +155,22 @@ describe('BroadcastNotifications page', () => {
     fireEvent.click(screen.getByRole('button', { name: /send broadcast/i }));
 
     expect(await screen.findByText('Boom')).toBeInTheDocument();
+  });
+
+  it('does not send when the admin cancels the confirmation', async () => {
+    mockPreviewBroadcast.mockResolvedValue(7);
+
+    renderWithProviders(<BroadcastNotifications />);
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'x' } });
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'y' } });
+    fireEvent.click(screen.getByRole('button', { name: /preview & send/i }));
+
+    expect(await screen.findByText(/7 users/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByText(/7 users/)).not.toBeInTheDocument();
+    });
+    expect(mockSendBroadcast).not.toHaveBeenCalled();
   });
 });
