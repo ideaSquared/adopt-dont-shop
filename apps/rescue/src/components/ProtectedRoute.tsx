@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { Text, Card } from '@adopt-dont-shop/lib.components';
+import { Card, Spinner, Text } from '@adopt-dont-shop/lib.components';
 import * as styles from './ProtectedRoute.css';
 
 interface ProtectedRouteProps {
@@ -17,7 +17,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return (
       <div className={styles.loadingContainer}>
         <Card className={styles.loadingCard}>
-          <div className={styles.loadingSpinner} />
+          <Spinner size="lg" variant="primary" label="Checking authentication" />
           <Text>Loading...</Text>
         </Card>
       </div>

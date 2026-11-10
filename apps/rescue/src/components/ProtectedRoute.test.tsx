@@ -6,13 +6,13 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('./ProtectedRoute.css', () => ({
   loadingContainer: 'loading-container',
   loadingCard: 'loading-card',
-  loadingSpinner: 'loading-spinner',
 }));
 
 // Mock lib.components — keep it minimal: just render children/text.
 vi.mock('@adopt-dont-shop/lib.components', () => ({
   Card: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   Text: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+  Spinner: ({ label }: { label?: string }) => <div role="status" aria-label={label} />,
 }));
 
 // We use vi.hoisted so the mock factory can read this state without TDZ issues.
@@ -103,6 +103,7 @@ describe('ProtectedRoute', () => {
     );
 
     expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Checking authentication' })).toBeInTheDocument();
     expect(screen.queryByText('Protected Pet Content')).not.toBeInTheDocument();
     expect(screen.queryByText('Login Page Stand-In')).not.toBeInTheDocument();
   });
