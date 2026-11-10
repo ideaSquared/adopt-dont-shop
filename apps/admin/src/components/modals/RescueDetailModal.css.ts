@@ -4,25 +4,6 @@ export const headerContent = style({
   flex: 1,
 });
 
-export const closeButton = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  // WCAG 2.5.5 AA: 44x44 minimum touch target.
-  minWidth: '44px',
-  minHeight: '44px',
-  border: 'none',
-  borderRadius: '8px',
-  background: '#f3f4f6',
-  color: '#6b7280',
-  cursor: 'pointer',
-  transition: 'all 0.2s ease',
-  ':hover': {
-    background: '#e5e7eb',
-    color: '#111827',
-  },
-});
-
 export const section = style({
   marginBottom: '2rem',
   selectors: {
@@ -198,29 +179,6 @@ export const staffActions = style({
   gap: '0.5rem',
 });
 
-export const iconButton = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '32px',
-  height: '32px',
-  border: '1px solid #e5e7eb',
-  borderRadius: '6px',
-  background: '#ffffff',
-  color: '#6b7280',
-  cursor: 'pointer',
-  transition: 'all 0.2s ease',
-  ':hover': {
-    background: '#f9fafb',
-    color: '#111827',
-    borderColor: '#d1d5db',
-  },
-  ':disabled': {
-    opacity: 0.5,
-    cursor: 'not-allowed',
-  },
-});
-
 export const inviteForm = style({
   display: 'flex',
   flexDirection: 'column',
@@ -288,30 +246,6 @@ export const invitationCard = style({
   borderRadius: '8px',
   background: '#fffbeb',
   marginBottom: '0.75rem',
-});
-
-export const invitationBadgePending = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '0.375rem',
-  padding: '0.25rem 0.625rem',
-  borderRadius: '9999px',
-  fontSize: '0.75rem',
-  fontWeight: '600',
-  background: '#fef3c7',
-  color: '#92400e',
-});
-
-export const invitationBadgeDefault = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '0.375rem',
-  padding: '0.25rem 0.625rem',
-  borderRadius: '9999px',
-  fontSize: '0.75rem',
-  fontWeight: '600',
-  background: '#e5e7eb',
-  color: '#374151',
 });
 
 export const skeletonRow = style({
@@ -446,4 +380,23 @@ export const actionGroupLabel = style({
 
 export const actionButtonIcon = style({
   marginRight: '0.5rem',
+});
+
+export const closeButton = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  // WCAG 2.5.5 AA: 44x44 minimum touch target.
+  minWidth: '44px',
+  minHeight: '44px',
+  border: 'none',
+  borderRadius: '8px',
+  background: '#f3f4f6',
+  color: '#6b7280',
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+  ':hover': {
+    background: '#e5e7eb',
+    color: '#111827',
+  },
 });

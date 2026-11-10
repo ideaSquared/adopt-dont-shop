@@ -48,20 +48,6 @@ export const messageBubble = recipe({
   },
 });
 
-export const messageAvatar = style({
-  width: '32px',
-  height: '32px',
-  borderRadius: '50%',
-  background: '#e5e7eb',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontSize: '0.75rem',
-  fontWeight: '600',
-  color: '#6b7280',
-  flexShrink: '0',
-});
-
 export const messageContent = style({
   display: 'flex',
   flexDirection: 'column',
@@ -280,72 +266,6 @@ export const loadingState = style({
   color: '#9ca3af',
 });
 
-export const deletePrompt = style({
-  position: 'fixed',
-  top: '0',
-  left: '0',
-  right: '0',
-  bottom: '0',
-  background: 'rgba(0, 0, 0, 0.5)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: '10000',
-});
-
-export const deletePromptContent = style({
-  background: 'white',
-  padding: '2rem',
-  borderRadius: '12px',
-  maxWidth: '500px',
-  width: '90%',
-  boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
-});
-
-export const deletePromptTitle = style({
-  margin: '0 0 1rem 0',
-  fontSize: '1.25rem',
-  fontWeight: '600',
-  color: '#111827',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.5rem',
-});
-
-globalStyle(`${deletePromptTitle} svg`, {
-  color: '#ef4444',
-});
-
-export const deletePromptText = style({
-  margin: '0 0 1.5rem 0',
-  fontSize: '0.875rem',
-  color: '#6b7280',
-  lineHeight: '1.5',
-});
-
-export const textArea = style({
-  width: '100%',
-  minHeight: '100px',
-  padding: '0.75rem',
-  border: '1px solid #e5e7eb',
-  borderRadius: '8px',
-  fontSize: '0.875rem',
-  fontFamily: 'inherit',
-  resize: 'vertical',
-  marginBottom: '1.5rem',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#3b82f6',
-    boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
-  },
-});
-
-export const deletePromptActions = style({
-  display: 'flex',
-  gap: '0.75rem',
-  justifyContent: 'flex-end',
-});
-
 export const headerBadgeRow = style({
   display: 'flex',
   gap: '0.5rem',
@@ -394,13 +314,6 @@ export const reportCardHeader = style({
 
 export const reportCategoryLabel = style({
   textTransform: 'capitalize',
-});
-
-export const reportStatusBadge = style({
-  padding: '0.125rem 0.5rem',
-  borderRadius: '0.25rem',
-  fontSize: '0.75rem',
-  fontWeight: '500',
 });
 
 export const reportDescription = style({
