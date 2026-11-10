@@ -56,6 +56,34 @@ export interface DeleteRescueResponse {
   deactivatedUserIds: string[];
 }
 
+export interface CreateAdopterRequest {
+  /** Defaults to "Demo". */
+  firstName?: string | undefined;
+}
+
+export interface CreateAdopterResponse {
+  userId: string;
+  /** A generated demo-<id>@example.com address, not a real person's. */
+  email: string;
+  /**
+   * The generated password. service.ops shows it once, in the execute
+   * result only.
+   */
+  password: string;
+  /** Where to sign in and what to do next. */
+  nextSteps: string;
+}
+
+export interface DeleteAdopterRequest {
+  userId: string;
+}
+
+export interface DeleteAdopterResponse {
+  userId: string;
+  /** The status the account was left in: "deactivated". */
+  status: string;
+}
+
 function createBaseCreateRescueRequest(): CreateRescueRequest {
   return { name: undefined, petCount: undefined };
 }
@@ -496,6 +524,330 @@ export const DeleteRescueResponse: MessageFns<DeleteRescueResponse> = {
   },
 };
 
+function createBaseCreateAdopterRequest(): CreateAdopterRequest {
+  return { firstName: undefined };
+}
+
+export const CreateAdopterRequest: MessageFns<CreateAdopterRequest> = {
+  encode(message: CreateAdopterRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.firstName !== undefined) {
+      writer.uint32(10).string(message.firstName);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateAdopterRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreateAdopterRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.firstName = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreateAdopterRequest {
+    return {
+      firstName: isSet(object.firstName)
+        ? globalThis.String(object.firstName)
+        : isSet(object.first_name)
+        ? globalThis.String(object.first_name)
+        : undefined,
+    };
+  },
+
+  toJSON(message: CreateAdopterRequest): unknown {
+    const obj: any = {};
+    if (message.firstName !== undefined) {
+      obj.firstName = message.firstName;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CreateAdopterRequest>, I>>(base?: I): CreateAdopterRequest {
+    return CreateAdopterRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CreateAdopterRequest>, I>>(object: I): CreateAdopterRequest {
+    const message = createBaseCreateAdopterRequest();
+    message.firstName = object.firstName ?? undefined;
+    return message;
+  },
+};
+
+function createBaseCreateAdopterResponse(): CreateAdopterResponse {
+  return { userId: "", email: "", password: "", nextSteps: "" };
+}
+
+export const CreateAdopterResponse: MessageFns<CreateAdopterResponse> = {
+  encode(message: CreateAdopterResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.email !== "") {
+      writer.uint32(18).string(message.email);
+    }
+    if (message.password !== "") {
+      writer.uint32(26).string(message.password);
+    }
+    if (message.nextSteps !== "") {
+      writer.uint32(34).string(message.nextSteps);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateAdopterResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreateAdopterResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.email = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.password = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.nextSteps = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreateAdopterResponse {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+        ? globalThis.String(object.user_id)
+        : "",
+      email: isSet(object.email) ? globalThis.String(object.email) : "",
+      password: isSet(object.password) ? globalThis.String(object.password) : "",
+      nextSteps: isSet(object.nextSteps)
+        ? globalThis.String(object.nextSteps)
+        : isSet(object.next_steps)
+        ? globalThis.String(object.next_steps)
+        : "",
+    };
+  },
+
+  toJSON(message: CreateAdopterResponse): unknown {
+    const obj: any = {};
+    if (message.userId !== "") {
+      obj.userId = message.userId;
+    }
+    if (message.email !== "") {
+      obj.email = message.email;
+    }
+    if (message.password !== "") {
+      obj.password = message.password;
+    }
+    if (message.nextSteps !== "") {
+      obj.nextSteps = message.nextSteps;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CreateAdopterResponse>, I>>(base?: I): CreateAdopterResponse {
+    return CreateAdopterResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CreateAdopterResponse>, I>>(object: I): CreateAdopterResponse {
+    const message = createBaseCreateAdopterResponse();
+    message.userId = object.userId ?? "";
+    message.email = object.email ?? "";
+    message.password = object.password ?? "";
+    message.nextSteps = object.nextSteps ?? "";
+    return message;
+  },
+};
+
+function createBaseDeleteAdopterRequest(): DeleteAdopterRequest {
+  return { userId: "" };
+}
+
+export const DeleteAdopterRequest: MessageFns<DeleteAdopterRequest> = {
+  encode(message: DeleteAdopterRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
+      writer.uint32(10).string(message.userId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteAdopterRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteAdopterRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteAdopterRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+        ? globalThis.String(object.user_id)
+        : "",
+    };
+  },
+
+  toJSON(message: DeleteAdopterRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== "") {
+      obj.userId = message.userId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteAdopterRequest>, I>>(base?: I): DeleteAdopterRequest {
+    return DeleteAdopterRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteAdopterRequest>, I>>(object: I): DeleteAdopterRequest {
+    const message = createBaseDeleteAdopterRequest();
+    message.userId = object.userId ?? "";
+    return message;
+  },
+};
+
+function createBaseDeleteAdopterResponse(): DeleteAdopterResponse {
+  return { userId: "", status: "" };
+}
+
+export const DeleteAdopterResponse: MessageFns<DeleteAdopterResponse> = {
+  encode(message: DeleteAdopterResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.status !== "") {
+      writer.uint32(18).string(message.status);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteAdopterResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteAdopterResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.status = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteAdopterResponse {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+        ? globalThis.String(object.user_id)
+        : "",
+      status: isSet(object.status) ? globalThis.String(object.status) : "",
+    };
+  },
+
+  toJSON(message: DeleteAdopterResponse): unknown {
+    const obj: any = {};
+    if (message.userId !== "") {
+      obj.userId = message.userId;
+    }
+    if (message.status !== "") {
+      obj.status = message.status;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteAdopterResponse>, I>>(base?: I): DeleteAdopterResponse {
+    return DeleteAdopterResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteAdopterResponse>, I>>(object: I): DeleteAdopterResponse {
+    const message = createBaseDeleteAdopterResponse();
+    message.userId = object.userId ?? "";
+    message.status = object.status ?? "";
+    return message;
+  },
+};
+
 /**
  * DemoService creates and removes throwaway rescues for testing in dev and
  * staging. No service process serves it over gRPC: service.ops handles it
@@ -534,6 +886,34 @@ export const DemoServiceService = {
       Buffer.from(DeleteRescueResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): DeleteRescueResponse => DeleteRescueResponse.decode(value),
   },
+  /**
+   * Create a verified, active adopter account that can sign in to the client
+   * app straight away. The generated password is returned once.
+   */
+  createAdopter: {
+    path: "/adopt_dont_shop.demo.v1.DemoService/CreateAdopter" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: CreateAdopterRequest): Buffer => Buffer.from(CreateAdopterRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CreateAdopterRequest => CreateAdopterRequest.decode(value),
+    responseSerialize: (value: CreateAdopterResponse): Buffer =>
+      Buffer.from(CreateAdopterResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CreateAdopterResponse => CreateAdopterResponse.decode(value),
+  },
+  /**
+   * Deactivate an adopter made by CreateAdopter. Refuses any account whose
+   * email is not a generated demo address.
+   */
+  deleteAdopter: {
+    path: "/adopt_dont_shop.demo.v1.DemoService/DeleteAdopter" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: DeleteAdopterRequest): Buffer => Buffer.from(DeleteAdopterRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): DeleteAdopterRequest => DeleteAdopterRequest.decode(value),
+    responseSerialize: (value: DeleteAdopterResponse): Buffer =>
+      Buffer.from(DeleteAdopterResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): DeleteAdopterResponse => DeleteAdopterResponse.decode(value),
+  },
 } as const;
 
 export interface DemoServiceServer extends UntypedServiceImplementation {
@@ -547,6 +927,16 @@ export interface DemoServiceServer extends UntypedServiceImplementation {
    * rescue, then deactivate its owner. Refuses rescues it did not create.
    */
   deleteRescue: handleUnaryCall<DeleteRescueRequest, DeleteRescueResponse>;
+  /**
+   * Create a verified, active adopter account that can sign in to the client
+   * app straight away. The generated password is returned once.
+   */
+  createAdopter: handleUnaryCall<CreateAdopterRequest, CreateAdopterResponse>;
+  /**
+   * Deactivate an adopter made by CreateAdopter. Refuses any account whose
+   * email is not a generated demo address.
+   */
+  deleteAdopter: handleUnaryCall<DeleteAdopterRequest, DeleteAdopterResponse>;
 }
 
 export interface DemoServiceClient extends Client {
@@ -587,6 +977,44 @@ export interface DemoServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: DeleteRescueResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Create a verified, active adopter account that can sign in to the client
+   * app straight away. The generated password is returned once.
+   */
+  createAdopter(
+    request: CreateAdopterRequest,
+    callback: (error: ServiceError | null, response: CreateAdopterResponse) => void,
+  ): ClientUnaryCall;
+  createAdopter(
+    request: CreateAdopterRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: CreateAdopterResponse) => void,
+  ): ClientUnaryCall;
+  createAdopter(
+    request: CreateAdopterRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: CreateAdopterResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Deactivate an adopter made by CreateAdopter. Refuses any account whose
+   * email is not a generated demo address.
+   */
+  deleteAdopter(
+    request: DeleteAdopterRequest,
+    callback: (error: ServiceError | null, response: DeleteAdopterResponse) => void,
+  ): ClientUnaryCall;
+  deleteAdopter(
+    request: DeleteAdopterRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: DeleteAdopterResponse) => void,
+  ): ClientUnaryCall;
+  deleteAdopter(
+    request: DeleteAdopterRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: DeleteAdopterResponse) => void,
   ): ClientUnaryCall;
 }
 

@@ -9700,6 +9700,66 @@ export const PROTO_SCHEMA: ProtoSchema = {
         },
       ],
     },
+    'adopt_dont_shop.demo.v1.CreateAdopterRequest': {
+      fullName: 'adopt_dont_shop.demo.v1.CreateAdopterRequest',
+      fields: [
+        {
+          name: 'first_name',
+          jsonName: 'firstName',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: false,
+          optional: true,
+          sensitivity: 'PUBLIC',
+          comment: 'Defaults to "Demo".',
+        },
+      ],
+    },
+    'adopt_dont_shop.demo.v1.CreateAdopterResponse': {
+      fullName: 'adopt_dont_shop.demo.v1.CreateAdopterResponse',
+      fields: [
+        {
+          name: 'user_id',
+          jsonName: 'userId',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: false,
+          optional: false,
+          sensitivity: 'INTERNAL',
+        },
+        {
+          name: 'email',
+          jsonName: 'email',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: false,
+          optional: false,
+          sensitivity: 'PII',
+          comment: "A generated demo-<id>@example.com address, not a real person's.",
+        },
+        {
+          name: 'password',
+          jsonName: 'password',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: false,
+          optional: false,
+          sensitivity: 'SPECIAL',
+          comment:
+            'The generated password. service.ops shows it once, in the execute\nresult only.',
+        },
+        {
+          name: 'next_steps',
+          jsonName: 'nextSteps',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: false,
+          optional: false,
+          sensitivity: 'PUBLIC',
+          comment: 'Where to sign in and what to do next.',
+        },
+      ],
+    },
     'adopt_dont_shop.demo.v1.CreateRescueRequest': {
       fullName: 'adopt_dont_shop.demo.v1.CreateRescueRequest',
       fields: [
@@ -9794,6 +9854,44 @@ export const PROTO_SCHEMA: ProtoSchema = {
           optional: false,
           sensitivity: 'PUBLIC',
           comment: 'Where to sign in and what to do next.',
+        },
+      ],
+    },
+    'adopt_dont_shop.demo.v1.DeleteAdopterRequest': {
+      fullName: 'adopt_dont_shop.demo.v1.DeleteAdopterRequest',
+      fields: [
+        {
+          name: 'user_id',
+          jsonName: 'userId',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: false,
+          optional: false,
+          sensitivity: 'INTERNAL',
+        },
+      ],
+    },
+    'adopt_dont_shop.demo.v1.DeleteAdopterResponse': {
+      fullName: 'adopt_dont_shop.demo.v1.DeleteAdopterResponse',
+      fields: [
+        {
+          name: 'user_id',
+          jsonName: 'userId',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: false,
+          optional: false,
+          sensitivity: 'INTERNAL',
+        },
+        {
+          name: 'status',
+          jsonName: 'status',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: false,
+          optional: false,
+          sensitivity: 'PUBLIC',
+          comment: 'The status the account was left in: "deactivated".',
         },
       ],
     },
@@ -23099,6 +23197,20 @@ export const PROTO_SCHEMA: ProtoSchema = {
           outputType: 'adopt_dont_shop.demo.v1.DeleteRescueResponse',
           comment:
             'Remove a rescue made by CreateRescue: soft-delete its pets and the\nrescue, then deactivate its owner. Refuses rescues it did not create.',
+        },
+        {
+          name: 'CreateAdopter',
+          inputType: 'adopt_dont_shop.demo.v1.CreateAdopterRequest',
+          outputType: 'adopt_dont_shop.demo.v1.CreateAdopterResponse',
+          comment:
+            'Create a verified, active adopter account that can sign in to the client\napp straight away. The generated password is returned once.',
+        },
+        {
+          name: 'DeleteAdopter',
+          inputType: 'adopt_dont_shop.demo.v1.DeleteAdopterRequest',
+          outputType: 'adopt_dont_shop.demo.v1.DeleteAdopterResponse',
+          comment:
+            'Deactivate an adopter made by CreateAdopter. Refuses any account whose\nemail is not a generated demo address.',
         },
       ],
     },

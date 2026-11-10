@@ -22,7 +22,7 @@ import type { CallDownstream, JsonObject } from './registry.js';
 // only the permissions that handler checks. Nothing here rolls back across
 // services: a failure names what was already created so it can be deleted.
 
-const ALPHANUMERIC = 'abcdefghijklmnopqrstuvwxyz0123456789';
+export const ALPHANUMERIC = 'abcdefghijklmnopqrstuvwxyz0123456789';
 const UPPER = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 const LOWER = 'abcdefghijkmnpqrstuvwxyz';
 const DIGITS = '23456789';
@@ -35,13 +35,13 @@ const MAX_PET_PAGES = 50;
 
 // Demo owners get generated addresses on example.com (reserved, never
 // delivered). delete-rescue only acts on rescues whose email matches.
-const DEMO_EMAIL_PATTERN = /^demo-[a-z0-9]{10}@example\.com$/;
+export const DEMO_EMAIL_PATTERN = /^demo-[a-z0-9]{10}@example\.com$/;
 
 const pick = (alphabet: string): string => alphabet[randomInt(alphabet.length)];
-const randomString = (alphabet: string, length: number): string =>
+export const randomString = (alphabet: string, length: number): string =>
   Array.from({ length }, () => pick(alphabet)).join('');
 
-const generatePassword = (): string => {
+export const generatePassword = (): string => {
   const all = UPPER + LOWER + DIGITS + SYMBOLS;
   const password = [
     pick(UPPER),
@@ -91,10 +91,10 @@ export const validateDeleteRequest = (request: JsonObject): void => {
   parseRequest(DeleteRequestSchema, request);
 };
 
-const str = (value: unknown): string | undefined =>
+export const str = (value: unknown): string | undefined =>
   typeof value === 'string' && value !== '' ? value : undefined;
 
-const objectAt = (json: JsonObject, key: string): JsonObject => {
+export const objectAt = (json: JsonObject, key: string): JsonObject => {
   const value = json[key];
   return typeof value === 'object' && value !== null && !Array.isArray(value)
     ? (value as JsonObject) // narrowed: a non-null, non-array object

@@ -18,6 +18,14 @@ service DemoService {
   // Remove a rescue made by CreateRescue: soft-delete its pets and the
   // rescue, then deactivate its owner. Refuses rescues it did not create.
   rpc DeleteRescue(DeleteRescueRequest) returns (DeleteRescueResponse);
+
+  // Create a verified, active adopter account that can sign in to the client
+  // app straight away. The generated password is returned once.
+  rpc CreateAdopter(CreateAdopterRequest) returns (CreateAdopterResponse);
+
+  // Deactivate an adopter made by CreateAdopter. Refuses any account whose
+  // email is not a generated demo address.
+  rpc DeleteAdopter(DeleteAdopterRequest) returns (DeleteAdopterResponse);
 }
 
 message CreateRescueRequest {
@@ -49,4 +57,30 @@ message DeleteRescueResponse {
   string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   repeated string deleted_pet_ids = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   repeated string deactivated_user_ids = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+}
+
+message CreateAdopterRequest {
+  // Defaults to "Demo".
+  optional string first_name = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+}
+
+message CreateAdopterResponse {
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  // A generated demo-<id>@example.com address, not a real person's.
+  string email = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  // The generated password. service.ops shows it once, in the execute
+  // result only.
+  string password = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
+  // Where to sign in and what to do next.
+  string next_steps = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+}
+
+message DeleteAdopterRequest {
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+}
+
+message DeleteAdopterResponse {
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  // The status the account was left in: "deactivated".
+  string status = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
 }

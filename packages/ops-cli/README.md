@@ -97,12 +97,18 @@ eval "$(pnpm --silent ops completion zsh)"                  # then: ads-ops pets
 ```bash
 pnpm ops demo create-rescue -e staging --pet-count 5        # preview, then confirm
 pnpm ops demo delete-rescue <rescueId> -e staging
+pnpm ops demo create-adopter -e staging --first-name Ada
+pnpm ops demo delete-adopter <userId> -e staging
 ```
 
 `create-rescue` makes a verified rescue, an active owner login (a generated `demo-…@example.com`
 address and password, printed once in the result) and up to 10 sample pets. Sign in to the rescue
 app with that login. `delete-rescue` removes the pets and the rescue and deactivates the demo
 owner; it refuses any rescue `create-rescue` did not make. Both are refused in prod.
+
+`create-adopter` makes a verified, active adopter (generated `demo-…@example.com` login, password
+printed once) that can sign in to the client app straight away. `delete-adopter` deactivates it
+(there is no user soft-delete RPC) and refuses any account without a demo address.
 
 How flags are built from the proto request message:
 
