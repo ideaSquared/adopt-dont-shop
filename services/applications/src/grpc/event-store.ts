@@ -148,8 +148,9 @@ export async function appendEvents(
 // triggering `approved` / `adopted` event's `at` (== occurred_at, see
 // appendEvents), stamped there by apply.ts. Any other status (including
 // rejected/withdrawn, which never qualify for attribution) leaves it null.
-// The applicant's own name / email from their answers (personalInfo), kept on the read model so
-// the staff list can search them in SQL (migration 016). Answers are free-form JSON, so read the
+// The applicant's name / email, kept on the read model so the staff list can search them in SQL
+// (migration 016). Seeded from their answers (personalInfo) until auth.userProfileChanged syncs
+// the account's values (src/nats/applicant-updates.ts). Answers are free-form JSON, so read the
 // two fields defensively; blank values store as null.
 const answerText = (value: unknown): string | null =>
   typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
@@ -188,8 +189,11 @@ export async function projectReadModel(client: PoolClient, state: ApplicationSta
        documents = EXCLUDED.documents,
        version = EXCLUDED.version,
        actioned_at = EXCLUDED.actioned_at,
-       applicant_name = EXCLUDED.applicant_name,
-       applicant_email = EXCLUDED.applicant_email,
+       -- The answers seed these until auth.userProfileChanged syncs the account's values.
+       applicant_name = CASE WHEN applications.applicant_synced_at IS NULL
+         THEN EXCLUDED.applicant_name ELSE applications.applicant_name END,
+       applicant_email = CASE WHEN applications.applicant_synced_at IS NULL
+         THEN EXCLUDED.applicant_email ELSE applications.applicant_email END,
        updated_at = NOW()`,
     [
       state.applicationId,

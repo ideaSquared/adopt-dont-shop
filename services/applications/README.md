@@ -95,9 +95,11 @@ Migrations: `src/migrations/001`–`016`.
 `applications.homeVisitCompleted`, `applications.approved`,
 `applications.rejected`, `applications.withdrawn`, `applications.adopted`;
 participates in the `gdpr.erasureCompleted` saga. Consumes
-`gdpr.erasureRequested` (durable `gdpr-applications`) and `pets.updated` (durable
-`applications-pets-updated`), which keeps each application's denormalised pet type / breed
-current for the staff list search; an hourly job backfills rows the events missed.
+`gdpr.erasureRequested` (durable `gdpr-applications`), `pets.updated` (durable
+`applications-pets-updated`) and `auth.userProfileChanged` (durable
+`applications-auth-user-profile-changed`), which keep each application's denormalised pet
+type / breed and applicant name / email current for the staff list search (latest event
+wins); an hourly job backfills pet fields the events missed.
 
 ## Environment variables consumed
 

@@ -70,6 +70,12 @@ export const CONSUMER_REGISTRY: RegistryEntry[] = [
         description:
           'Wildcard *.actionTaken consumer captures auth.actionTaken and persists it to audit_events.',
       },
+      {
+        service: 'service.applications',
+        file: 'services/applications/src/nats/applicant-updates.ts',
+        description:
+          "Subscribes to auth.userProfileChanged to keep each application's denormalised applicant name / email (list search) current.",
+      },
     ],
   },
   {

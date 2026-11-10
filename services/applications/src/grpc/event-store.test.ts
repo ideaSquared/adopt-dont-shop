@@ -44,7 +44,20 @@ describe('projectReadModel search columns', () => {
       applicant_name: 'Jane Doe',
       applicant_email: 'jane@example.com',
     });
-    expect(query.mock.calls[0][0]).toMatch(/applicant_name = EXCLUDED\.applicant_name/);
+  });
+
+  it("keeps the account's name and email once auth.userProfileChanged has synced them", async () => {
+    const { client, query } = makeClient();
+
+    await projectReadModel(client, state({ personalInfo: { firstName: 'Old', lastName: 'Name' } }));
+
+    const sql = query.mock.calls[0][0] as string;
+    expect(sql).toMatch(
+      /applicant_name = CASE WHEN applications\.applicant_synced_at IS NULL\s+THEN EXCLUDED\.applicant_name ELSE applications\.applicant_name END/
+    );
+    expect(sql).toMatch(
+      /applicant_email = CASE WHEN applications\.applicant_synced_at IS NULL\s+THEN EXCLUDED\.applicant_email ELSE applications\.applicant_email END/
+    );
   });
 
   it('stores nulls when the answers have no personal details yet', async () => {

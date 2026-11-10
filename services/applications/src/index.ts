@@ -18,6 +18,7 @@ import { createPetsClient } from './grpc/pets-client.js';
 import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
 import { purgeExpiredApplicationDrafts } from './jobs/application-draft-retention.js';
 import { backfillApplicationPetSearchFields } from './jobs/application-pet-search-fields.js';
+import { registerApplicantUpdatesSubscriber } from './nats/applicant-updates.js';
 import { registerPetUpdatesSubscriber } from './nats/pet-updates.js';
 
 // Backfill of the denormalised pet type / breed (migration 016) for rows the stamp and the
@@ -80,6 +81,13 @@ const main = async (): Promise<void> => {
       pool,
       onError: (err, subject) => logger.error('pets.updated subscriber error', { subject, err }),
     });
+    // Keeps the denormalised applicant name / email current with the account (migration 016).
+    const applicantUpdates = registerApplicantUpdatesSubscriber({
+      nats,
+      pool,
+      onError: (err, subject) =>
+        logger.error('auth.userProfileChanged subscriber error', { subject, err }),
+    });
 
     // Application-drafts retention purge (ADS-1320) — see
     // src/jobs/application-draft-retention.ts. Cross-instance claimed via
@@ -140,6 +148,7 @@ const main = async (): Promise<void> => {
     const teardown = async (): Promise<void> => {
       outboxRelay.stop();
       await petUpdates.drain();
+      await applicantUpdates.drain();
       await scheduler?.stop();
       return runServiceShutdown({ httpServer, grpc, nats, pool, logger });
     };

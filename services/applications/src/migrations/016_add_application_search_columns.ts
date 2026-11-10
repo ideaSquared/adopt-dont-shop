@@ -6,9 +6,10 @@ import type { MigrationBuilder } from 'node-pg-migrate';
 // email, but those live in other services' schemas (pets, auth) and there
 // are no cross-schema joins. Copy them onto the read model instead:
 //
-//   - applicant_name / applicant_email come from the applicant's own
-//     answers (personalInfo); the projector rewrites them on every write,
-//     and this migration backfills them from the stored answers.
+//   - applicant_name / applicant_email are seeded from the applicant's
+//     answers (personalInfo), which this migration backfills, and then
+//     follow the account through auth.userProfileChanged events;
+//     applicant_synced_at records the latest account change applied.
 //   - pet_type / pet_breed are stamped when the draft starts (StartDraft
 //     already fetches the pet) and rewritten from pets.updated events;
 //     pet_version records the pet version last applied, so an older event
@@ -25,6 +26,7 @@ export const up = async (pgm: MigrationBuilder): Promise<void> => {
     pet_version: { type: 'integer' },
     applicant_name: { type: 'text' },
     applicant_email: { type: 'text' },
+    applicant_synced_at: { type: 'timestamptz' },
   });
 
   pgm.createIndex('applications', ['rescue_id', 'pet_type'], {
@@ -55,5 +57,6 @@ export const down = async (pgm: MigrationBuilder): Promise<void> => {
     'pet_version',
     'applicant_name',
     'applicant_email',
+    'applicant_synced_at',
   ]);
 };
