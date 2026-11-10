@@ -1,10 +1,5 @@
-import { globalStyle, style, keyframes } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
-
-const spin = keyframes({
-  '0%': { transform: 'rotate(0deg)' },
-  '100%': { transform: 'rotate(360deg)' },
-});
 
 export const container = style({
   background: 'white',
@@ -118,29 +113,6 @@ globalStyle(`${metaItem} strong`, {
   color: '#333',
 });
 
-export const statusBadge = recipe({
-  base: {
-    display: 'inline-block',
-    padding: '0.25rem 0.75rem',
-    borderRadius: '12px',
-    fontSize: '0.75rem',
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
-  variants: {
-    status: {
-      active: {
-        background: '#d1f4e0',
-        color: '#0a7b3e',
-      },
-      expiring: {
-        background: '#fff3cd',
-        color: '#856404',
-      },
-    },
-  },
-});
-
 export const actions = style({
   display: 'flex',
   gap: '0.5rem',
@@ -150,49 +122,6 @@ export const actions = style({
       width: '100%',
       justifyContent: 'flex-end',
     },
-  },
-});
-
-export const actionButton = recipe({
-  base: {
-    padding: '0.5rem 1rem',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '0.875rem',
-    fontWeight: '500',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    whiteSpace: 'nowrap',
-    ':disabled': {
-      opacity: 0.6,
-      cursor: 'not-allowed',
-    },
-  },
-  variants: {
-    variant: {
-      danger: {
-        background: '#dc3545',
-        color: 'white',
-        selectors: {
-          '&:hover:not(:disabled)': {
-            background: '#c82333',
-          },
-        },
-      },
-      default: {
-        background: '#f8f9fa',
-        color: '#495057',
-        border: '1px solid #dee2e6',
-        selectors: {
-          '&:hover:not(:disabled)': {
-            background: '#e9ecef',
-          },
-        },
-      },
-    },
-  },
-  defaultVariants: {
-    variant: 'default',
   },
 });
 
@@ -220,14 +149,4 @@ export const loadingContainer = style({
   padding: '3rem 2rem',
   textAlign: 'center',
   color: '#666',
-});
-
-export const loadingSpinner = style({
-  width: '3rem',
-  height: '3rem',
-  border: '3px solid #e9ecef',
-  borderTop: '3px solid #1976d2',
-  borderRadius: '50%',
-  animation: `${spin} 1s linear infinite`,
-  margin: '0 auto 1rem',
 });

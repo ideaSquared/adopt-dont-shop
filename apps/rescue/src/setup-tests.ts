@@ -237,6 +237,12 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
       children,
       React.createElement('span', { role: 'tooltip' }, content)
     ),
+  Avatar: ({ name, alt, initials }: { name?: string; alt?: string; initials?: string }) =>
+    React.createElement(
+      'span',
+      { role: 'img', 'aria-label': alt || `Avatar for ${name ?? ''}` },
+      initials
+    ),
   lightTheme: {},
   darkTheme: {},
   ThemeProvider: ({ children }: { children: React.ReactNode }) => children,

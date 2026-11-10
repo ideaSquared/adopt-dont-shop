@@ -1,5 +1,6 @@
 import React from 'react';
-import { SkeletonCard } from '@adopt-dont-shop/lib.components';
+import { MetricCard, SkeletonCard } from '@adopt-dont-shop/lib.components';
+import { CheckCircle2, Clock, Sparkles, Users } from 'lucide-react';
 import { StaffMember } from '../../types/staff';
 import * as styles from './StaffOverview.css';
 
@@ -49,43 +50,23 @@ const StaffOverview: React.FC<StaffOverviewProps> = ({ staff, loading = false })
   return (
     <div className={styles.overviewContainer}>
       <div className={styles.overviewCards}>
-        <div className={styles.overviewCard}>
-          <div className={styles.cardIcon}>👥</div>
-          <div>
-            <h3 className={styles.cardContentH3}>{totalStaff}</h3>
-            <p className={styles.cardContentP}>Total Staff</p>
-          </div>
-        </div>
-
-        <div className={styles.overviewCard}>
-          <div className={styles.cardIcon}>✅</div>
-          <div>
-            <h3 className={styles.cardContentH3}>{verifiedStaff}</h3>
-            <p className={styles.cardContentP}>Verified</p>
-          </div>
-        </div>
-
-        <div className={styles.overviewCard}>
-          <div className={styles.cardIcon}>⏳</div>
-          <div>
-            <h3 className={styles.cardContentH3}>{pendingStaff}</h3>
-            <p className={styles.cardContentP}>Pending</p>
-          </div>
-        </div>
-
-        <div className={styles.overviewCard}>
-          <div className={styles.cardIcon}>🆕</div>
-          <div>
-            <h3 className={styles.cardContentH3}>{recentStaff}</h3>
-            <p className={styles.cardContentP}>Added Recently</p>
-          </div>
-        </div>
+        <MetricCard label="Total Staff" value={totalStaff} icon={<Users size="1em" />} />
+        <MetricCard label="Verified" value={verifiedStaff} icon={<CheckCircle2 size="1em" />} />
+        <MetricCard label="Pending" value={pendingStaff} icon={<Clock size="1em" />} />
+        <MetricCard label="Added Recently" value={recentStaff} icon={<Sparkles size="1em" />} />
       </div>
 
       <div className={styles.overviewDetails}>
         <div className={styles.detailSection}>
           <h4>Verification Status</h4>
-          <div className={styles.progressBar}>
+          <div
+            className={styles.progressBar}
+            role="progressbar"
+            aria-label="Verified staff"
+            aria-valuenow={verificationRate}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
             <div className={styles.progressFill} style={{ width: `${verificationRate}%` }} />
           </div>
           <p className={styles.progressText}>{verificationRate}% of staff members are verified</p>

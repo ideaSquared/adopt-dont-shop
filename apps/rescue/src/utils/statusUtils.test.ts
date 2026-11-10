@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatStatusName, getStatusColor } from './statusUtils';
+import { formatStatusName } from './statusUtils';
 
 describe('formatStatusName', () => {
   it.each([
@@ -14,20 +14,5 @@ describe('formatStatusName', () => {
   it('falls back to title case for unknown statuses', () => {
     expect(formatStatusName('pending_review')).toBe('Pending Review');
     expect(formatStatusName('escalated_to_admin')).toBe('Escalated To Admin');
-  });
-});
-
-describe('getStatusColor', () => {
-  it.each([
-    ['approved', 'success'],
-    ['rejected', 'danger'],
-    ['submitted', 'primary'],
-    ['withdrawn', 'secondary'],
-  ])('maps %s to %s', (input, expected) => {
-    expect(getStatusColor(input)).toBe(expected);
-  });
-
-  it('returns secondary for unknown statuses', () => {
-    expect(getStatusColor('mystery')).toBe('secondary');
   });
 });

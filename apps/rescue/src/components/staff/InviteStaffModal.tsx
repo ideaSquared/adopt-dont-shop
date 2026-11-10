@@ -1,5 +1,5 @@
 import { InvitationPayload } from '@adopt-dont-shop/lib.invitations';
-import { FormField, Input } from '@adopt-dont-shop/lib.components';
+import { Button, FormField, Input, Modal } from '@adopt-dont-shop/lib.components';
 import React, { useState } from 'react';
 import * as styles from './InviteStaffModal.css';
 
@@ -68,118 +68,74 @@ const InviteStaffModal: React.FC<InviteStaffModalProps> = ({
   };
 
   return (
-    // UX P2 I: the backdrop is a click-target convenience, not an interactive
-    // control — the accessible close affordance is the ✕ button below.
-    // role="presentation" matches the sibling modal patterns.
-    <div
-      className={styles.formOverlay}
-      onClick={e => {
-        if (e.target === e.currentTarget) {
-          onCancel();
-        }
-      }}
-      onKeyDown={e => e.key === 'Escape' && onCancel()}
-      role="presentation"
+    <Modal
+      isOpen
+      onClose={onCancel}
+      title="Invite Staff Member"
+      size="md"
+      showCloseButton={!loading}
+      closeOnEscape={!loading}
+      closeOnOverlayClick={!loading}
     >
-      <div
-        className={styles.formModal}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="invite-staff-modal-title"
-      >
-        <div className={styles.modalHeader}>
-          <h2 id="invite-staff-modal-title" className={styles.modalTitle}>
-            Invite Staff Member
-          </h2>
-          <button
-            className={styles.closeButton}
-            onClick={onCancel}
+      <form className={styles.form} onSubmit={handleSubmit}>
+        <FormField
+          label="Email Address"
+          htmlFor="email"
+          required
+          error={errors.email}
+          description="Enter the email address of the person you want to invite"
+        >
+          <Input
+            id="email"
+            type="email"
+            value={formData.email}
+            onChange={e => handleInputChange('email', e.target.value)}
+            placeholder="staff@example.com"
             disabled={loading}
-            type="button"
-            aria-label="Close"
-          >
-            ✕
-          </button>
+            required
+            aria-required={true}
+            aria-invalid={!!errors.email}
+          />
+        </FormField>
+
+        <FormField
+          label="Title/Role"
+          htmlFor="title"
+          error={errors.title}
+          description="Optional: Specify the person's role or title"
+        >
+          <Input
+            id="title"
+            type="text"
+            value={formData.title || ''}
+            onChange={e => handleInputChange('title', e.target.value)}
+            placeholder="e.g., Volunteer, Coordinator, Manager"
+            disabled={loading}
+            maxLength={100}
+            aria-invalid={!!errors.title}
+          />
+        </FormField>
+
+        <div className={styles.formInfo}>
+          <h3 className={styles.infoHeading}>How invitations work</h3>
+          <ul className={styles.infoList}>
+            <li>We send an invitation email to the provided address</li>
+            <li>The recipient gets a secure link to create their account</li>
+            <li>The invitation is valid for 7 days</li>
+            <li>They'll be automatically added to your rescue team after signing up</li>
+          </ul>
         </div>
 
-        <form className={styles.form} onSubmit={handleSubmit}>
-          <FormField
-            label="Email Address"
-            htmlFor="email"
-            required
-            error={errors.email}
-            description="Enter the email address of the person you want to invite"
-          >
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={e => handleInputChange('email', e.target.value)}
-              placeholder="staff@example.com"
-              disabled={loading}
-              required
-              aria-required={true}
-              aria-invalid={!!errors.email}
-            />
-          </FormField>
-
-          <FormField
-            label="Title/Role"
-            htmlFor="title"
-            error={errors.title}
-            description="Optional: Specify the person's role or title"
-          >
-            <Input
-              id="title"
-              type="text"
-              value={formData.title || ''}
-              onChange={e => handleInputChange('title', e.target.value)}
-              placeholder="e.g., Volunteer, Coordinator, Manager"
-              disabled={loading}
-              maxLength={100}
-              aria-invalid={!!errors.title}
-            />
-          </FormField>
-
-          <div className={styles.formInfo}>
-            <div className={styles.infoSection}>
-              <h4>📧 How invitations work:</h4>
-              <ul>
-                <li>We send an invitation email to the provided address</li>
-                <li>The recipient gets a secure link to create their account</li>
-                <li>The invitation is valid for 7 days</li>
-                <li>They'll be automatically added to your rescue team after signing up</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className={styles.formActions}>
-            <button
-              type="button"
-              className={styles.actionButton({ variant: 'secondary' })}
-              onClick={onCancel}
-              disabled={loading}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className={styles.actionButton({ variant: 'primary' })}
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <span className={styles.loadingSpinner} />
-                  Sending Invitation...
-                </>
-              ) : (
-                'Send Invitation'
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className={styles.formActions}>
+          <Button type="button" variant="secondary" onClick={onCancel} disabled={loading}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="primary" disabled={loading} isLoading={loading}>
+            {loading ? 'Sending Invitation...' : 'Send Invitation'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 };
 

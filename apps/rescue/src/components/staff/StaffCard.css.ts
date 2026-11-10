@@ -1,5 +1,4 @@
 import { style } from '@vanilla-extract/css';
-import { recipe } from '@vanilla-extract/recipes';
 
 export const cardContainer = style({
   background: '#f8fafc',
@@ -18,20 +17,6 @@ export const cardHeader = style({
   alignItems: 'flex-start',
   gap: '1rem',
   marginBottom: '1rem',
-});
-
-export const staffAvatar = style({
-  width: '3rem',
-  height: '3rem',
-  borderRadius: '50%',
-  background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
-  color: 'white',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontWeight: '700',
-  fontSize: '1.125rem',
-  flexShrink: 0,
 });
 
 export const staffInfo = style({
@@ -93,40 +78,4 @@ export const cardActions = style({
   justifyContent: 'flex-end',
   paddingTop: '1rem',
   borderTop: '1px solid #e9ecef',
-});
-
-export const actionButton = recipe({
-  base: {
-    padding: '0.5rem 1rem',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '0.875rem',
-    fontWeight: '500',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    ':disabled': {
-      opacity: 0.6,
-      cursor: 'not-allowed',
-    },
-  },
-  variants: {
-    variant: {
-      edit: {
-        background: '#f8f9fa',
-        color: '#495057',
-        border: '1px solid #dee2e6',
-        ':hover': {
-          background: '#e9ecef',
-          color: '#212529',
-        },
-      },
-      danger: {
-        background: '#dc3545',
-        color: 'white',
-        ':hover': {
-          background: '#c82333',
-        },
-      },
-    },
-  },
 });

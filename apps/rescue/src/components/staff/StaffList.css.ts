@@ -1,9 +1,4 @@
-import { style, keyframes } from '@vanilla-extract/css';
-
-const spin = keyframes({
-  '0%': { transform: 'rotate(0deg)' },
-  '100%': { transform: 'rotate(360deg)' },
-});
+import { style } from '@vanilla-extract/css';
 
 export const listContainer = style({
   background: 'white',
@@ -32,27 +27,10 @@ export const searchFilters = style({
 export const searchInput = style({
   flex: 1,
   minWidth: '200px',
-  padding: '0.75rem 1rem',
-  border: '2px solid #e9ecef',
-  borderRadius: '8px',
-  fontSize: '1rem',
-  transition: 'border-color 0.2s ease',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#1976d2',
-  },
 });
 
 export const filterSelect = style({
-  padding: '0.75rem 1rem',
-  border: '2px solid #e9ecef',
-  borderRadius: '8px',
-  fontSize: '1rem',
-  transition: 'border-color 0.2s ease',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#1976d2',
-  },
+  minWidth: '180px',
 });
 
 export const staffCount = style({
@@ -82,15 +60,6 @@ export const loadingSpinner = style({
   flexDirection: 'column',
   alignItems: 'center',
   gap: '1rem',
-});
-
-export const spinner = style({
-  width: '2rem',
-  height: '2rem',
-  border: '3px solid #f3f3f3',
-  borderTop: '3px solid #1976d2',
-  borderRadius: '50%',
-  animation: `${spin} 1s linear infinite`,
 });
 
 export const emptyState = style({

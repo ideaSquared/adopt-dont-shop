@@ -16,52 +16,6 @@ export const overviewCards = style({
   },
 });
 
-export const overviewCard = style({
-  background: 'white',
-  borderRadius: '12px',
-  padding: '1.5rem',
-  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '1rem',
-  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-  ':hover': {
-    transform: 'translateY(-2px)',
-    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)',
-  },
-  '@media': {
-    '(max-width: 480px)': {
-      flexDirection: 'column',
-      textAlign: 'center',
-    },
-  },
-});
-
-export const cardIcon = style({
-  fontSize: '2rem',
-  width: '3rem',
-  height: '3rem',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)',
-  borderRadius: '50%',
-});
-
-export const cardContentH3 = style({
-  margin: '0',
-  fontSize: '2rem',
-  fontWeight: '700',
-  color: '#1976d2',
-});
-
-export const cardContentP = style({
-  margin: '0.25rem 0 0 0',
-  fontSize: '0.875rem',
-  color: '#666',
-  fontWeight: '500',
-});
-
 export const overviewDetails = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
