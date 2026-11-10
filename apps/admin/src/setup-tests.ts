@@ -650,19 +650,6 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   // Shared app-shell components: pass-through boundary, minimal 404.
   ErrorBoundary: ({ children }: { children?: React.ReactNode }) => children,
   NotFoundPage: () => React.createElement('h1', null, '404'),
-  Alert: ({ children, title }: { children?: React.ReactNode; title?: string }) =>
-    React.createElement(
-      'div',
-      { role: 'alert' },
-      title ? React.createElement('strong', null, title) : null,
-      children
-    ),
-  Avatar: ({ name = '', initials, alt }: { name?: string; initials?: string; alt?: string }) =>
-    React.createElement(
-      'div',
-      { role: 'img', 'aria-label': alt ?? `Avatar for ${name}` },
-      initials ?? name.charAt(0).toUpperCase()
-    ),
   Spinner: () => React.createElement('div', { 'aria-label': 'loading' }),
   Skeleton: ({ width, height, radius, className, style, ...props }: Record<string, unknown>) =>
     React.createElement('div', {
