@@ -313,7 +313,9 @@ export const useApplicationDetails = (applicationId: string | null) => {
     timelineError: bundle?.timelineError ?? null,
     referencesError: bundle?.referencesError ?? null,
     homeVisitsError: bundle?.homeVisitsError ?? null,
-    loading: applicationId !== null && query.isFetching,
+    // Only the first load blocks the review; refetches after a save run in the
+    // background so the open review keeps its tab and unsaved input.
+    loading: applicationId !== null && query.isLoading,
     // Only a failure to LOAD the application is a load error. A failed change
     // rejects to its caller instead.
     error: errorOrNull(query.error, 'Failed to fetch application details'),

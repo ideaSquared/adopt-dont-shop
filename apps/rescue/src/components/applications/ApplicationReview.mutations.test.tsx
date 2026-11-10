@@ -183,3 +183,46 @@ describe('ApplicationReview sub-action failures', () => {
     expect(screen.queryByText('Error loading application')).not.toBeInTheDocument();
   });
 });
+
+describe('ApplicationReview background refetch', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    serviceMocks.getReferenceChecks.mockResolvedValue([]);
+    serviceMocks.getHomeVisits.mockResolvedValue([]);
+    serviceMocks.getApplicationTimeline.mockResolvedValue([]);
+    serviceMocks.getApplicationById.mockResolvedValue(APPLICATION);
+  });
+
+  it('stays mounted, on the same tab, with unsaved text intact while a save refetches', async () => {
+    serviceMocks.addTimelineEvent.mockResolvedValue(undefined);
+    const user = await openReview();
+
+    await user.click(screen.getByRole('button', { name: 'Update Status' }));
+    await user.type(screen.getByLabelText('Notes (optional)'), 'half typed note');
+    await user.click(screen.getByRole('tab', { name: /timeline/i }));
+
+    // Hold the refetch open so we can observe the UI while it is in flight.
+    let finishRefetch: (value: typeof APPLICATION) => void = () => undefined;
+    serviceMocks.getApplicationById.mockReturnValueOnce(
+      new Promise<typeof APPLICATION>(resolve => {
+        finishRefetch = resolve;
+      })
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Add Event' }));
+    await user.type(screen.getByLabelText('Description'), 'Called the applicant');
+    await user.click(screen.getAllByRole('button', { name: 'Add Event' }).at(-1) as HTMLElement);
+
+    await waitFor(() => expect(serviceMocks.getApplicationById).toHaveBeenCalledTimes(2));
+
+    expect(screen.queryByText(/Loading application details/i)).not.toBeInTheDocument();
+    expect(screen.getByText('Application for Rex')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /timeline/i })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByLabelText('Notes (optional)')).toHaveValue('half typed note');
+
+    finishRefetch(APPLICATION);
+    await waitFor(() =>
+      expect(screen.getByLabelText('Notes (optional)')).toHaveValue('half typed note')
+    );
+  });
+});
