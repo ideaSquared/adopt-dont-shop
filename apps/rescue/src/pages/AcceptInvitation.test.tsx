@@ -16,10 +16,14 @@ vi.mock('../services/libraryServices', () => ({
 }));
 
 // The shared test setup stubs lib.auth; this page needs the real token hook.
-vi.mock('@adopt-dont-shop/lib.auth', async importOriginal => ({
-  useOneTimeUrlToken: (await importOriginal<typeof import('@adopt-dont-shop/lib.auth')>())
-    .useOneTimeUrlToken,
-}));
+vi.mock('@adopt-dont-shop/lib.auth', async importOriginal => {
+  const actual = await importOriginal<typeof import('@adopt-dont-shop/lib.auth')>();
+  return {
+    useOneTimeUrlToken: actual.useOneTimeUrlToken,
+    NewPasswordSchema: actual.NewPasswordSchema,
+    NEW_PASSWORD_HINT: actual.NEW_PASSWORD_HINT,
+  };
+});
 
 const renderPage = () =>
   render(
@@ -58,11 +62,25 @@ describe('AcceptInvitation', () => {
 
     await user.type(await screen.findByLabelText(/first name/i), 'Sam');
     await user.type(screen.getByLabelText(/last name/i), 'Smith');
-    await user.type(screen.getByLabelText(/^password/i), 'password123');
-    await user.type(screen.getByLabelText(/confirm password/i), 'different456');
+    await user.type(screen.getByLabelText(/^password/i), 'DevPassword123!');
+    await user.type(screen.getByLabelText(/confirm password/i), 'Different456!');
     await user.click(screen.getByRole('button', { name: /create account/i }));
 
     expect(await screen.findByText(/passwords do not match/i)).toBeInTheDocument();
+    expect(acceptInvitation).not.toHaveBeenCalled();
+  });
+
+  it('rejects a long but weak password and does not accept the invitation', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.type(await screen.findByLabelText(/first name/i), 'Sam');
+    await user.type(screen.getByLabelText(/last name/i), 'Smith');
+    await user.type(screen.getByLabelText(/^password/i), 'longbutweakpassword');
+    await user.type(screen.getByLabelText(/confirm password/i), 'longbutweakpassword');
+    await user.click(screen.getByRole('button', { name: /create account/i }));
+
+    expect(await screen.findByText(/password must contain/i)).toBeInTheDocument();
     expect(acceptInvitation).not.toHaveBeenCalled();
   });
 
@@ -72,8 +90,8 @@ describe('AcceptInvitation', () => {
 
     await user.type(await screen.findByLabelText(/first name/i), 'Sam');
     await user.type(screen.getByLabelText(/last name/i), 'Smith');
-    await user.type(screen.getByLabelText(/^password/i), 'password123');
-    await user.type(screen.getByLabelText(/confirm password/i), 'password123');
+    await user.type(screen.getByLabelText(/^password/i), 'DevPassword123!');
+    await user.type(screen.getByLabelText(/confirm password/i), 'DevPassword123!');
     await user.click(screen.getByRole('button', { name: /create account/i }));
 
     await waitFor(() => expect(acceptInvitation).toHaveBeenCalledTimes(1));
@@ -81,7 +99,7 @@ describe('AcceptInvitation', () => {
       token: 'tok_123',
       firstName: 'Sam',
       lastName: 'Smith',
-      password: 'password123',
+      password: 'DevPassword123!',
     });
   });
 

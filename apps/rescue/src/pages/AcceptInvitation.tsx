@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
-import { useOneTimeUrlToken } from '@adopt-dont-shop/lib.auth';
+import {
+  NEW_PASSWORD_HINT,
+  NewPasswordSchema,
+  useOneTimeUrlToken,
+} from '@adopt-dont-shop/lib.auth';
 import { Alert, Button, FormField, Input, Spinner } from '@adopt-dont-shop/lib.components';
 import { PartyPopper } from 'lucide-react';
 import { invitationService } from '../services/libraryServices';
@@ -103,10 +107,13 @@ const AcceptInvitation: React.FC = () => {
       newErrors.lastName = 'Last name must be at least 2 characters';
     }
 
+    // The gateway and auth service enforce this same shared rule, so check it
+    // here first rather than letting the request come back as a 400.
+    const passwordCheck = NewPasswordSchema.safeParse(formData.password);
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
+    } else if (!passwordCheck.success) {
+      newErrors.password = passwordCheck.error.issues[0]?.message ?? NEW_PASSWORD_HINT;
     }
 
     if (!formData.confirmPassword) {
@@ -289,7 +296,7 @@ const AcceptInvitation: React.FC = () => {
               htmlFor="password"
               required
               error={errors.password}
-              description="Must be at least 8 characters"
+              description={NEW_PASSWORD_HINT}
             >
               <Input
                 id="password"
