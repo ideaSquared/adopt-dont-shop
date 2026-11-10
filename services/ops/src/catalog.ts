@@ -42,6 +42,9 @@ export const buildCatalog = (env: OpsEnv, schema: ProtoSchema): CatalogResponse 
   const roots: string[] = [];
 
   Object.entries(REGISTRY).forEach(([rpc, entry]) => {
+    if (entry.envs !== undefined && !entry.envs.includes(env)) {
+      return;
+    }
     const { service, method } = splitRpc(rpc);
     const serviceSchema = Object.values(schema.services).find(
       s => s.package.split('.')[1] === service

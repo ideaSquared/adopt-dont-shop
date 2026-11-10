@@ -2397,6 +2397,9 @@ importers:
       '@adopt-dont-shop/lib.types':
         specifier: workspace:*
         version: link:../../packages/lib.types
+      '@adopt-dont-shop/lib.validation':
+        specifier: workspace:*
+        version: link:../../packages/lib.validation
       '@adopt-dont-shop/observability':
         specifier: workspace:*
         version: link:../../packages/observability
