@@ -2,10 +2,6 @@ import { style } from '@vanilla-extract/css';
 
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
-export const buttonIcon = style({
-  marginRight: '0.5rem',
-});
-
 export const reportList = style({
   display: 'flex',
   flexDirection: 'column',
@@ -30,10 +26,6 @@ export const subtleSmall = style({
 export const subtleScope = style({
   color: vars.text.tertiary,
   fontSize: '12px',
-});
-
-export const templatesCard = style({
-  marginTop: '16px',
 });
 
 export const templatesGrid = style({

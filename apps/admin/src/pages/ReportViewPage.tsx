@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import {
+  Alert,
   Button,
+  Card,
   ConfirmDialog,
-  Heading,
+  ErrorState,
+  FormField,
+  Input,
+  PageHeader,
   ReportRenderer,
-  Text,
+  Spinner,
+  Stack,
   toast,
   useConfirm,
 } from '@adopt-dont-shop/lib.components';
@@ -16,8 +22,6 @@ import {
   useUpsertSchedule,
   useCreateTokenShare,
 } from '@adopt-dont-shop/lib.analytics';
-import clsx from 'clsx';
-import { PageContainer, PageHeader, HeaderLeft } from '../components/ui';
 import * as styles from './ReportViewPage.css';
 
 /**
@@ -43,18 +47,10 @@ const ReportViewPage: React.FC = () => {
   const { confirm, confirmProps } = useConfirm();
 
   if (!id) {
-    return (
-      <PageContainer>
-        <Text>Missing report id.</Text>
-      </PageContainer>
-    );
+    return <ErrorState title='Missing report id.' />;
   }
   if (reportQuery.isLoading || !reportQuery.data) {
-    return (
-      <PageContainer>
-        <Text>Loading…</Text>
-      </PageContainer>
-    );
+    return <Spinner />;
   }
 
   const dataMap: Record<string, unknown> = {};
@@ -115,64 +111,68 @@ const ReportViewPage: React.FC = () => {
   };
 
   return (
-    <PageContainer>
-      <PageHeader>
-        <HeaderLeft>
-          <Heading level='h1'>{reportQuery.data.name}</Heading>
-          {reportQuery.data.description ? <Text>{reportQuery.data.description}</Text> : null}
-        </HeaderLeft>
-        <div className={styles.headerActions}>
-          <Link to={`/reports/${id}/edit`}>
-            <Button variant='outline'>Edit</Button>
-          </Link>
-          <Button variant='outline' onClick={() => setScheduleOpen(o => !o)}>
-            Schedule
-          </Button>
-          <Button variant='outline' onClick={handleShare}>
-            Share link
-          </Button>
-          <Button variant='outline' onClick={handleDelete}>
-            Delete
-          </Button>
-        </div>
-      </PageHeader>
+    <Stack spacing='lg'>
+      <PageHeader
+        title={reportQuery.data.name}
+        description={reportQuery.data.description ?? undefined}
+        actions={
+          <Stack direction='horizontal' spacing='sm' wrap>
+            <Link to={`/reports/${id}/edit`}>
+              <Button variant='outline'>Edit</Button>
+            </Link>
+            <Button variant='outline' onClick={() => setScheduleOpen(o => !o)}>
+              Schedule
+            </Button>
+            <Button variant='outline' onClick={handleShare}>
+              Share link
+            </Button>
+            <Button variant='outline' onClick={handleDelete}>
+              Delete
+            </Button>
+          </Stack>
+        }
+      />
 
       {scheduleOpen ? (
-        <div className={clsx(styles.panel, styles.schedulePanel)}>
-          <Text>Schedule (cron + recipient)</Text>
-          <div className={styles.scheduleRow}>
-            <input
-              type='text'
-              value={cron}
-              onChange={e => setCron(e.target.value)}
-              placeholder='0 9 * * 1'
-              className={styles.cronInput}
-            />
-            <input
-              type='email'
-              value={recipientEmail}
-              onChange={e => setRecipientEmail(e.target.value)}
-              placeholder='recipient@example.com'
-              className={styles.emailInput}
-            />
-            <Button variant='primary' onClick={handleSchedule}>
-              Save schedule
-            </Button>
-          </div>
-        </div>
+        <Card variant='filled' padding='sm'>
+          <Stack spacing='sm'>
+            <FormField label='Schedule (cron)' htmlFor='report-schedule-cron'>
+              <Input
+                id='report-schedule-cron'
+                type='text'
+                value={cron}
+                onChange={e => setCron(e.target.value)}
+                placeholder='0 9 * * 1'
+              />
+            </FormField>
+            <FormField label='Recipient email' htmlFor='report-schedule-recipient'>
+              <Input
+                id='report-schedule-recipient'
+                type='email'
+                value={recipientEmail}
+                onChange={e => setRecipientEmail(e.target.value)}
+                placeholder='recipient@example.com'
+              />
+            </FormField>
+            <div>
+              <Button variant='primary' onClick={handleSchedule}>
+                Save schedule
+              </Button>
+            </div>
+          </Stack>
+        </Card>
       ) : null}
 
       {shareUrl ? (
-        <div className={clsx(styles.panel, styles.sharePanel)}>
-          <Text>Share link (expires in 7 days):</Text>
-          <code className={styles.shareCode}>{shareUrl}</code>
-        </div>
+        <Alert variant='success'>
+          Share link (expires in 7 days): <code className={styles.shareCode}>{shareUrl}</code>
+        </Alert>
       ) : null}
 
       {executeQuery.isLoading ? (
-        <Text>Running report…</Text>
+        <Spinner />
       ) : executeQuery.isError ? (
-        <Text>Failed to execute the report.</Text>
+        <ErrorState message='Failed to execute the report.' />
       ) : (
         <ReportRenderer
           config={reportQuery.data.config as never}
@@ -183,7 +183,7 @@ const ReportViewPage: React.FC = () => {
       )}
 
       <ConfirmDialog {...confirmProps} />
-    </PageContainer>
+    </Stack>
   );
 };
 

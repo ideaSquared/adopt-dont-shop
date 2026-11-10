@@ -164,6 +164,10 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     React.createElement('div', props, children),
   Card: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
+  CardHeader: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
+    React.createElement('div', props, children),
+  CardContent: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
+    React.createElement('div', props, children),
   // ADS-B3: shared Badge now backs the admin status pills (Audit, Messages).
   // Mirror the real component's text output + status role; badge-specific props
   // (variant/size/etc.) are dropped so they don't leak onto the DOM node.
@@ -265,12 +269,14 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     React.createElement('div', props, children),
   FormField: ({
     label,
+    htmlFor,
     error,
     description,
     children,
     ...props
   }: {
     label?: string;
+    htmlFor?: string;
     error?: string;
     description?: string;
     children: React.ReactNode;
@@ -279,13 +285,20 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     React.createElement(
       'div',
       props,
-      label ? React.createElement('label', null, label) : null,
+      label ? React.createElement('label', { htmlFor }, label) : null,
       children,
       error ? React.createElement('span', { role: 'alert' }, error) : null,
       description ? React.createElement('span', null, description) : null
     ),
-  Button: ({ children, ...props }: React.ComponentPropsWithoutRef<'button'>) =>
-    React.createElement('button', props, children),
+  Button: ({
+    children,
+    startIcon,
+    endIcon,
+    ...props
+  }: React.ComponentPropsWithoutRef<'button'> & {
+    startIcon?: React.ReactNode;
+    endIcon?: React.ReactNode;
+  }) => React.createElement('button', props, startIcon, children, endIcon),
   Text: ({ children, ...props }: React.ComponentPropsWithoutRef<'span'>) =>
     React.createElement('span', props, children),
   Heading: ({ children, ...props }: React.ComponentPropsWithoutRef<'h1'>) =>
@@ -600,6 +613,13 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   // Shared app-shell components: pass-through boundary, minimal 404.
   ErrorBoundary: ({ children }: { children?: React.ReactNode }) => children,
   NotFoundPage: () => React.createElement('h1', null, '404'),
+  Alert: ({ children, title }: { children?: React.ReactNode; title?: string }) =>
+    React.createElement(
+      'div',
+      { role: 'alert' },
+      title ? React.createElement('strong', null, title) : null,
+      children
+    ),
   Spinner: () => React.createElement('div', { 'aria-label': 'loading' }),
   Skeleton: ({ width, height, radius, className, style, ...props }: Record<string, unknown>) =>
     React.createElement('div', {
