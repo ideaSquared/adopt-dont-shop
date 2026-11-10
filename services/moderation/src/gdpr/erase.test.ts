@@ -28,15 +28,27 @@ function makeClient(rowCounts: number[]): {
 
 describe('eraseModeration', () => {
   it('anonymises reports filed by the user and deletes their support tickets', async () => {
-    const { client, calls } = makeClient([2, 1]);
+    const { client, calls } = makeClient([2, 1, 1]);
     const total = await eraseModeration(client, PAYLOAD);
 
-    expect(calls).toHaveLength(2);
+    expect(calls).toHaveLength(3);
     expect(calls.every(c => c.values[0] === 'usr-erase')).toBe(true);
-    expect(calls.some(c => c.text.includes('reports'))).toBe(true);
+    expect(calls.some(c => c.text.includes('reporter_id = $1'))).toBe(true);
     expect(calls.some(c => c.text.includes('support_tickets'))).toBe(true);
     // Sum of the row counts is reported back to the saga.
-    expect(total).toBe(3);
+    expect(total).toBe(4);
+  });
+
+  it("redacts the quoted text in the system's auto-reports about the user", async () => {
+    const { client, calls } = makeClient([0, 0, 2]);
+    await eraseModeration(client, PAYLOAD);
+
+    const redact = calls.find(c => c.text.includes('reported_user_id = $1'));
+    expect(redact).toBeDefined();
+    expect(redact?.text).toMatch(/description = '\[erased\]'/);
+    // Only system-filed auto-reports: a report another user wrote keeps its text.
+    expect(redact?.text).toMatch(/reporter_id = \$2/);
+    expect(redact?.values).toEqual(['usr-erase', '00000000-0000-0000-0000-000000000000']);
   });
 
   it('anonymises the reporter to NULL (keeping the row) and redacts the description', async () => {
