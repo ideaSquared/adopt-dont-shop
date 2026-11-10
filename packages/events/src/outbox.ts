@@ -127,10 +127,9 @@ const deleteOutboxRow = async (executor: Queryable, outboxId: string): Promise<v
 // never throwing, because the outbox row is the durability guarantee now (a
 // failure here is latency, not loss).
 //
-// `executor` is the just-committed transaction client — reusing it means the
-// delete needs no extra connection. The publish is fast (local JetStream ack),
-// so the brief hold on that connection is negligible next to the transaction
-// it just ran.
+// `executor` is the pool: withTransaction releases its client before calling
+// this, so a slow or unreachable NATS never pins a pooled connection while a
+// publish waits out its timeout. Each DELETE borrows a connection briefly.
 export const flushInline = async (
   nats: NatsConnection,
   executor: Queryable,

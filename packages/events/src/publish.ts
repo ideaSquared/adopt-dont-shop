@@ -83,6 +83,7 @@ export async function withTransaction<R>(
   const client = await pool.connect();
   const staged: DomainEvent[] = [];
   let committed = false;
+  let released = false;
   try {
     await client.query('BEGIN');
     const result = await fn({
@@ -101,9 +102,16 @@ export async function withTransaction<R>(
     await client.query('COMMIT');
     committed = true;
 
-    // Best-effort inline delivery on the just-committed client. Never throws —
-    // anything left unpublished stays in the outbox for the relay to deliver.
-    await flushInline(nats, client, records, logger);
+    // Hand the connection back BEFORE the inline publish: with NATS unreachable
+    // each publish waits out its timeout, and holding the (small) pool's
+    // connection for that long would starve every other query. The DELETE after
+    // a successful publish runs on the pool instead.
+    client.release();
+    released = true;
+
+    // Best-effort inline delivery. Never throws — anything left unpublished
+    // stays in the outbox for the relay to deliver.
+    await flushInline(nats, pool, records, logger);
     return result;
   } catch (err) {
     if (!committed) {
@@ -118,6 +126,8 @@ export async function withTransaction<R>(
     }
     throw err;
   } finally {
-    client.release();
+    if (!released) {
+      client.release();
+    }
   }
 }
