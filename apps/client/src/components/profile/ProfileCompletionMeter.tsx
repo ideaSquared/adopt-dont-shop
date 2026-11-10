@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
+import { X } from 'lucide-react';
+import { Button } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useStatsig } from '@/hooks/useStatsig';
 import {
@@ -84,14 +86,15 @@ export const ProfileCompletionMeter: React.FC = () => {
             You&apos;ll see our highest-confidence Pawfect Match badges from now on.
           </p>
         </div>
-        <button
-          type='button'
+        <Button
+          variant='ghost'
+          size='sm'
           className={styles.celebrationClose}
           aria-label='Dismiss'
           onClick={handleCelebrationDismiss}
         >
-          ×
-        </button>
+          <X size='1em' />
+        </Button>
       </div>
     );
   }
@@ -104,14 +107,15 @@ export const ProfileCompletionMeter: React.FC = () => {
     <div className={styles.meter} role='region' aria-label='Profile completion'>
       <div className={styles.header}>
         <span className={styles.headerLabel}>Profile {completion.percent}% complete</span>
-        <button
-          type='button'
+        <Button
+          variant='ghost'
+          size='sm'
           className={styles.dismissButton}
           aria-label='Dismiss meter until next session'
           onClick={handleDismiss}
         >
-          ×
-        </button>
+          <X size='1em' />
+        </Button>
       </div>
       <div className={styles.segments} role='list'>
         {PROFILE_COMPLETION_SECTIONS.map(section => {

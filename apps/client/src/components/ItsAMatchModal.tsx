@@ -1,4 +1,4 @@
-import { Modal } from '@adopt-dont-shop/lib.components';
+import { Button, Modal } from '@adopt-dont-shop/lib.components';
 import { Link } from 'react-router';
 import * as styles from './ItsAMatchModal.css';
 
@@ -56,9 +56,9 @@ export const ItsAMatchModal = ({
           >
             Open conversation
           </Link>
-          <button type='button' className={styles.dismissButton} onClick={onClose}>
+          <Button variant='ghost' className={styles.dismissButton} onClick={onClose}>
             Maybe later
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>
