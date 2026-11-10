@@ -1,14 +1,9 @@
-import { StrongPasswordSchema } from '@adopt-dont-shop/lib.validation';
-
 /**
- * The rule every "set a new password" form applies: the canonical strong
- * password policy, capped at 128 characters because the gateway rejects
- * longer passwords (services/gateway/src/routes/auth.schemas.ts).
+ * The rule every "set a new password" form applies. It is defined once in
+ * lib.validation so the forms, the gateway and the auth service all validate
+ * against the same schema; it is re-exported here for the auth UI.
  */
-export const NewPasswordSchema = StrongPasswordSchema.max(
-  128,
-  'Password must be at most 128 characters'
-);
+export { NewPasswordSchema } from '@adopt-dont-shop/lib.validation';
 
 export const NEW_PASSWORD_HINT =
   'At least 8 characters, with an uppercase letter, a lowercase letter, a number and a symbol.';

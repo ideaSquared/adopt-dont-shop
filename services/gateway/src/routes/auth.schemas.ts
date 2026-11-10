@@ -7,7 +7,7 @@
 // pickString/pickBool alias lists in auth.ts), so `normalizeRegisterBody`
 // resolves aliases into the canonical shape before it's validated.
 
-import { StrongPasswordSchema } from '@adopt-dont-shop/lib.validation';
+import { NewPasswordSchema } from '@adopt-dont-shop/lib.validation';
 import { z } from 'zod';
 
 export const RegisterBodySchema = z.object({
@@ -48,10 +48,9 @@ const emailField = z
   .min(1, 'email is required')
   .max(254)
   .email('email must be valid');
-// A new password must meet the shared strong-password rule used by every
-// "set a new password" form (reset, change, invitation acceptance), capped at
-// the 128 characters this edge has always allowed.
-const newPasswordField = StrongPasswordSchema.max(128, 'password must be at most 128 characters');
+// A new password must meet the shared rule used by every "set a new password"
+// form (reset, change, invitation acceptance): strong, and at most 128 characters.
+const newPasswordField = NewPasswordSchema;
 
 export const VerifyEmailBodySchema = z.object({
   verificationToken: tokenField,
