@@ -56,7 +56,7 @@ test.describe('session expiry', () => {
   }) => {
     const { session, page, userMenu } = await withExpiredSession(browser);
     try {
-      await page.getByRole('link', { name: /^Favorites/ }).click();
+      await page.getByRole('link', { name: /^Favou?rites/ }).click();
       await expect(page).toHaveURL(/\/favorites$/);
       await expect(page.getByRole('heading', { name: /login required/i })).toBeVisible({
         timeout: 20_000,

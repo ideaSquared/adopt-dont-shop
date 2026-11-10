@@ -38,7 +38,7 @@ test.describe('client browsing journeys', () => {
     const nav = page.getByRole('banner');
     const targets = [
       { link: /^Search/, url: /\/search$/ },
-      { link: /^Favorites/, url: /\/favorites$/ },
+      { link: /^Favou?rites/, url: /\/favorites$/ },
       // Top Picks sends a visitor with no saved preferences to onboarding first.
       { link: /^Top Picks/, url: /\/(match\/top-picks|onboarding)$/ },
       { link: /^Discover/, url: /\/discover$/ },

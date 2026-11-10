@@ -305,11 +305,17 @@ test.describe('client profile, password, chat and notifications', () => {
       const markAll = page.getByRole('button', { name: /^Mark All Read \(\d+\)$/ });
       const unread = Number(/\((\d+)\)/.exec((await markAll.textContent()) ?? '')?.[1]);
 
+      // Opening it marks it read and goes to the application it is about.
+      const markedRead = page.waitForResponse(
+        res => res.url().includes('/api/v1/notifications/mark-read') && res.ok()
+      );
       await page.getByText('Application approved!').click();
+      await markedRead;
+      await expect(page).toHaveURL(/\/applications\/[^/]+$/);
+
+      await page.goto('/notifications');
       await expect(page.getByRole('button', { name: `Mark All Read (${unread - 1})` })).toBeVisible(
-        {
-          timeout: 5_000,
-        }
+        { timeout: 20_000 }
       );
     } finally {
       await session.close();
