@@ -122,6 +122,35 @@ describe('registerSubscribers', () => {
     expect(req.severity).toBe(ModerationV1.Severity.SEVERITY_MEDIUM);
   });
 
+  // Fed the exact shape service.applications publishes on submit
+  // (services/applications/src/grpc/handlers.ts submitDraft).
+  it('files an application auto-report when the adopter’s why-adopt text trips', async () => {
+    registerSubscribers({ nats, deps, logger });
+
+    await handlerFor('applications.submitted')({
+      applicationId: 'app-1',
+      adopterId: 'usr-a',
+      petId: 'pet-1',
+      rescueId: 'res-1',
+      submittedAt: '2026-06-15T00:00:00.000Z',
+      whyAdopt: 'Message me at https://example.com for a better deal',
+    });
+
+    expect(fileReportMock).toHaveBeenCalledTimes(1);
+    const [, principal, req] = fileReportMock.mock.calls[0] as [
+      unknown,
+      unknown,
+      FileReportRequest,
+    ];
+    expect(principal).toBe(SYSTEM_PRINCIPAL);
+    expect(req.reportedEntityType).toBe(
+      ModerationV1.ReportEntityType.REPORT_ENTITY_TYPE_APPLICATION
+    );
+    expect(req.reportedEntityId).toBe('app-1');
+    expect(req.reportedUserId).toBe('usr-a');
+    expect(req.category).toBe(ModerationV1.ReportCategory.REPORT_CATEGORY_SPAM);
+  });
+
   it('files nothing when the content is clean', async () => {
     registerSubscribers({ nats, deps, logger });
 
@@ -131,7 +160,6 @@ describe('registerSubscribers', () => {
       petId: 'pet-1',
       rescueId: 'res-1',
       submittedAt: '2026-06-15T00:00:00Z',
-      message: 'We have a lovely fenced garden and two children.',
       whyAdopt: 'We have always wanted to give a dog a loving home.',
     });
 

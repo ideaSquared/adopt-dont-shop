@@ -460,6 +460,47 @@ describe('submitDraft', () => {
     });
   });
 
+  // service.moderation scans the adopter's free text on applications.submitted
+  // (services/moderation/src/nats/event-types.ts reads `whyAdopt`), so the
+  // payload must carry it — and nothing else from the answers map.
+  it('carries the adopter’s why-adopt answer for moderation, without other answers', async () => {
+    const { deps } = makeDeps([
+      draftCreatedRow('app-1', 'usr-1', 'rescue-1'),
+      {
+        event_type: 'draftAnswersSaved',
+        version: 2,
+        event_data: {
+          type: 'draftAnswersSaved',
+          applicationId: 'app-1',
+          answersPatch: {
+            why_adopt: 'We have always wanted a dog.',
+            reference_contact: '07700 900123',
+            household_members: 'Jane and the kids',
+          },
+          references: null,
+          at: '2026-06-01T13:00:00.000Z',
+        },
+      },
+    ]);
+    await submitDraft(deps, makePrincipal(), { applicationId: 'app-1', expectedVersion: 2 });
+    const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
+    expect(publish.mock.calls[0][0].payload).toEqual({
+      applicationId: 'app-1',
+      adopterId: 'usr-1',
+      petId: 'pet-1',
+      rescueId: 'rescue-1',
+      submittedAt: expect.any(String),
+      whyAdopt: 'We have always wanted a dog.',
+    });
+  });
+
+  it('omits whyAdopt when the adopter left it unanswered', async () => {
+    const { deps } = makeDeps([draftCreatedRow('app-1')]);
+    await submitDraft(deps, makePrincipal(), { applicationId: 'app-1', expectedVersion: 1 });
+    const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
+    expect(publish.mock.calls[0][0].payload).not.toHaveProperty('whyAdopt');
+  });
+
   it('denies a different adopter submitting another user’s draft', async () => {
     const { deps } = makeDeps([draftCreatedRow('app-1', 'usr-1')]);
     await expect(

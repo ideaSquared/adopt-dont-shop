@@ -132,9 +132,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
       nats,
       { subject: 'applications.submitted', durable: durableFor('applications.submitted'), onError },
       async event => {
-        const text = [event.message, event.whyAdopt]
-          .filter((s): s is string => typeof s === 'string' && s.length > 0)
-          .join('\n');
+        const text = event.whyAdopt ?? '';
         const hit = scanContent(text);
         if (hit === null) {
           return;
