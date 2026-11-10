@@ -1,38 +1,5 @@
 import { style } from '@vanilla-extract/css';
 
-export const overlay = style({
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  background: 'rgba(0, 0, 0, 0.5)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 1000,
-  padding: '1rem',
-});
-
-export const modalContainer = style({
-  background: '#ffffff',
-  borderRadius: '12px',
-  maxWidth: '700px',
-  width: '100%',
-  maxHeight: '90vh',
-  display: 'flex',
-  flexDirection: 'column',
-  overflow: 'hidden',
-  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-});
-
-export const title = style({
-  fontSize: '1.25rem',
-  fontWeight: '700',
-  color: '#111827',
-  margin: '0 0 0.5rem 0',
-});
-
 export const subtitle = style({
   fontSize: '0.875rem',
   color: '#6b7280',
@@ -101,56 +68,6 @@ export const description = style({
   whiteSpace: 'pre-wrap',
 });
 
-export const badgeSuccess = style({
-  padding: '0.25rem 0.75rem',
-  borderRadius: '9999px',
-  fontSize: '0.75rem',
-  fontWeight: '600',
-  display: 'inline-block',
-  background: '#dcfce7',
-  color: '#15803d',
-});
-
-export const badgeDanger = style({
-  padding: '0.25rem 0.75rem',
-  borderRadius: '9999px',
-  fontSize: '0.75rem',
-  fontWeight: '600',
-  display: 'inline-block',
-  background: '#fee2e2',
-  color: '#dc2626',
-});
-
-export const badgeInfo = style({
-  padding: '0.25rem 0.75rem',
-  borderRadius: '9999px',
-  fontSize: '0.75rem',
-  fontWeight: '600',
-  display: 'inline-block',
-  background: '#dbeafe',
-  color: '#1e40af',
-});
-
-export const badgeWarning = style({
-  padding: '0.25rem 0.75rem',
-  borderRadius: '9999px',
-  fontSize: '0.75rem',
-  fontWeight: '600',
-  display: 'inline-block',
-  background: '#fef3c7',
-  color: '#92400e',
-});
-
-export const badgeNeutral = style({
-  padding: '0.25rem 0.75rem',
-  borderRadius: '9999px',
-  fontSize: '0.75rem',
-  fontWeight: '600',
-  display: 'inline-block',
-  background: '#f3f4f6',
-  color: '#4b5563',
-});
-
 export const entityCard = style({
   background: '#f9fafb',
   border: '1px solid #e5e7eb',
@@ -185,32 +102,6 @@ export const divider = style({
   margin: '1.5rem 0',
 });
 
-export const viewContentButton = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '0.5rem',
-  padding: '0.625rem 1rem',
-  background: '#3b82f6',
-  color: 'white',
-  border: 'none',
-  borderRadius: '8px',
-  fontSize: '0.875rem',
-  fontWeight: '600',
-  cursor: 'pointer',
-  transition: 'all 0.2s ease',
-  marginTop: '0.75rem',
-  ':hover': {
-    background: '#2563eb',
-  },
-  ':active': {
-    transform: 'scale(0.98)',
-  },
-  ':disabled': {
-    background: '#9ca3af',
-    cursor: 'not-allowed',
-  },
-});
-
 export const entityId = style({
   fontSize: '0.75rem',
   color: '#6b7280',
@@ -225,10 +116,6 @@ export const entityId = style({
 export const monospaceId = style({
   fontFamily: 'monospace',
   fontSize: '0.75rem',
-});
-
-export const viewContentButtonSpacing = style({
-  marginTop: '1rem',
 });
 
 export const historyList = style({
@@ -377,4 +264,8 @@ export const activityEmpty = style({
   textAlign: 'center',
   color: '#6b7280',
   fontSize: '0.875rem',
+});
+
+export const actionRow = style({
+  marginTop: '0.75rem',
 });

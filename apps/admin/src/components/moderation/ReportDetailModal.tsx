@@ -2,7 +2,16 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Calendar, Clock, ExternalLink, FileText, Shield, TriangleAlert, User } from 'lucide-react';
 import clsx from 'clsx';
-import { EntityInspector, type EntityInspectorTab, Spinner } from '@adopt-dont-shop/lib.components';
+import {
+  Button,
+  EntityInspector,
+  type EntityInspectorTab,
+  Modal,
+  Spinner,
+  StatusBadge,
+} from '@adopt-dont-shop/lib.components';
+import type { StatusBadgeVariant } from '@adopt-dont-shop/lib.types';
+import { formatCustomDate, formatDateTime } from '@adopt-dont-shop/lib.utils';
 import {
   Report,
   getSeverityLabel,
@@ -26,41 +35,23 @@ export interface ReportDetailModalProps {
   onNavigate?: (reportId: string) => void;
 }
 
-const getStatusBadgeClass = (
-  status: string
-): 'badgeSuccess' | 'badgeDanger' | 'badgeInfo' | 'badgeNeutral' | 'badgeWarning' => {
-  switch (status) {
-    case 'pending':
-      return 'badgeDanger';
-    case 'under_review':
-      return 'badgeInfo';
-    case 'resolved':
-      return 'badgeSuccess';
-    case 'dismissed':
-      return 'badgeNeutral';
-    case 'escalated':
-      return 'badgeWarning';
-    default:
-      return 'badgeNeutral';
-  }
+const SEVERITY_VARIANTS: Readonly<Record<string, StatusBadgeVariant>> = {
+  critical: 'error',
+  high: 'warning',
+  medium: 'info',
+  low: 'neutral',
 };
 
-const getSeverityBadgeClass = (
-  severity: string
-): 'badgeSuccess' | 'badgeDanger' | 'badgeInfo' | 'badgeNeutral' | 'badgeWarning' => {
-  switch (severity) {
-    case 'critical':
-      return 'badgeDanger';
-    case 'high':
-      return 'badgeWarning';
-    case 'medium':
-      return 'badgeInfo';
-    case 'low':
-      return 'badgeNeutral';
-    default:
-      return 'badgeNeutral';
-  }
-};
+const StatusChip: React.FC<{ status: Report['status'] }> = ({ status }) => (
+  <StatusBadge kind='report' status={status} label={getStatusLabel(status)} />
+);
+
+const SeverityChip: React.FC<{ severity: Report['severity'] }> = ({ severity }) => (
+  <StatusBadge
+    variant={SEVERITY_VARIANTS[severity] ?? 'neutral'}
+    label={getSeverityLabel(severity)}
+  />
+);
 
 // Helper to generate in-app routes to view reported content. Returns null when
 // the entity type has no corresponding admin detail route.
@@ -133,17 +124,13 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ report, onClose }) => {
           <div className={styles.infoItem}>
             <div className={styles.infoLabel}>Status</div>
             <div className={styles.infoValue}>
-              <span className={styles[getStatusBadgeClass(report.status)]}>
-                {getStatusLabel(report.status)}
-              </span>
+              <StatusChip status={report.status} />
             </div>
           </div>
           <div className={styles.infoItem}>
             <div className={styles.infoLabel}>Severity</div>
             <div className={styles.infoValue}>
-              <span className={styles[getSeverityBadgeClass(report.severity)]}>
-                {getSeverityLabel(report.severity)}
-              </span>
+              <SeverityChip severity={report.severity} />
             </div>
           </div>
           <div className={styles.infoItem}>
@@ -193,15 +180,17 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ report, onClose }) => {
           </div>
 
           {viewUrl && (
-            <button
-              className={styles.viewContentButton}
-              onClick={handleViewContent}
-              data-testid='view-entity-button'
-              data-view-url={viewUrl}
-            >
-              <ExternalLink size={16} />
-              View {getEntityTypeLabel(report.reportedEntityType)}
-            </button>
+            <div className={styles.actionRow}>
+              <Button
+                variant='primary'
+                onClick={handleViewContent}
+                startIcon={<ExternalLink size='1em' />}
+                data-testid='view-entity-button'
+                data-view-url={viewUrl}
+              >
+                View {getEntityTypeLabel(report.reportedEntityType)}
+              </Button>
+            </div>
           )}
         </div>
       </div>
@@ -233,16 +222,18 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ report, onClose }) => {
             </div>
           )}
         </div>
-        <button
-          className={clsx(styles.viewContentButton, styles.viewContentButtonSpacing)}
-          onClick={() => {
-            onClose();
-            navigate(`/users/${report.reporterId}`);
-          }}
-        >
-          <ExternalLink size={16} />
-          View Reporter Profile
-        </button>
+        <div className={styles.actionRow}>
+          <Button
+            variant='primary'
+            startIcon={<ExternalLink size='1em' />}
+            onClick={() => {
+              onClose();
+              navigate(`/users/${report.reporterId}`);
+            }}
+          >
+            View Reporter Profile
+          </Button>
+        </div>
       </div>
 
       <div className={styles.divider} />
@@ -255,12 +246,12 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ report, onClose }) => {
         <div className={styles.infoGrid}>
           <div className={styles.infoItem}>
             <div className={styles.infoLabel}>Reported</div>
-            <div className={styles.infoValue}>{new Date(report.createdAt).toLocaleString()}</div>
+            <div className={styles.infoValue}>{formatDateTime(report.createdAt)}</div>
             <div className={styles.entityDetail}>{formatRelativeTime(report.createdAt)}</div>
           </div>
           <div className={styles.infoItem}>
             <div className={styles.infoLabel}>Last Updated</div>
-            <div className={styles.infoValue}>{new Date(report.updatedAt).toLocaleString()}</div>
+            <div className={styles.infoValue}>{formatDateTime(report.updatedAt)}</div>
             <div className={styles.entityDetail}>{formatRelativeTime(report.updatedAt)}</div>
           </div>
         </div>
@@ -354,11 +345,7 @@ const ActiveSanctionsSection: React.FC<ActiveSanctionsSectionProps> = ({ reporte
                 <span className={styles.historyItemMeta}>
                   {getSeverityLabel(action.severity)} •{' '}
                   {action.expiresAt
-                    ? `expires ${new Date(action.expiresAt).toLocaleDateString('en-GB', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                      })}`
+                    ? `expires ${formatCustomDate(action.expiresAt, 'd MMMM yyyy')}`
                     : 'no expiry'}
                 </span>
               </div>
@@ -413,8 +400,7 @@ const ActivityTab: React.FC<{ reportId: string }> = ({ reportId }) => {
           <div className={styles.activityContent}>
             <p className={styles.activityDescription}>{activity.description}</p>
             <p className={styles.activityMeta}>
-              {activity.activityType} &middot;{' '}
-              {new Date(activity.createdAt).toLocaleString('en-GB')}
+              {activity.activityType} &middot; {formatDateTime(activity.createdAt)}
             </p>
           </div>
         </div>
@@ -432,19 +418,9 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   siblingIds,
   onNavigate,
 }) => {
-  if (!isOpen) {
-    return null;
-  }
-
   if (!report) {
     return null;
   }
-
-  const handleOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
 
   const breadcrumbSegments: ReadonlyArray<BreadcrumbSegment> = [
     { label: 'Moderation', to: '/moderation' },
@@ -475,48 +451,36 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   });
 
   return (
-    <div
-      className={styles.overlay}
-      onClick={handleOverlayClick}
-      onKeyDown={e => e.key === 'Escape' && onClose()}
-      role='presentation'
-    >
-      <div className={styles.modalContainer}>
-        <div className={styles.breadcrumbWrap}>
-          <ModalBreadcrumbNav
-            segments={breadcrumbSegments}
-            siblingIds={siblingIds}
-            currentId={report.reportId}
-            onNavigate={onNavigate}
-          />
-        </div>
-        <EntityInspector
-          data-testid='report-detail-inspector'
-          resetTabsOnKeyChange={report.reportId}
-          onClose={onClose}
-          closeLabel='Close report detail'
-          tabs={tabs}
-          header={
-            <>
-              <div className={styles.headerInfo}>
-                <h2 className={styles.title}>{report.title}</h2>
-                <div className={styles.subtitle}>
-                  <Calendar size={14} />
-                  Reported {formatRelativeTime(report.createdAt)}
-                </div>
-              </div>
-              <div className={styles.headerBadges}>
-                <span className={styles[getStatusBadgeClass(report.status)]}>
-                  {getStatusLabel(report.status)}
-                </span>
-                <span className={styles[getSeverityBadgeClass(report.severity)]}>
-                  {getSeverityLabel(report.severity)}
-                </span>
-              </div>
-            </>
-          }
+    <Modal isOpen={isOpen} onClose={onClose} title={report.title} size='xl' showCloseButton={false}>
+      <div className={styles.breadcrumbWrap}>
+        <ModalBreadcrumbNav
+          segments={breadcrumbSegments}
+          siblingIds={siblingIds}
+          currentId={report.reportId}
+          onNavigate={onNavigate}
         />
       </div>
-    </div>
+      <EntityInspector
+        data-testid='report-detail-inspector'
+        resetTabsOnKeyChange={report.reportId}
+        onClose={onClose}
+        closeLabel='Close report detail'
+        tabs={tabs}
+        header={
+          <>
+            <div className={styles.headerInfo}>
+              <div className={styles.subtitle}>
+                <Calendar size={14} />
+                Reported {formatRelativeTime(report.createdAt)}
+              </div>
+            </div>
+            <div className={styles.headerBadges}>
+              <StatusChip status={report.status} />
+              <SeverityChip severity={report.severity} />
+            </div>
+          </>
+        }
+      />
+    </Modal>
   );
 };
