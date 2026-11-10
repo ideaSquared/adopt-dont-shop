@@ -380,8 +380,20 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
       });
   };
 
+  // FileUpload reports the files it rejected (onError) just before it hands over the accepted
+  // ones (onFilesSelect), synchronously in the same change event. Hold the rejection until that
+  // event finishes so handleFilesSelected shows it instead of clearing it.
+  const uploadRejectionRef = useRef<string | null>(null);
+  const handleUploadRejected = (message: string) => {
+    uploadRejectionRef.current = message;
+    setImageError(message);
+    queueMicrotask(() => {
+      uploadRejectionRef.current = null;
+    });
+  };
+
   const handleFilesSelected = (selected: File[]) => {
-    setImageError(null);
+    setImageError(uploadRejectionRef.current);
     if (selected.length === 0) {
       return;
     }
@@ -674,7 +686,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
               disabled={remainingSlots === 0}
               placeholder="Choose photos, or drop them here"
               onFilesSelect={handleFilesSelected}
-              onError={setImageError}
+              onError={handleUploadRejected}
             />
             <div className={styles.imageHelper}>
               {remainingSlots} of {MAX_IMAGES} slots remaining. First photo is the primary listing

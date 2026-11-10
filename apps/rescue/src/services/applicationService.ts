@@ -260,8 +260,10 @@ const includesText = (haystack: string | undefined, needle: string): boolean =>
   (haystack ?? '').toLowerCase().includes(needle.toLowerCase());
 
 /**
- * The gateway list route honours page, limit, status, rescue, adopter and petId. The other filters
- * the UI offers are applied to the rows it returns, otherwise they silently do nothing.
+ * The gateway list route honours page, limit, status, rescue, adopter and petId. Pet type and
+ * applicant search are applied to the rows it returns, otherwise they silently do nothing. Breed
+ * and priority are not on the list rows (they read as defaults), so filtering on them would hide
+ * real matches. This narrows the current page only; pagination stays the server's.
  */
 const narrowByUnsupportedFilters = (
   applications: ApplicationListItem[],
@@ -270,8 +272,6 @@ const narrowByUnsupportedFilters = (
   applications.filter(
     app =>
       (!filter?.petType || includesText(app.petType, filter.petType)) &&
-      (!filter?.petBreed || includesText(app.petBreed, filter.petBreed)) &&
-      (!filter?.priority?.length || filter.priority.includes(app.priority)) &&
       (!filter?.searchQuery ||
         includesText(app.applicantName, filter.searchQuery) ||
         includesText(app.applicantEmail, filter.searchQuery))
@@ -372,15 +372,11 @@ export class RescueApplicationService {
       const total = paging?.total ?? envelope.total ?? envelope.count ?? applicationsArray.length;
       const pageSize = paging?.limit ?? envelope.limit ?? 25;
       const listed = applicationsArray.map(this.transformApplicationForList);
-      const applications = narrowByUnsupportedFilters(listed, filter);
-      const narrowed = applications.length !== listed.length;
       return {
-        applications,
-        total: narrowed ? applications.length : total,
+        applications: narrowByUnsupportedFilters(listed, filter),
+        total,
         page: paging?.page ?? envelope.page ?? envelope.currentPage ?? 1,
-        totalPages: narrowed
-          ? 1
-          : (paging?.totalPages ?? envelope.totalPages ?? Math.ceil(total / pageSize)),
+        totalPages: paging?.totalPages ?? envelope.totalPages ?? Math.ceil(total / pageSize),
       };
     } catch (error) {
       console.error('Failed to fetch applications:', error);

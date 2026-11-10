@@ -159,9 +159,9 @@ describe('Rescue Dashboard', () => {
 
     renderWithProviders(<Dashboard />);
 
-    expect(screen.getByText('Pets in your care')).toBeInTheDocument();
+    expect(screen.getByText('Pets listed')).toBeInTheDocument();
     expect(screen.getByText('12')).toBeInTheDocument();
-    expect(screen.getByText('Pets adopted')).toBeInTheDocument();
+    expect(screen.getByText('Adopted in the last 30 days')).toBeInTheDocument();
     expect(screen.queryByText('Buddy was adopted')).not.toBeInTheDocument();
     expect(screen.queryByText('Recent Notifications')).not.toBeInTheDocument();
   });

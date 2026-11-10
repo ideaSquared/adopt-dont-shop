@@ -211,6 +211,36 @@ describe('PetFormModal — image upload field (ADS-574)', () => {
     expect(uploadImage).not.toHaveBeenCalled();
   });
 
+  it('keeps the rejection message when a selection mixes an image and a non-image', async () => {
+    const uploadImage = vi.fn(() => Promise.resolve(makeUploadResponse('x')));
+    renderWithProviders(
+      <PetFormModal
+        isOpen={true}
+        onClose={() => {}}
+        onSubmit={() => Promise.resolve()}
+        uploadImage={uploadImage}
+      />
+    );
+
+    const fileInput = screen.getByLabelText(/add pet photos/i);
+    const goodFile = makeImageFile('dog.png', 1024);
+    const badFile = new File(['hello'], 'notes.txt', { type: 'text/plain' });
+    await act(async () => {
+      fireEvent.change(fileInput, { target: { files: [goodFile, badFile] } });
+    });
+
+    expect(await screen.findByText(/notes.txt is not an accepted file type/i)).toBeInTheDocument();
+    expect(uploadImage).toHaveBeenCalledTimes(1);
+
+    // A later selection of only valid images clears the old message.
+    await act(async () => {
+      fireEvent.change(fileInput, { target: { files: [makeImageFile('cat.png', 1024)] } });
+    });
+    await waitFor(() =>
+      expect(screen.queryByText(/not an accepted file type/i)).not.toBeInTheDocument()
+    );
+  });
+
   it('rejects files above the size limit with an inline error', async () => {
     const uploadImage = vi.fn(() => Promise.resolve(makeUploadResponse('x')));
     renderWithProviders(

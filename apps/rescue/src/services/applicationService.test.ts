@@ -700,8 +700,8 @@ describe('RescueApplicationService.getApplications applicant identity', () => {
   });
 });
 
-// The gateway list route honours page, limit, status, rescue, adopter and petId, so the other
-// filters the UI offers have to be applied to the returned rows or they silently do nothing.
+// The gateway list route honours page, limit, status, rescue, adopter and petId. Pet type and
+// applicant search are applied to the returned rows; breed and priority are not on the list.
 describe('RescueApplicationService.getApplications narrows by filters the gateway ignores', () => {
   const service = new RescueApplicationService();
   const raw = (id: string, petId: string, overrides: Record<string, unknown> = {}) => ({
@@ -737,6 +737,31 @@ describe('RescueApplicationService.getApplications narrows by filters the gatewa
     const { applications } = await service.getApplications({ searchQuery: 'sam' });
 
     expect(applications.map(a => a.id)).toEqual(['app-2']);
+  });
+
+  it("keeps the server's pagination when a filter narrows the page", async () => {
+    apiServiceMock.get.mockResolvedValue({
+      data: [
+        raw('app-1', 'pet-1', { userName: 'Jane Doe', petType: 'Dog' }),
+        raw('app-2', 'pet-2', { userName: 'Sam Smith', petType: 'Cat' }),
+      ],
+      pagination: { page: 1, limit: 2, total: 50, totalPages: 25 },
+    });
+
+    const { applications, total, totalPages } = await service.getApplications({ petType: 'dog' });
+
+    expect(applications.map(a => a.id)).toEqual(['app-1']);
+    expect(total).toBe(50);
+    expect(totalPages).toBe(25);
+  });
+
+  it('does not filter on breed or priority, which the list does not carry', async () => {
+    const { applications } = await service.getApplications({
+      petBreed: 'labrador',
+      priority: ['high'],
+    });
+
+    expect(applications).toHaveLength(2);
   });
 
   it('returns every application when no filter is set', async () => {

@@ -189,7 +189,7 @@ const Dashboard: React.FC = () => {
           Your rescue at a glance
         </h2>
         <div className={styles.metricsGrid}>
-          <MetricCard icon={<PawPrint size="1em" />} label="Pets in your care" value={totalPets} />
+          <MetricCard icon={<PawPrint size="1em" />} label="Pets listed" value={totalPets} />
           <MetricCard
             icon={<ClipboardList size="1em" />}
             label="Applications waiting"
@@ -197,7 +197,7 @@ const Dashboard: React.FC = () => {
           />
           <MetricCard
             icon={<Heart size="1em" />}
-            label="Pets adopted"
+            label="Adopted in the last 30 days"
             value={successfulAdoptions}
           />
         </div>
