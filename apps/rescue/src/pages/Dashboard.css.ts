@@ -9,23 +9,6 @@ export const dashboardContainer = style({
   padding: 0,
 });
 
-export const dashboardHeader = style({
-  marginBottom: '2rem',
-});
-
-globalStyle(`${dashboardHeader} h1`, {
-  fontSize: '2.5rem',
-  fontWeight: 700,
-  color: vars.text.primary,
-  margin: '0 0 0.5rem 0',
-});
-
-globalStyle(`${dashboardHeader} p`, {
-  fontSize: '1.1rem',
-  color: vars.text.tertiary,
-  margin: 0,
-});
-
 export const welcomeMessage = style({
   background: `linear-gradient(135deg, ${vars.colors.infoBgSubtle} 0%, ${vars.colors.infoBgSubtle} 100%)`,
   border: `1px solid ${vars.colors.infoBorderSubtle}`,
@@ -136,11 +119,6 @@ export const errorCard = style({
   textAlign: 'center',
 });
 
-export const errorMessage = style({
-  color: '#ef4444',
-  marginBottom: '1rem',
-});
-
 export const errorHint = style({
   color: '#6b7280',
   marginBottom: '1rem',
@@ -151,67 +129,6 @@ export const errorActions = style({
   justifyContent: 'center',
   gap: '1rem',
   marginTop: '1rem',
-});
-
-export const refreshButton = style({
-  backgroundColor: '#3b82f6',
-  color: 'white',
-  padding: '0.5rem 1rem',
-  border: 'none',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  fontSize: '0.875rem',
-  fontWeight: 500,
-});
-
-export const clearAuthButton = style({
-  backgroundColor: '#ef4444',
-  color: 'white',
-  padding: '0.5rem 1rem',
-  border: 'none',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  fontSize: '0.875rem',
-  fontWeight: 500,
-});
-
-export const metricCardBody = style({
-  padding: '1.5rem',
-});
-
-export const metricCardHeader = style({
-  display: 'flex',
-  alignItems: 'center',
-  marginBottom: '1rem',
-});
-
-export const metricEmoji = style({
-  fontSize: '1.5rem',
-  marginRight: '0.75rem',
-});
-
-export const metricLabel = style({
-  fontSize: '0.875rem',
-  fontWeight: 500,
-  color: '#6b7280',
-  textTransform: 'uppercase',
-  letterSpacing: '0.025em',
-});
-
-export const metricValue = style({
-  fontSize: '2.25rem',
-  fontWeight: 700,
-  marginBottom: '0.5rem',
-});
-
-export const metricDeltaUp = style({
-  fontSize: '0.875rem',
-  color: '#10b981',
-});
-
-export const metricDeltaDown = style({
-  fontSize: '0.875rem',
-  color: '#ef4444',
 });
 
 export const cardSectionHeader = style({
@@ -442,16 +359,4 @@ export const notificationsFooter = style({
   padding: '1rem 1.5rem',
   borderTop: '1px solid #e5e7eb',
   textAlign: 'center',
-});
-
-export const viewAllButton = style({
-  background: 'none',
-  border: '1px solid #d1d5db',
-  color: '#374151',
-  padding: '0.5rem 1rem',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  fontSize: '0.875rem',
-  fontWeight: 500,
-  transition: 'all 0.2s ease',
 });

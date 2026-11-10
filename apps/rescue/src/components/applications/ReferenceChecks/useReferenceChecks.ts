@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { toast } from '@adopt-dont-shop/lib.components';
 
 type ReferenceUpdateState = {
@@ -16,9 +17,11 @@ export const useReferenceChecks = ({ onReferenceUpdate }: UseReferenceChecksProp
     {}
   );
 
-  const handleReferenceUpdate = async (referenceId: string, status: string, notes: string) => {
-    try {
-      await onReferenceUpdate(referenceId, status, notes);
+  const updateReference = useMutation({
+    mutationFn: async (vars: { referenceId: string; status: string; notes: string }) => {
+      await onReferenceUpdate(vars.referenceId, vars.status, vars.notes);
+    },
+    onSuccess: (_data, { referenceId, status, notes }) => {
       setReferenceUpdates(prev => ({
         ...prev,
         [referenceId]: {
@@ -28,19 +31,18 @@ export const useReferenceChecks = ({ onReferenceUpdate }: UseReferenceChecksProp
           notes,
         },
       }));
-    } catch (error) {
+    },
+    onError: (error, vars) => {
       console.error('Failed to update reference:', error);
       toast.error(
         `Failed to update reference: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        {
-          action: {
-            label: 'Retry',
-            onClick: () => handleReferenceUpdate(referenceId, status, notes),
-          },
-        }
+        { action: { label: 'Retry', onClick: () => updateReference.mutate(vars) } }
       );
-    }
-  };
+    },
+  });
+
+  const handleReferenceUpdate = (referenceId: string, status: string, notes: string) =>
+    updateReference.mutate({ referenceId, status, notes });
 
   const toggleReferenceForm = (referenceId: string) => {
     setReferenceUpdates(prev => ({

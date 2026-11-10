@@ -1,9 +1,22 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router';
-import { ConfirmDialog, Tabs, toast, useConfirm } from '@adopt-dont-shop/lib.components';
-import { formatStatusName } from '../../utils/statusUtils';
+import { X } from 'lucide-react';
+import {
+  Button,
+  ConfirmDialog,
+  FormField,
+  Modal,
+  SelectInput,
+  Spinner,
+  StatusBadge,
+  Tabs,
+  TextArea,
+  toast,
+  useConfirm,
+} from '@adopt-dont-shop/lib.components';
+import { getStatusDisplay } from '@adopt-dont-shop/lib.types';
 import { useStaff } from '../../hooks/useStaff';
-import { fosterService, type FosterPlacement } from '../../services/fosterService';
+import { useActiveFosterPlacement } from './useActiveFosterPlacement';
 import StageTransitionModal from './StageTransitionModal';
 import { ApplicationStage, STAGE_CONFIG, StageAction } from '../../types/applicationStages';
 import { VisitSchedulingContainer } from './VisitScheduling/VisitSchedulingContainer';
@@ -21,6 +34,8 @@ const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
   withdrawn: [],
   expired: [],
 };
+
+const statusLabel = (status: string): string => getStatusDisplay('application', status).label;
 
 const getValidStatusOptions = (currentStatus: string): string[] =>
   VALID_STATUS_TRANSITIONS[currentStatus] || [];
@@ -50,32 +65,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   const [localApplicationStatus, setLocalApplicationStatus] = useState<string | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [showStageTransition, setShowStageTransition] = useState(false);
-  const [activePlacementForPet, setActivePlacementForPet] = useState<FosterPlacement | null>(null);
 
   const petIdForLinks = application?.petId;
-  useEffect(() => {
-    if (!petIdForLinks) {
-      setActivePlacementForPet(null);
-      return;
-    }
-    let cancelled = false;
-    fosterService
-      .list({ status: 'active' })
-      .then(placements => {
-        if (cancelled) {
-          return;
-        }
-        setActivePlacementForPet(placements.find(p => p.petId === petIdForLinks) ?? null);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setActivePlacementForPet(null);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [petIdForLinks]);
+  const activePlacementForPet = useActiveFosterPlacement(petIdForLinks);
 
   useEffect(() => {
     setLocalApplicationStatus(null);
@@ -189,36 +181,22 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
 
   if (loading) {
     return (
-      <div
-        className={styles.overlay}
-        onClick={e => e.target === e.currentTarget && onClose()}
-        onKeyDown={e => e.key === 'Escape' && onClose()}
-        role="presentation"
-      >
+      <Modal isOpen onClose={onClose} title="Loading application details..." size="sm">
         <div className={styles.loadingContainer}>
-          <div className={styles.spinner} />
-          <p className={styles.loadingText}>Loading application details...</p>
+          <Spinner label="Loading application details" />
         </div>
-      </div>
+      </Modal>
     );
   }
 
   if (error) {
     return (
-      <div
-        className={styles.overlay}
-        onClick={e => e.target === e.currentTarget && onClose()}
-        onKeyDown={e => e.key === 'Escape' && onClose()}
-        role="presentation"
-      >
-        <div className={styles.errorContainer}>
-          <div className={styles.errorText}>Error loading application</div>
-          <p className={styles.errorMessage}>{error}</p>
-          <button className={styles.closeButton} onClick={onClose}>
-            Close
-          </button>
-        </div>
-      </div>
+      <Modal isOpen onClose={onClose} title="Error loading application" size="sm">
+        <p className={styles.errorMessage}>{error}</p>
+        <Button variant="secondary" onClick={onClose}>
+          Close
+        </Button>
+      </Modal>
     );
   }
 
@@ -227,27 +205,21 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   }
 
   const currentStatus = getCurrentStatus();
-  const statusVariant = (['submitted', 'approved', 'rejected', 'withdrawn'] as const).includes(
-    currentStatus as 'submitted' | 'approved' | 'rejected' | 'withdrawn'
-  )
-    ? (currentStatus as 'submitted' | 'approved' | 'rejected' | 'withdrawn')
-    : 'default';
+  const hasStatusOptions = getValidStatusOptions(currentStatus).length > 0;
 
   return (
-    <div
-      className={styles.overlay}
-      onClick={e => e.target === e.currentTarget && onClose()}
-      onKeyDown={e => e.key === 'Escape' && onClose()}
-      role="presentation"
-    >
-      <div className={styles.modal}>
-        {/* Header */}
+    <>
+      <Modal
+        isOpen
+        onClose={onClose}
+        title={`Application for ${application.petName || 'Unknown Pet'}`}
+        size="xl"
+        showCloseButton={false}
+        closeOnEscape={!showStageTransition && !confirmProps.isOpen}
+      >
         <div className={styles.header}>
           <div className={styles.headerContent}>
             <div className={styles.headerLeft}>
-              <h2 className={styles.headerTitle}>
-                Application for {application.petName || 'Unknown Pet'}
-              </h2>
               <p className={styles.headerSubtitle}>
                 Submitted by{' '}
                 {application.applicantName ||
@@ -283,24 +255,18 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                 {STAGE_CONFIG[getCurrentStage()]?.emoji}{' '}
                 {STAGE_CONFIG[getCurrentStage()]?.label || getCurrentStage()}
               </span>
-              <span className={styles.statusBadge({ status: statusVariant })}>
-                {currentStatus !== 'unknown' ? formatStatusName(currentStatus) : 'Unknown Status'}
-              </span>
-              <button
-                className={styles.button({ variant: 'primary' })}
-                onClick={() => setShowStageTransition(true)}
-              >
-                Transition Stage
-              </button>
-              <button
-                className={styles.button({ variant: 'secondary' })}
-                onClick={toggleStatusUpdate}
-              >
+              <StatusBadge
+                kind="application"
+                status={currentStatus}
+                label={currentStatus !== 'unknown' ? statusLabel(currentStatus) : 'Unknown Status'}
+              />
+              <Button onClick={() => setShowStageTransition(true)}>Transition Stage</Button>
+              <Button variant="secondary" onClick={toggleStatusUpdate}>
                 Update Status
-              </button>
-              <button className={styles.button({ variant: 'secondary' })} onClick={onClose}>
-                ×
-              </button>
+              </Button>
+              <Button variant="secondary" onClick={onClose} aria-label="Close">
+                <X size="1em" aria-hidden="true" />
+              </Button>
             </div>
           </div>
         </div>
@@ -309,58 +275,43 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
         {showStatusUpdate && (
           <div className={styles.statusUpdateContainer}>
             <div className={styles.formField}>
-              <label className={styles.label} htmlFor="status-new-status">
-                New Status
-              </label>
-              <select
-                id="status-new-status"
-                className={styles.select}
+              <SelectInput
+                label="New Status"
                 value={newStatus}
-                onChange={e => setNewStatus(e.target.value)}
-              >
-                <option value="">Select new status...</option>
-                {getValidStatusOptions(currentStatus).map(status => (
-                  <option key={status} value={status}>
-                    {formatStatusName(status)}
-                  </option>
-                ))}
-              </select>
-              {getValidStatusOptions(currentStatus).length === 0 && (
+                onChange={value => setNewStatus(typeof value === 'string' ? value : '')}
+                placeholder="Select new status..."
+                options={getValidStatusOptions(currentStatus).map(status => ({
+                  value: status,
+                  label: statusLabel(status),
+                }))}
+                fullWidth
+              />
+              {!hasStatusOptions && (
                 <p className={styles.noStatusOptionsText}>
-                  No status changes available for {formatStatusName(currentStatus)}.
+                  No status changes available for {statusLabel(currentStatus)}.
                 </p>
               )}
             </div>
             <div className={styles.formField}>
-              <label className={styles.label} htmlFor="status-notes">
-                Notes (optional)
-              </label>
-              <textarea
-                id="status-notes"
-                className={styles.textArea}
-                value={statusNotes}
-                onChange={e => setStatusNotes(e.target.value)}
-                placeholder="Add any notes about this status change..."
-              />
+              <FormField label="Notes (optional)" htmlFor="status-notes">
+                <TextArea
+                  id="status-notes"
+                  value={statusNotes}
+                  onChange={e => setStatusNotes(e.target.value)}
+                  placeholder="Add any notes about this status change..."
+                />
+              </FormField>
             </div>
             <div className={styles.buttonGroup}>
-              <button
-                className={styles.button({ variant: 'secondary' })}
-                onClick={() => setShowStatusUpdate(false)}
-              >
+              <Button variant="secondary" onClick={() => setShowStatusUpdate(false)}>
                 Cancel
-              </button>
-              <button
-                className={styles.button({ variant: 'primary' })}
+              </Button>
+              <Button
                 onClick={handleStatusUpdate}
-                disabled={
-                  !newStatus ||
-                  getValidStatusOptions(currentStatus).length === 0 ||
-                  isUpdatingStatus
-                }
+                disabled={!newStatus || !hasStatusOptions || isUpdatingStatus}
               >
                 {isUpdatingStatus ? 'Updating...' : 'Update Status'}
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -416,7 +367,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
             },
           ]}
         />
-      </div>
+      </Modal>
 
       {showStageTransition && (
         <StageTransitionModal
@@ -427,7 +378,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       )}
 
       <ConfirmDialog {...confirmProps} data-testid="reject-confirm-dialog" />
-    </div>
+    </>
   );
 };
 

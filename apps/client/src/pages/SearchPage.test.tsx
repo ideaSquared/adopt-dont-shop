@@ -114,4 +114,22 @@ describe('SearchPage load states (C6)', () => {
 
     expect(await screen.findByText(/no pets match your filters/i)).toBeInTheDocument();
   });
+
+  it('lists the matching pets with the total found and paging controls', async () => {
+    searchPetsMock.mockResolvedValueOnce({
+      data: [
+        { pet_id: 'p1', name: 'Rex' },
+        { pet_id: 'p2', name: 'Mia' },
+      ],
+      pagination: { page: 1, limit: 2, total: 4, totalPages: 2, hasNext: true, hasPrev: false },
+    });
+
+    render(<SearchPage />);
+
+    expect(await screen.findByText('Rex')).toBeInTheDocument();
+    expect(screen.getByText('Mia')).toBeInTheDocument();
+    expect(screen.getByText('4 Pets Found')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
+  });
 });

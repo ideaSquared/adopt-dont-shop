@@ -232,13 +232,3 @@ export const reviewItem = style({
   fontSize: '0.9rem',
   color: vars.text.secondary,
 });
-
-export const editButton = style({
-  fontSize: '0.8rem',
-  color: vars.colors.primary,
-  background: 'none',
-  border: 'none',
-  cursor: 'pointer',
-  textDecoration: 'underline',
-  padding: 0,
-});

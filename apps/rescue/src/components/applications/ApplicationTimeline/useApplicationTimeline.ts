@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { toast } from '@adopt-dont-shop/lib.components';
 import { TimelineEventType } from '../../../types/applications';
 
@@ -10,26 +11,29 @@ export const useApplicationTimeline = ({ onAddTimelineEvent }: UseApplicationTim
   const [showAddEvent, setShowAddEvent] = useState(false);
   const [newEventType, setNewEventType] = useState(TimelineEventType.NOTE_ADDED);
   const [newEventDescription, setNewEventDescription] = useState('');
-  const [isAddingEvent, setIsAddingEvent] = useState(false);
 
-  const handleAddEvent = async () => {
-    if (!newEventDescription.trim()) {
-      return;
-    }
-    try {
-      setIsAddingEvent(true);
-      await onAddTimelineEvent(newEventType, newEventDescription.trim());
+  const addEvent = useMutation({
+    mutationFn: async (description: string) => {
+      await onAddTimelineEvent(newEventType, description);
+    },
+    onSuccess: () => {
       setNewEventDescription('');
       setNewEventType(TimelineEventType.NOTE_ADDED);
       setShowAddEvent(false);
-    } catch (error) {
+    },
+    onError: error => {
       console.error('Failed to add timeline event:', error);
       toast.error('Failed to add timeline event. Please try again.', {
         action: { label: 'Retry', onClick: handleAddEvent },
       });
-    } finally {
-      setIsAddingEvent(false);
+    },
+  });
+
+  const handleAddEvent = () => {
+    if (!newEventDescription.trim()) {
+      return;
     }
+    addEvent.mutate(newEventDescription.trim());
   };
 
   return {
@@ -39,7 +43,7 @@ export const useApplicationTimeline = ({ onAddTimelineEvent }: UseApplicationTim
     setNewEventType,
     newEventDescription,
     setNewEventDescription,
-    isAddingEvent,
+    isAddingEvent: addEvent.isPending,
     handleAddEvent,
   };
 };

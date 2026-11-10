@@ -1,7 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { renderWithProviders } from '../test-utils';
 import ContentManagement from './ContentManagement';
 import { cmsService, type Content, type NavigationMenu } from '../services/cmsService';
 
@@ -110,12 +110,7 @@ const mockMenus: NavigationMenu[] = [
   },
 ];
 
-const renderPage = () =>
-  render(
-    <MemoryRouter>
-      <ContentManagement />
-    </MemoryRouter>
-  );
+const renderPage = () => renderWithProviders(<ContentManagement />);
 
 describe('ContentManagement page', () => {
   beforeEach(() => {

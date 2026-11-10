@@ -1,6 +1,6 @@
 import React from 'react';
 import * as styles from './SearchPage.css';
-import { Button, Card, SelectInput, TextInput } from '@adopt-dont-shop/lib.components';
+import { Button, Card, Input, SelectInput } from '@adopt-dont-shop/lib.components';
 import { type PetSearchFilters } from '@/services';
 import { type useNearbySearch } from '@/hooks/useNearbySearch';
 import {
@@ -35,7 +35,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
 }) => (
   <Card className={styles.filtersCard}>
     <div className={styles.filtersGrid}>
-      <TextInput
+      <Input
         label='Search'
         value={searchQuery}
         onChange={e => onSearchQueryChange(e.target.value)}
@@ -101,7 +101,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
       </Button>
       <span className={styles.orLabel}>or</span>
       <div className={styles.locationInputGroup}>
-        <TextInput
+        <Input
           label='Location'
           value={filters.location || ''}
           onChange={e => onFilterChange('location', e.target.value)}

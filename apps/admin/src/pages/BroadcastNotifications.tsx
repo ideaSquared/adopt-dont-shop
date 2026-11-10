@@ -1,24 +1,23 @@
 import React, { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
+  Alert,
   Button,
-  CheckboxInput,
-  FormField,
-  Heading,
-  Input,
-  SelectInput,
-  Text,
-  TextArea,
-} from '@adopt-dont-shop/lib.components';
-import {
   Card,
   CardContent,
   CardHeader,
-  CardTitle,
-  HeaderLeft,
-  PageContainer,
+  CheckboxInput,
+  ConfirmDialog,
+  FormField,
+  Heading,
+  Input,
   PageHeader,
-} from '../components/ui';
+  SelectInput,
+  Stack,
+  TextArea,
+  useConfirm,
+} from '@adopt-dont-shop/lib.components';
 import {
   BroadcastChannel,
   BroadcastResult,
@@ -85,18 +84,40 @@ const generateIdempotencyKey = (): string => {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 };
 
+const errorMessage = (error: Error, fallback: string): string => error.message || fallback;
+
 const BroadcastNotifications: React.FC = () => {
   const [audience, setAudience] = useState('all');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [channels, setChannels] = useState<string[]>(['in_app']);
-  const [previewCount, setPreviewCount] = useState<number | null>(null);
-  const [previewing, setPreviewing] = useState(false);
-  const [confirming, setConfirming] = useState(false);
-  const [sending, setSending] = useState(false);
   const [result, setResult] = useState<BroadcastResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { confirm, confirmProps } = useConfirm();
+
+  const previewMutation = useMutation({
+    mutationFn: (target: Parameters<typeof previewBroadcastAudience>[0]) =>
+      previewBroadcastAudience(target),
+  });
+  const sendMutation = useMutation({
+    mutationFn: (request: Parameters<typeof sendBroadcast>[0]) => sendBroadcast(request),
+    onSuccess: broadcast => {
+      setResult(broadcast);
+      // Clear the composer on success so a stale title/body doesn't
+      // re-fire on the next click. Channels and audience are preserved
+      // because admins often send a series to the same cohort.
+      setTitle('');
+      setBody('');
+    },
+  });
+
+  const previewing = previewMutation.isPending;
+  const sending = sendMutation.isPending;
+  const error = previewMutation.error
+    ? errorMessage(previewMutation.error, 'Failed to preview audience')
+    : sendMutation.error
+      ? errorMessage(sendMutation.error, 'Failed to send broadcast')
+      : null;
 
   const clearFieldError = (field: string) => {
     setErrors(prev => (prev[field] ? { ...prev, [field]: '' } : prev));
@@ -109,6 +130,15 @@ const BroadcastNotifications: React.FC = () => {
     clearFieldError('channels');
   };
 
+  const handleSend = (compose: z.infer<typeof BroadcastComposeSchema>) =>
+    sendMutation.mutate({
+      audience: compose.audience,
+      title: compose.title,
+      body: compose.body,
+      channels: compose.channels,
+      idempotencyKey: generateIdempotencyKey(),
+    });
+
   const handlePreview = async () => {
     const parsed = BroadcastComposeSchema.safeParse({ audience, title, body, channels });
     if (!parsed.success) {
@@ -116,65 +146,33 @@ const BroadcastNotifications: React.FC = () => {
       return;
     }
     setErrors({});
-    setPreviewing(true);
-    setError(null);
-    try {
-      const count = await previewBroadcastAudience(parsed.data.audience);
-      setPreviewCount(count);
-      setConfirming(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to preview audience');
-    } finally {
-      setPreviewing(false);
-    }
-  };
-
-  const handleSend = async () => {
-    const parsed = BroadcastComposeSchema.safeParse({ audience, title, body, channels });
-    if (!parsed.success) {
-      setErrors(collectErrors(parsed.error));
+    sendMutation.reset();
+    const count = await previewMutation.mutateAsync(parsed.data.audience).catch(() => null);
+    if (count === null) {
       return;
     }
-    setSending(true);
-    setError(null);
-    try {
-      const broadcast = await sendBroadcast({
-        audience: parsed.data.audience,
-        title: parsed.data.title,
-        body: parsed.data.body,
-        channels: parsed.data.channels,
-        idempotencyKey: generateIdempotencyKey(),
-      });
-      setResult(broadcast);
-      setConfirming(false);
-      // Clear the composer on success so a stale title/body doesn't
-      // re-fire on the next click. Channels and audience are preserved
-      // because admins often send a series to the same cohort.
-      setTitle('');
-      setBody('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send broadcast');
-    } finally {
-      setSending(false);
+    const confirmed = await confirm({
+      title: 'Confirm broadcast',
+      message: `This will notify ${count.toLocaleString()} user${count === 1 ? '' : 's'} via ${channels.join(', ')}.`,
+      confirmText: 'Send broadcast',
+    });
+    if (confirmed) {
+      handleSend(parsed.data);
     }
   };
 
   return (
-    <PageContainer>
-      <PageHeader>
-        <HeaderLeft>
-          <Heading level='h1'>Broadcast notifications</Heading>
-          <Text>
-            Send a system-wide notification to a coarse audience cohort. Per-user notification
-            preferences and Do Not Disturb are respected for email, push, and SMS — in-app is always
-            recorded.
-          </Text>
-        </HeaderLeft>
-      </PageHeader>
+    <Stack spacing='lg'>
+      <PageHeader
+        title='Broadcast notifications'
+        description='Send a system-wide notification to a coarse audience cohort. Per-user notification preferences and Do Not Disturb are respected for email, push, and SMS — in-app is always recorded.'
+      />
 
       <Card>
         <CardHeader>
-          <CardTitle>Compose broadcast</CardTitle>
+          <Heading level='h2' size='lg' noMargin>
+            Compose broadcast
+          </Heading>
         </CardHeader>
         <CardContent>
           <div className={styles.form}>
@@ -232,47 +230,24 @@ const BroadcastNotifications: React.FC = () => {
 
             <div className={styles.actions}>
               <Button variant='primary' onClick={handlePreview} disabled={previewing || sending}>
-                {previewing ? 'Checking audience…' : 'Preview & send'}
+                {previewing ? 'Checking audience…' : sending ? 'Sending…' : 'Preview & send'}
               </Button>
             </div>
 
-            {confirming && previewCount !== null && (
-              <div className={styles.result}>
-                <strong>Confirm broadcast</strong>
-                <div>
-                  This will notify {previewCount.toLocaleString()} user
-                  {previewCount === 1 ? '' : 's'} via {channels.join(', ')}.
-                </div>
-                <div className={styles.actions}>
-                  <Button variant='primary' onClick={handleSend} disabled={sending}>
-                    {sending ? 'Sending…' : 'Send broadcast'}
-                  </Button>
-                  <Button
-                    variant='secondary'
-                    onClick={() => setConfirming(false)}
-                    disabled={sending}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            )}
-
             {result && (
-              <div className={styles.result}>
-                <strong>Broadcast sent.</strong>
-                <div>
-                  Target: {result.targetCount}, in-app delivered: {result.deliveredInApp}, skipped
-                  by prefs: {result.skippedByPrefs}, skipped by DND: {result.skippedByDnd}.
-                </div>
-              </div>
+              <Alert variant='success' title='Broadcast sent.'>
+                Target: {result.targetCount}, in-app delivered: {result.deliveredInApp}, skipped by
+                prefs: {result.skippedByPrefs}, skipped by DND: {result.skippedByDnd}.
+              </Alert>
             )}
 
-            {error && <div className={styles.error}>{error}</div>}
+            {error && <Alert variant='error'>{error}</Alert>}
           </div>
         </CardContent>
       </Card>
-    </PageContainer>
+
+      <ConfirmDialog {...confirmProps} />
+    </Stack>
   );
 };
 

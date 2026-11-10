@@ -1,4 +1,4 @@
-import { style, keyframes } from '@vanilla-extract/css';
+import { style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
@@ -96,35 +96,6 @@ export const tooltipDate = style({
 export const tooltipValue = style({
   color: vars.colors.primaryBorderSubtle,
   fontWeight: '500',
-});
-
-const shimmer = keyframes({
-  '0%': { transform: 'translateX(-100%)' },
-  '100%': { transform: 'translateX(100%)' },
-});
-
-export const loadingSkeleton = style({
-  width: '100%',
-  background: vars.background.muted,
-  borderRadius: '8px',
-  position: 'relative',
-  overflow: 'hidden',
-  '::after': {
-    content: "''",
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    background: `linear-gradient(90deg, transparent, ${vars.border.color.muted}, transparent)`,
-    animation: `${shimmer} 1.5s infinite`,
-  },
-});
-
-export const emptyState = style({
-  textAlign: 'center',
-  padding: '2rem',
-  color: '#6b7280',
 });
 
 export const chartWrapper = style({

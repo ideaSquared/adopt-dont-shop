@@ -1,6 +1,6 @@
-import { style, keyframes } from '@vanilla-extract/css';
+import { style } from '@vanilla-extract/css';
 
-import { vars } from '@adopt-dont-shop/lib.components/theme';
+import { media, vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const headerActions = style({
   display: 'flex',
@@ -20,7 +20,7 @@ export const analyticsGrid = style({
   gap: '1.5rem',
   // The 500px minimum overflows phones; drop to a single full-width column.
   '@media': {
-    '(max-width: 768px)': {
+    [media.down('md')]: {
       gridTemplateColumns: '1fr',
     },
   },
@@ -180,30 +180,6 @@ export const topItemValue = style({
   color: vars.text.primary,
 });
 
-const shimmerAnim = keyframes({
-  '0%': { backgroundPosition: '-200px 0' },
-  '100%': { backgroundPosition: 'calc(200px + 100%) 0' },
-});
-
-export const skeletonBlock = style({
-  borderRadius: '6px',
-  background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
-  backgroundSize: '200px 100%',
-  animationName: shimmerAnim,
-  animationDuration: '1.4s',
-  animationIterationCount: 'infinite',
-  animationTimingFunction: 'linear',
-});
-
-export const errorBanner = style({
-  background: vars.colors.dangerBgSubtle,
-  border: `1px solid ${vars.colors.dangerBorderSubtle}`,
-  borderRadius: '8px',
-  padding: '1rem',
-  color: vars.colors.dangerTextEmphasis,
-  fontSize: '0.875rem',
-});
-
 // Clamp the shared SearchToolbar to a compact width so the single time-range
 // select sits inline in the header next to the Export button rather than the
 // toolbar's default full width. maxWidth (not width) avoids any CSS
@@ -214,40 +190,6 @@ export const headerFilter = style({
 
 export const exportIcon = style({
   marginRight: '0.5rem',
-});
-
-export const skeletonFullHeight = style({
-  height: '100%',
-});
-
-export const skeletonRow3rem = style({
-  height: '3rem',
-});
-
-export const skeletonPie = style({
-  width: '200px',
-  height: '200px',
-  borderRadius: '50%',
-});
-
-export const chartEmptyState = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  height: '100%',
-  color: '#9ca3af',
-  fontSize: '0.875rem',
-});
-
-export const pieEmptyState = style({
-  color: '#9ca3af',
-  fontSize: '0.875rem',
-});
-
-export const emptyStatePadded = style({
-  color: '#9ca3af',
-  fontSize: '0.875rem',
-  padding: '1rem 0',
 });
 
 export const barLabelCapitalize = style({

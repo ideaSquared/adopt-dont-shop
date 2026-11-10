@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Container, Spinner } from '@adopt-dont-shop/lib.components';
+import { Container, EmptyState, PageHeader, Spinner } from '@adopt-dont-shop/lib.components';
 import { useLegalDocument, renderLegalMarkdown } from '@adopt-dont-shop/lib.legal';
 import { SafeHtml } from '@/components/SafeHtml';
 import { cmsPublicService } from '@/services/cmsService';
@@ -41,7 +41,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ slug }) => {
   if (cmsOverrideQuery.isSuccess && cmsOverrideQuery.data) {
     return (
       <Container>
-        <h1>{cmsOverrideQuery.data.title}</h1>
+        <PageHeader title={cmsOverrideQuery.data.title} />
         <SafeHtml html={cmsOverrideQuery.data.content} />
       </Container>
     );
@@ -50,15 +50,15 @@ export const LegalPage: React.FC<LegalPageProps> = ({ slug }) => {
   if (legalQuery.isError || !legalQuery.data) {
     return (
       <Container>
-        <h1>{TITLES[slug]}</h1>
-        <p>Content not found.</p>
+        <PageHeader title={TITLES[slug]} />
+        <EmptyState title='Content not found.' />
       </Container>
     );
   }
 
   return (
     <Container>
-      <h1>{TITLES[slug]}</h1>
+      <PageHeader title={TITLES[slug]} />
       <SafeHtml html={renderLegalMarkdown(legalQuery.data.content)} />
     </Container>
   );

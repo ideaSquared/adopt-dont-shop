@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router';
 import { render, waitFor } from '@testing-library/react';
 
@@ -18,17 +19,25 @@ vi.mock('@adopt-dont-shop/lib.notifications', () => {
   return { NotificationsService };
 });
 
+let queryClient = new QueryClient();
+
+beforeEach(() => {
+  queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+});
+
 afterEach(() => {
   getUserNotificationsMock.mockClear();
 });
 
 const renderWithProvider = (userId?: string) =>
   render(
-    <MemoryRouter>
-      <NotificationsProvider userId={userId}>
-        <div>child</div>
-      </NotificationsProvider>
-    </MemoryRouter>
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <NotificationsProvider userId={userId}>
+          <div>child</div>
+        </NotificationsProvider>
+      </MemoryRouter>
+    </QueryClientProvider>
   );
 
 describe('NotificationsProvider userId wiring', () => {
@@ -50,11 +59,13 @@ describe('NotificationsProvider userId wiring', () => {
 
   it('reloads notifications when the userId changes (e.g. login or rehydrate)', async () => {
     const { rerender } = render(
-      <MemoryRouter>
-        <NotificationsProvider userId={undefined}>
-          <div>child</div>
-        </NotificationsProvider>
-      </MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <NotificationsProvider userId={undefined}>
+            <div>child</div>
+          </NotificationsProvider>
+        </MemoryRouter>
+      </QueryClientProvider>
     );
 
     // Initially no userId -> no fetch.
@@ -62,11 +73,13 @@ describe('NotificationsProvider userId wiring', () => {
 
     // Simulate auth becoming available (login or rehydrate populating user).
     rerender(
-      <MemoryRouter>
-        <NotificationsProvider userId='user-456'>
-          <div>child</div>
-        </NotificationsProvider>
-      </MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <NotificationsProvider userId='user-456'>
+            <div>child</div>
+          </NotificationsProvider>
+        </MemoryRouter>
+      </QueryClientProvider>
     );
 
     await waitFor(() => {

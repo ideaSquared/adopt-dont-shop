@@ -7,7 +7,7 @@
  * with the conversation pre-selected via the `?conversation=<id>` query
  * param. Capped at 5 most-recent unread; full inbox via "View all".
  */
-import { Card, Heading, Text } from '@adopt-dont-shop/lib.components';
+import { Card, EmptyState, Heading, Text } from '@adopt-dont-shop/lib.components';
 import {
   safeFormatDistanceToNow,
   useChat,
@@ -53,16 +53,6 @@ const UnreadRow = ({ conversation }: UnreadRowProps) => {
   );
 };
 
-const EmptyState = () => (
-  <div className={styles.emptyState}>
-    <Text>No unread messages.</Text>
-    <Text>
-      New messages appear here when an adopter contacts you about a pet, sends a question on an
-      application, or starts a direct inquiry.
-    </Text>
-  </div>
-);
-
 export const UnreadMessagesPanel = () => {
   const { totalUnread, unreadByConversationId } = useUnreadConversations();
   const { conversations } = useChat();
@@ -90,7 +80,10 @@ export const UnreadMessagesPanel = () => {
       </div>
 
       {unreadConversations.length === 0 ? (
-        <EmptyState />
+        <EmptyState
+          title="No unread messages."
+          description="New messages appear here when an adopter contacts you about a pet, sends a question on an application, or starts a direct inquiry."
+        />
       ) : (
         <ul className={styles.list} data-testid="unread-messages-list">
           {unreadConversations.map(conv => (

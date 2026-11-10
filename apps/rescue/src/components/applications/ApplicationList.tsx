@@ -1,11 +1,14 @@
 import React, { useMemo } from 'react';
 import {
+  Button,
   DataTable,
   EmptyState,
   ErrorState,
+  SelectInput,
+  StatusBadge,
   type DataTableColumn,
 } from '@adopt-dont-shop/lib.components';
-import StatusBadge from '../common/StatusBadge';
+import type { StatusBadgeVariant } from '@adopt-dont-shop/lib.types';
 import type {
   ApplicationListItem,
   ApplicationFilter,
@@ -158,22 +161,36 @@ const sortFieldForKey = (key: string): ApplicationSort['field'] | null => {
   }
 };
 
-const priorityVariant = (
-  priority: string | undefined
-): 'urgent' | 'high' | 'medium' | 'low' | 'default' => {
-  switch (priority) {
-    case 'urgent':
-      return 'urgent';
-    case 'high':
-      return 'high';
-    case 'medium':
-      return 'medium';
-    case 'low':
-      return 'low';
-    default:
-      return 'default';
-  }
+const PRIORITY_VARIANTS: Record<string, StatusBadgeVariant> = {
+  urgent: 'error',
+  high: 'warning',
+  medium: 'info',
+  low: 'neutral',
 };
+
+const SORT_OPTIONS: { value: string; label: string; sort: ApplicationSort }[] = [
+  {
+    value: 'submittedAt-desc',
+    label: 'Newest First',
+    sort: { field: 'submittedAt', direction: 'desc' },
+  },
+  {
+    value: 'submittedAt-asc',
+    label: 'Oldest First',
+    sort: { field: 'submittedAt', direction: 'asc' },
+  },
+  { value: 'status-asc', label: 'Status A-Z', sort: { field: 'status', direction: 'asc' } },
+  {
+    value: 'applicantName-asc',
+    label: 'Name A-Z',
+    sort: { field: 'applicantName', direction: 'asc' },
+  },
+  {
+    value: 'priority-desc',
+    label: 'High Priority First',
+    sort: { field: 'priority', direction: 'desc' },
+  },
+];
 
 const ApplicationList: React.FC<ApplicationListProps> = ({
   applications,
@@ -257,7 +274,7 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
         if (!app) {
           return null;
         }
-        return <StatusBadge status={app.status || 'unknown'} />;
+        return <StatusBadge kind="application" status={app.status || 'unknown'} />;
       },
     },
     {
@@ -269,9 +286,10 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
           return null;
         }
         return (
-          <span className={styles.priorityBadge({ priority: priorityVariant(app.priority) })}>
-            {app.priority}
-          </span>
+          <StatusBadge
+            variant={PRIORITY_VARIANTS[app.priority ?? ''] ?? 'neutral'}
+            label={app.priority ?? ''}
+          />
         );
       },
     },
@@ -336,16 +354,17 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
         return (
           <div className={styles.actionsContainer}>
             {getActionButtons(app, onApplicationSelect).map(action => (
-              <button
+              <Button
                 key={action.label}
-                className={styles.actionButton({ variant: action.variant })}
+                size="sm"
+                variant={action.variant}
                 onClick={e => {
                   e.stopPropagation();
                   action.action();
                 }}
               >
                 {action.label}
-              </button>
+              </Button>
             ))}
           </div>
         );
@@ -481,93 +500,33 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
         </div>
 
         <div className={styles.headerRight}>
-          <select
-            className={styles.sortSelect}
+          <SelectInput
+            label="Sort by"
             value={`${sort.field}-${sort.direction}`}
-            onChange={e => {
-              const [field, direction] = e.target.value.split('-');
-              onSortChange({
-                field: field as ApplicationSort['field'],
-                direction: direction as 'asc' | 'desc',
-              });
+            onChange={value => {
+              const next = SORT_OPTIONS.find(option => option.value === value);
+              if (next) {
+                onSortChange(next.sort);
+              }
             }}
-          >
-            <option value="submittedAt-desc">Newest First</option>
-            <option value="submittedAt-asc">Oldest First</option>
-            <option value="status-asc">Status A-Z</option>
-            <option value="applicantName-asc">Name A-Z</option>
-            <option value="priority-desc">High Priority First</option>
-          </select>
+            options={SORT_OPTIONS}
+          />
         </div>
       </div>
 
       {/* Application Table */}
-      <div className={styles.tableContainer}>
-        {loading && applications.length === 0 ? (
-          <div className={styles.loadingContainer}>
-            <div className={styles.spinner} />
-            <p className={styles.loadingText}>Loading applications...</p>
-          </div>
-        ) : !loading && applications.length === 0 ? (
+      <div className={styles.tableContainer} aria-busy={loading}>
+        {loading && applications.length === 0 && (
+          <span className={styles.srOnly} role="status">
+            Loading applications...
+          </span>
+        )}
+        {!loading && applications.length === 0 ? (
           <EmptyState title="No applications found matching your criteria." />
-        ) : loading ? (
-          // Per-row skeleton loading is a bespoke affordance kept out of the
-          // shared DataTable; it mirrors the DataTable column layout below.
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead className={styles.tableHead}>
-                <tr>
-                  {selectionEnabled && <th className={styles.tableHeader} />}
-                  <th className={styles.tableHeader}>Applicant</th>
-                  <th className={styles.tableHeader}>Pet</th>
-                  <th className={styles.tableHeader}>Status</th>
-                  <th className={styles.tableHeader}>Priority</th>
-                  <th className={styles.tableHeader}>Submitted</th>
-                  <th className={styles.tableHeader}>Progress</th>
-                  <th className={styles.tableHeader}>Actions</th>
-                </tr>
-              </thead>
-              <tbody className={styles.tableBody}>
-                {Array.from({ length: pagination.limit }, (_, i) => (
-                  <tr key={`skeleton-${i}`} className={styles.tableRow} aria-hidden="true">
-                    {selectionEnabled && (
-                      <td className={styles.tableCell}>
-                        <div className={styles.skeletonBlock} style={{ width: '1rem' }} />
-                      </td>
-                    )}
-                    <td className={styles.tableCell}>
-                      <div className={styles.skeletonBlock} style={{ width: '60%' }} />
-                      <div
-                        className={styles.skeletonBlock}
-                        style={{ width: '40%', marginTop: '0.25rem' }}
-                      />
-                    </td>
-                    <td className={styles.tableCell}>
-                      <div className={styles.skeletonBlock} style={{ width: '50%' }} />
-                    </td>
-                    <td className={styles.tableCell}>
-                      <div className={styles.skeletonBlock} style={{ width: '4rem' }} />
-                    </td>
-                    <td className={styles.tableCell}>
-                      <div className={styles.skeletonBlock} style={{ width: '3rem' }} />
-                    </td>
-                    <td className={styles.tableCell}>
-                      <div className={styles.skeletonBlock} style={{ width: '5rem' }} />
-                    </td>
-                    <td className={styles.tableCell}>
-                      <div className={styles.skeletonBlock} style={{ width: '80%' }} />
-                    </td>
-                    <td className={styles.tableCell}>
-                      <div className={styles.skeletonBlock} style={{ width: '5rem' }} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         ) : (
           <DataTable
             frameless
+            loading={loading}
             columns={columns}
             rows={tableRows}
             getRowId={row => String(row.id)}

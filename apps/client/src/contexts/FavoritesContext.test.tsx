@@ -9,6 +9,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
 const getFavorites = vi.fn();
@@ -31,9 +32,14 @@ vi.mock('@adopt-dont-shop/lib.auth', () => ({
 
 import { FavoritesProvider, useFavorites } from './FavoritesContext';
 
-const wrapper = ({ children }: { children: ReactNode }) => (
-  <FavoritesProvider>{children}</FavoritesProvider>
-);
+const wrapper = ({ children }: { children: ReactNode }) => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return (
+    <QueryClientProvider client={queryClient}>
+      <FavoritesProvider>{children}</FavoritesProvider>
+    </QueryClientProvider>
+  );
+};
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -67,7 +73,8 @@ describe('adding a favourite', () => {
   it('optimistically marks the pet as favourite and persists', async () => {
     addToFavorites.mockResolvedValue({ success: true });
     const { result } = renderHook(() => useFavorites(), { wrapper });
-    await waitFor(() => expect(getFavorites).toHaveBeenCalled());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(getFavorites).toHaveBeenCalled();
 
     await act(async () => {
       await result.current.addToFavorites('pet-9');
@@ -80,7 +87,8 @@ describe('adding a favourite', () => {
   it('rolls back the optimistic update and throws when the request fails', async () => {
     addToFavorites.mockRejectedValue(new Error('server error'));
     const { result } = renderHook(() => useFavorites(), { wrapper });
-    await waitFor(() => expect(getFavorites).toHaveBeenCalled());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(getFavorites).toHaveBeenCalled();
 
     await act(async () => {
       await expect(result.current.addToFavorites('pet-9')).rejects.toThrow(
@@ -94,7 +102,8 @@ describe('adding a favourite', () => {
   it('keeps the pet favourited when the backend says it is already a favourite', async () => {
     addToFavorites.mockRejectedValue(new Error('Pet already in favorites'));
     const { result } = renderHook(() => useFavorites(), { wrapper });
-    await waitFor(() => expect(getFavorites).toHaveBeenCalled());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(getFavorites).toHaveBeenCalled();
 
     await act(async () => {
       await result.current.addToFavorites('pet-9').catch(() => undefined);
@@ -149,7 +158,8 @@ describe('removing a favourite', () => {
 
   it('is a no-op when the pet is not currently favourited', async () => {
     const { result } = renderHook(() => useFavorites(), { wrapper });
-    await waitFor(() => expect(getFavorites).toHaveBeenCalled());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(getFavorites).toHaveBeenCalled();
 
     await act(async () => {
       await result.current.removeFromFavorites('pet-unknown');

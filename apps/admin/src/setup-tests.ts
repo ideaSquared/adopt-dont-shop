@@ -164,6 +164,10 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     React.createElement('div', props, children),
   Card: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
+  CardHeader: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
+    React.createElement('div', props, children),
+  CardContent: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
+    React.createElement('div', props, children),
   // ADS-B3: shared Badge now backs the admin status pills (Audit, Messages).
   // Mirror the real component's text output + status role; badge-specific props
   // (variant/size/etc.) are dropped so they don't leak onto the DOM node.
@@ -265,12 +269,14 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     React.createElement('div', props, children),
   FormField: ({
     label,
+    htmlFor,
     error,
     description,
     children,
     ...props
   }: {
     label?: string;
+    htmlFor?: string;
     error?: string;
     description?: string;
     children: React.ReactNode;
@@ -279,13 +285,20 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     React.createElement(
       'div',
       props,
-      label ? React.createElement('label', null, label) : null,
+      label ? React.createElement('label', { htmlFor }, label) : null,
       children,
       error ? React.createElement('span', { role: 'alert' }, error) : null,
       description ? React.createElement('span', null, description) : null
     ),
-  Button: ({ children, ...props }: React.ComponentPropsWithoutRef<'button'>) =>
-    React.createElement('button', props, children),
+  Button: ({
+    children,
+    startIcon,
+    endIcon,
+    ...props
+  }: React.ComponentPropsWithoutRef<'button'> & {
+    startIcon?: React.ReactNode;
+    endIcon?: React.ReactNode;
+  }) => React.createElement('button', props, startIcon, children, endIcon),
   Text: ({ children, ...props }: React.ComponentPropsWithoutRef<'span'>) =>
     React.createElement('span', props, children),
   Heading: ({ children, ...props }: React.ComponentPropsWithoutRef<'h1'>) =>
@@ -595,8 +608,45 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     );
     return React.createElement(React.Fragment, null, table, pager);
   },
-  Modal: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
-    React.createElement('div', props, children),
+  // Mirrors the real Modal's accessible output: nothing when closed; otherwise a
+  // dialog named by its title (as an aria-label, so the title text is not repeated
+  // in the DOM), a "Close modal" button, the body and footer.
+  Modal: ({
+    isOpen,
+    onClose,
+    title,
+    children,
+    header,
+    footer,
+    showCloseButton = true,
+    'data-testid': testId,
+  }: {
+    isOpen: boolean;
+    onClose: () => void;
+    title?: string;
+    children?: React.ReactNode;
+    header?: React.ReactNode;
+    footer?: React.ReactNode;
+    showCloseButton?: boolean;
+    'data-testid'?: string;
+    [k: string]: unknown;
+  }) =>
+    isOpen
+      ? React.createElement(
+          'div',
+          { role: 'dialog', 'aria-modal': 'true', 'aria-label': title, 'data-testid': testId },
+          header ?? null,
+          children,
+          showCloseButton
+            ? React.createElement(
+                'button',
+                { type: 'button', onClick: onClose, 'aria-label': 'Close modal' },
+                '×'
+              )
+            : null,
+          footer
+        )
+      : null,
   // Shared app-shell components: pass-through boundary, minimal 404.
   ErrorBoundary: ({ children }: { children?: React.ReactNode }) => children,
   NotFoundPage: () => React.createElement('h1', null, '404'),
@@ -637,6 +687,64 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
         'div',
         { key: 'text' },
         ...Array.from({ length: lines as number }, (_, i) => React.createElement('div', { key: i }))
+      )
+    ),
+  Avatar: ({ name = '', initials }: { name?: string; initials?: string }) =>
+    React.createElement(
+      'span',
+      null,
+      initials ??
+        name
+          .split(' ')
+          .map(part => part[0])
+          .join('')
+          .toUpperCase()
+          .slice(0, 2)
+    ),
+  // Mirrors the real Alert: an alert-role region with optional title and body.
+  Alert: ({ children, title }: { children?: React.ReactNode; title?: string }) =>
+    React.createElement(
+      'div',
+      { role: 'alert' },
+      title ? React.createElement('strong', null, title) : null,
+      children
+    ),
+  // Mirrors the real Tabs: a tablist of role="tab" buttons and the active panel.
+  Tabs: ({
+    tabs,
+    value,
+    onChange,
+    'aria-label': ariaLabel,
+  }: {
+    tabs: ReadonlyArray<{ id: string; label: React.ReactNode; content: React.ReactNode }>;
+    value: string;
+    onChange: (id: string) => void;
+    'aria-label'?: string;
+  }) =>
+    React.createElement(
+      'div',
+      null,
+      React.createElement(
+        'div',
+        { role: 'tablist', 'aria-label': ariaLabel },
+        ...tabs.map(tab =>
+          React.createElement(
+            'button',
+            {
+              key: tab.id,
+              type: 'button',
+              role: 'tab',
+              'aria-selected': tab.id === value,
+              onClick: () => onChange(tab.id),
+            },
+            tab.label
+          )
+        )
+      ),
+      React.createElement(
+        'div',
+        { role: 'tabpanel' },
+        tabs.find(tab => tab.id === value)?.content ?? null
       )
     ),
   DateTime: ({ value }: { value: string }) => React.createElement('span', null, value),

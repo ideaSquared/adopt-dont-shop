@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const navigateMock = vi.fn();
 
@@ -55,12 +56,16 @@ vi.mock('@adopt-dont-shop/lib.auth', async () => {
 
 import { OnboardingWizardPage } from './OnboardingWizardPage';
 
-const renderPage = () =>
-  render(
-    <MemoryRouter initialEntries={['/onboarding']}>
-      <OnboardingWizardPage />
-    </MemoryRouter>
+const renderPage = () => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={['/onboarding']}>
+        <OnboardingWizardPage />
+      </MemoryRouter>
+    </QueryClientProvider>
   );
+};
 
 describe('OnboardingWizardPage', () => {
   beforeEach(() => {

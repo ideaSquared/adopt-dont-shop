@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router';
-import { ThemeProvider } from '@adopt-dont-shop/lib.components';
+import { ThemeProvider, toast } from '@adopt-dont-shop/lib.components';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const refetchMock = vi.fn().mockResolvedValue(undefined);
@@ -179,7 +179,7 @@ describe('Support deep-linking via /support/:ticketId', () => {
 
     // List still renders, modal never opens, and a toast surfaces the error.
     await waitFor(() => {
-      expect(screen.getByText(/ticket not found/i)).toBeInTheDocument();
+      expect(toast.error).toHaveBeenCalledWith('Ticket not found');
     });
     expect(screen.queryByTestId('ticket-detail-modal')).not.toBeInTheDocument();
     // Both ticket rows remain visible by their (intact) email cells.

@@ -208,7 +208,7 @@ describe('Rescue Management page', () => {
     it('shows the Export button', async () => {
       renderWithProviders(<Rescues />);
       await waitFor(() => {
-        expect(screen.getByTestId('export-button')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Export' })).toBeInTheDocument();
       });
     });
 
@@ -222,7 +222,7 @@ describe('Rescue Management page', () => {
     it('shows the Verification Status filter', async () => {
       renderWithProviders(<Rescues />);
       await waitFor(() => {
-        expect(screen.getByText('Verification Status')).toBeInTheDocument();
+        expect(screen.getByRole('combobox', { name: 'Verification Status' })).toBeInTheDocument();
         expect(screen.getByDisplayValue('All Statuses')).toBeInTheDocument();
       });
     });

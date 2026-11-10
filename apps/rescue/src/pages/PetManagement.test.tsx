@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Link, Route, Routes } from 'react-router';
 import { toast } from '@adopt-dont-shop/lib.components';
 import { render, screen, fireEvent, waitFor } from '../test-utils';
+import { apiService } from '@adopt-dont-shop/lib.api';
+import { petManagementService } from '@adopt-dont-shop/lib.pets';
 
 /**
  * /pets/:petId deep-links a single pet: the page opens that pet in its
@@ -115,5 +117,28 @@ describe('PetManagement deep link', () => {
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
     expect(screen.queryByRole('dialog', { name: 'Pet form' })).not.toBeInTheDocument();
     expect(getPetByIdMock).not.toHaveBeenCalled();
+  });
+
+  it('shows the rescue statistics from the dashboard endpoint', async () => {
+    vi.mocked(apiService.get).mockResolvedValueOnce({
+      data: { totalAnimals: 17, availableForAdoption: 4, pendingApplications: 2, adoptedPets: 1 },
+    });
+
+    renderAt('/pets');
+
+    expect(await screen.findByText('Total Pets')).toBeInTheDocument();
+    expect(screen.getByText('17')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Available' })).toBeInTheDocument();
+  });
+
+  it('offers a retry when the pet list fails to load', async () => {
+    vi.mocked(petManagementService.getMyRescuePets).mockRejectedValueOnce(new Error('boom'));
+
+    renderAt('/pets');
+
+    expect(await screen.findByText('boom')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+    await waitFor(() => expect(screen.queryByText('boom')).not.toBeInTheDocument());
   });
 });
