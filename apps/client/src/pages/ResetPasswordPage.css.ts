@@ -2,37 +2,6 @@ import { globalStyle, style } from '@vanilla-extract/css';
 
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
-export const container = style({
-  minHeight: 'calc(100vh - 200px)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '2rem',
-  background: `linear-gradient(135deg, ${vars.background.surface} 0%, ${vars.background.body} 100%)`,
-});
-
-export const resetPasswordCard = style({
-  width: '100%',
-  maxWidth: '450px',
-  padding: '2rem',
-});
-
-export const header = style({
-  textAlign: 'center',
-  marginBottom: '2rem',
-});
-
-globalStyle(`${header} h1`, {
-  fontSize: '2rem',
-  marginBottom: '0.5rem',
-  color: vars.text.primary,
-});
-
-globalStyle(`${header} p`, {
-  color: vars.text.tertiary,
-  lineHeight: '1.6',
-});
-
 export const form = style({
   display: 'flex',
   flexDirection: 'column',
@@ -89,12 +58,6 @@ export const styledAlert = style({
 
 export const successContainer = style({
   textAlign: 'center',
-});
-
-globalStyle(`${successContainer} h2`, {
-  fontSize: '1.5rem',
-  color: '#059669',
-  marginBottom: '1rem',
 });
 
 globalStyle(`${successContainer} p`, {
