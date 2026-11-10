@@ -8,22 +8,6 @@ export const container = style({
   padding: '2rem 1rem 4rem',
 });
 
-export const header = style({
-  marginBottom: '1.5rem',
-});
-
-globalStyle(`${header} h1`, {
-  fontSize: '1.75rem',
-  margin: '0 0 0.25rem',
-  color: vars.text.primary,
-});
-
-globalStyle(`${header} p`, {
-  margin: 0,
-  color: vars.text.tertiary,
-  fontSize: '0.95rem',
-});
-
 export const grid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
