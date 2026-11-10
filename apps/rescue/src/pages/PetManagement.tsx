@@ -3,7 +3,6 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { useSearchParams, useNavigate, useParams } from 'react-router';
 import {
   Alert,
-  Card,
   Container,
   Button,
   ErrorState,
@@ -12,7 +11,6 @@ import {
   toast,
   useFilterParamSetter,
 } from '@adopt-dont-shop/lib.components';
-import { House } from 'lucide-react';
 import { PetListSkeleton } from '../components/skeletons';
 import {
   Pet,
@@ -21,7 +19,6 @@ import {
   type PetCreateData,
   type PetUpdateData,
 } from '@adopt-dont-shop/lib.pets';
-import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { apiService } from '@adopt-dont-shop/lib.api';
 import PetGrid from '../components/pets/PetGrid';
 import PetFilters from '../components/pets/PetFilters.tsx';
@@ -69,7 +66,6 @@ const fetchPetStats = async (): Promise<PetStats> => {
 const PetManagement: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, refreshUser } = useAuth();
   const rescueId = useMyRescueId();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -170,58 +166,7 @@ const PetManagement: React.FC = () => {
     return err instanceof Error ? err.message : 'Failed to fetch pets';
   })();
   const error = actionError ?? queryErrorMessage;
-  // If the error is about not being associated with a rescue, show setup
-  const showRescueSetup =
-    petsQuery.error instanceof Error && petsQuery.error.message.includes(NO_RESCUE_MESSAGE);
-
   const refreshPets = () => queryClient.invalidateQueries({ queryKey: ['pets'] });
-
-  const demoRescueMutation = useMutation({
-    mutationFn: async () => {
-      // Create a demo rescue
-      const demoRescueData = {
-        name: `${user?.firstName}'s Demo Rescue`,
-        email: user?.email || 'demo@rescue.com',
-        phone: '555-0123',
-        address: '123 Demo Street',
-        city: 'Demo City',
-        state: 'Demo State',
-        zipCode: '12345',
-        country: 'United States',
-        description: 'A demo rescue organization for testing purposes',
-        contactPerson: `${user?.firstName} ${user?.lastName}` || 'Demo Contact',
-        contactTitle: 'Rescue Manager',
-        contactEmail: user?.email || 'demo@rescue.com',
-        contactPhone: '555-0123',
-      };
-
-      // Call the API using lib.api (relative path resolves against the
-      // configured API base URL, so this works in any environment).
-      const result = await apiService.post<{ data: { rescueId: string } }>(
-        '/api/v1/rescues',
-        demoRescueData
-      );
-
-      // Now update the user with the rescue ID (gateway serves PUT
-      // /api/v1/users/:userId → AdminUpdateUser; there is no PATCH at this path)
-      await apiService.put<unknown>(`/api/v1/users/${user?.userId}`, {
-        rescueId: result.data.rescueId,
-      });
-
-      // Refresh the user data
-      await refreshUser();
-    },
-    onSuccess: () => {
-      refreshPets();
-      toast.success('Demo rescue created. You can now manage pets.');
-    },
-    onError: (err: unknown) => {
-      console.error('Error creating demo rescue:', err);
-      toast.error('Failed to create demo rescue. Please check the console for details.', {
-        action: { label: 'Retry', onClick: () => demoRescueMutation.mutate() },
-      });
-    },
-  });
 
   const statusMutation = useMutation({
     mutationFn: ({ petId, status, notes }: { petId: string; status: PetStatus; notes?: string }) =>
@@ -254,11 +199,7 @@ const PetManagement: React.FC = () => {
     onSuccess: refreshPets,
   });
 
-  const loading =
-    petsQuery.isFetching ||
-    demoRescueMutation.isPending ||
-    deleteMutation.isPending ||
-    statusMutation.isPending;
+  const loading = petsQuery.isFetching || deleteMutation.isPending || statusMutation.isPending;
 
   const handleStatusChange = async (petId: string, newStatus: PetStatus, notes?: string) => {
     try {
@@ -363,52 +304,6 @@ const PetManagement: React.FC = () => {
             petsQuery.refetch();
           }}
         />
-      </Container>
-    );
-  }
-
-  // Show rescue setup only if we get a specific error about not being associated with a rescue
-  if (showRescueSetup && pets.length === 0) {
-    return (
-      <Container className={styles.pageContainer}>
-        <PageHeader
-          title="Rescue Setup Required"
-          description="You need to be associated with a rescue organization to manage pets."
-        />
-
-        <Card className={styles.setupCard}>
-          <div className={styles.setupEmoji}>
-            <House size="1em" aria-hidden="true" />
-          </div>
-          <h2>Create Your Rescue Organization</h2>
-          <p className={styles.setupHint}>
-            To start managing pets, you first need to create or join a rescue organization. This
-            will allow you to add pets, manage applications, and track adoptions.
-          </p>
-
-          <div className={styles.setupActions}>
-            <Button
-              variant="primary"
-              onClick={() => demoRescueMutation.mutate()}
-              disabled={loading}
-            >
-              {loading ? 'Creating...' : 'Create Demo Rescue (Dev)'}
-            </Button>
-            <Button variant="outline" onClick={() => navigate('/register-rescue')}>
-              Register New Rescue
-            </Button>
-          </div>
-
-          <div className={styles.devNote}>
-            <strong>Development Note:</strong>
-            <p className={styles.devNoteIntro}>To test the pet management system, you need to:</p>
-            <ol className={styles.devNoteSteps}>
-              <li>Create a rescue via API: POST /api/v1/rescues</li>
-              <li>Update your user with the rescue ID</li>
-              <li>Or use the seed data if available</li>
-            </ol>
-          </div>
-        </Card>
       </Container>
     );
   }
