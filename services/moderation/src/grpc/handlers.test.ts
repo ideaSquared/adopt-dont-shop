@@ -188,7 +188,7 @@ describe('fileReport', () => {
     await fileReport(deps, makePrincipal(), VALID_FILE_REQ);
     const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
     expect(publish.mock.calls[0][0]).toMatchObject({
-      id: 'persisted-rpt',
+      id: 'moderation.reportFiled.persisted-rpt',
       payload: { reportId: 'persisted-rpt' },
     });
   });
@@ -787,5 +787,68 @@ describe('escalateReport', () => {
     expect(res.report.escalatedTo).toBe('mod-9');
     const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
     expect(publish.mock.calls[0][0]).toMatchObject({ type: 'moderation.reportEscalated' });
+  });
+});
+
+// JetStream drops a message whose Nats-Msg-Id repeats inside its dedupe
+// window, across subjects. Each logical event on a report needs its own id.
+describe('report event ids', () => {
+  const publishedId = (deps: HandlerDeps): unknown => {
+    const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
+    return (publish.mock.calls[0][0] as { id: unknown }).id;
+  };
+
+  const assignOnce = async (): Promise<unknown> => {
+    const { deps } = makeDeps([
+      { rows: [reportRow()] },
+      { rows: [reportRow({ assigned_moderator: 'mod-1' })] },
+      { rows: [] },
+      { rows: [reportRow({ assigned_moderator: 'mod-1', status: 'under_review' })] },
+    ]);
+    await assignReport(deps, makePrincipal(), { reportId: 'rpt-1', moderatorId: 'mod-1' });
+    return publishedId(deps);
+  };
+
+  const resolveOnce = async (): Promise<unknown> => {
+    const { deps } = makeDeps([
+      { rows: [{ status: 'under_review' }] },
+      { rows: [] },
+      { rows: [] },
+      { rows: [reportRow({ status: 'resolved', resolution: 'user_suspended' })] },
+    ]);
+    await resolveReport(deps, makePrincipal(), {
+      reportId: 'rpt-1',
+      resolution: 'user_suspended',
+    });
+    return publishedId(deps);
+  };
+
+  const escalateOnce = async (): Promise<unknown> => {
+    const { deps } = makeDeps([
+      { rows: [{ status: 'under_review' }] },
+      { rows: [reportRow({ status: 'escalated', escalated_to: 'mod-9' })] },
+      { rows: [] },
+    ]);
+    await escalateReport(deps, makePrincipal(), {
+      reportId: 'rpt-1',
+      escalatedTo: 'mod-9',
+      reason: 'needs senior review',
+    });
+    return publishedId(deps);
+  };
+
+  const fileOnce = async (): Promise<unknown> => {
+    const { deps } = makeDeps([{ rows: [reportRow()] }]);
+    await fileReport(deps, makePrincipal({ permissions: [] }), VALID_FILE_REQ);
+    return publishedId(deps);
+  };
+
+  it('gives filed, assigned, resolved and escalated events on one report distinct ids', async () => {
+    const ids = [await fileOnce(), await assignOnce(), await resolveOnce(), await escalateOnce()];
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('gives two assignments of the same report distinct ids', async () => {
+    expect(await assignOnce()).not.toBe(await assignOnce());
   });
 });

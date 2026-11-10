@@ -168,7 +168,7 @@ export async function fileReport(
     if (row.was_inserted) {
       publish({
         type: 'moderation.reportFiled',
-        id: row.report_id,
+        id: `moderation.reportFiled.${row.report_id}`,
         payload: {
           reportId: row.report_id,
           reporterId: principal.userId,
@@ -461,7 +461,7 @@ export async function assignReport(
 
     publish({
       type: 'moderation.reportAssigned',
-      id: req.reportId,
+      id: `moderation.reportAssigned.${req.reportId}.${randomUUID()}`,
       payload: {
         reportId: req.reportId,
         moderatorId: req.moderatorId,
@@ -555,7 +555,7 @@ export async function resolveReport(
 
     publish({
       type: 'moderation.reportResolved',
-      id: req.reportId,
+      id: `moderation.reportResolved.${req.reportId}.${randomUUID()}`,
       payload: {
         reportId: req.reportId,
         resolvedBy: principal.userId,
@@ -639,7 +639,7 @@ export async function escalateReport(
 
     publish({
       type: 'moderation.reportEscalated',
-      id: req.reportId,
+      id: `moderation.reportEscalated.${req.reportId}.${randomUUID()}`,
       payload: {
         reportId: req.reportId,
         escalatedBy: principal.userId,

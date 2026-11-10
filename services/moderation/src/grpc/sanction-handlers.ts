@@ -119,7 +119,7 @@ export async function issueSanction(
 
     publish({
       type: 'moderation.sanctionIssued',
-      id: sanctionId,
+      id: `moderation.sanctionIssued.${sanctionId}`,
       payload: {
         sanctionId,
         userId: req.userId,
@@ -289,7 +289,7 @@ export async function appealSanction(
 
     publish({
       type: 'moderation.sanctionAppealed',
-      id: req.sanctionId,
+      id: `moderation.sanctionAppealed.${req.sanctionId}.${randomUUID()}`,
       payload: {
         sanctionId: req.sanctionId,
         userId: row.user_id,

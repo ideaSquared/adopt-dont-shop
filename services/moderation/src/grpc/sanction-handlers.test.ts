@@ -340,3 +340,30 @@ describe('appealSanction', () => {
     expect(res.sanction.appealStatus).toBe('pending');
   });
 });
+
+// JetStream drops a message whose Nats-Msg-Id repeats inside its dedupe
+// window, across subjects. Each logical event on a sanction needs its own id.
+describe('sanction event ids', () => {
+  const publishedId = (deps: HandlerDeps): unknown => {
+    const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
+    return (publish.mock.calls[0][0] as { id: unknown }).id;
+  };
+
+  it('gives the issued and appealed events on one sanction distinct ids', async () => {
+    const issued = makeDeps([{ rows: [sanctionRow()] }]);
+    await issueSanction(issued.deps, makePrincipal(), VALID_ISSUE);
+
+    const appealed = makeDeps([
+      { rows: [sanctionRow({ user_id: 'usr-2' })] },
+      { rows: [sanctionRow({ user_id: 'usr-2', appeal_status: 'pending' })] },
+    ]);
+    // Appeal the sanction that was just issued, so both events share an aggregate id.
+    const issuedSanctionId = issued.query.mock.calls[0][1][0] as string;
+    await appealSanction(appealed.deps, makePrincipal({ userId: 'usr-2' }), {
+      sanctionId: issuedSanctionId,
+      appealReason: 'provoked',
+    });
+
+    expect(publishedId(issued.deps)).not.toBe(publishedId(appealed.deps));
+  });
+});
