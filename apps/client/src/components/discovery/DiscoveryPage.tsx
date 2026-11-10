@@ -5,7 +5,7 @@ import {
   SwipeSession,
   discoveryService,
 } from '@/services';
-import { Container } from '@adopt-dont-shop/lib.components';
+import { Button, Container } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { loadDiscoveryState, recordViewedPet } from '@/utils/discoverySession';
@@ -444,9 +444,9 @@ export const DiscoveryPage: React.FC = () => {
               <TriangleAlert size='1em' />
             </div>
             <div className={styles.errorMessageText}>{error}</div>
-            <button className={styles.retryButton} onClick={retryLoading}>
+            <Button variant='primary' className={styles.retryButton} onClick={retryLoading}>
               Try Again
-            </button>
+            </Button>
           </div>
         ) : isQueueExhausted ? (
           <EndOfQueueEmptyState />
