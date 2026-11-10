@@ -853,6 +853,8 @@ export async function updatePet(
         rescueId: existing.rescue_id,
         type: updated.type,
         breed: storedBreedName(updated),
+        // Lets consumers keep only the latest edit when events arrive out of order.
+        version: updated.version,
       },
     });
   });

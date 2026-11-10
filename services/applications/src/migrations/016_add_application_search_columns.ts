@@ -10,7 +10,9 @@ import type { MigrationBuilder } from 'node-pg-migrate';
 //     answers (personalInfo); the projector rewrites them on every write,
 //     and this migration backfills them from the stored answers.
 //   - pet_type / pet_breed are stamped when the draft starts (StartDraft
-//     already fetches the pet) and rewritten from pets.updated events.
+//     already fetches the pet) and rewritten from pets.updated events;
+//     pet_version records the pet version last applied, so an older event
+//     that arrives late cannot overwrite a newer one.
 //     Existing rows are filled by the application-pet-search-fields job,
 //     since the pets data is in another schema.
 //
@@ -20,6 +22,7 @@ export const up = async (pgm: MigrationBuilder): Promise<void> => {
   pgm.addColumns('applications', {
     pet_type: { type: 'text' },
     pet_breed: { type: 'text' },
+    pet_version: { type: 'integer' },
     applicant_name: { type: 'text' },
     applicant_email: { type: 'text' },
   });
@@ -46,5 +49,11 @@ export const down = async (pgm: MigrationBuilder): Promise<void> => {
   pgm.dropIndex('applications', ['rescue_id', 'pet_type'], {
     name: 'applications_rescue_id_pet_type_idx',
   });
-  pgm.dropColumns('applications', ['pet_type', 'pet_breed', 'applicant_name', 'applicant_email']);
+  pgm.dropColumns('applications', [
+    'pet_type',
+    'pet_breed',
+    'pet_version',
+    'applicant_name',
+    'applicant_email',
+  ]);
 };

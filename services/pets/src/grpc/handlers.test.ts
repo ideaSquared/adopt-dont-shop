@@ -1088,6 +1088,7 @@ describe('updatePet', () => {
       petId: 'pet-1',
       type: 'cat',
       breed: 'Maine Coon',
+      version: 5,
     });
   });
 
