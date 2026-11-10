@@ -12,11 +12,11 @@ type AllProvidersProps = {
   children: React.ReactNode;
 };
 
-const createTestQueryClient = () =>
-  new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
-
+// A fresh QueryClient per render so cached responses never leak between tests.
 const AllProviders = ({ children }: AllProvidersProps) => {
-  const [queryClient] = useState(createTestQueryClient);
+  const [queryClient] = useState(
+    () => new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  );
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>

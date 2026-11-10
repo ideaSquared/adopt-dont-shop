@@ -1,5 +1,5 @@
 import React from 'react';
-import { Container, Spinner } from '@adopt-dont-shop/lib.components';
+import { Container, EmptyState, PageHeader, Spinner } from '@adopt-dont-shop/lib.components';
 import { useLegalDocument, renderLegalMarkdown } from '@adopt-dont-shop/lib.legal';
 import { SafeHtml } from '@/components/SafeHtml';
 
@@ -22,15 +22,15 @@ export const CookiesPage: React.FC = () => {
   if (isError || !data) {
     return (
       <Container>
-        <h1>Cookie Policy</h1>
-        <p>Content not found.</p>
+        <PageHeader title='Cookie Policy' />
+        <EmptyState title='Content not found.' />
       </Container>
     );
   }
 
   return (
     <Container>
-      <h1>Cookie Policy</h1>
+      <PageHeader title='Cookie Policy' />
       <SafeHtml html={renderLegalMarkdown(data.content)} />
     </Container>
   );

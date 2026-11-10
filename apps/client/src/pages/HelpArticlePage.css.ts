@@ -20,19 +20,6 @@ export const backLink = style({
   },
 });
 
-export const articleTitle = style({
-  fontSize: '2rem',
-  fontWeight: '700',
-  color: vars.text.primary,
-  margin: '0 0 2rem 0',
-  lineHeight: '1.3',
-  '@media': {
-    '(max-width: 768px)': {
-      fontSize: '1.6rem',
-    },
-  },
-});
-
 export const articleContent = style({
   color: vars.text.primary,
   lineHeight: '1.8',

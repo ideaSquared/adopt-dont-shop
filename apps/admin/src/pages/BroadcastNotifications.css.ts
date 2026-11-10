@@ -1,7 +1,5 @@
 import { style } from '@vanilla-extract/css';
 
-import { vars } from '@adopt-dont-shop/lib.components/theme';
-
 export const form = style({
   display: 'flex',
   flexDirection: 'column',
@@ -19,23 +17,4 @@ export const actions = style({
   display: 'flex',
   gap: '0.75rem',
   alignItems: 'center',
-});
-
-export const result = style({
-  marginTop: '1rem',
-  padding: '0.875rem 1rem',
-  border: `1px solid ${vars.colors.successBgSubtle}`,
-  background: '#ecfdf5',
-  borderRadius: '8px',
-  fontSize: '0.875rem',
-});
-
-export const error = style({
-  marginTop: '1rem',
-  padding: '0.875rem 1rem',
-  border: `1px solid ${vars.colors.dangerBorderSubtle}`,
-  background: vars.colors.dangerBgSubtle,
-  color: vars.colors.dangerTextEmphasis,
-  borderRadius: '8px',
-  fontSize: '0.875rem',
 });

@@ -28,29 +28,6 @@ export const featuredImage = style({
   marginBottom: '2rem',
 });
 
-export const postTitle = style({
-  fontSize: '2.5rem',
-  fontWeight: '700',
-  color: vars.text.primary,
-  margin: '0 0 1rem 0',
-  lineHeight: '1.3',
-  '@media': {
-    '(max-width: 768px)': {
-      fontSize: '1.8rem',
-    },
-  },
-});
-
-export const postMeta = style({
-  display: 'flex',
-  gap: '1rem',
-  color: vars.text.tertiary,
-  fontSize: '0.9rem',
-  marginBottom: '2.5rem',
-  paddingBottom: '1.5rem',
-  borderBottom: `1px solid ${vars.border.color.default}`,
-});
-
 export const postContent = style({
   color: vars.text.primary,
   lineHeight: '1.8',
@@ -100,10 +77,4 @@ export const spinnerWrapper = style({
   display: 'flex',
   justifyContent: 'center',
   padding: '4rem',
-});
-
-export const notFound = style({
-  textAlign: 'center',
-  padding: '4rem',
-  color: vars.text.tertiary,
 });

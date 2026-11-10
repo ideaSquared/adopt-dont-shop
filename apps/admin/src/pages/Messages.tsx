@@ -1,19 +1,21 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import {
-  Heading,
-  Text,
-  useConfirm,
-  ConfirmDialog,
-  toast,
-  MetricCard,
   Badge,
+  Button,
+  ConfirmDialog,
   DataTable,
+  ErrorState,
+  MetricCard,
+  PageHeader,
   SearchToolbar,
+  Stack,
+  toast,
+  useConfirm,
   type DataTableColumn,
 } from '@adopt-dont-shop/lib.components';
+import { formatCustomDate } from '@adopt-dont-shop/lib.utils';
 import { CircleAlert, CircleCheck, Eye, Flag, MessageSquare, Trash } from 'lucide-react';
-import { PageContainer, PageHeader, HeaderLeft } from '../components/ui';
 import {
   useAdminChats,
   useAdminChatStats,
@@ -124,10 +126,7 @@ const Messages: React.FC = () => {
     } else if (diffDays < 7) {
       return `${diffDays}d ago`;
     } else {
-      return date.toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: 'short',
-      });
+      return formatCustomDate(date, 'dd MMM');
     }
   };
 
@@ -320,8 +319,9 @@ const Messages: React.FC = () => {
         const chat = row as Conversation;
         return (
           <div className={styles.actionButtons}>
-            <button
-              className={styles.actionButton}
+            <Button
+              variant='outline'
+              size='sm'
               onClick={e => {
                 e.stopPropagation();
                 setSelectedChatId(chat.id);
@@ -330,23 +330,25 @@ const Messages: React.FC = () => {
               aria-label='View chat'
             >
               <Eye size='1em' aria-hidden />
-            </button>
-            <button
-              className={styles.actionButton}
+            </Button>
+            <Button
+              variant='outline'
+              size='sm'
               onClick={e => handleUpdateStatus(chat.id, 'archived', e)}
               title='Archive chat'
               aria-label='Archive chat'
             >
               <Flag size='1em' aria-hidden />
-            </button>
-            <button
-              className={styles.actionButton}
+            </Button>
+            <Button
+              variant='outline'
+              size='sm'
               onClick={e => handleDeleteChat(chat.id, e)}
               title='Delete chat'
               aria-label='Delete chat'
             >
               <Trash size='1em' aria-hidden />
-            </button>
+            </Button>
           </div>
         );
       },
@@ -354,13 +356,11 @@ const Messages: React.FC = () => {
   ];
 
   return (
-    <PageContainer>
-      <PageHeader>
-        <HeaderLeft>
-          <Heading level='h1'>Message Monitoring</Heading>
-          <Text>Platform messaging activity and oversight</Text>
-        </HeaderLeft>
-      </PageHeader>
+    <Stack spacing='lg'>
+      <PageHeader
+        title='Message Monitoring'
+        description='Platform messaging activity and oversight'
+      />
 
       <div className={styles.statsGrid}>
         <MetricCard
@@ -422,9 +422,10 @@ const Messages: React.FC = () => {
       />
 
       {chatsError && (
-        <div className={styles.errorBanner}>
-          Error loading chats: {chatsError instanceof Error ? chatsError.message : 'Unknown error'}
-        </div>
+        <ErrorState
+          size='sm'
+          title={`Error loading chats: ${chatsError instanceof Error ? chatsError.message : 'Unknown error'}`}
+        />
       )}
 
       <DataTable
@@ -450,7 +451,7 @@ const Messages: React.FC = () => {
       />
 
       <ConfirmDialog {...confirmProps} />
-    </PageContainer>
+    </Stack>
   );
 };
 

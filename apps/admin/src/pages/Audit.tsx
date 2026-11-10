@@ -2,17 +2,20 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import {
-  Heading,
-  Text,
-  Button,
+  Avatar,
   Badge,
+  Button,
   DataTable,
+  ErrorState,
+  Modal,
+  PageHeader,
   SearchToolbar,
+  Stack,
   type DataTableColumn,
   type FilterConfig,
 } from '@adopt-dont-shop/lib.components';
+import { formatCustomDate } from '@adopt-dont-shop/lib.utils';
 import { RefreshCw, Shield, SquarePen, Trash, User } from 'lucide-react';
-import { PageContainer, PageHeader, HeaderLeft } from '../components/ui';
 import { AuditLogsService, AuditLogStatus, type AuditLog } from '@adopt-dont-shop/lib.audit-logs';
 import * as styles from './Audit.css';
 
@@ -118,15 +121,6 @@ const Audit: React.FC = () => {
     }
   };
 
-  const getUserInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -139,12 +133,7 @@ const Audit: React.FC = () => {
     } else if (diffHours < 24) {
       return `${diffHours}h ago`;
     } else {
-      return date.toLocaleString('en-GB', {
-        day: '2-digit',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+      return formatCustomDate(date, 'dd MMM, HH:mm');
     }
   };
 
@@ -215,9 +204,11 @@ const Audit: React.FC = () => {
         const log = row as AuditLog;
         return (
           <div className={styles.userInfo}>
-            <div className={styles.userAvatar}>
-              {log.userName ? getUserInitials(log.userName) : 'NA'}
-            </div>
+            <Avatar
+              size='sm'
+              name={log.userName ?? undefined}
+              initials={log.userName ? undefined : 'NA'}
+            />
             <div>
               <div className={styles.userName}>{log.userName || 'System'}</div>
               <div className={styles.subUserType}>{log.userType || 'system'}</div>
@@ -235,15 +226,16 @@ const Audit: React.FC = () => {
       render: (_value, row) => {
         const log = row as AuditLog;
         return log.metadata?.details ? (
-          <button
-            className={styles.changesButton}
+          <Button
+            variant='outline'
+            size='sm'
             onClick={e => {
               e.stopPropagation();
               setSelectedLog(log);
             }}
           >
             View Details
-          </button>
+          </Button>
         ) : (
           <span className={styles.subUserType}>—</span>
         );
@@ -317,19 +309,17 @@ const Audit: React.FC = () => {
   ];
 
   return (
-    <PageContainer>
-      <PageHeader>
-        <HeaderLeft>
-          <Heading level='h1'>Audit Logs</Heading>
-          <Text>System activity tracking and security monitoring (Last 7 days)</Text>
-        </HeaderLeft>
-        <div className={styles.headerActions}>
+    <Stack spacing='lg'>
+      <PageHeader
+        title='Audit Logs'
+        description='System activity tracking and security monitoring (Last 7 days)'
+        actions={
           <Button variant='outline' size='md' onClick={() => refetch()} disabled={isLoading}>
             <RefreshCw size='1em' className={styles.buttonIcon} />
             Refresh
           </Button>
-        </div>
-      </PageHeader>
+        }
+      />
 
       <SearchToolbar
         searchValue={searchQuery}
@@ -341,9 +331,10 @@ const Audit: React.FC = () => {
       />
 
       {isError && (
-        <div className={styles.errorBanner}>
-          Error loading audit logs: {error instanceof Error ? error.message : 'Unknown error'}
-        </div>
+        <ErrorState
+          size='sm'
+          title={`Error loading audit logs: ${error instanceof Error ? error.message : 'Unknown error'}`}
+        />
       )}
 
       <DataTable
@@ -361,57 +352,44 @@ const Audit: React.FC = () => {
         onRowClick={row => setSelectedLog(row as AuditLog)}
       />
 
-      {selectedLog && (
-        <div
-          className={styles.modal}
-          onClick={() => setSelectedLog(null)}
-          onKeyDown={e => e.key === 'Escape' && setSelectedLog(null)}
-          role='presentation'
-        >
-          <div
-            className={styles.modalContent}
-            onClick={e => e.stopPropagation()}
-            onKeyDown={e => e.stopPropagation()}
-            role='presentation'
-          >
-            <div className={styles.modalHeader}>
-              <h3 className={styles.modalTitle}>Audit Log Details</h3>
-              <button className={styles.closeButton} onClick={() => setSelectedLog(null)}>
-                ×
-              </button>
-            </div>
-            <pre className={styles.jsonBlock}>
-              {JSON.stringify(
-                {
-                  id: selectedLog.id,
-                  action: selectedLog.action,
-                  level: selectedLog.level,
-                  status: selectedLog.status,
-                  timestamp: selectedLog.timestamp,
-                  user: {
-                    id: selectedLog.user,
-                    name: selectedLog.userName,
-                    email: selectedLog.userEmail,
-                    type: selectedLog.userType,
-                  },
-                  entity: {
-                    category: selectedLog.category,
-                    entityId: selectedLog.metadata?.entityId,
-                  },
-                  details: selectedLog.metadata?.details || null,
-                  network: {
-                    ipAddress: selectedLog.ip_address,
-                    userAgent: selectedLog.user_agent,
-                  },
+      <Modal
+        isOpen={selectedLog !== null}
+        onClose={() => setSelectedLog(null)}
+        title='Audit Log Details'
+        size='lg'
+      >
+        {selectedLog && (
+          <pre className={styles.jsonBlock}>
+            {JSON.stringify(
+              {
+                id: selectedLog.id,
+                action: selectedLog.action,
+                level: selectedLog.level,
+                status: selectedLog.status,
+                timestamp: selectedLog.timestamp,
+                user: {
+                  id: selectedLog.user,
+                  name: selectedLog.userName,
+                  email: selectedLog.userEmail,
+                  type: selectedLog.userType,
                 },
-                null,
-                2
-              )}
-            </pre>
-          </div>
-        </div>
-      )}
-    </PageContainer>
+                entity: {
+                  category: selectedLog.category,
+                  entityId: selectedLog.metadata?.entityId,
+                },
+                details: selectedLog.metadata?.details || null,
+                network: {
+                  ipAddress: selectedLog.ip_address,
+                  userAgent: selectedLog.user_agent,
+                },
+              },
+              null,
+              2
+            )}
+          </pre>
+        )}
+      </Modal>
+    </Stack>
   );
 };
 

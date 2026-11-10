@@ -3,14 +3,15 @@ import { useNavigate, useParams, useSearchParams } from 'react-router';
 import {
   DataTable,
   type DataTableColumn,
-  Heading,
-  Text,
-  useToast,
-  Toast,
-  ToastContainer,
-  type ToastMessage,
+  ErrorState,
+  PageHeader,
+  SearchToolbar,
+  Stack,
+  StatusBadge,
+  toast,
   useFilterParamSetter,
 } from '@adopt-dont-shop/lib.components';
+import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import {
   useApplications,
   useApplicationById,
@@ -25,25 +26,12 @@ import * as styles from './Applications.css';
 
 type BulkApplicationActionType = 'approve' | 'reject';
 
-const getStatusBadge = (status: ApplicationStatus) => {
-  switch (status) {
-    case 'approved':
-      return <span className={styles.badgeSuccess}>Approved</span>;
-    case 'rejected':
-      return <span className={styles.badgeDanger}>Rejected</span>;
-    case 'withdrawn':
-      return <span className={styles.badgeNeutral}>Withdrawn</span>;
-    default:
-      return <span className={styles.badgeWarning}>Submitted</span>;
-  }
+const STATUS_LABELS: Record<ApplicationStatus, string> = {
+  submitted: 'Submitted',
+  approved: 'Approved',
+  rejected: 'Rejected',
+  withdrawn: 'Withdrawn',
 };
-
-const formatDate = (dateString: string) =>
-  new Date(dateString).toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
 
 const VALID_STATUS_FILTERS: ReadonlySet<string> = new Set([
   'submitted',
@@ -56,7 +44,6 @@ const Applications: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { applicationId } = useParams<{ applicationId?: string }>();
   const navigate = useNavigate();
-  const { toasts, showToast, hideToast } = useToast();
 
   const statusParam = searchParams.get('status');
   const statusFilter = statusParam && VALID_STATUS_FILTERS.has(statusParam) ? statusParam : 'all';
@@ -106,8 +93,8 @@ const Applications: React.FC = () => {
     }
     const search = searchParams.toString();
     navigate(search ? `/applications?${search}` : '/applications', { replace: true });
-    showToast('Application not found', 'error');
-  }, [applicationId, applicationById.isError, navigate, searchParams, showToast]);
+    toast.error('Application not found');
+  }, [applicationId, applicationById.isError, navigate, searchParams]);
 
   const handleRowClick = (app: AdminApplication): void => {
     const search = searchParams.toString();
@@ -186,30 +173,30 @@ const Applications: React.FC = () => {
       label: 'Status',
       width: '130px',
       sortable: false,
-      render: (_value, row) => getStatusBadge((row as AdminApplication).status),
+      render: (_value, row) => {
+        const { status } = row as AdminApplication;
+        // Anything other than the three terminal states reads as "Submitted".
+        return <StatusBadge kind='application' status={status} label={STATUS_LABELS[status]} />;
+      },
     },
     {
       key: 'createdAt',
       label: 'Submitted',
       width: '120px',
       sortable: false,
-      render: (_value, row) => formatDate((row as AdminApplication).createdAt),
+      render: (_value, row) => formatDisplayDate((row as AdminApplication).createdAt),
     },
   ];
 
   return (
-    <div className={styles.pageContainer}>
-      <div className={styles.pageHeader}>
-        <div className={styles.headerLeft}>
-          <Heading level='h1'>Application Management</Heading>
-          <Text>Browse and manage all adoption applications</Text>
-        </div>
-      </div>
+    <Stack spacing='lg'>
+      <PageHeader
+        title='Application Management'
+        description='Browse and manage all adoption applications'
+      />
 
       {error instanceof Error && (
-        <div className={styles.errorMessage} role='alert'>
-          Failed to load applications: {error.message}
-        </div>
+        <ErrorState size='sm' title='Failed to load applications' message={error.message} />
       )}
 
       <EntityDetailLayout
@@ -217,44 +204,40 @@ const Applications: React.FC = () => {
         onBack={handleCloseDetail}
         list={
           <>
-            <div className={styles.filterBar}>
-              <div className={styles.filterGroup}>
-                <label className={styles.filterLabel} htmlFor='apps-status-filter'>
-                  Status
-                </label>
-                <select
-                  id='apps-status-filter'
-                  className={styles.select}
-                  value={statusFilter}
-                  onChange={e => setFilterParam('status', e.target.value)}
-                >
-                  <option value='all'>All Statuses</option>
-                  <option value='submitted'>Submitted</option>
-                  <option value='approved'>Approved</option>
-                  <option value='rejected'>Rejected</option>
-                  <option value='withdrawn'>Withdrawn</option>
-                </select>
-              </div>
-
-              <div className={styles.filterGroup}>
-                <label className={styles.filterLabel} htmlFor='apps-rescue-filter'>
-                  Rescue
-                </label>
-                <select
-                  id='apps-rescue-filter'
-                  className={styles.select}
-                  value={rescueFilter}
-                  onChange={e => setRescueFilter(e.target.value)}
-                >
-                  <option value='all'>All Rescues</option>
-                  {rescuesList?.data.map(rescue => (
-                    <option key={rescue.rescueId} value={rescue.rescueId}>
-                      {rescue.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+            <SearchToolbar
+              filterConfig={[
+                {
+                  name: 'status',
+                  label: 'Status',
+                  type: 'select',
+                  options: [
+                    { value: 'all', label: 'All Statuses' },
+                    { value: 'submitted', label: 'Submitted' },
+                    { value: 'approved', label: 'Approved' },
+                    { value: 'rejected', label: 'Rejected' },
+                    { value: 'withdrawn', label: 'Withdrawn' },
+                  ],
+                },
+                {
+                  name: 'rescue',
+                  label: 'Rescue',
+                  type: 'select',
+                  options: [
+                    { value: 'all', label: 'All Rescues' },
+                    ...(rescuesList?.data.map(rescue => ({
+                      value: rescue.rescueId,
+                      label: rescue.name,
+                    })) ?? []),
+                  ],
+                },
+              ]}
+              filters={{ status: statusFilter, rescue: rescueFilter }}
+              onFilterChange={(name, value) =>
+                name === 'status'
+                  ? setFilterParam('status', String(value))
+                  : setRescueFilter(String(value))
+              }
+            />
 
             <BulkActionToolbar
               selectedCount={selectedRows.size}
@@ -335,13 +318,7 @@ const Applications: React.FC = () => {
         resultSummary={bulkResult}
         failedIds={bulkFailedIds}
       />
-
-      <ToastContainer position='top-right'>
-        {toasts.map((toast: ToastMessage) => (
-          <Toast key={toast.id} {...toast} onClose={hideToast} position='top-right' />
-        ))}
-      </ToastContainer>
-    </div>
+    </Stack>
   );
 };
 

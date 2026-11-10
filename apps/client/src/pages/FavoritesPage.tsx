@@ -1,8 +1,16 @@
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { petService, Pet } from '@/services';
-import { Alert, Container, EmptyState, ErrorState } from '@adopt-dont-shop/lib.components';
+import type { Pet } from '@/services';
+import {
+  Alert,
+  Container,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+} from '@adopt-dont-shop/lib.components';
+import { useQueryClient } from '@tanstack/react-query';
+import { FAVORITE_PETS_QUERY_KEY, useFavoritePets } from '@/hooks/useFavoritePets';
 import { PetCardSkeletonGrid } from '@/components/skeletons';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { PetCard } from '../components/PetCard';
 import { useFavorites } from '../contexts/FavoritesContext';
@@ -12,34 +20,15 @@ export const FavoritesPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const favoritesContext = useFavorites();
-  const [favorites, setFavorites] = useState<Pet[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const loadFavorites = useCallback(async () => {
-    if (!isAuthenticated) {
-      setLoading(false);
-      setFavorites([]);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      const favoritePets = await petService.getFavorites();
-      setFavorites(favoritePets);
-    } catch (err) {
-      console.error('Failed to fetch favorites:', err);
-      setError('Failed to load your favorite pets. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    loadFavorites();
-  }, [loadFavorites]);
+  const favoritesQuery = useFavoritePets(isAuthenticated);
+  const favorites = favoritesQuery.data ?? [];
+  const loading = favoritesQuery.isLoading;
+  const error = favoritesQuery.isError
+    ? 'Failed to load your favorite pets. Please try again.'
+    : null;
 
   // ADS UX P0 #1: when an un-favorite API call fails, PetCard keeps the pet
   // in its internal state and surfaces the failure via FavoritesContext.error.
@@ -60,7 +49,9 @@ export const FavoritesPage: React.FC = () => {
       // If the underlying call had failed, the callback would not fire and
       // the pet would stay in the list (with FavoritesContext.error
       // surfacing the failure via the effect above).
-      setFavorites(prev => prev.filter(pet => pet.pet_id !== petId));
+      queryClient.setQueryData<Pet[]>(FAVORITE_PETS_QUERY_KEY, prev =>
+        prev?.filter(pet => pet.pet_id !== petId)
+      );
       setActionError(null);
     }
   };
@@ -85,13 +76,10 @@ export const FavoritesPage: React.FC = () => {
 
   return (
     <Container className={styles.pageContainer}>
-      <div className={styles.header}>
-        <h1>Your Favorite Pets</h1>
-        <p>
-          Keep track of the pets that caught your heart. Your favorites are saved and synced across
-          all your devices.
-        </p>
-      </div>
+      <PageHeader
+        title='Your Favorite Pets'
+        description='Keep track of the pets that caught your heart. Your favorites are saved and synced across all your devices.'
+      />
 
       {/* Show stats if user has favorites */}
       {!loading && favorites.length > 0 && (
@@ -123,7 +111,7 @@ export const FavoritesPage: React.FC = () => {
       )}
 
       {/* Error state */}
-      {error && <ErrorState message={error} onRetry={loadFavorites} />}
+      {error && <ErrorState message={error} onRetry={() => void favoritesQuery.refetch()} />}
 
       {/* Action error (e.g. an un-favorite call failed) */}
       {actionError && !error && (
