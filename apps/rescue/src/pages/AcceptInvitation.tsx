@@ -71,7 +71,9 @@ const AcceptInvitation: React.FC = () => {
   const error = submitError ?? loadError;
 
   const acceptMutation = useMutation({
-    mutationFn: invitationService.acceptInvitation,
+    // Call as a method: the service reads `this`, so it cannot be passed unbound.
+    mutationFn: (payload: Parameters<typeof invitationService.acceptInvitation>[0]) =>
+      invitationService.acceptInvitation(payload),
     // Failures show in the page's own error alert.
     onError: () => undefined,
   });
