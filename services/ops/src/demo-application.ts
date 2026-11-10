@@ -26,6 +26,7 @@ import {
 } from './demo-rescue.js';
 import { OpsError } from './errors.js';
 import type { CallDownstream, DownstreamStep, JsonObject } from './registry.js';
+import { createDemoAdopter } from './demo-accounts.js';
 
 // `pnpm ops demo create-application` / `delete-application`: a demo adopter and
 // an adoption application from them, for testing the rescue review flow in dev
@@ -218,53 +219,6 @@ const versionOf = (res: JsonObject): number => {
   return typeof version === 'number' ? version : 0;
 };
 
-// TEMPORARY: a minimal local "create a demo adopter" (sign-up, find, activate).
-// Replace with the shared create-demo-adopter function when the demo commands
-// are merged.
-const createDemoAdopterLocal = async (
-  call: CallDownstream
-): Promise<{ userId: string; email: string; password: string }> => {
-  const email = `demo-${randomString(ALPHANUMERIC, 10)}@example.com`;
-  const password = generatePassword();
-
-  // Register is enumeration-safe: it returns no user, so the id is looked up.
-  await call(
-    'auth.Register',
-    {
-      email,
-      password,
-      firstName: 'Demo',
-      lastName: 'Adopter',
-      termsAccepted: true,
-      privacyPolicyAccepted: true,
-    },
-    { permissions: [] }
-  );
-  const found = await call(
-    'auth.SearchUsers',
-    { search: email, limit: 10 },
-    { permissions: [ADMIN_USERS_SEARCH] }
-  );
-  const userId = str(arrayAt(found, 'users').find(u => u.email === email)?.userId);
-  if (userId === undefined) {
-    throw new OpsError(
-      'ALREADY_EXISTS',
-      'auth.Register created no adopter account (the generated email is already in use)',
-      'Run the command again; it generates a new address each time.'
-    );
-  }
-  await withCleanup(
-    `Already created: adopter user ${userId}. Deactivate it with \`pnpm ops auth deactivate-user ${userId}\`.`,
-    () =>
-      call(
-        'auth.AdminUpdateUser',
-        { userId, status: 'USER_STATUS_ACTIVE', emailVerified: true },
-        { permissions: [ADMIN_USERS_UPDATE] }
-      )
-  );
-  return { userId, email, password };
-};
-
 export const createDemoApplication = async (
   request: JsonObject,
   call: CallDownstream
@@ -281,8 +235,8 @@ export const createDemoApplication = async (
     { permissions: [APPLICATIONS_VIEW], rescueId }
   );
 
-  const adopter = await createDemoAdopterLocal(call);
-  const deactivate = `Already created: adopter user ${adopter.userId}. Deactivate it with \`pnpm ops auth deactivate-user ${adopter.userId}\`.`;
+  const adopter = await createDemoAdopter(call);
+  const deactivate = `Already created: adopter user ${adopter.userId}. Remove it with \`pnpm ops demo delete-adopter ${adopter.userId}\`.`;
   const asAdopter = (permissions: readonly Permission[]) => ({
     permissions,
     actingUserId: adopter.userId,
@@ -303,7 +257,7 @@ export const createDemoApplication = async (
       deactivate
     );
   }
-  const draftCleanup = `Already created: adopter user ${adopter.userId} and a draft application ${applicationId} (a draft cannot be withdrawn by staff). Deactivate the adopter with \`pnpm ops auth deactivate-user ${adopter.userId}\`.`;
+  const draftCleanup = `Already created: adopter user ${adopter.userId} and a draft application ${applicationId} (a draft cannot be withdrawn by staff). Remove the adopter with \`pnpm ops demo delete-adopter ${adopter.userId}\`.`;
 
   const saved = await withCleanup(draftCleanup, () =>
     call(

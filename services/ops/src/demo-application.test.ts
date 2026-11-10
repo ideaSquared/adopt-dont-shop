@@ -397,7 +397,7 @@ describe('demo create-application', () => {
     expect(h.grpc.calls.map(c => c.rpc)).not.toContain('applications.Approve');
   });
 
-  it('points at deactivating the adopter when it fails before the submit', async () => {
+  it('points at removing the adopter when it fails before the submit', async () => {
     const h = await setup({
       grpc: createScript({
         'applications.SubmitDraft': () => {
@@ -406,7 +406,7 @@ describe('demo create-application', () => {
       }),
     });
     const res = await h.previewThenExecute('demo.CreateApplication', { rescueId: RESCUE_ID });
-    expect(errorOf(res).hint).toContain(`pnpm ops auth deactivate-user ${ADOPTER_ID}`);
+    expect(errorOf(res).hint).toContain(`pnpm ops demo delete-adopter ${ADOPTER_ID}`);
   });
 
   it('fails when the generated email already has an account', async () => {
@@ -417,7 +417,7 @@ describe('demo create-application', () => {
     });
     const res = await h.previewThenExecute('demo.CreateApplication', { rescueId: RESCUE_ID });
     expect(res.statusCode).toBeGreaterThanOrEqual(400);
-    expect(errorOf(res).message).toContain('adopter account');
+    expect(errorOf(res).message).toContain('created no account');
     expect(h.grpc.calls.map(c => c.rpc)).not.toContain('applications.StartDraft');
   });
 });
