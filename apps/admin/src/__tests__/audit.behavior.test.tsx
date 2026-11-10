@@ -146,7 +146,7 @@ describe('Audit page', () => {
 
     expect(screen.getByText('Audit Log Details')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: '×' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Close modal' }));
 
     await waitFor(() => expect(screen.queryByText('Audit Log Details')).not.toBeInTheDocument());
   });

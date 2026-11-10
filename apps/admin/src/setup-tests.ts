@@ -599,8 +599,44 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     );
     return React.createElement(React.Fragment, null, table, pager);
   },
-  Modal: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
-    React.createElement('div', props, children),
+  // Mirrors the real Modal's accessible output: nothing when closed; otherwise a
+  // labelled dialog with its title, a "Close modal" button, the body and footer.
+  Modal: ({
+    isOpen,
+    onClose,
+    title,
+    children,
+    header,
+    footer,
+    showCloseButton = true,
+    'data-testid': testId,
+  }: {
+    isOpen: boolean;
+    onClose: () => void;
+    title?: string;
+    children?: React.ReactNode;
+    header?: React.ReactNode;
+    footer?: React.ReactNode;
+    showCloseButton?: boolean;
+    'data-testid'?: string;
+    [k: string]: unknown;
+  }) =>
+    isOpen
+      ? React.createElement(
+          'div',
+          { role: 'dialog', 'aria-modal': 'true', 'aria-label': title, 'data-testid': testId },
+          header ?? (title ? React.createElement('h2', null, title) : null),
+          children,
+          showCloseButton
+            ? React.createElement(
+                'button',
+                { type: 'button', onClick: onClose, 'aria-label': 'Close modal' },
+                '×'
+              )
+            : null,
+          footer
+        )
+      : null,
   // Shared app-shell components: pass-through boundary, minimal 404.
   ErrorBoundary: ({ children }: { children?: React.ReactNode }) => children,
   NotFoundPage: () => React.createElement('h1', null, '404'),
@@ -642,6 +678,18 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
         { key: 'text' },
         ...Array.from({ length: lines as number }, (_, i) => React.createElement('div', { key: i }))
       )
+    ),
+  Avatar: ({ name = '', initials }: { name?: string; initials?: string }) =>
+    React.createElement(
+      'span',
+      null,
+      initials ??
+        name
+          .split(' ')
+          .map(part => part[0])
+          .join('')
+          .toUpperCase()
+          .slice(0, 2)
     ),
   DateTime: ({ value }: { value: string }) => React.createElement('span', null, value),
   // ADS-1079: shared MetricCard now backs the admin stat tiles (Analytics,
