@@ -18,23 +18,30 @@ export const section = style({
   borderRadius: vars.border.radius.lg,
   padding: vars.spacing['5'],
   marginBottom: vars.spacing['5'],
+  '@media': {
+    '(max-width: 768px)': {
+      padding: vars.spacing['4'],
+      marginBottom: vars.spacing['4'],
+    },
+  },
 });
 
 export const sectionTitle = style({
   fontSize: vars.typography.size['2xl'],
   color: vars.text.primary,
-  marginBottom: vars.spacing['3'],
+  margin: `0 0 ${vars.spacing['4']} 0`,
 });
 
 export const profileInfo = style({
-  display: 'grid',
-  gap: vars.spacing['3'],
+  display: 'flex',
+  flexDirection: 'column',
 });
 
 export const infoItem = style({
   display: 'flex',
   justifyContent: 'space-between',
-  alignItems: 'center',
+  alignItems: 'baseline',
+  gap: vars.spacing['4'],
   padding: `${vars.spacing['3']} 0`,
   borderBottom: `1px solid ${vars.border.color.default}`,
   selectors: {
@@ -51,11 +58,13 @@ export const infoLabel = style({
 
 export const infoValue = style({
   color: vars.text.primary,
+  textAlign: 'right',
+  overflowWrap: 'anywhere',
 });
 
 export const applicationsGrid = style({
   display: 'grid',
-  gap: vars.spacing['3'],
+  gap: vars.spacing['4'],
 });
 
 export const applicationCard = style({
@@ -78,18 +87,19 @@ export const applicationCard = style({
 export const applicationInfo = style({});
 
 globalStyle(`${applicationInfo} h3`, {
-  fontSize: '1.1rem',
+  fontSize: vars.typography.size.lg,
   color: vars.text.primary,
-  marginBottom: vars.spacing['2'],
+  margin: `0 0 ${vars.spacing['2']} 0`,
 });
 
 globalStyle(`${applicationInfo} p`, {
   color: vars.text.tertiary,
   fontSize: vars.typography.size.sm,
+  margin: `0 0 ${vars.spacing['1']} 0`,
 });
 
 export const sectionGap = style({
-  marginBottom: vars.spacing['3'],
+  marginBottom: vars.spacing['4'],
 });
 
 export const sectionTopGap = style({

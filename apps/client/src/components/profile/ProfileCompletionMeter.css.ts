@@ -6,8 +6,8 @@ export const meter = style({
   flexDirection: 'column',
   gap: vars.spacing['2'],
   padding: '0.75rem 1rem',
-  background: '#ffffff',
-  border: '1px solid #dee2e6',
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: vars.border.radius.lg,
   margin: `0 0 ${vars.spacing['3']} 0`,
 });
@@ -20,18 +20,18 @@ export const header = style({
 
 export const headerLabel = style({
   fontWeight: vars.typography.weight.semibold,
-  color: '#333',
+  color: vars.text.primary,
 });
 
 export const dismissButton = style({
   background: 'transparent',
   border: 'none',
   fontSize: vars.typography.size.xl,
-  color: '#6c757d',
+  color: vars.text.secondary,
   cursor: 'pointer',
   padding: `0 ${vars.spacing['1']}`,
   lineHeight: 1,
-  ':hover': { color: '#333' },
+  ':hover': { color: vars.text.primary },
 });
 
 export const segments = style({
@@ -54,17 +54,17 @@ const segmentBase = {
 
 export const segmentDone = style({
   ...segmentBase,
-  background: '#e9f7f6',
-  color: '#1f7a73',
-  ':hover': { background: '#d6f0ee' },
+  background: vars.colors.primaryBgSubtle,
+  color: vars.colors.primaryTextEmphasis,
+  ':hover': { background: vars.colors.primaryBorderSubtle },
 });
 
 export const segmentTodo = style({
   ...segmentBase,
-  background: '#f8f9fa',
-  color: '#333',
-  border: '1px dashed #adb5bd',
-  ':hover': { background: '#e9ecef' },
+  background: vars.background.muted,
+  color: vars.text.primary,
+  border: `1px dashed ${vars.border.color.strong}`,
+  ':hover': { background: vars.background.surface },
 });
 
 export const segmentLabel = style({
@@ -81,8 +81,8 @@ export const celebration = style({
   alignItems: 'center',
   gap: '0.75rem',
   padding: vars.spacing['3'],
-  background: 'linear-gradient(135deg, #4ecdc4 0%, #45b7b8 100%)',
-  color: 'white',
+  background: vars.colors.gradientBrand,
+  color: vars.text.inverse,
   borderRadius: vars.border.radius.lg,
   margin: `0 0 ${vars.spacing['3']} 0`,
 });
@@ -110,7 +110,7 @@ export const celebrationSubtitle = style({
 export const celebrationClose = style({
   background: 'transparent',
   border: 'none',
-  color: 'white',
+  color: 'inherit',
   fontSize: vars.typography.size['2xl'],
   cursor: 'pointer',
   padding: `0 ${vars.spacing['2']}`,

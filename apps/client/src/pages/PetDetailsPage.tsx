@@ -269,8 +269,8 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
       // snaps back and the user assumes the save succeeded.
       toast.error(
         isFavorite
-          ? 'Could not remove from favorites. Please try again.'
-          : 'Could not save to favorites. Please try again.',
+          ? 'Could not remove from favourites. Please try again.'
+          : 'Could not save to favourites. Please try again.',
         { action: { label: 'Retry', onClick: handleFavoriteToggle } }
       );
     }
@@ -502,7 +502,7 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
                   />
                 }
               >
-                {isFavorite ? 'Favorited' : 'Add to Favorites'}
+                {isFavorite ? 'Favourited' : 'Add to Favourites'}
               </Button>
             )}
           </>

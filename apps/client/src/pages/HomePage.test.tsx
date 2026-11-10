@@ -7,10 +7,14 @@ import userEvent from '@testing-library/user-event';
 import { render, screen } from '@/test-utils/render';
 
 const getFeaturedPetsMock = vi.fn();
+const getRecentPetsMock = vi.fn();
 const trackEventMock = vi.fn();
 
 vi.mock('@/services', () => ({
-  petService: { getFeaturedPets: (...args: unknown[]) => getFeaturedPetsMock(...args) },
+  petService: {
+    getFeaturedPets: (...args: unknown[]) => getFeaturedPetsMock(...args),
+    getRecentPets: (...args: unknown[]) => getRecentPetsMock(...args),
+  },
 }));
 
 vi.mock('@adopt-dont-shop/lib.auth', async () => {
@@ -80,5 +84,23 @@ describe('HomePage featured pets', () => {
 
     await user.click(screen.getByRole('button', { name: /try again/i }));
     expect(await screen.findByText('Buddy')).toBeInTheDocument();
+  });
+
+  it('falls back to the newest pets when none are featured', async () => {
+    getFeaturedPetsMock.mockResolvedValue([]);
+    getRecentPetsMock.mockResolvedValue([{ pet_id: 'p-9', name: 'Newbie' }]);
+
+    render(<HomePage />);
+
+    expect(await screen.findByText('Newbie')).toBeInTheDocument();
+  });
+
+  it('shows an empty state when there are no pets at all', async () => {
+    getFeaturedPetsMock.mockResolvedValue([]);
+    getRecentPetsMock.mockResolvedValue([]);
+
+    render(<HomePage />);
+
+    expect(await screen.findByText(/no pets listed right now/i)).toBeInTheDocument();
   });
 });

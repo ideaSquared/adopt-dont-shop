@@ -276,11 +276,11 @@ test.describe('client browsing journeys', () => {
     await expect(petCardLocator(page).filter({ hasText: name })).toBeVisible({ timeout: 20_000 });
 
     await page.goto(`/pets/${petId}`);
-    await page.getByRole('button', { name: /favorited/i }).click();
-    await expect(page.getByRole('button', { name: /add to favorites/i })).toBeVisible();
+    await page.getByRole('button', { name: /favou?rited/i }).click();
+    await expect(page.getByRole('button', { name: /add to favou?rites/i })).toBeVisible();
 
     await page.reload();
-    await expect(page.getByRole('button', { name: /add to favorites/i })).toBeVisible({
+    await expect(page.getByRole('button', { name: /add to favou?rites/i })).toBeVisible({
       timeout: 20_000,
     });
     await page.goto('/favorites');

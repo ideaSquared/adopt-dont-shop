@@ -7,6 +7,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router';
 import { ThemeProvider } from '@adopt-dont-shop/lib.components';
 
@@ -61,6 +62,7 @@ const renderPage = (initialEntry = '/notifications') =>
         <Routes>
           <Route path='/notifications' element={<NotificationsPage />} />
           <Route path='/login' element={<div data-testid='login-page'>Login</div>} />
+          <Route path='/applications/:id' element={<div data-testid='application-page' />} />
         </Routes>
       </MemoryRouter>
     </ThemeProvider>
@@ -125,5 +127,44 @@ describe('NotificationsPage timestamps', () => {
     ];
     renderPage();
     expect(screen.getByText('5 Mar 2024')).toBeInTheDocument();
+  });
+});
+
+describe('NotificationsPage clicking a notification', () => {
+  const unread = {
+    id: 'n1',
+    title: 'Application update',
+    message: 'Your application moved forward',
+    createdAt: '2024-03-05T10:00:00Z',
+    readAt: null,
+    actionUrl: '/applications/app-1',
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockIsAuthenticated.value = true;
+    notificationsStateMock.isLoading = false;
+  });
+
+  it('marks an unread notification as read and opens its link', async () => {
+    notificationsStateMock.notifications = [unread];
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: /application update/i }));
+
+    expect(notificationsStateMock.markAsRead).toHaveBeenCalledWith('n1');
+    expect(screen.getByTestId('application-page')).toBeInTheDocument();
+  });
+
+  it('stays on the page and does not re-mark a read notification without a link', async () => {
+    notificationsStateMock.notifications = [
+      { ...unread, readAt: '2024-03-06T10:00:00Z', actionUrl: undefined },
+    ];
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: /application update/i }));
+
+    expect(notificationsStateMock.markAsRead).not.toHaveBeenCalled();
+    expect(screen.getByRole('heading', { name: /^notifications$/i })).toBeInTheDocument();
   });
 });

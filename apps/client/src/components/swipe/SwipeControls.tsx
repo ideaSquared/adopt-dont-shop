@@ -75,7 +75,7 @@ export const SwipeControls: React.FC<SwipeControlsProps> = ({
         onClick={() => handleAction('like')}
         disabled={disabled}
         aria-label='Like this pet'
-        title='Like — add to favorites'
+        title='Like — add to favourites'
         type='button'
       >
         <span className={styles.buttonIcon}>

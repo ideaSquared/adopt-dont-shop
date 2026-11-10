@@ -17,15 +17,15 @@ export const title = style({
 });
 
 export const subtitle = style({
-  margin: '0 0 1.25rem 0',
-  fontSize: '0.9375rem',
+  margin: `0 0 ${vars.spacing['4']} 0`,
+  fontSize: vars.typography.size.sm,
   color: vars.text.secondary,
 });
 
 export const grid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-  gap: '0.75rem',
+  gap: vars.spacing['3'],
   '@media': {
     '(max-width: 640px)': {
       gridTemplateColumns: '1fr',
@@ -37,8 +37,8 @@ export const statusPill = recipe({
   base: {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '0.375rem',
-    padding: '0.625rem 0.875rem',
+    gap: vars.spacing['2'],
+    padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
     borderRadius: vars.border.radius.base,
     fontSize: vars.typography.size.sm,
     color: vars.text.primary,
@@ -63,8 +63,8 @@ export const icon = style({
 });
 
 export const emptyHint = style({
-  margin: '0.75rem 0 0 0',
-  fontSize: '0.8125rem',
+  margin: `${vars.spacing['3']} 0 0 0`,
+  fontSize: vars.typography.size.sm,
   color: vars.text.secondary,
   fontStyle: 'italic',
 });

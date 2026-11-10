@@ -142,9 +142,17 @@ export const orLabel = style({
   },
 });
 
+// 2.5rem matches the Input control's md height, so the buttons line up with the
+// Location field beside them. '&&' outranks the Button size class.
 export const locationButton = style({
   whiteSpace: 'nowrap',
-  minHeight: '42px',
+  selectors: {
+    '&&': {
+      boxSizing: 'border-box',
+      height: '2.5rem',
+      minHeight: '2.5rem',
+    },
+  },
 });
 
 export const locationHint = style({

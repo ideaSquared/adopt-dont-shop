@@ -136,7 +136,7 @@ describe('FavoritesPage load states (C6)', () => {
 
     render(<FavoritesPage />);
 
-    expect(await screen.findByText(/failed to load your favorite pets/i)).toBeInTheDocument();
+    expect(await screen.findByText(/failed to load your favourite pets/i)).toBeInTheDocument();
 
     // Retrying re-runs the fetch; this time it succeeds and the pet renders.
     getFavoritesMock.mockResolvedValueOnce([pet]);
@@ -154,7 +154,7 @@ describe('FavoritesPage load states (C6)', () => {
 
     render(<FavoritesPage />);
 
-    expect(await screen.findByText(/no favorites yet/i)).toBeInTheDocument();
+    expect(await screen.findByText(/no favourites yet/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /start swiping/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /browse all pets/i })).toBeInTheDocument();
   });

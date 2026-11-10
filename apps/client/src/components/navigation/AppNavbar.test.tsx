@@ -80,7 +80,7 @@ describe('AppNavbar', () => {
 
     it('does not show Favorites / Messages / Notifications / user menu', () => {
       renderWithProviders(<AppNavbar />);
-      expect(screen.queryByRole('link', { name: /favorites/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: /favourites/i })).not.toBeInTheDocument();
       expect(screen.queryByRole('link', { name: /messages/i })).not.toBeInTheDocument();
       expect(screen.queryByRole('link', { name: /notifications/i })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /user menu/i })).not.toBeInTheDocument();
@@ -120,7 +120,7 @@ describe('AppNavbar', () => {
       renderWithProviders(<AppNavbar />);
       expect(screen.getByRole('link', { name: /discover/i })).toHaveAttribute('href', '/discover');
       expect(screen.getByRole('link', { name: /search/i })).toHaveAttribute('href', '/search');
-      expect(screen.getByRole('link', { name: /favorites/i })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: /favourites/i })).toHaveAttribute(
         'href',
         '/favorites'
       );

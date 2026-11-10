@@ -1,11 +1,10 @@
 import React from 'react';
-import { Navigate } from 'react-router';
+import { Navigate, useNavigate } from 'react-router';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useNotifications } from '@/contexts/NotificationsContext';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import {
   Button,
-  Card,
   EmptyState,
   PageHeader,
   QueryBoundary,
@@ -19,6 +18,7 @@ export const NotificationsPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const { notifications, unreadCount, markAsRead, markAllAsRead, isLoading } = useNotifications();
   const { trackPageView, trackEvent } = useAnalytics();
+  const navigate = useNavigate();
 
   React.useEffect(() => {
     if (!isAuthenticated) {
@@ -42,8 +42,9 @@ export const NotificationsPage: React.FC = () => {
     return <Navigate to='/login' replace />;
   }
 
-  const handleNotificationClick = (notificationId: string, isRead: boolean) => {
-    if (!isRead) {
+  const handleNotificationClick = (notification: Notification) => {
+    const notificationId = notification.id;
+    if (!isNotificationRead(notification)) {
       markAsRead(notificationId);
       trackEvent({
         category: 'notifications',
@@ -55,6 +56,20 @@ export const NotificationsPage: React.FC = () => {
           notification_id: notificationId,
         },
       });
+    }
+    openTarget(notification.actionUrl);
+  };
+
+  const openTarget = (actionUrl: string | undefined) => {
+    if (!actionUrl) {
+      return;
+    }
+    if (actionUrl.startsWith('/') && !actionUrl.startsWith('//')) {
+      navigate(actionUrl);
+      return;
+    }
+    if (/^https?:\/\//i.test(actionUrl)) {
+      window.location.assign(actionUrl);
     }
   };
 
@@ -117,25 +132,34 @@ export const NotificationsPage: React.FC = () => {
           <EmptyState
             icon={<span aria-hidden='true'>🔔</span>}
             title='No notifications yet'
-            description="You'll see notifications about your adoption applications, favorite pets, and more here."
+            description="You'll see notifications about your adoption applications, favourite pets, and more here."
           />
         }
       >
-        {notifications.map(notification => (
-          <Card
-            key={notification.id}
-            className={styles.notificationCard({ isRead: isNotificationRead(notification) })}
-            onClick={() =>
-              handleNotificationClick(notification.id, isNotificationRead(notification))
-            }
-          >
-            <div className={styles.notificationContent}>
-              <div className='title'>{notification.title}</div>
-              <div className='message'>{notification.message}</div>
-              <div className='timestamp'>{formatTimestamp(notification.createdAt)}</div>
-            </div>
-          </Card>
-        ))}
+        <ul className={styles.list}>
+          {notifications.map(notification => (
+            <li key={notification.id}>
+              <button
+                type='button'
+                className={styles.notificationItem({ isRead: isNotificationRead(notification) })}
+                onClick={() => handleNotificationClick(notification)}
+              >
+                <span className={styles.notificationContent}>
+                  <span className={styles.title}>
+                    {!isNotificationRead(notification) && (
+                      <span className={styles.srOnly}>Unread: </span>
+                    )}
+                    {notification.title}
+                  </span>
+                  <span className={styles.message}>{notification.message}</span>
+                  <span className={styles.timestamp}>
+                    {formatTimestamp(notification.createdAt)}
+                  </span>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
       </QueryBoundary>
     </div>
   );

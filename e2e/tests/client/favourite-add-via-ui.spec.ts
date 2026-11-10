@@ -25,12 +25,14 @@ test.describe('add a favourite via the UI', () => {
     await page.goto(`/pets/${petId}`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
     await expect(page).toHaveURL(/\/pets\//, { timeout: 15_000 });
 
-    const addButton = page.getByRole('button', { name: /add to favorites/i });
+    const addButton = page.getByRole('button', { name: /add to favou?rites/i });
     await expect(addButton).toBeVisible({ timeout: 20_000 });
     await addButton.click();
 
     // The button flips to the favourited state once the POST resolves.
-    await expect(page.getByRole('button', { name: /favorited/i })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('button', { name: /favou?rited/i })).toBeVisible({
+      timeout: 15_000,
+    });
 
     // And the pet now appears on the favourites page.
     await page.goto('/favorites', { waitUntil: 'domcontentloaded', timeout: 60_000 });

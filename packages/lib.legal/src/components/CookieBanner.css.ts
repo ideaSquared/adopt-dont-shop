@@ -70,6 +70,13 @@ export const categoryLabel = style({
   color: vars.text.primary,
 });
 
+export const categoryText = style({
+  display: 'inline-flex',
+  flexWrap: 'wrap',
+  alignItems: 'baseline',
+  columnGap: '0.5rem',
+});
+
 export const categoryMeta = style({
   fontSize: '0.85rem',
   color: vars.text.tertiary,

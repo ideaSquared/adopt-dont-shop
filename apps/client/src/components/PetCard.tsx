@@ -163,7 +163,7 @@ export const PetCard: React.FC<PetCardProps> = ({
             onClick={handleFavoriteClick}
             style={{ color: isFavorite ? '#ff6b6b' : '#ccc' }}
             aria-label={
-              isFavorite ? `Remove ${pet.name} from favorites` : `Add ${pet.name} to favorites`
+              isFavorite ? `Remove ${pet.name} from favourites` : `Add ${pet.name} to favourites`
             }
           >
             {isFavorite ? <Heart size={24} fill='currentColor' /> : <Heart size={24} />}

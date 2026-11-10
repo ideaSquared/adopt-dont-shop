@@ -37,7 +37,7 @@ export const SwipeOnboarding: React.FC<SwipeOnboardingProps> = ({ onClose }) => 
   };
 
   return (
-    <Modal isOpen={show} onClose={handleClose} size='md' title='Meet Your New Favorite Feature'>
+    <Modal isOpen={show} onClose={handleClose} size='md' title='Meet Your New Favourite Feature'>
       <div className={styles.modalContent}>
         <div className={styles.iconContainer}>
           <div className={styles.swipeIcon}>
@@ -55,7 +55,7 @@ export const SwipeOnboarding: React.FC<SwipeOnboardingProps> = ({ onClose }) => 
             <ArrowRight size='1em' className='icon' />
             <div className='content'>
               <div className='title'>Swipe Right to Like</div>
-              <div className='desc'>Found a cutie? Swipe right to add them to your favorites!</div>
+              <div className='desc'>Found a cutie? Swipe right to add them to your favourites!</div>
             </div>
           </div>
 

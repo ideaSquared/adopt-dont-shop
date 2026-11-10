@@ -64,7 +64,7 @@ describe('BottomTabBar', () => {
       '/discover'
     );
     expect(within(nav).getByRole('link', { name: /search/i })).toHaveAttribute('href', '/search');
-    expect(within(nav).queryByRole('link', { name: /favorites/i })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: /favourites/i })).not.toBeInTheDocument();
     expect(within(nav).queryByRole('link', { name: /messages/i })).not.toBeInTheDocument();
     expect(within(nav).queryByRole('button', { name: /user menu/i })).not.toBeInTheDocument();
   });
@@ -80,7 +80,7 @@ describe('BottomTabBar', () => {
     );
     expect(within(nav).getByRole('link', { name: /search/i })).toHaveAttribute('href', '/search');
     expect(within(nav).getByRole('link', { name: /top picks/i })).toBeInTheDocument();
-    expect(within(nav).getByRole('link', { name: /favorites/i })).toHaveAttribute(
+    expect(within(nav).getByRole('link', { name: /favourites/i })).toHaveAttribute(
       'href',
       '/favorites'
     );

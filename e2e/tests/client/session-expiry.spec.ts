@@ -64,7 +64,7 @@ test.describe('session expiry', () => {
       await expect(userMenu).toHaveCount(0);
       await expect(page.locator('main')).not.toContainText(RAW_ERROR);
 
-      await page.getByRole('link', { name: /sign in to view favorites/i }).click();
+      await page.getByRole('link', { name: /sign in to view favou?rites/i }).click();
       await expect(page).toHaveURL(/\/login/);
       await expect(
         page.getByRole('button', { name: /^(sign in|log ?in)$/i }).first()

@@ -27,7 +27,7 @@ export const FavoritesPage: React.FC = () => {
   const favorites = favoritesQuery.data ?? [];
   const loading = favoritesQuery.isLoading;
   const error = favoritesQuery.isError
-    ? 'Failed to load your favorite pets. Please try again.'
+    ? 'Failed to load your favourite pets. Please try again.'
     : null;
 
   // ADS UX P0 #1: when an un-favorite API call fails, PetCard keeps the pet
@@ -63,7 +63,7 @@ export const FavoritesPage: React.FC = () => {
         <div className={styles.loginPrompt}>
           <h2>Login Required</h2>
           <p>
-            Please log in to view your favorite pets. Your favorites will be saved across all your
+            Please log in to view your favourite pets. Your favourites will be saved across all your
             devices.
           </p>
           <Link to='/login' className={styles.ctaButton}>
@@ -77,8 +77,8 @@ export const FavoritesPage: React.FC = () => {
   return (
     <Container className={styles.pageContainer}>
       <PageHeader
-        title='Your Favorite Pets'
-        description='Keep track of the pets that caught your heart. Your favorites are saved and synced across all your devices.'
+        title='Your Favourite Pets'
+        description='Keep track of the pets that caught your heart. Your favourites are saved and synced across all your devices.'
       />
 
       {/* Show stats if user has favorites */}
@@ -138,8 +138,8 @@ export const FavoritesPage: React.FC = () => {
       {/* Empty state */}
       {!loading && !error && favorites.length === 0 && (
         <EmptyState
-          title='No favorites yet'
-          description="You haven't saved any pets to your favorites yet. Start exploring to find pets that steal your heart!"
+          title='No favourites yet'
+          description="You haven't saved any pets to your favourites yet. Start exploring to find pets that steal your heart!"
           actions={[
             { label: 'Start Swiping', onClick: () => navigate('/discover') },
             { label: 'Browse All Pets', onClick: () => navigate('/search'), variant: 'secondary' },

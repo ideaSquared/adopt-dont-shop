@@ -2,6 +2,7 @@ import { NotificationsService, Notification } from '@adopt-dont-shop/lib.notific
 import { apiService } from '@/services/libraryServices';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createContext, useContext, ReactNode, useMemo, useCallback } from 'react';
+import { z } from 'zod';
 
 interface NotificationsContextType {
   notificationsService: NotificationsService;
@@ -28,6 +29,35 @@ interface NotificationsProviderProps {
   userId?: string;
 }
 
+// The gateway lists notifications as proto JSON: the id is `notificationId` and the link target
+// is `relatedEntityType` / `relatedEntityId` rather than an `actionUrl`.
+const WireNotificationFieldsSchema = z.object({
+  notificationId: z.string().optional(),
+  relatedEntityType: z.string().optional(),
+  relatedEntityId: z.string().optional(),
+});
+
+const ENTITY_ROUTES: Record<string, (id: string) => string> = {
+  NOTIFICATION_RELATED_ENTITY_TYPE_APPLICATION: id => `/applications/${id}`,
+  NOTIFICATION_RELATED_ENTITY_TYPE_PET: id => `/pets/${id}`,
+  NOTIFICATION_RELATED_ENTITY_TYPE_CONVERSATION: id => `/chat/${id}`,
+};
+
+const fromWire = (notification: Notification): Notification => {
+  const wire = WireNotificationFieldsSchema.safeParse(notification);
+  if (!wire.success) {
+    return notification;
+  }
+  const { notificationId, relatedEntityType, relatedEntityId } = wire.data;
+  const toRoute = relatedEntityType ? ENTITY_ROUTES[relatedEntityType] : undefined;
+  return {
+    ...notification,
+    id: notification.id || notificationId || '',
+    actionUrl:
+      notification.actionUrl ?? (toRoute && relatedEntityId ? toRoute(relatedEntityId) : undefined),
+  };
+};
+
 const markRead = (notification: Notification): Notification => ({
   ...notification,
   readAt: notification.readAt || new Date().toISOString(),
@@ -53,7 +83,7 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
     queryFn: async () => {
       try {
         const response = await notificationsService.getUserNotifications(userId ?? '');
-        return response.data || [];
+        return (response.data || []).map(fromWire);
       } catch (error) {
         console.error('Failed to load notifications:', error);
         throw error;

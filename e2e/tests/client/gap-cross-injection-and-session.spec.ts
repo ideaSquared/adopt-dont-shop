@@ -178,14 +178,14 @@ test.describe('X-012 session expiry', () => {
 
       await context.clearCookies();
       await page
-        .getByRole('link', { name: /favorites/i })
+        .getByRole('link', { name: /favou?rites/i })
         .first()
         .click();
 
       await expect(page.getByRole('heading', { name: 'Login Required' })).toBeVisible({
         timeout: 15_000,
       });
-      await expect(page.getByRole('link', { name: /sign in to view favorites/i })).toBeVisible();
+      await expect(page.getByRole('link', { name: /sign in to view favou?rites/i })).toBeVisible();
       await expect(page.getByRole('button', { name: /user menu for/i })).toHaveCount(0);
       await expect(page.locator('main')).not.toContainText(RAW_ERROR);
     } finally {

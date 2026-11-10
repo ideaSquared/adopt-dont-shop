@@ -216,6 +216,7 @@ export const topBadges = style({
   flexDirection: 'column',
   gap: '6px',
   alignItems: 'flex-end',
+  maxWidth: 'calc(100% - 24px)',
   zIndex: 5,
   pointerEvents: 'none',
 });
@@ -447,4 +448,7 @@ export const activityLabel = style({
   fontSize: vars.typography.size.xs,
   fontWeight: vars.typography.weight.semibold,
   backdropFilter: 'blur(8px)',
+  maxWidth: '100%',
+  minWidth: 0,
+  overflowWrap: 'anywhere',
 });
