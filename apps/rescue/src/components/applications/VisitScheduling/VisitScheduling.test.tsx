@@ -10,6 +10,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { VisitScheduling } from './VisitScheduling';
 
+// The dialogs under test (cancel, visit details) are the shared Modal, so use
+// the real shared components rather than the app-wide stubs.
+vi.mock('@adopt-dont-shop/lib.components', async importOriginal => ({
+  ...(await importOriginal<typeof import('@adopt-dont-shop/lib.components')>()),
+}));
+
 // Stub vanilla-extract CSS module — styles are not the subject of these tests.
 vi.mock('../ApplicationReview.css', () => {
   const names = [
@@ -195,5 +201,44 @@ describe('VisitScheduling — start visit', () => {
     render(<VisitScheduling {...defaultProps} onMarkVisitInProgress={onMarkVisitInProgress} />);
     fireEvent.click(screen.getByRole('button', { name: /start visit/i }));
     expect(onMarkVisitInProgress).toHaveBeenCalledWith('visit-1');
+  });
+});
+
+describe('VisitScheduling — visit details dialog', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const completedVisit = {
+    ...scheduledVisit,
+    status: 'completed' as const,
+    outcome: 'approved' as const,
+    completedAt: '2026-06-01T14:30:00Z',
+    notes: 'Spacious garden',
+  };
+
+  it('opens the details dialog for the viewed visit with UK-formatted dates', () => {
+    render(
+      <VisitScheduling {...defaultProps} homeVisits={[completedVisit]} viewingVisit="visit-1" />
+    );
+
+    const dialog = screen.getByRole('dialog', { name: 'Visit Details' });
+    expect(dialog).toHaveTextContent('01/06/2026 at 10:00');
+    expect(dialog).toHaveTextContent(/Completed At01\/06\/2026 at \d{2}:\d{2}/);
+    expect(dialog).toHaveTextContent('Approved');
+    expect(dialog).toHaveTextContent('Spacious garden');
+  });
+
+  it('closes the details dialog with Escape', () => {
+    const setViewingVisit = vi.fn();
+    render(
+      <VisitScheduling
+        {...defaultProps}
+        homeVisits={[completedVisit]}
+        viewingVisit="visit-1"
+        setViewingVisit={setViewingVisit}
+      />
+    );
+
+    fireEvent.keyDown(screen.getByRole('dialog', { name: 'Visit Details' }), { key: 'Escape' });
+    expect(setViewingVisit).toHaveBeenCalledWith(null);
   });
 });

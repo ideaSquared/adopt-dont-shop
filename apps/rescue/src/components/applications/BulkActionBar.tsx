@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Button, Input } from '@adopt-dont-shop/lib.components';
 import * as styles from './BulkActionBar.css';
 import type { ApplicationListItem } from '../../types/applications';
 import { canApplyBulkAction, type BulkStageAction } from '../../utils/applicationStageTransitions';
@@ -89,35 +90,35 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
     setReason('');
   };
 
-  const renderButton = (action: BulkStageAction, className?: string) => (
-    <button
-      type="button"
+  const renderButton = (action: BulkStageAction, variant: 'secondary' | 'success' | 'danger') => (
+    <Button
+      size="sm"
+      variant={variant}
       onClick={() => {
         setPendingAction(action);
         setReason('');
       }}
       disabled={busy}
-      className={className ?? styles.neutralButton}
     >
       {ACTION_LABEL[action]}
-    </button>
+    </Button>
   );
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} role="toolbar" aria-label="Bulk actions">
       {selectedCount > 0 && (
         <>
           <span>
             <strong>{selectedCount}</strong> selected
           </span>
-          <button type="button" onClick={onClearSelection} disabled={busy}>
+          <Button size="sm" variant="ghost" onClick={onClearSelection} disabled={busy}>
             Clear
-          </button>
+          </Button>
           <span className={styles.spacer} />
-          {renderButton('advance')}
-          {renderButton('approve', styles.approveButton)}
-          {renderButton('reject', styles.rejectButton)}
-          {renderButton('withdraw')}
+          {renderButton('advance', 'secondary')}
+          {renderButton('approve', 'success')}
+          {renderButton('reject', 'danger')}
+          {renderButton('withdraw', 'secondary')}
         </>
       )}
 
@@ -126,9 +127,9 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
           Bulk action complete: <strong>{resultSummary.successCount}</strong> succeeded,{' '}
           <strong>{resultSummary.failedCount}</strong> failed.
           {onResultDismiss && (
-            <button type="button" onClick={onResultDismiss} className={styles.neutralButton}>
+            <Button size="sm" variant="secondary" onClick={onResultDismiss}>
               Dismiss
-            </button>
+            </Button>
           )}
         </span>
       )}
@@ -141,8 +142,9 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
             {selectedCount === 1 ? '' : 's'}?
           </span>
           {requireReason && (
-            <input
+            <Input
               type="text"
+              aria-label="Reason for rejection"
               placeholder="Reason (required for rejection)"
               value={reason}
               onChange={e => setReason(e.target.value)}
@@ -151,25 +153,25 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
               aria-required="true"
             />
           )}
-          <button
-            type="button"
+          <Button
+            size="sm"
+            variant="secondary"
             onClick={handleConfirm}
             disabled={busy || !canConfirm}
-            className={styles.neutralButton}
           >
             {busy ? 'Working…' : 'Confirm'}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
             onClick={() => {
               setPendingAction(null);
               setReason('');
             }}
             disabled={busy}
-            className={styles.neutralButton}
           >
             Cancel
-          </button>
+          </Button>
           {split.blocked.length > 0 && (
             <ul
               aria-label="Blocked applications"

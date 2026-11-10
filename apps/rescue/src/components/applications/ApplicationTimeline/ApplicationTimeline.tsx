@@ -1,11 +1,43 @@
 import React from 'react';
 import {
+  Circle,
+  ClipboardList,
+  FileText,
+  House,
+  Phone,
+  Settings,
+  type LucideIcon,
+} from 'lucide-react';
+import {
+  Alert,
+  Button,
+  EmptyState,
+  FormField,
+  SelectInput,
+  TextArea,
+} from '@adopt-dont-shop/lib.components';
+import { getStatusDisplay } from '@adopt-dont-shop/lib.types';
+import { formatCustomDate, formatTime } from '@adopt-dont-shop/lib.utils';
+import {
   TimelineEventType,
   type ApplicationTimeline as ApplicationTimelineType,
 } from '../../../types/applications';
-import { formatStatusName } from '../../../utils/statusUtils';
 import * as styles from '../ApplicationReview.css';
 
+const formatStatusName = (status: string): string => getStatusDisplay('application', status).label;
+
+const EVENT_TYPE_OPTIONS: { value: TimelineEventType; label: string }[] = [
+  { value: TimelineEventType.NOTE_ADDED, label: 'Note' },
+  { value: TimelineEventType.REFERENCE_CONTACTED, label: 'Reference Check' },
+  { value: TimelineEventType.HOME_VISIT_SCHEDULED, label: 'Home Visit' },
+  { value: TimelineEventType.MANUAL_OVERRIDE, label: 'Manual Override' },
+];
+
+const toEventType = (value: string | string[]): TimelineEventType =>
+  EVENT_TYPE_OPTIONS.find(option => option.value === value)?.value ?? TimelineEventType.NOTE_ADDED;
+
+// Compact relative stamp ("Today at 14:30", "3 days ago", "1 Jun"). The shared
+// formatRelativeDate always reads "x days ago", so it is not equivalent here.
 const formatTimelineTimestamp = (timestamp: string): string => {
   const date = new Date(timestamp);
   const now = new Date();
@@ -13,36 +45,23 @@ const formatTimelineTimestamp = (timestamp: string): string => {
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
   if (diffDays === 0) {
-    return `Today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    return `Today at ${formatTime(date)}`;
   }
   if (diffDays === 1) {
-    return `Yesterday at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    return `Yesterday at ${formatTime(date)}`;
   }
   if (diffDays < 7) {
     return `${diffDays} days ago`;
   }
-  return date.toLocaleDateString([], {
-    month: 'short',
-    day: 'numeric',
-    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
-  });
+  return formatCustomDate(date, date.getFullYear() !== now.getFullYear() ? 'd MMM yyyy' : 'd MMM');
 };
 
-const getTimelineIcon = (eventType: string): string => {
-  switch (eventType) {
-    case 'status_change':
-      return '📋';
-    case 'reference_check':
-      return '📞';
-    case 'home_visit':
-      return '🏠';
-    case 'note':
-      return '📝';
-    case 'system':
-      return '⚙️';
-    default:
-      return '•';
-  }
+const TIMELINE_ICONS: Record<string, LucideIcon> = {
+  status_change: ClipboardList,
+  reference_check: Phone,
+  home_visit: House,
+  note: FileText,
+  system: Settings,
 };
 
 const getEventTitle = (event: string): string => {
@@ -93,13 +112,9 @@ export const ApplicationTimeline: React.FC<ApplicationTimelineProps> = ({
   <div className={styles.section}>
     <div className={styles.sectionHeader}>
       <h3 className={styles.sectionTitle}>Application Timeline</h3>
-      <button
-        type="button"
-        className={styles.button({ variant: 'primary' })}
-        onClick={() => setShowAddEvent(!showAddEvent)}
-      >
+      <Button onClick={() => setShowAddEvent(!showAddEvent)}>
         {showAddEvent ? 'Cancel' : 'Add Event'}
-      </button>
+      </Button>
     </div>
 
     {showAddEvent && (
@@ -107,41 +122,31 @@ export const ApplicationTimeline: React.FC<ApplicationTimelineProps> = ({
         <h4 className={styles.addEventTitle}>Add Timeline Event</h4>
         <div className={styles.formRow}>
           <div className={styles.formGroup}>
-            <label className={styles.formLabel} htmlFor="timeline-event-type">
-              Event Type
-            </label>
-            <select
-              id="timeline-event-type"
-              className={styles.formSelect}
+            <SelectInput
+              label="Event Type"
               value={newEventType}
-              onChange={e => setNewEventType(e.target.value as TimelineEventType)}
-            >
-              <option value={TimelineEventType.NOTE_ADDED}>Note</option>
-              <option value={TimelineEventType.REFERENCE_CONTACTED}>Reference Check</option>
-              <option value={TimelineEventType.HOME_VISIT_SCHEDULED}>Home Visit</option>
-              <option value={TimelineEventType.MANUAL_OVERRIDE}>Manual Override</option>
-            </select>
+              onChange={value => setNewEventType(toEventType(value))}
+              options={EVENT_TYPE_OPTIONS}
+              fullWidth
+            />
           </div>
         </div>
         <div className={styles.formRow}>
           <div className={styles.formGroup}>
-            <label className={styles.formLabel} htmlFor="timeline-event-desc">
-              Description
-            </label>
-            <textarea
-              id="timeline-event-desc"
-              className={styles.formTextarea}
-              value={newEventDescription}
-              onChange={e => setNewEventDescription(e.target.value)}
-              placeholder="Enter event description..."
-              rows={3}
-            />
+            <FormField label="Description" htmlFor="timeline-event-desc">
+              <TextArea
+                id="timeline-event-desc"
+                value={newEventDescription}
+                onChange={e => setNewEventDescription(e.target.value)}
+                placeholder="Enter event description..."
+                rows={3}
+              />
+            </FormField>
           </div>
         </div>
         <div className={styles.formActions}>
-          <button
-            type="button"
-            className={styles.button({ variant: 'secondary' })}
+          <Button
+            variant="secondary"
             onClick={() => {
               setShowAddEvent(false);
               setNewEventDescription('');
@@ -149,30 +154,26 @@ export const ApplicationTimeline: React.FC<ApplicationTimelineProps> = ({
             }}
           >
             Cancel
-          </button>
-          <button
-            type="button"
-            className={styles.button({ variant: 'primary' })}
-            onClick={onAddEvent}
-            disabled={!newEventDescription.trim() || isAddingEvent}
-          >
+          </Button>
+          <Button onClick={onAddEvent} disabled={!newEventDescription.trim() || isAddingEvent}>
             {isAddingEvent ? 'Adding...' : 'Add Event'}
-          </button>
+          </Button>
         </div>
       </div>
     )}
 
     <div className={styles.timelineContainer}>
       {timelineError ? (
-        <div className={styles.emptyTimeline} role="alert">
+        <Alert variant="error">
           <p>Failed to load timeline events.</p>
           <p>{timelineError}</p>
-        </div>
+        </Alert>
       ) : timeline.length === 0 ? (
-        <div className={styles.emptyTimeline}>
-          <p>No timeline events yet.</p>
-          <p>Timeline events will appear here as actions are taken on this application.</p>
-        </div>
+        <EmptyState
+          title="No timeline events yet."
+          description="Timeline events will appear here as actions are taken on this application."
+          size="sm"
+        />
       ) : (
         timeline
           .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
@@ -190,10 +191,12 @@ export const ApplicationTimeline: React.FC<ApplicationTimelineProps> = ({
                   | 'system')
               : 'default';
 
+            const EventIcon = TIMELINE_ICONS[event.event] ?? Circle;
+
             return (
               <div key={event.id} className={styles.timelineItem}>
                 <div className={styles.timelineIcon({ type: iconType })}>
-                  {getTimelineIcon(event.event)}
+                  <EventIcon size="1em" aria-hidden="true" />
                 </div>
                 <div className={styles.timelineContent}>
                   <div className={styles.timelineHeader}>

@@ -1,6 +1,18 @@
 import React from 'react';
-import { Input } from '@adopt-dont-shop/lib.components';
-import { formatCustomDate } from '@adopt-dont-shop/lib.utils';
+import { CalendarDays, CircleCheck, CircleX, Eye, Flag, House } from 'lucide-react';
+import {
+  Alert,
+  Button,
+  EmptyState,
+  FormField,
+  Input,
+  Modal,
+  SelectInput,
+  StatusBadge,
+  TextArea,
+} from '@adopt-dont-shop/lib.components';
+import type { StatusBadgeVariant } from '@adopt-dont-shop/lib.types';
+import { formatCustomDate, formatDate, formatTime } from '@adopt-dont-shop/lib.utils';
 import type { HomeVisit } from '../../../types/applications';
 import type { StaffMember } from '../../../services/staffService';
 import * as styles from '../ApplicationReview.css';
@@ -23,6 +35,32 @@ type CompleteForm = {
   notes: string;
   conditions: string;
 };
+
+type VisitOutcome = 'approved' | 'rejected' | 'conditional';
+
+const OUTCOME_OPTIONS: { value: VisitOutcome; label: string }[] = [
+  { value: 'approved', label: 'Approved - Home is suitable' },
+  { value: 'conditional', label: 'Conditional - Some concerns need addressing' },
+  { value: 'rejected', label: 'Rejected - Home is not suitable' },
+];
+
+const isVisitOutcome = (value: string): value is VisitOutcome =>
+  OUTCOME_OPTIONS.some(option => option.value === value);
+
+const VISIT_STATUS_VARIANTS: Record<string, StatusBadgeVariant> = {
+  scheduled: 'info',
+  in_progress: 'warning',
+  completed: 'success',
+  cancelled: 'error',
+};
+
+const VISIT_OUTCOME_VARIANTS: Record<string, StatusBadgeVariant> = {
+  approved: 'success',
+  conditional: 'warning',
+  rejected: 'error',
+};
+
+const formatDateAtTime = (value: string): string => `${formatDate(value)} at ${formatTime(value)}`;
 
 type VisitSchedulingProps = {
   homeVisits: HomeVisit[];
@@ -94,25 +132,41 @@ export const VisitScheduling: React.FC<VisitSchedulingProps> = ({
   const hasActiveVisit = homeVisits.some(
     v => v.status === 'scheduled' || v.status === 'in_progress'
   );
+  const detailVisit = viewingVisit ? homeVisits.find(v => v.id === viewingVisit) : undefined;
+  const cancelTarget = cancellingVisit ? homeVisits.find(v => v.id === cancellingVisit) : undefined;
+
+  const startCancelling = (visitId: string) => {
+    setCancellingVisit(visitId);
+    setCancelReason('');
+  };
+
+  const outcomeBadge = (outcome: string) => (
+    <StatusBadge
+      variant={VISIT_OUTCOME_VARIANTS[outcome] ?? 'neutral'}
+      label={outcome.charAt(0).toUpperCase() + outcome.slice(1)}
+    />
+  );
+
+  const statusBadge = (status: string) => (
+    <StatusBadge
+      variant={VISIT_STATUS_VARIANTS[status] ?? 'neutral'}
+      label={status.replace('_', ' ').toUpperCase()}
+    />
+  );
 
   return (
     <div className={styles.section}>
       <div className={styles.sectionHeader}>
         <h3 className={styles.sectionTitle}>Home Visits</h3>
-        <button
-          className={styles.button({ variant: 'primary' })}
-          onClick={() => setShowScheduleVisit(true)}
-          disabled={hasActiveVisit}
-        >
+        <Button onClick={() => setShowScheduleVisit(true)} disabled={hasActiveVisit}>
           {hasActiveVisit ? 'Visit Already Scheduled' : 'Schedule Visit'}
-        </button>
+        </Button>
       </div>
 
       {homeVisitsError && (
-        <div className={styles.card} role="alert">
-          <p>Failed to load home visits.</p>
-          <p>{homeVisitsError}</p>
-        </div>
+        <Alert variant="error" title="Failed to load home visits.">
+          {homeVisitsError}
+        </Alert>
       )}
 
       {showScheduleVisit && (
@@ -120,84 +174,72 @@ export const VisitScheduling: React.FC<VisitSchedulingProps> = ({
           <h4 className={styles.scheduleVisitTitle}>Schedule Home Visit</h4>
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
-              <label className={styles.formLabel} htmlFor="visit-date">
-                Date
-              </label>
-              <Input
-                id="visit-date"
-                className={styles.formInput}
-                type="date"
-                value={visitForm.scheduledDate}
-                onChange={e => setVisitForm(prev => ({ ...prev, scheduledDate: e.target.value }))}
-                min={new Date().toISOString().split('T')[0]}
-              />
+              <FormField label="Date" htmlFor="visit-date">
+                <Input
+                  id="visit-date"
+                  type="date"
+                  value={visitForm.scheduledDate}
+                  onChange={e => setVisitForm(prev => ({ ...prev, scheduledDate: e.target.value }))}
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </FormField>
             </div>
             <div className={styles.formGroup}>
-              <label className={styles.formLabel} htmlFor="visit-time">
-                Time
-              </label>
-              <Input
-                id="visit-time"
-                className={styles.formInput}
-                type="time"
-                value={visitForm.scheduledTime}
-                onChange={e => setVisitForm(prev => ({ ...prev, scheduledTime: e.target.value }))}
-              />
+              <FormField label="Time" htmlFor="visit-time">
+                <Input
+                  id="visit-time"
+                  type="time"
+                  value={visitForm.scheduledTime}
+                  onChange={e => setVisitForm(prev => ({ ...prev, scheduledTime: e.target.value }))}
+                />
+              </FormField>
             </div>
           </div>
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
-              <label className={styles.formLabel} htmlFor="visit-assigned-staff">
-                Assigned Staff
-              </label>
-              <select
-                id="visit-assigned-staff"
-                className={styles.formSelect}
+              <SelectInput
+                label="Assigned Staff"
                 value={visitForm.assignedStaff}
-                onChange={e => setVisitForm(prev => ({ ...prev, assignedStaff: e.target.value }))}
+                onChange={value =>
+                  setVisitForm(prev => ({
+                    ...prev,
+                    assignedStaff: typeof value === 'string' ? value : '',
+                  }))
+                }
                 disabled={staffLoading}
-              >
-                <option value="">
-                  {staffLoading ? 'Loading staff...' : 'Select staff member...'}
-                </option>
-                {staff.map(staffMember => (
-                  <option
-                    key={staffMember.id}
-                    value={`${staffMember.firstName} ${staffMember.lastName}`}
-                  >
-                    {staffMember.firstName} {staffMember.lastName} - {staffMember.title}
-                  </option>
-                ))}
-              </select>
+                placeholder={staffLoading ? 'Loading staff...' : 'Select staff member...'}
+                options={staff.map(staffMember => ({
+                  value: `${staffMember.firstName} ${staffMember.lastName}`,
+                  label: `${staffMember.firstName} ${staffMember.lastName} - ${staffMember.title}`,
+                }))}
+                fullWidth
+              />
             </div>
           </div>
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
-              <label className={styles.formLabel} htmlFor="visit-notes">
-                Visit Notes (optional)
-              </label>
-              <textarea
-                id="visit-notes"
-                className={styles.formTextarea}
-                value={visitForm.notes}
-                onChange={e => setVisitForm(prev => ({ ...prev, notes: e.target.value }))}
-                placeholder="Any special instructions or notes for the visit..."
-                rows={3}
-              />
+              <FormField label="Visit Notes (optional)" htmlFor="visit-notes">
+                <TextArea
+                  id="visit-notes"
+                  value={visitForm.notes}
+                  onChange={e => setVisitForm(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Any special instructions or notes for the visit..."
+                  rows={3}
+                />
+              </FormField>
             </div>
           </div>
           <div className={styles.formActions}>
-            <button
-              className={styles.button({ variant: 'secondary' })}
+            <Button
+              variant="secondary"
               onClick={() => {
                 setShowScheduleVisit(false);
                 setVisitForm(emptyVisitForm);
               }}
             >
               Cancel
-            </button>
-            <button
-              className={styles.button({ variant: 'primary' })}
+            </Button>
+            <Button
               onClick={onScheduleVisit}
               disabled={
                 !visitForm.scheduledDate ||
@@ -207,183 +249,150 @@ export const VisitScheduling: React.FC<VisitSchedulingProps> = ({
               }
             >
               {isSchedulingVisit ? 'Scheduling...' : 'Schedule Visit'}
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {homeVisits.length === 0 ? (
-        <div className={styles.emptyVisits}>
-          <p>No home visits scheduled yet.</p>
-          <p>
-            Schedule a home visit to assess the applicant&apos;s living situation and suitability
-            for pet adoption.
-          </p>
-        </div>
+        <EmptyState
+          title="No home visits scheduled yet."
+          description="Schedule a home visit to assess the applicant's living situation and suitability for pet adoption."
+          size="sm"
+        />
       ) : (
-        homeVisits.map(visit => {
-          const visitStatusVariant = (
-            ['scheduled', 'in_progress', 'completed', 'cancelled'] as const
-          ).includes(visit.status as 'scheduled' | 'in_progress' | 'completed' | 'cancelled')
-            ? (visit.status as 'scheduled' | 'in_progress' | 'completed' | 'cancelled')
-            : 'default';
-
-          return (
-            <div key={visit.id} className={styles.visitCard}>
-              <div className={styles.visitHeader}>
-                <div className={styles.visitInfo}>
-                  <h4 className={styles.visitDate}>
-                    {formatCustomDate(visit.scheduledDate, 'EEEE d MMMM yyyy')}
-                  </h4>
-                  <p className={styles.visitTime}>at {visit.scheduledTime}</p>
-                  <p className={styles.visitStaff}>Assigned to: {visit.assignedStaff}</p>
-                </div>
-                <span className={styles.visitStatus({ status: visitStatusVariant })}>
-                  {visit.status.replace('_', ' ').toUpperCase()}
-                </span>
+        homeVisits.map(visit => (
+          <div key={visit.id} className={styles.visitCard}>
+            <div className={styles.visitHeader}>
+              <div className={styles.visitInfo}>
+                <h4 className={styles.visitDate}>
+                  {formatCustomDate(visit.scheduledDate, 'EEEE d MMMM yyyy')}
+                </h4>
+                <p className={styles.visitTime}>at {visit.scheduledTime}</p>
+                <p className={styles.visitStaff}>Assigned to: {visit.assignedStaff}</p>
               </div>
+              {statusBadge(visit.status)}
+            </div>
 
-              {visit.notes && (
-                <div className={styles.visitNotes}>
-                  <strong>Visit Notes:</strong>
-                  <div>{visit.notes}</div>
+            {visit.notes && (
+              <div className={styles.visitNotes}>
+                <strong>Visit Notes:</strong>
+                <div>{visit.notes}</div>
+              </div>
+            )}
+
+            {visit.completedAt && (
+              <div className={styles.visitCompletedInfo}>
+                <div className={styles.field}>
+                  <span className={styles.fieldLabel}>Completed On</span>
+                  <span className={styles.fieldValue}>{formatDateAtTime(visit.completedAt)}</span>
                 </div>
-              )}
-
-              {visit.completedAt && (
-                <div className={styles.visitCompletedInfo}>
+                {visit.outcome && (
                   <div className={styles.field}>
-                    <span className={styles.fieldLabel}>Completed On</span>
-                    <span className={styles.fieldValue}>
-                      {new Date(visit.completedAt).toLocaleDateString()} at{' '}
-                      {new Date(visit.completedAt).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </span>
+                    <span className={styles.fieldLabel}>Outcome</span>
+                    <span className={styles.fieldValue}>{outcomeBadge(visit.outcome)}</span>
                   </div>
-                  {visit.outcome && (
-                    <div className={styles.field}>
-                      <span className={styles.fieldLabel}>Outcome</span>
-                      <span className={styles.fieldValue}>
-                        <span
-                          className={styles.visitOutcome({
-                            outcome: (['approved', 'conditional', 'rejected'] as const).includes(
-                              visit.outcome as 'approved' | 'conditional' | 'rejected'
-                            )
-                              ? (visit.outcome as 'approved' | 'conditional' | 'rejected')
-                              : 'default',
-                          })}
-                        >
-                          {visit.outcome.charAt(0).toUpperCase() + visit.outcome.slice(1)}
-                        </span>
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className={styles.visitActions}>
-                {visit.status === 'scheduled' && (
-                  <>
-                    <button
-                      className={styles.button({ variant: 'primary' })}
-                      onClick={() => onMarkVisitInProgress(visit.id)}
-                    >
-                      🏁 Start Visit
-                    </button>
-                    <button
-                      className={styles.button({ variant: 'secondary' })}
-                      onClick={() => {
-                        setEditingVisit(visit.id);
-                        setRescheduleForm({
-                          scheduledDate: visit.scheduledDate,
-                          scheduledTime: visit.scheduledTime,
-                          reason: '',
-                        });
-                      }}
-                    >
-                      📅 Reschedule
-                    </button>
-                    <button
-                      className={styles.button({ variant: 'danger' })}
-                      onClick={() => {
-                        setCancellingVisit(visit.id);
-                        setCancelReason('');
-                      }}
-                    >
-                      ❌ Cancel Visit
-                    </button>
-                  </>
-                )}
-
-                {visit.status === 'in_progress' && (
-                  <>
-                    <button
-                      className={styles.button({ variant: 'primary' })}
-                      onClick={() => setCompletingVisit(visit.id)}
-                    >
-                      ✅ Complete Visit
-                    </button>
-                    <button
-                      className={styles.button({ variant: 'danger' })}
-                      onClick={() => {
-                        setCancellingVisit(visit.id);
-                        setCancelReason('');
-                      }}
-                    >
-                      ❌ Cancel Visit
-                    </button>
-                  </>
-                )}
-
-                {visit.status === 'completed' && (
-                  <>
-                    <button
-                      className={styles.button({ variant: 'secondary' })}
-                      onClick={() => setViewingVisit(visit.id)}
-                    >
-                      👁️ View Details
-                    </button>
-                    <button
-                      className={styles.button({ variant: 'primary' })}
-                      onClick={() => setShowScheduleVisit(true)}
-                    >
-                      🏠 Schedule Follow-up
-                    </button>
-                  </>
-                )}
-
-                {visit.status === 'cancelled' && (
-                  <>
-                    <button
-                      className={styles.button({ variant: 'secondary' })}
-                      onClick={() => setViewingVisit(visit.id)}
-                    >
-                      👁️ View Details
-                    </button>
-                    <button
-                      className={styles.button({ variant: 'primary' })}
-                      onClick={() => setShowScheduleVisit(true)}
-                    >
-                      🏠 Schedule New Visit
-                    </button>
-                  </>
                 )}
               </div>
+            )}
 
-              {/* Reschedule Form */}
-              {editingVisit === visit.id && (
-                <div className={styles.rescheduleForm}>
-                  <h5 className={styles.rescheduleTitle}>Reschedule Home Visit</h5>
-                  <div className={styles.formRow}>
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel} htmlFor={`reschedule-date-${visit.id}`}>
-                        New Date
-                      </label>
+            <div className={styles.visitActions}>
+              {visit.status === 'scheduled' && (
+                <>
+                  <Button
+                    startIcon={<Flag size="1em" aria-hidden="true" />}
+                    onClick={() => onMarkVisitInProgress(visit.id)}
+                  >
+                    Start Visit
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    startIcon={<CalendarDays size="1em" aria-hidden="true" />}
+                    onClick={() => {
+                      setEditingVisit(visit.id);
+                      setRescheduleForm({
+                        scheduledDate: visit.scheduledDate,
+                        scheduledTime: visit.scheduledTime,
+                        reason: '',
+                      });
+                    }}
+                  >
+                    Reschedule
+                  </Button>
+                  <Button
+                    variant="danger"
+                    startIcon={<CircleX size="1em" aria-hidden="true" />}
+                    onClick={() => startCancelling(visit.id)}
+                  >
+                    Cancel Visit
+                  </Button>
+                </>
+              )}
+
+              {visit.status === 'in_progress' && (
+                <>
+                  <Button
+                    startIcon={<CircleCheck size="1em" aria-hidden="true" />}
+                    onClick={() => setCompletingVisit(visit.id)}
+                  >
+                    Complete Visit
+                  </Button>
+                  <Button
+                    variant="danger"
+                    startIcon={<CircleX size="1em" aria-hidden="true" />}
+                    onClick={() => startCancelling(visit.id)}
+                  >
+                    Cancel Visit
+                  </Button>
+                </>
+              )}
+
+              {visit.status === 'completed' && (
+                <>
+                  <Button
+                    variant="secondary"
+                    startIcon={<Eye size="1em" aria-hidden="true" />}
+                    onClick={() => setViewingVisit(visit.id)}
+                  >
+                    View Details
+                  </Button>
+                  <Button
+                    startIcon={<House size="1em" aria-hidden="true" />}
+                    onClick={() => setShowScheduleVisit(true)}
+                  >
+                    Schedule Follow-up
+                  </Button>
+                </>
+              )}
+
+              {visit.status === 'cancelled' && (
+                <>
+                  <Button
+                    variant="secondary"
+                    startIcon={<Eye size="1em" aria-hidden="true" />}
+                    onClick={() => setViewingVisit(visit.id)}
+                  >
+                    View Details
+                  </Button>
+                  <Button
+                    startIcon={<House size="1em" aria-hidden="true" />}
+                    onClick={() => setShowScheduleVisit(true)}
+                  >
+                    Schedule New Visit
+                  </Button>
+                </>
+              )}
+            </div>
+
+            {/* Reschedule Form */}
+            {editingVisit === visit.id && (
+              <div className={styles.rescheduleForm}>
+                <h5 className={styles.rescheduleTitle}>Reschedule Home Visit</h5>
+                <div className={styles.formRow}>
+                  <div className={styles.formGroup}>
+                    <FormField label="New Date" htmlFor={`reschedule-date-${visit.id}`}>
                       <Input
                         id={`reschedule-date-${visit.id}`}
-                        className={styles.formInput}
                         type="date"
                         value={rescheduleForm.scheduledDate}
                         onChange={e =>
@@ -391,30 +400,29 @@ export const VisitScheduling: React.FC<VisitSchedulingProps> = ({
                         }
                         min={new Date().toISOString().split('T')[0]}
                       />
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel} htmlFor={`reschedule-time-${visit.id}`}>
-                        New Time
-                      </label>
+                    </FormField>
+                  </div>
+                  <div className={styles.formGroup}>
+                    <FormField label="New Time" htmlFor={`reschedule-time-${visit.id}`}>
                       <Input
                         id={`reschedule-time-${visit.id}`}
-                        className={styles.formInput}
                         type="time"
                         value={rescheduleForm.scheduledTime}
                         onChange={e =>
                           setRescheduleForm(prev => ({ ...prev, scheduledTime: e.target.value }))
                         }
                       />
-                    </div>
+                    </FormField>
                   </div>
-                  <div className={styles.formRow}>
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel} htmlFor={`reschedule-reason-${visit.id}`}>
-                        Reason for Rescheduling
-                      </label>
-                      <textarea
+                </div>
+                <div className={styles.formRow}>
+                  <div className={styles.formGroup}>
+                    <FormField
+                      label="Reason for Rescheduling"
+                      htmlFor={`reschedule-reason-${visit.id}`}
+                    >
+                      <TextArea
                         id={`reschedule-reason-${visit.id}`}
-                        className={styles.formTextarea}
                         value={rescheduleForm.reason}
                         onChange={e =>
                           setRescheduleForm(prev => ({ ...prev, reason: e.target.value }))
@@ -422,70 +430,59 @@ export const VisitScheduling: React.FC<VisitSchedulingProps> = ({
                         placeholder="Why is this visit being rescheduled?"
                         rows={2}
                       />
-                    </div>
-                  </div>
-                  <div className={styles.formActions}>
-                    <button
-                      className={styles.button({ variant: 'secondary' })}
-                      onClick={() => {
-                        setEditingVisit(null);
-                        setRescheduleForm(emptyRescheduleForm);
-                      }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      className={styles.button({ variant: 'primary' })}
-                      onClick={() => onRescheduleVisit(visit.id)}
-                      disabled={
-                        !rescheduleForm.scheduledDate ||
-                        !rescheduleForm.scheduledTime ||
-                        !rescheduleForm.reason
-                      }
-                    >
-                      Reschedule Visit
-                    </button>
+                    </FormField>
                   </div>
                 </div>
-              )}
+                <div className={styles.formActions}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setEditingVisit(null);
+                      setRescheduleForm(emptyRescheduleForm);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => onRescheduleVisit(visit.id)}
+                    disabled={
+                      !rescheduleForm.scheduledDate ||
+                      !rescheduleForm.scheduledTime ||
+                      !rescheduleForm.reason
+                    }
+                  >
+                    Reschedule Visit
+                  </Button>
+                </div>
+              </div>
+            )}
 
-              {/* Complete Visit Form */}
-              {completingVisit === visit.id && (
-                <div className={styles.completeVisitForm}>
-                  <h5 className={styles.completeVisitTitle}>Complete Home Visit</h5>
-                  <div className={styles.formRow}>
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel} htmlFor={`complete-outcome-${visit.id}`}>
-                        Visit Outcome
-                      </label>
-                      <select
-                        id={`complete-outcome-${visit.id}`}
-                        className={styles.formSelect}
-                        value={completeForm.outcome}
-                        onChange={e =>
-                          setCompleteForm(prev => ({
-                            ...prev,
-                            outcome: e.target.value as 'approved' | 'rejected' | 'conditional',
-                          }))
-                        }
-                      >
-                        <option value="">Select outcome...</option>
-                        <option value="approved">Approved - Home is suitable</option>
-                        <option value="conditional">
-                          Conditional - Some concerns need addressing
-                        </option>
-                        <option value="rejected">Rejected - Home is not suitable</option>
-                      </select>
-                    </div>
+            {/* Complete Visit Form */}
+            {completingVisit === visit.id && (
+              <div className={styles.completeVisitForm}>
+                <h5 className={styles.completeVisitTitle}>Complete Home Visit</h5>
+                <div className={styles.formRow}>
+                  <div className={styles.formGroup}>
+                    <SelectInput
+                      label="Visit Outcome"
+                      value={completeForm.outcome}
+                      onChange={value =>
+                        setCompleteForm(prev => ({
+                          ...prev,
+                          outcome: typeof value === 'string' && isVisitOutcome(value) ? value : '',
+                        }))
+                      }
+                      placeholder="Select outcome..."
+                      options={OUTCOME_OPTIONS}
+                      fullWidth
+                    />
                   </div>
-                  <div className={styles.formRow}>
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel} htmlFor={`complete-notes-${visit.id}`}>
-                        Visit Summary
-                      </label>
-                      <textarea
+                </div>
+                <div className={styles.formRow}>
+                  <div className={styles.formGroup}>
+                    <FormField label="Visit Summary" htmlFor={`complete-notes-${visit.id}`}>
+                      <TextArea
                         id={`complete-notes-${visit.id}`}
-                        className={styles.formTextarea}
                         value={completeForm.notes}
                         onChange={e =>
                           setCompleteForm(prev => ({ ...prev, notes: e.target.value }))
@@ -493,17 +490,15 @@ export const VisitScheduling: React.FC<VisitSchedulingProps> = ({
                         placeholder="Provide a detailed summary of the home visit findings..."
                         rows={4}
                       />
-                    </div>
+                    </FormField>
                   </div>
-                  {completeForm.outcome === 'conditional' && (
-                    <div className={styles.formRow}>
-                      <div className={styles.formGroup}>
-                        <label className={styles.formLabel} htmlFor="conditions-textarea">
-                          Conditions to Address
-                        </label>
-                        <textarea
+                </div>
+                {completeForm.outcome === 'conditional' && (
+                  <div className={styles.formRow}>
+                    <div className={styles.formGroup}>
+                      <FormField label="Conditions to Address" htmlFor="conditions-textarea">
+                        <TextArea
                           id="conditions-textarea"
-                          className={styles.formTextarea}
                           value={completeForm.conditions}
                           onChange={e =>
                             setCompleteForm(prev => ({ ...prev, conditions: e.target.value }))
@@ -511,195 +506,131 @@ export const VisitScheduling: React.FC<VisitSchedulingProps> = ({
                           placeholder="List specific conditions that need to be met..."
                           rows={3}
                         />
-                      </div>
+                      </FormField>
                     </div>
-                  )}
-                  <div className={styles.formActions}>
-                    <button
-                      className={styles.button({ variant: 'secondary' })}
-                      onClick={() => {
-                        setCompletingVisit(null);
-                        setCompleteForm(emptyCompleteForm);
-                      }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      className={styles.button({ variant: 'primary' })}
-                      onClick={() => onCompleteVisit(visit.id)}
-                      disabled={!completeForm.outcome || !completeForm.notes}
-                    >
-                      Complete Visit
-                    </button>
                   </div>
+                )}
+                <div className={styles.formActions}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setCompletingVisit(null);
+                      setCompleteForm(emptyCompleteForm);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => onCompleteVisit(visit.id)}
+                    disabled={!completeForm.outcome || !completeForm.notes}
+                  >
+                    Complete Visit
+                  </Button>
                 </div>
-              )}
+              </div>
+            )}
+          </div>
+        ))
+      )}
 
-              {/* Cancel Visit Form */}
-              {cancellingVisit === visit.id && (
-                <div
-                  className={styles.rescheduleForm}
-                  role="dialog"
-                  aria-modal="true"
-                  aria-labelledby={`cancel-visit-title-${visit.id}`}
-                >
-                  <h5 id={`cancel-visit-title-${visit.id}`} className={styles.rescheduleTitle}>
-                    Cancel Home Visit
-                  </h5>
-                  <div className={styles.formRow}>
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel} htmlFor={`cancel-reason-${visit.id}`}>
-                        Reason for Cancellation
-                      </label>
-                      <textarea
-                        id={`cancel-reason-${visit.id}`}
-                        className={styles.formTextarea}
-                        value={cancelReason}
-                        onChange={e => setCancelReason(e.target.value)}
-                        placeholder="Why is this visit being cancelled?"
-                        rows={3}
-                        required
-                        aria-required="true"
-                      />
-                    </div>
-                  </div>
-                  <div className={styles.formActions}>
-                    <button
-                      className={styles.button({ variant: 'secondary' })}
-                      onClick={() => {
-                        setCancellingVisit(null);
-                        setCancelReason('');
-                      }}
-                    >
-                      Keep Visit
-                    </button>
-                    <button
-                      className={styles.button({ variant: 'danger' })}
-                      onClick={() => onCancelVisit(visit.id)}
-                      disabled={!cancelReason.trim()}
-                    >
-                      Confirm Cancellation
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })
+      {/* Cancel Visit Dialog */}
+      {cancelTarget && (
+        <Modal
+          isOpen
+          onClose={() => {
+            setCancellingVisit(null);
+            setCancelReason('');
+          }}
+          title="Cancel Home Visit"
+          size="sm"
+          showCloseButton={false}
+        >
+          <FormField label="Reason for Cancellation" htmlFor={`cancel-reason-${cancelTarget.id}`}>
+            <TextArea
+              id={`cancel-reason-${cancelTarget.id}`}
+              value={cancelReason}
+              onChange={e => setCancelReason(e.target.value)}
+              placeholder="Why is this visit being cancelled?"
+              rows={3}
+              required
+              aria-required="true"
+            />
+          </FormField>
+          <div className={styles.formActions}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setCancellingVisit(null);
+                setCancelReason('');
+              }}
+            >
+              Keep Visit
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => onCancelVisit(cancelTarget.id)}
+              disabled={!cancelReason.trim()}
+            >
+              Confirm Cancellation
+            </Button>
+          </div>
+        </Modal>
       )}
 
       {/* Visit Details Modal */}
-      {viewingVisit && homeVisits.find(v => v.id === viewingVisit) && (
-        <div
-          className={styles.visitDetailsModal}
-          onClick={e => e.target === e.currentTarget && setViewingVisit(null)}
-          onKeyDown={e => e.key === 'Escape' && setViewingVisit(null)}
-          role="presentation"
-        >
-          <div className={styles.visitDetailsContent}>
-            <div className={styles.visitDetailsHeader}>
-              <h4>Visit Details</h4>
-              <button
-                className={styles.button({ variant: 'secondary' })}
-                onClick={() => setViewingVisit(null)}
-              >
-                ×
-              </button>
-            </div>
-            <div className={styles.visitDetailsBody}>
-              {(() => {
-                const visit = homeVisits.find(v => v.id === viewingVisit);
-                if (!visit) {
-                  return null;
-                }
-
-                const detailVisitStatusVariant = (
-                  ['scheduled', 'in_progress', 'completed', 'cancelled'] as const
-                ).includes(visit.status as 'scheduled' | 'in_progress' | 'completed' | 'cancelled')
-                  ? (visit.status as 'scheduled' | 'in_progress' | 'completed' | 'cancelled')
-                  : 'default';
-
-                return (
-                  <>
-                    <div className={styles.field}>
-                      <span className={styles.fieldLabel}>Original Date</span>
-                      <span className={styles.fieldValue}>
-                        {new Date(visit.scheduledDate).toLocaleDateString()} at{' '}
-                        {visit.scheduledTime}
-                      </span>
-                    </div>
-                    <div className={styles.field}>
-                      <span className={styles.fieldLabel}>Staff Member</span>
-                      <span className={styles.fieldValue}>{visit.assignedStaff}</span>
-                    </div>
-                    <div className={styles.field}>
-                      <span className={styles.fieldLabel}>Status</span>
-                      <span className={styles.fieldValue}>
-                        <span className={styles.visitStatus({ status: detailVisitStatusVariant })}>
-                          {visit.status.replace('_', ' ').toUpperCase()}
-                        </span>
-                      </span>
-                    </div>
-                    {visit.outcome && (
-                      <div className={styles.field}>
-                        <span className={styles.fieldLabel}>Outcome</span>
-                        <span className={styles.fieldValue}>
-                          <span
-                            className={styles.visitOutcome({
-                              outcome: (['approved', 'conditional', 'rejected'] as const).includes(
-                                visit.outcome as 'approved' | 'conditional' | 'rejected'
-                              )
-                                ? (visit.outcome as 'approved' | 'conditional' | 'rejected')
-                                : 'default',
-                            })}
-                          >
-                            {visit.outcome.charAt(0).toUpperCase() + visit.outcome.slice(1)}
-                          </span>
-                        </span>
-                      </div>
-                    )}
-                    {visit.cancelReason && (
-                      <div className={styles.fieldVertical}>
-                        <span className={styles.fieldLabel}>Cancellation Reason</span>
-                        <div className={styles.fieldValueFullWidth}>{visit.cancelReason}</div>
-                      </div>
-                    )}
-                    {visit.completedAt && (
-                      <div className={styles.field}>
-                        <span className={styles.fieldLabel}>Completed At</span>
-                        <span className={styles.fieldValue}>
-                          {new Date(visit.completedAt).toLocaleDateString()} at{' '}
-                          {new Date(visit.completedAt).toLocaleTimeString()}
-                        </span>
-                      </div>
-                    )}
-                    {visit.cancelledAt && (
-                      <div className={styles.field}>
-                        <span className={styles.fieldLabel}>Cancelled At</span>
-                        <span className={styles.fieldValue}>
-                          {new Date(visit.cancelledAt).toLocaleDateString()} at{' '}
-                          {new Date(visit.cancelledAt).toLocaleTimeString()}
-                        </span>
-                      </div>
-                    )}
-                    {visit.notes && (
-                      <div className={styles.fieldVertical}>
-                        <span className={styles.fieldLabel}>Visit Summary</span>
-                        <div className={styles.fieldValueFullWidth}>{visit.notes}</div>
-                      </div>
-                    )}
-                    {visit.outcomeNotes && (
-                      <div className={styles.fieldVertical}>
-                        <span className={styles.fieldLabel}>Outcome Notes</span>
-                        <div className={styles.fieldValueFullWidth}>{visit.outcomeNotes}</div>
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
-            </div>
+      {detailVisit && (
+        <Modal isOpen onClose={() => setViewingVisit(null)} title="Visit Details" size="md">
+          <div className={styles.field}>
+            <span className={styles.fieldLabel}>Original Date</span>
+            <span className={styles.fieldValue}>
+              {formatDate(detailVisit.scheduledDate)} at {detailVisit.scheduledTime}
+            </span>
           </div>
-        </div>
+          <div className={styles.field}>
+            <span className={styles.fieldLabel}>Staff Member</span>
+            <span className={styles.fieldValue}>{detailVisit.assignedStaff}</span>
+          </div>
+          <div className={styles.field}>
+            <span className={styles.fieldLabel}>Status</span>
+            <span className={styles.fieldValue}>{statusBadge(detailVisit.status)}</span>
+          </div>
+          {detailVisit.outcome && (
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>Outcome</span>
+              <span className={styles.fieldValue}>{outcomeBadge(detailVisit.outcome)}</span>
+            </div>
+          )}
+          {detailVisit.cancelReason && (
+            <div className={styles.fieldVertical}>
+              <span className={styles.fieldLabel}>Cancellation Reason</span>
+              <div className={styles.fieldValueFullWidth}>{detailVisit.cancelReason}</div>
+            </div>
+          )}
+          {detailVisit.completedAt && (
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>Completed At</span>
+              <span className={styles.fieldValue}>{formatDateAtTime(detailVisit.completedAt)}</span>
+            </div>
+          )}
+          {detailVisit.cancelledAt && (
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>Cancelled At</span>
+              <span className={styles.fieldValue}>{formatDateAtTime(detailVisit.cancelledAt)}</span>
+            </div>
+          )}
+          {detailVisit.notes && (
+            <div className={styles.fieldVertical}>
+              <span className={styles.fieldLabel}>Visit Summary</span>
+              <div className={styles.fieldValueFullWidth}>{detailVisit.notes}</div>
+            </div>
+          )}
+          {detailVisit.outcomeNotes && (
+            <div className={styles.fieldVertical}>
+              <span className={styles.fieldLabel}>Outcome Notes</span>
+              <div className={styles.fieldValueFullWidth}>{detailVisit.outcomeNotes}</div>
+            </div>
+          )}
+        </Modal>
       )}
     </div>
   );

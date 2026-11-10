@@ -1,4 +1,5 @@
 import React from 'react';
+import { Spinner } from '@adopt-dont-shop/lib.components';
 
 import { useApplicationQuestions } from '../../../hooks/useApplicationQuestions';
 import * as styles from '../ApplicationReview.css';
@@ -15,7 +16,7 @@ export const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ answers,
   const { data: questions = [], isLoading } = useApplicationQuestions(rescueId);
 
   if (isLoading) {
-    return <p className={styles.fieldValue}>Loading answers…</p>;
+    return <Spinner size="sm" label="Loading answers…" showLabel />;
   }
 
   // Without the questionnaire (failed to load) every answer still shows,

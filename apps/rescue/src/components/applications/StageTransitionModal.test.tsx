@@ -6,21 +6,16 @@
  */
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 vi.mock('./StageTransitionModal.css', () => {
   const STRING_EXPORTS = [
-    'overlay',
-    'modal',
-    'header',
-    'title',
     'subtitle',
     'stageDisplay',
     'stageBox',
     'arrow',
     'formField',
     'label',
-    'textArea',
     'actionList',
     'actionLabel',
     'actionDescription',
@@ -32,24 +27,29 @@ vi.mock('./StageTransitionModal.css', () => {
     out[name] = name;
   }
   // Recipe-style exports are callables that return a class name.
-  for (const name of ['actionOption', 'button'] as const) {
+  for (const name of ['actionOption'] as const) {
     const fn = (..._args: unknown[]) => name;
     out[name] = Object.assign(fn, { toString: () => name });
   }
   return out;
 });
 
-vi.mock('@adopt-dont-shop/lib.components', async () => ({
-  Input: (
-    await vi.importActual<typeof import('@adopt-dont-shop/lib.components')>(
-      '@adopt-dont-shop/lib.components'
-    )
-  ).Input,
-  toast: Object.assign(vi.fn(), {
-    error: vi.fn(),
-    success: vi.fn(),
-  }),
-}));
+vi.mock('@adopt-dont-shop/lib.components', async () => {
+  const actual = await vi.importActual<typeof import('@adopt-dont-shop/lib.components')>(
+    '@adopt-dont-shop/lib.components'
+  );
+  return {
+    Button: actual.Button,
+    FormField: actual.FormField,
+    Input: actual.Input,
+    Modal: actual.Modal,
+    TextArea: actual.TextArea,
+    toast: Object.assign(vi.fn(), {
+      error: vi.fn(),
+      success: vi.fn(),
+    }),
+  };
+});
 
 import StageTransitionModal from './StageTransitionModal';
 
@@ -66,7 +66,7 @@ describe('StageTransitionModal backdrop accessibility', () => {
     expect(screen.queryByRole('button', { name: /close modal/i })).toBeNull();
   });
 
-  it('is announced as a modal dialog named after its heading, with focus inside', () => {
+  it('is announced as a modal dialog named after its heading, with focus inside', async () => {
     render(
       <StageTransitionModal
         currentStage="PENDING"
@@ -77,7 +77,7 @@ describe('StageTransitionModal backdrop accessibility', () => {
 
     const dialog = screen.getByRole('dialog', { name: 'Transition Application Stage' });
     expect(dialog).toHaveAttribute('aria-modal', 'true');
-    expect(dialog).toContainElement(document.activeElement as HTMLElement);
+    await waitFor(() => expect(dialog).toContainElement(document.activeElement as HTMLElement));
   });
 });
 

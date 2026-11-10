@@ -20,39 +20,20 @@ vi.mock('./ApplicationList.css', () => ({
   headerLeft: 'headerLeft',
   headerRight: 'headerRight',
   title: 'title',
-  sortSelect: 'sortSelect',
   tableContainer: 'tableContainer',
-  loadingContainer: 'loadingContainer',
-  spinner: 'spinner',
-  loadingText: 'loadingText',
-  emptyContainer: 'emptyContainer',
-  emptyText: 'emptyText',
-  tableWrapper: 'tableWrapper',
-  table: 'table',
-  tableHead: 'tableHead',
+  srOnly: 'srOnly',
   tableRow: 'tableRow',
-  tableHeader: 'tableHeader',
-  tableBody: 'tableBody',
-  tableCell: 'tableCell',
   applicantInfo: 'applicantInfo',
   applicantName: 'applicantName',
   applicantEmail: 'applicantEmail',
   petInfo: 'petInfo',
   petName: 'petName',
   petDetails: 'petDetails',
-  priorityBadge: () => 'priorityBadge',
   progressIndicators: 'progressIndicators',
   progressBar: 'progressBar',
   progressStep: () => 'progressStep',
   progressLabel: 'progressLabel',
   actionsContainer: 'actionsContainer',
-  actionButton: () => 'actionButton',
-  errorContainer: 'errorContainer',
-  errorContent: 'errorContent',
-  errorText: 'errorText',
-  errorTitle: 'errorTitle',
-  errorMessage: 'errorMessage',
-  skeletonBlock: 'skeletonBlock',
 }));
 
 // Stub child components so we exercise ApplicationList in isolation.
@@ -61,9 +42,6 @@ vi.mock('./ApplicationStats', () => ({
 }));
 vi.mock('./ApplicationFilters', () => ({
   default: () => <div data-testid="application-filters" />,
-}));
-vi.mock('../common/StatusBadge', () => ({
-  default: ({ status }: { status: string }) => <span>{status}</span>,
 }));
 
 import ApplicationList from './ApplicationList';
@@ -248,5 +226,23 @@ describe('ApplicationList [ADS-576] selection UI removed', () => {
     );
 
     expect(screen.queryByText(/selected$/i)).toBeNull();
+  });
+});
+
+describe('ApplicationList sorting', () => {
+  it('reports the chosen sort order', () => {
+    const onSortChange = vi.fn();
+    render(
+      <ApplicationList
+        {...baseProps}
+        onSortChange={onSortChange}
+        applications={[buildApplication()]}
+        onApplicationSelect={vi.fn()}
+      />
+    );
+
+    fireEvent.change(screen.getByLabelText('Sort by'), { target: { value: 'status-asc' } });
+
+    expect(onSortChange).toHaveBeenCalledWith({ field: 'status', direction: 'asc' });
   });
 });
