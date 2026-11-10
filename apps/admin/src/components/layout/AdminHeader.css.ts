@@ -53,6 +53,8 @@ export const userButton = style({
   gap: '0.75rem',
   padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
   background: 'transparent',
+  // A native button's text colour is ButtonText; set it so the chevron follows the theme.
+  color: vars.text.primary,
   border: `1px solid ${vars.border.color.default}`,
   borderRadius: vars.border.radius.base,
   cursor: 'pointer',
