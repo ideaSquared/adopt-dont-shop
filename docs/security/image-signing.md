@@ -55,7 +55,8 @@ images (`app-client`, `app-admin`, `app-rescue`).
 The `verify-images` job runs **after** `build-and-push` and **before**
 `deploy`. It:
 
-1. Resolves each `:<sha>` tag back to its registry digest via
+1. Resolves each `:<sha>` tag (`:<sha>-<environment>` for the `app-*`
+   frontend images, which are baked per environment) back to its registry digest via
    `docker buildx imagetools inspect` (so we verify the immutable artifact,
    not whatever the tag happens to point at).
 2. Runs `cosign verify` with:
