@@ -1,5 +1,5 @@
 import React from 'react';
-import { Container } from '@adopt-dont-shop/lib.components';
+import { Container, PageHeader } from '@adopt-dont-shop/lib.components';
 
 /**
  * ADS-1326: the footer links to /about, which had no route (404). Content
@@ -7,7 +7,7 @@ import { Container } from '@adopt-dont-shop/lib.components';
  */
 export const AboutPage: React.FC = () => (
   <Container>
-    <h1>About Adopt Don&apos;t Shop</h1>
+    <PageHeader title={<>About Adopt Don&apos;t Shop</>} />
     <p>
       Adopt Don&apos;t Shop connects rescue organizations with potential adopters. Rescues list pets
       that need a home, and adopters can browse, favourite, and apply to adopt them — all in one
