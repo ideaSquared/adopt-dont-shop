@@ -1,0 +1,14 @@
+import{n as e}from"./rolldown-runtime-sJBDdmOt.js";import{n as t}from"./iframe-D-1Y0DEU.js";import{t as n}from"./jsx-runtime-4T0uvm_b.js";import{n as r,t as i}from"./DropdownMenu-C5k_y6E0.js";function a(){return(a=e((()=>{})))()}var o,s;function c(){return(c=e((()=>{t(),r(),a(),o=n(),s=({triggerLabel:e,items:t,className:n,header:r,disabled:a})=>(0,o.jsx)(i,{triggerLabel:e,items:t,header:r,disabled:a,triggerClassName:n??`_1kxmu0m0`,align:`end`}),s.displayName=`DropdownButton`,s.__docgenInfo={description:``,methods:[],displayName:`DropdownButton`,props:{triggerLabel:{required:!0,tsType:{name:`string`},description:``},items:{required:!0,tsType:{name:`Array`,elements:[{name:`signature`,type:`object`,raw:`{
+  label: string;
+  /** Renders the item as a link. Prefer \`onClick\` + your router's navigate for in-app routes. */
+  to?: string;
+  onClick?: () => void;
+  icon?: React.ReactNode;
+  /** Secondary line rendered under the label. */
+  description?: string;
+  disabled?: boolean;
+  /** Destructive action styling (e.g. "Log out", "Delete"). */
+  danger?: boolean;
+  /** Draws a divider above this item. */
+  separatorBefore?: boolean;
+}`,signature:{properties:[{key:`label`,value:{name:`string`,required:!0}},{key:`to`,value:{name:`string`,required:!1},description:"Renders the item as a link. Prefer `onClick` + your router's navigate for in-app routes."},{key:`onClick`,value:{name:`signature`,type:`function`,raw:`() => void`,signature:{arguments:[],return:{name:`void`}},required:!1}},{key:`icon`,value:{name:`ReactReactNode`,raw:`React.ReactNode`,required:!1}},{key:`description`,value:{name:`string`,required:!1},description:`Secondary line rendered under the label.`},{key:`disabled`,value:{name:`boolean`,required:!1}},{key:`danger`,value:{name:`boolean`,required:!1},description:`Destructive action styling (e.g. "Log out", "Delete").`},{key:`separatorBefore`,value:{name:`boolean`,required:!1},description:`Draws a divider above this item.`}]}}],raw:`DropdownMenuItem[]`},description:``},className:{required:!1,tsType:{name:`string`},description:`Replaces the trigger button's class (the default is a bordered, surface-coloured button).`},header:{required:!1,tsType:{name:`ReactReactNode`,raw:`React.ReactNode`},description:`Rendered above the items inside the menu.`},disabled:{required:!1,tsType:{name:`boolean`},description:``}}}})))()}var l,u,d,f;function p(){return(p=e((()=>{c(),l={title:`Components/DropdownButton`,component:s,tags:[`autodocs`]},u={args:{triggerLabel:`Actions`,items:[{label:`Edit`,onClick:()=>void 0},{label:`View details`,to:`/details`},{label:`Delete`,onClick:()=>void 0,danger:!0,separatorBefore:!0}]}},d={args:{triggerLabel:`Actions`,items:[],disabled:!0}},f=[`Default`,`Disabled`]})))()}p();export{u as Default,d as Disabled,f as __namedExportsOrder,l as default};
