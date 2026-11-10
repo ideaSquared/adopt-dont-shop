@@ -16,7 +16,7 @@ B14	High	Client	/rescues/:id shows "Rescue Not Found" for a valid rescue.	CLI-05
 B15	High	Client	At phone width (375px) the home, search, pet and chat pages scroll sideways (footer "Manage cookies" button), and the apply form is about 700px wide.	CLI-141	client/gap-keyboard-and-mobile	1602	
 B16	Medium	Client	Phone and postcode do not save. The profile shows "Phone: Not provided" after saving and "Member Since" says "Invalid date".	CLI-080, CLI-081	client/gap-account-and-inbox-flows		
 B17	Medium	Client	The server accepts an application for a pet that is not available. It is only blocked by hiding the button.	CLI-070	client/cannot-apply-to-unavailable-pet		
-B18	Medium	Client	Opening one notification to mark it read fails with a 400.	CLI-110	client/gap-account-and-inbox-flows		
+B18	Medium	Client	Opening one notification to mark it read fails with a 400.	CLI-110	client/gap-account-and-inbox-flows	1645	
 B19	Medium	Client	"Nearest first" sorting does nothing (falls back to newest).	CLI-041	client/distance-sorted-search		
 B20	Medium	Client	There is no change-password option in the client app.	CLI-082	client/gap-account-and-inbox-flows		
 B21	Low	Client	Applying twice sends you to the existing application with no message explaining why.	CLI-072	client/gap-application-flows		
