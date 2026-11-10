@@ -101,7 +101,7 @@ export const objectAt = (json: JsonObject, key: string): JsonObject => {
     : {};
 };
 
-const arrayAt = (json: JsonObject, key: string): readonly JsonObject[] => {
+export const arrayAt = (json: JsonObject, key: string): readonly JsonObject[] => {
   const value = json[key];
   return Array.isArray(value)
     ? value.filter((v): v is JsonObject => typeof v === 'object' && v !== null)

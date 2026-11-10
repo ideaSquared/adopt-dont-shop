@@ -215,6 +215,8 @@ A broken chain is a security incident: stop, preserve the table (`pg_dump -t ops
 
 To fill an existing staging rescue with sample pets, use `pnpm ops demo create-pets <rescueId> -e staging --count 5`. Those pets carry a `demo` tag; `pnpm ops demo delete-pets <rescueId> -e staging` deletes only the tagged ones and never the rescue's real pets.
 
+`pnpm ops demo create-application <rescueId>` likewise leaves a demo adopter and an application on one of that rescue's pets. Remove them with `pnpm ops demo delete-application <applicationId> --rescue-id <rescueId> -e staging`; it refuses any application whose adopter is not a `demo-…@example.com` account.
+
 ## If `service-ops` is down
 
 `service-ops` is a developer tool. Nothing in the product depends on it, so an outage is not a user-facing incident, but a failed health check does fail a deploy (the health gate includes `service-ops:4100`), so you need to fix it to ship.
