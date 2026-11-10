@@ -516,6 +516,32 @@ describe('sendMessage', () => {
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('chat.messageCreated');
   });
 
+  // Contract with the consumers: service.moderation scans `body` and reports
+  // `senderUserId`; service.notifications reads the same fields. Renaming any
+  // of them silently breaks a consumer, so pin the payload here.
+  it('publishes chat.messageCreated carrying the fields its consumers read', async () => {
+    mocks.poolScript.push({ rows: [{ chat_participant_id: 'p-1' }] });
+    mocks.poolScript.push({ rows: [{ status: 'active', deleted_at: null }] });
+    mocks.clientScript.push({ rows: [messageRowFixture()] });
+    mocks.clientScript.push({ rows: [] });
+    mocks.clientScript.push({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
+
+    await sendMessage(mocks.deps, ADOPTER_PRINCIPAL, BASE_SEND);
+
+    const rawData = mocks.natsMock.publish.mock.calls[0][1];
+    const dataStr =
+      rawData instanceof Uint8Array ? new TextDecoder().decode(rawData) : String(rawData);
+    const envelope = JSON.parse(dataStr) as { payload: Record<string, unknown> };
+    expect(envelope.payload).toMatchObject({
+      messageId: expect.any(String),
+      chatId: 'chat-1',
+      senderUserId: 'usr-adopter',
+      body: 'Hello!',
+    });
+  });
+
   it('accepts an image-only message and round-trips attachment metadata, dropping malformed entries', async () => {
     mocks.poolScript.push({ rows: [{ chat_participant_id: 'p-1' }] });
     mocks.poolScript.push({ rows: [{ status: 'active', deleted_at: null }] });

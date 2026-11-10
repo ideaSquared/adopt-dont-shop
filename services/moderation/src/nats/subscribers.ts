@@ -86,18 +86,18 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
       nats,
       { subject: 'chat.messageCreated', durable: durableFor('chat.messageCreated'), onError },
       async event => {
-        const hit = scanContent(event.content);
+        const hit = scanContent(event.body);
         if (hit === null) {
           return;
         }
         await fileAutoReport(deps, {
           reportedEntityType: ModerationV1.ReportEntityType.REPORT_ENTITY_TYPE_MESSAGE,
           reportedEntityId: event.messageId,
-          reportedUserId: event.senderId,
+          reportedUserId: event.senderUserId,
           category: CATEGORY_TO_PROTO[hit.category],
           severity: SEVERITY_TO_PROTO[hit.severity],
           title: `Auto-report: ${hit.reason}`,
-          description: `Chat message ${event.messageId} from sender ${String(event.senderId)} matched the moderation scanner: ${hit.reason}. The content was: "${truncate(event.content, 300)}"`,
+          description: `Chat message ${event.messageId} from sender ${String(event.senderUserId)} matched the moderation scanner: ${hit.reason}. The content was: "${truncate(event.body, 300)}"`,
         });
       }
     )
