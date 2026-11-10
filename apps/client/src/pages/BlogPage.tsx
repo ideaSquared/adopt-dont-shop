@@ -1,53 +1,30 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router';
-import { Container, Spinner } from '@adopt-dont-shop/lib.components';
-import { cmsPublicService, type PublicContent } from '@/services/cmsService';
+import { Container, EmptyState, PageHeader, Spinner } from '@adopt-dont-shop/lib.components';
+import { formatCustomDate } from '@adopt-dont-shop/lib.utils';
+import { useBlogPosts } from '@/hooks/useCmsContent';
 import * as styles from './BlogPage.css';
 
-const formatDate = (dateString: string): string =>
-  new Date(dateString).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
+const formatDate = (dateString: string): string => formatCustomDate(dateString, 'd MMMM yyyy');
 
 export const BlogPage: React.FC = () => {
-  const [posts, setPosts] = useState<PublicContent[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    cmsPublicService
-      .listBlogPosts()
-      .then(result => {
-        if (!cancelled) {
-          setPosts(result.content);
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // A failed fetch degrades to the empty state, as before.
+  const { data, isLoading } = useBlogPosts();
+  const posts = data?.content ?? [];
 
   return (
     <Container className={styles.pageContainer}>
-      <div className={styles.pageHeader}>
-        <h1>Blog</h1>
-        <p>News, stories, and updates from the world of pet adoption</p>
-      </div>
+      <PageHeader
+        title='Blog'
+        description='News, stories, and updates from the world of pet adoption'
+      />
 
-      {loading ? (
+      {isLoading ? (
         <div className={styles.spinnerWrapper}>
           <Spinner size='lg' label='Loading posts' />
         </div>
       ) : posts.length === 0 ? (
-        <div className={styles.emptyState}>No posts yet — check back soon!</div>
+        <EmptyState title='No posts yet — check back soon!' />
       ) : (
         <div className={styles.postGrid}>
           {posts.map(post => (

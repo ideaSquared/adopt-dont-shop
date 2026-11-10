@@ -1,51 +1,25 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router';
-import { Container, Spinner } from '@adopt-dont-shop/lib.components';
+import { Container, EmptyState, PageHeader, Spinner } from '@adopt-dont-shop/lib.components';
+import { formatCustomDate } from '@adopt-dont-shop/lib.utils';
 import { SafeHtml } from '@/components/SafeHtml';
-import { cmsPublicService, type PublicContent } from '@/services/cmsService';
+import { useBlogPost } from '@/hooks/useCmsContent';
 import * as styles from './BlogPostPage.css';
 
-const formatDate = (dateString: string): string =>
-  new Date(dateString).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
+const formatDate = (dateString: string): string => formatCustomDate(dateString, 'd MMMM yyyy');
 
 export const BlogPostPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const [post, setPost] = useState<PublicContent | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: post, isLoading, isError } = useBlogPost(slug);
 
   useEffect(() => {
-    if (!slug) {
-      return;
+    if (isError) {
+      navigate('/blog', { replace: true });
     }
-    let cancelled = false;
-    cmsPublicService
-      .getBlogPost(slug)
-      .then(result => {
-        if (!cancelled) {
-          setPost(result);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          navigate('/blog', { replace: true });
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [slug, navigate]);
+  }, [isError, navigate]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Container className={styles.pageContainer}>
         <div className={styles.spinnerWrapper}>
@@ -58,7 +32,7 @@ export const BlogPostPage: React.FC = () => {
   if (!post) {
     return (
       <Container className={styles.pageContainer}>
-        <div className={styles.notFound}>Post not found.</div>
+        <EmptyState title='Post not found.' />
       </Container>
     );
   }
@@ -73,10 +47,7 @@ export const BlogPostPage: React.FC = () => {
         <img src={post.featuredImageUrl} alt={post.title} className={styles.featuredImage} />
       )}
 
-      <h1 className={styles.postTitle}>{post.title}</h1>
-      <div className={styles.postMeta}>
-        <span>{formatDate(post.publishedAt ?? post.createdAt)}</span>
-      </div>
+      <PageHeader title={post.title} description={formatDate(post.publishedAt ?? post.createdAt)} />
 
       <SafeHtml html={post.content} className={styles.postContent} />
     </Container>

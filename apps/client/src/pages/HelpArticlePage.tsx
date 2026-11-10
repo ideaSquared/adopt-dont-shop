@@ -1,44 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router';
-import { Container, Spinner } from '@adopt-dont-shop/lib.components';
+import { Container, EmptyState, PageHeader, Spinner } from '@adopt-dont-shop/lib.components';
 import { SafeHtml } from '@/components/SafeHtml';
-import { cmsPublicService, type PublicContent } from '@/services/cmsService';
+import { useHelpArticle } from '@/hooks/useCmsContent';
 import * as styles from './HelpArticlePage.css';
 
 export const HelpArticlePage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const [article, setArticle] = useState<PublicContent | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: article, isLoading, isError } = useHelpArticle(slug);
 
   useEffect(() => {
-    if (!slug) {
-      return;
+    if (isError) {
+      navigate('/help', { replace: true });
     }
-    let cancelled = false;
-    cmsPublicService
-      .getHelpArticle(slug)
-      .then(result => {
-        if (!cancelled) {
-          setArticle(result);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          navigate('/help', { replace: true });
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [slug, navigate]);
+  }, [isError, navigate]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Container className={styles.pageContainer}>
         <div className={styles.spinnerWrapper}>
@@ -51,7 +29,7 @@ export const HelpArticlePage: React.FC = () => {
   if (!article) {
     return (
       <Container className={styles.pageContainer}>
-        <div>Article not found.</div>
+        <EmptyState title='Article not found.' />
       </Container>
     );
   }
@@ -61,7 +39,7 @@ export const HelpArticlePage: React.FC = () => {
       <Link to='/help' className={styles.backLink}>
         ← Back to Help Center
       </Link>
-      <h1 className={styles.articleTitle}>{article.title}</h1>
+      <PageHeader title={article.title} />
       <SafeHtml html={article.content} className={styles.articleContent} />
     </Container>
   );

@@ -1,29 +1,10 @@
-import { globalStyle, style } from '@vanilla-extract/css';
+import { style } from '@vanilla-extract/css';
 
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const pageContainer = style({
   padding: '3rem 0',
   minHeight: 'calc(100vh - 200px)',
-});
-
-export const pageHeader = style({
-  textAlign: 'center',
-  marginBottom: '3rem',
-});
-
-globalStyle(`${pageHeader} h1`, {
-  fontSize: '2.5rem',
-  fontWeight: '700',
-  color: vars.text.primary,
-  margin: '0 0 1rem 0',
-});
-
-globalStyle(`${pageHeader} p`, {
-  fontSize: '1.1rem',
-  color: vars.text.tertiary,
-  maxWidth: '600px',
-  margin: '0 auto',
 });
 
 export const postGrid = style({
@@ -95,13 +76,6 @@ export const postDate = style({
   fontSize: '0.8rem',
   color: vars.text.tertiary,
   marginTop: '0.5rem',
-});
-
-export const emptyState = style({
-  textAlign: 'center',
-  padding: '4rem 2rem',
-  color: vars.text.tertiary,
-  fontSize: '1.1rem',
 });
 
 export const spinnerWrapper = style({
