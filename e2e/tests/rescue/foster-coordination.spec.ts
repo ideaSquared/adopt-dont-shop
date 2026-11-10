@@ -74,12 +74,12 @@ test.describe('foster coordination', () => {
 
   test('a manager can end a placement from the list', async ({ page, apiAs }) => {
     const rescueApi = await apiAs('rescue');
-    const { petId } = await createAvailablePet(rescueApi, 'Foster');
+    const { petId, name } = await createAvailablePet(rescueApi, 'Foster');
     await startPlacement(rescueApi, petId);
 
     await page.goto('/foster');
     await dismissCookieBannerWhenShown(page);
-    const row = page.getByRole('row', { name: new RegExp(petId) });
+    const row = page.getByRole('row', { name });
     await expect(row).toContainText('active');
     await row.getByRole('button', { name: 'End placement' }).click();
     await page
