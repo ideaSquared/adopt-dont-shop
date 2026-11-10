@@ -1740,6 +1740,7 @@ describe('deleteChat', () => {
 
 describe('updateChatStatus', () => {
   const LOCKED = ChatV1.ChatStatus.CHAT_STATUS_LOCKED;
+  const ACTIVE = ChatV1.ChatStatus.CHAT_STATUS_ACTIVE;
   let mocks: ReturnType<typeof makeMocks>;
   beforeEach(() => {
     mocks = makeMocks();
@@ -1816,6 +1817,29 @@ describe('updateChatStatus', () => {
     expect(res.chat?.status).toBe(LOCKED);
     expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('chat.statusChanged');
+  });
+
+  it('gives a status that flips back and forth a fresh event id each time', async () => {
+    // JetStream drops a repeated Nats-Msg-Id inside its dedupe window, so
+    // locking, unlocking and locking again must not reuse an id.
+    const flip = async (from: string, to: string, status: typeof LOCKED): Promise<void> => {
+      mocks.poolMock.query.mockResolvedValueOnce({ rows: [chatRowFixture({ status: from })] });
+      mocks.clientScript.push({ rows: [chatRowFixture({ status: to })] });
+      mocks.clientScript.push({ rows: [{ participant_id: 'usr-adopter' }] });
+      mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ participant_id: 'usr-adopter' }] });
+      mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+      await updateChatStatus(mocks.deps, MODERATOR_PRINCIPAL, { chatId: 'chat-1', status });
+    };
+
+    await flip('active', 'locked', LOCKED);
+    await flip('locked', 'active', ACTIVE);
+    await flip('active', 'locked', LOCKED);
+
+    const msgIds = (
+      mocks.natsMock.publish.mock.calls as Array<[string, Uint8Array, { msgID?: string }?]>
+    ).map(call => call[2]?.msgID);
+    expect(msgIds).toHaveLength(3);
+    expect(new Set(msgIds).size).toBe(3);
   });
 });
 
