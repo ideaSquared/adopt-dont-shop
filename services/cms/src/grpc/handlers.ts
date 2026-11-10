@@ -16,6 +16,8 @@
 //     new entry; Restore copies the snapshot back into the live row
 //     fields AND appends a new version with a restore note.
 
+import { randomUUID } from 'node:crypto';
+
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
 import sanitizeHtml from 'sanitize-html';
@@ -31,6 +33,7 @@ import {
   CMS_MENU_UPDATE as MENU_UPDATE,
 } from '@adopt-dont-shop/lib.types';
 
+import { contentActionTaken, type ContentAudit } from './audit.js';
 import { isLegalTransition } from './status-machine.js';
 import {
   CmsV1,
@@ -805,6 +808,14 @@ export async function deleteContent(
         type: 'cms.contentDeleted',
         payload: { contentId: id, actorId: principal.userId },
       });
+      publish(
+        contentActionTaken({
+          action: 'delete',
+          contentId: id,
+          actorUserId: principal.userId,
+          details: {},
+        })
+      );
     }
     return wasDeleted;
   });
@@ -819,7 +830,8 @@ async function setStatus(
   contentId: string,
   status: ContentStatusDb,
   topic: string,
-  setPublishedAt: boolean
+  setPublishedAt: boolean,
+  action: ContentAudit['action']
 ): Promise<ContentRow> {
   return withTransaction(deps, async ({ client, publish }) => {
     // Lock the row and re-validate the transition against the *locked*
@@ -855,10 +867,21 @@ async function setStatus(
       throw new HandlerError('NOT_FOUND', `content ${contentId} not found`);
     }
     publish({
-      id: `${topic}.${contentId}`,
+      // Per-transition uuid: the same content cycles publish → unpublish →
+      // publish, and a bare `${topic}.${contentId}` would be de-duped as a
+      // replay of the earlier transition inside JetStream's duplicate window.
+      id: `${topic}.${contentId}.${randomUUID()}`,
       type: topic,
       payload: { contentId, actorId: principal.userId },
     });
+    publish(
+      contentActionTaken({
+        action,
+        contentId,
+        actorUserId: principal.userId,
+        details: { fromStatus: current.status, toStatus: status },
+      })
+    );
     return row;
   });
 }
@@ -875,7 +898,15 @@ export async function publishContent(
   if (id === '') {
     throw new HandlerError('INVALID_ARGUMENT', 'content_id is required');
   }
-  const row = await setStatus(deps, principal, id, 'published', 'cms.contentPublished', true);
+  const row = await setStatus(
+    deps,
+    principal,
+    id,
+    'published',
+    'cms.contentPublished',
+    true,
+    'publish'
+  );
   return { content: rowToContent(row) };
 }
 
@@ -891,7 +922,15 @@ export async function unpublishContent(
   if (id === '') {
     throw new HandlerError('INVALID_ARGUMENT', 'content_id is required');
   }
-  const row = await setStatus(deps, principal, id, 'draft', 'cms.contentUnpublished', false);
+  const row = await setStatus(
+    deps,
+    principal,
+    id,
+    'draft',
+    'cms.contentUnpublished',
+    false,
+    'unpublish'
+  );
   return { content: rowToContent(row) };
 }
 
@@ -907,7 +946,15 @@ export async function archiveContent(
   if (id === '') {
     throw new HandlerError('INVALID_ARGUMENT', 'content_id is required');
   }
-  const row = await setStatus(deps, principal, id, 'archived', 'cms.contentArchived', false);
+  const row = await setStatus(
+    deps,
+    principal,
+    id,
+    'archived',
+    'cms.contentArchived',
+    false,
+    'archive'
+  );
   return { content: rowToContent(row) };
 }
 

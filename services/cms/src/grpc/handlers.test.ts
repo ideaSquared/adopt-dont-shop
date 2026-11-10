@@ -862,6 +862,112 @@ describe('event idempotency keys (Nats-Msg-Id)', () => {
   });
 });
 
+describe('audit trail (cms.actionTaken)', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+
+  // The decoded `{ id, payload }` envelopes published on `subject`.
+  const publishedOn = (subject: string) => {
+    const decoder = new TextDecoder();
+    return mocks.natsMock.publish.mock.calls
+      .filter(([s]) => s === subject)
+      .map(
+        ([, data]) =>
+          JSON.parse(decoder.decode(data as Uint8Array)) as {
+            id: string;
+            payload: Record<string, unknown>;
+          }
+      );
+  };
+
+  it('audits publishing content', async () => {
+    mocks.clientScript.push({ rows: [contentRow({ status: 'draft' })] }); // SELECT FOR UPDATE
+    mocks.clientScript.push({ rows: [contentRow({ status: 'published' })] }); // UPDATE
+    await publishContent(mocks.deps, ADMIN, { contentId: 'c-1' });
+
+    const [event] = publishedOn('cms.actionTaken');
+    expect(event.payload).toMatchObject({
+      eventId: event.id,
+      service: 'service.cms',
+      subject: 'cms.actionTaken',
+      aggregateType: 'content',
+      aggregateId: 'c-1',
+      actorUserId: ADMIN.userId,
+      action: 'publish',
+      outcome: 'success',
+      payload: { fromStatus: 'draft', toStatus: 'published' },
+    });
+  });
+
+  it('audits unpublish and archive with their own verbs', async () => {
+    mocks.clientScript.push({ rows: [contentRow({ status: 'published' })] });
+    mocks.clientScript.push({ rows: [contentRow({ status: 'draft' })] });
+    await unpublishContent(mocks.deps, ADMIN, { contentId: 'c-1' });
+    mocks.clientScript.push({ rows: [contentRow({ status: 'published' })] });
+    mocks.clientScript.push({ rows: [contentRow({ status: 'archived' })] });
+    await archiveContent(mocks.deps, ADMIN, { contentId: 'c-1' });
+
+    expect(publishedOn('cms.actionTaken').map(e => e.payload.action)).toEqual([
+      'unpublish',
+      'archive',
+    ]);
+  });
+
+  it('audits a delete', async () => {
+    mocks.clientScript.push({ rows: [{ content_id: 'c-1' }], rowCount: 1 });
+    await deleteContent(mocks.deps, ADMIN, { contentId: 'c-1' });
+
+    const [event] = publishedOn('cms.actionTaken');
+    expect(event.payload).toMatchObject({
+      eventId: event.id,
+      aggregateType: 'content',
+      aggregateId: 'c-1',
+      actorUserId: ADMIN.userId,
+      action: 'delete',
+      outcome: 'success',
+    });
+  });
+
+  it('does not audit a delete that matched no row', async () => {
+    mocks.clientScript.push({ rows: [], rowCount: 0 });
+    await deleteContent(mocks.deps, ADMIN, { contentId: 'c-x' });
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('does not audit when the status update fails', async () => {
+    mocks.clientScript.push({ rows: [contentRow({ status: 'draft' })] }); // SELECT FOR UPDATE
+    mocks.clientScript.push({ rows: [] }); // UPDATE matched nothing → NOT_FOUND, rollback
+    await expect(publishContent(mocks.deps, ADMIN, { contentId: 'c-1' })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('does not audit an illegal transition', async () => {
+    mocks.clientScript.push({ rows: [contentRow({ status: 'published' })] });
+    await expect(publishContent(mocks.deps, ADMIN, { contentId: 'c-1' })).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('gives repeated publish/unpublish cycles distinct message ids', async () => {
+    for (let i = 0; i < 2; i += 1) {
+      mocks.clientScript.push({ rows: [contentRow({ status: 'draft' })] });
+      mocks.clientScript.push({ rows: [contentRow({ status: 'published' })] });
+      await publishContent(mocks.deps, ADMIN, { contentId: 'c-1' });
+    }
+
+    const msgIds = mocks.natsMock.publish.mock.calls
+      .filter(([s]) => s === 'cms.contentPublished' || s === 'cms.actionTaken')
+      .map(([, , opts]) => (opts as { msgID?: string }).msgID);
+    expect(msgIds).toHaveLength(4);
+    expect(new Set(msgIds).size).toBe(4);
+  });
+});
+
 describe('version history', () => {
   let mocks: ReturnType<typeof makeMocks>;
   beforeEach(() => {
