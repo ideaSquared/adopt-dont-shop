@@ -344,7 +344,14 @@ export interface ListApplicationsRequest {
    * "Page X of Y". The principal scope (adopter-owns / rescue-staff /
    * admin) still applies — offset mode never widens what a caller sees.
    */
-  page?: number | undefined;
+  page?:
+    | number
+    | undefined;
+  /**
+   * Narrow to one pet's applications (the rescue app's foster page deep
+   * link). Applied on top of the principal scope, never widening it.
+   */
+  petIdFilter?: string | undefined;
 }
 
 export interface ListApplicationsResponse {
@@ -3003,6 +3010,7 @@ function createBaseListApplicationsRequest(): ListApplicationsRequest {
     rescueIdFilter: undefined,
     adopterIdFilter: undefined,
     page: undefined,
+    petIdFilter: undefined,
   };
 }
 
@@ -3025,6 +3033,9 @@ export const ListApplicationsRequest: MessageFns<ListApplicationsRequest> = {
     }
     if (message.page !== undefined) {
       writer.uint32(48).uint32(message.page);
+    }
+    if (message.petIdFilter !== undefined) {
+      writer.uint32(58).string(message.petIdFilter);
     }
     return writer;
   },
@@ -3084,6 +3095,14 @@ export const ListApplicationsRequest: MessageFns<ListApplicationsRequest> = {
           message.page = reader.uint32();
           continue;
         }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.petIdFilter = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -3113,6 +3132,11 @@ export const ListApplicationsRequest: MessageFns<ListApplicationsRequest> = {
         ? globalThis.String(object.adopter_id_filter)
         : undefined,
       page: isSet(object.page) ? globalThis.Number(object.page) : undefined,
+      petIdFilter: isSet(object.petIdFilter)
+        ? globalThis.String(object.petIdFilter)
+        : isSet(object.pet_id_filter)
+        ? globalThis.String(object.pet_id_filter)
+        : undefined,
     };
   },
 
@@ -3136,6 +3160,9 @@ export const ListApplicationsRequest: MessageFns<ListApplicationsRequest> = {
     if (message.page !== undefined) {
       obj.page = Math.round(message.page);
     }
+    if (message.petIdFilter !== undefined) {
+      obj.petIdFilter = message.petIdFilter;
+    }
     return obj;
   },
 
@@ -3150,6 +3177,7 @@ export const ListApplicationsRequest: MessageFns<ListApplicationsRequest> = {
     message.rescueIdFilter = object.rescueIdFilter ?? undefined;
     message.adopterIdFilter = object.adopterIdFilter ?? undefined;
     message.page = object.page ?? undefined;
+    message.petIdFilter = object.petIdFilter ?? undefined;
     return message;
   },
 };

@@ -208,6 +208,16 @@ describe('applications routes', () => {
     });
   });
 
+  it('GET /api/v1/applications forwards a petId filter', async () => {
+    mocks.list.mockResolvedValue({ applications: [APP] });
+    await app.inject({
+      method: 'GET',
+      url: '/api/v1/applications?petId=pet-7',
+      headers: STAFF,
+    });
+    expect(mocks.list.mock.calls[0][0]).toMatchObject({ petIdFilter: 'pet-7' });
+  });
+
   it('GET /api/v1/applications/:id passes includeTimeline', async () => {
     mocks.get.mockResolvedValue({ application: APP, timeline: [] });
     await app.inject({

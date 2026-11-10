@@ -1039,6 +1039,7 @@ export const registerApplicationsRoutes = async (
             status: { type: 'string' },
             rescue: { type: 'string' },
             adopter: { type: 'string' },
+            petId: { type: 'string' },
           },
         },
         response: {
@@ -1085,6 +1086,7 @@ export const registerApplicationsRoutes = async (
         statusFilter: parseStatus(q.status),
         rescueIdFilter: q.rescue,
         adopterIdFilter: q.adopter,
+        petIdFilter: q.petId,
       };
       const meta = buildMetadata(req);
       try {

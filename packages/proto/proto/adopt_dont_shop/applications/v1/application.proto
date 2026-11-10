@@ -429,6 +429,9 @@ message ListApplicationsRequest {
   // "Page X of Y". The principal scope (adopter-owns / rescue-staff /
   // admin) still applies — offset mode never widens what a caller sees.
   optional uint32 page = 6;
+  // Narrow to one pet's applications (the rescue app's foster page deep
+  // link). Applied on top of the principal scope, never widening it.
+  optional string pet_id_filter = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ListApplicationsResponse {

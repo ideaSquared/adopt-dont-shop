@@ -40,6 +40,12 @@ describe('RescueApplicationService.getApplications query parameters (ADS-575)', 
     return new URLSearchParams(url.slice(queryStart + 1));
   };
 
+  it("forwards the foster page's pet filter as a petId query parameter", async () => {
+    await service.getApplications({ petId: 'pet-7' });
+
+    expect(getRequestedParams().get('petId')).toBe('pet-7');
+  });
+
   it('forwards a pet-type filter as a petType query parameter', async () => {
     const filter: ApplicationFilter = { petType: 'Dog' };
 
@@ -694,9 +700,8 @@ describe('RescueApplicationService.getApplications applicant identity', () => {
   });
 });
 
-// The gateway list route only honours page, limit, status, rescue and adopter, so the other
-// filters the UI offers (including the petId deep link from the foster page) have to be applied
-// to the returned rows or they silently do nothing.
+// The gateway list route honours page, limit, status, rescue, adopter and petId, so the other
+// filters the UI offers have to be applied to the returned rows or they silently do nothing.
 describe('RescueApplicationService.getApplications narrows by filters the gateway ignores', () => {
   const service = new RescueApplicationService();
   const raw = (id: string, petId: string, overrides: Record<string, unknown> = {}) => ({
@@ -720,13 +725,6 @@ describe('RescueApplicationService.getApplications narrows by filters the gatewa
         raw('app-2', 'pet-2', { userName: 'Sam Smith', petType: 'Cat' }),
       ],
     });
-  });
-
-  it('returns only the applications for the pet when filtered by petId', async () => {
-    const { applications, total } = await service.getApplications({ petId: 'pet-2' });
-
-    expect(applications.map(a => a.id)).toEqual(['app-2']);
-    expect(total).toBe(1);
   });
 
   it('returns only matching applications when filtered by pet type', async () => {

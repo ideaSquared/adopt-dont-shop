@@ -151,6 +151,12 @@ export async function listApplications(
     params.push(statusToDb(req.statusFilter));
   }
 
+  // Narrows within the scope above; it can never widen what the caller sees.
+  if (req.petIdFilter !== undefined && req.petIdFilter !== '') {
+    where.push(`pet_id = $${p++}`);
+    params.push(req.petIdFilter);
+  }
+
   // Offset mode: staff / admin datatables pass `page` and need a real total
   // so the shared DataTable can render "Page X of Y" and gate Next. Keyset
   // cursors can't cheaply produce a count, so this path issues a COUNT(*)

@@ -1074,6 +1074,17 @@ export const PROTO_SCHEMA: ProtoSchema = {
           comment:
             'Offset pagination for the staff / admin applications datatable. When\nset (>0) the handler returns an OFFSET page plus a real `total`\n(COUNT) instead of a keyset cursor, so the shared DataTable can render\n"Page X of Y". The principal scope (adopter-owns / rescue-staff /\nadmin) still applies — offset mode never widens what a caller sees.',
         },
+        {
+          name: 'pet_id_filter',
+          jsonName: 'petIdFilter',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: false,
+          optional: true,
+          sensitivity: 'INTERNAL',
+          comment:
+            "Narrow to one pet's applications (the rescue app's foster page deep\nlink). Applied on top of the principal scope, never widening it.",
+        },
       ],
     },
     'adopt_dont_shop.applications.v1.ListApplicationsResponse': {

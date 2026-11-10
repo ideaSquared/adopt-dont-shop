@@ -260,9 +260,8 @@ const includesText = (haystack: string | undefined, needle: string): boolean =>
   (haystack ?? '').toLowerCase().includes(needle.toLowerCase());
 
 /**
- * The gateway list route only honours page, limit, status, rescue and adopter. The other filters
- * the UI offers (including the petId deep link from the foster page) are applied to the rows it
- * returns, otherwise they silently do nothing.
+ * The gateway list route honours page, limit, status, rescue, adopter and petId. The other filters
+ * the UI offers are applied to the rows it returns, otherwise they silently do nothing.
  */
 const narrowByUnsupportedFilters = (
   applications: ApplicationListItem[],
@@ -270,7 +269,6 @@ const narrowByUnsupportedFilters = (
 ): ApplicationListItem[] =>
   applications.filter(
     app =>
-      (!filter?.petId || app.petId === filter.petId) &&
       (!filter?.petType || includesText(app.petType, filter.petType)) &&
       (!filter?.petBreed || includesText(app.petBreed, filter.petBreed)) &&
       (!filter?.priority?.length || filter.priority.includes(app.priority)) &&
@@ -311,7 +309,7 @@ export class RescueApplicationService {
         params.append('status', filter.status.join(','));
       }
       if (filter?.petId) {
-        params.append('pet_id', filter.petId);
+        params.append('petId', filter.petId);
       }
       // ADS-575: petType / petBreed are now backend-supported filters
       // (case-insensitive match against the eager-loaded Pet record).
