@@ -767,7 +767,7 @@ const petFieldPermissions: FieldPermissionConfig['pets'] = {
     markings: WRITE,
     microchipId: WRITE,
     archived: WRITE,
-    featured: WRITE,
+    featured: READ, // featuring is an admin decision (later: paid slots)
     priorityListing: WRITE,
     adoptionFee: WRITE,
     specialNeeds: WRITE,

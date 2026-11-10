@@ -23,7 +23,13 @@ import { randomUUID } from 'node:crypto';
 
 import { status as grpcStatus } from '@grpc/grpc-js';
 
-import { hasPermission, requirePermission, type Principal } from '@adopt-dont-shop/authz';
+import {
+  fieldWriteGuard,
+  hasPermission,
+  requirePermission,
+  resolveFieldAccessMap,
+  type Principal,
+} from '@adopt-dont-shop/authz';
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
 import {
   PETS_CREATE,
@@ -712,6 +718,21 @@ export async function updatePet(
   }
   assertRescueScopedUpdate(principal, existing);
   await assertRescueMayWrite(deps, principal, existing.rescue_id);
+
+  // Featuring a pet is a platform decision (admins today, paid slots later), so it is
+  // field-guarded on top of the rescue-scoped update permission.
+  if (req.featured !== undefined) {
+    const check = fieldWriteGuard(
+      { featured: req.featured },
+      resolveFieldAccessMap('pets', principal.roles)
+    );
+    if (!check.allowed) {
+      throw new HandlerError(
+        'PERMISSION_DENIED',
+        `cannot write field(s): ${check.blockedFields.join(', ')}`
+      );
+    }
+  }
 
   // Build the SET clause from the supplied optional fields only.
   const sets: string[] = [];

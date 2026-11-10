@@ -1215,6 +1215,32 @@ describe('POST /api/v1/pets/bulk-update', () => {
     'x-user-permissions': 'pets.manage:any',
   };
 
+  it('features pets by default and unfeatures them with data.featured=false', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.updateMock.mockResolvedValue({ pet: PET_FIXTURE });
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets/bulk-update',
+        headers: ADMIN_HEADERS,
+        payload: { petIds: ['pet-1'], operation: 'feature' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets/bulk-update',
+        headers: ADMIN_HEADERS,
+        payload: { petIds: ['pet-2'], operation: 'feature', data: { featured: false } },
+      });
+      expect(m.updateMock.mock.calls.map(c => c[0])).toEqual([
+        { petId: 'pet-1', featured: true },
+        { petId: 'pet-2', featured: false },
+      ]);
+    } finally {
+      await app.close();
+    }
+  });
+
   it('rejects an empty petIds with 400 (no RPC calls)', async () => {
     const m = makeClient();
     const app = await makeApp(m.client);

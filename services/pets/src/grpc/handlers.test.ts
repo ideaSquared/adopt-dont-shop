@@ -1010,6 +1010,33 @@ describe('updatePet', () => {
     expect(updateSql).toMatch(/archived = \$1/);
   });
 
+  it('PERMISSION_DENIED when rescue staff try to feature a pet (admins decide featuring)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
+    await expect(
+      updatePet(mocks.deps, STAFF, { petId: 'pet-1', featured: true } as never)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+  });
+
+  it('lets a platform admin feature a pet', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
+    let updateSql = '';
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (sql.trim().startsWith('UPDATE')) {
+        updateSql = sql;
+      }
+      return { rows: [petRow({ featured: true })] };
+    });
+
+    const res = await updatePet(mocks.deps, PLATFORM_ADMIN, {
+      petId: 'pet-1',
+      featured: true,
+    } as never);
+
+    expect(res.pet.featured).toBe(true);
+    expect(updateSql).toMatch(/featured = \$1/);
+  });
+
   it('writes only the supplied fields + publishes pets.updated after commit', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
     const order: string[] = [];
