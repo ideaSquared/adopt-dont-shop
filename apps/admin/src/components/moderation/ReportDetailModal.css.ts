@@ -3,7 +3,7 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const subtitle = style({
   fontSize: vars.typography.size.sm,
-  color: '#6b7280',
+  color: vars.text.tertiary,
   display: 'flex',
   alignItems: 'center',
   gap: vars.spacing['2'],
@@ -21,7 +21,7 @@ export const section = style({
 export const sectionTitle = style({
   fontSize: vars.typography.size.sm,
   fontWeight: vars.typography.weight.semibold,
-  color: '#374151',
+  color: vars.text.secondary,
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
   margin: '0 0 0.75rem 0',
@@ -49,36 +49,36 @@ export const infoItem = style({
 
 export const infoLabel = style({
   fontSize: vars.typography.size.xs,
-  color: '#6b7280',
+  color: vars.text.tertiary,
   fontWeight: vars.typography.weight.medium,
 });
 
 export const infoValue = style({
   fontSize: vars.typography.size.sm,
-  color: '#111827',
+  color: vars.text.primary,
   fontWeight: vars.typography.weight.medium,
 });
 
 export const description = style({
   fontSize: vars.typography.size.sm,
-  color: '#374151',
+  color: vars.text.secondary,
   lineHeight: 1.6,
-  background: '#f9fafb',
+  background: vars.background.muted,
   padding: vars.spacing['3'],
   borderRadius: vars.border.radius.base,
   whiteSpace: 'pre-wrap',
 });
 
 export const entityCard = style({
-  background: '#f9fafb',
-  border: '1px solid #e5e7eb',
+  background: vars.background.muted,
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: vars.border.radius.base,
   padding: vars.spacing['3'],
 });
 
 export const entityType = style({
   fontSize: vars.typography.size.xs,
-  color: '#6b7280',
+  color: vars.text.tertiary,
   fontWeight: vars.typography.weight.medium,
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
@@ -87,31 +87,31 @@ export const entityType = style({
 
 export const entityName = style({
   fontSize: vars.typography.size.base,
-  color: '#111827',
+  color: vars.text.primary,
   fontWeight: vars.typography.weight.semibold,
   marginBottom: vars.spacing['1'],
 });
 
 export const entityDetail = style({
   fontSize: vars.typography.size.sm,
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const divider = style({
   height: '1px',
-  background: '#e5e7eb',
+  background: vars.background.muted,
   margin: `${vars.spacing['4']} 0`,
 });
 
 export const entityId = style({
   fontSize: vars.typography.size.xs,
-  color: '#6b7280',
+  color: vars.text.tertiary,
   fontFamily: 'monospace',
   marginTop: vars.spacing['2'],
   padding: vars.spacing['2'],
-  background: '#f9fafb',
+  background: vars.background.muted,
   borderRadius: vars.border.radius.sm,
-  border: '1px solid #e5e7eb',
+  border: `1px solid ${vars.border.color.muted}`,
 });
 
 export const monospaceId = style({
@@ -126,8 +126,8 @@ export const historyList = style({
 });
 
 export const historyItem = style({
-  background: '#f9fafb',
-  border: '1px solid #e5e7eb',
+  background: vars.background.muted,
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: vars.border.radius.base,
   padding: '0.75rem 1rem',
   display: 'flex',
@@ -145,17 +145,17 @@ export const historyItemHeader = style({
 export const historyItemTitle = style({
   fontSize: vars.typography.size.sm,
   fontWeight: vars.typography.weight.semibold,
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 export const historyItemMeta = style({
   fontSize: vars.typography.size.xs,
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const historyEmpty = style({
   fontSize: vars.typography.size.sm,
-  color: '#6b7280',
+  color: vars.text.tertiary,
   fontStyle: 'italic',
 });
 
@@ -190,7 +190,7 @@ export const sanctionItemType = style({
 
 export const sanctionItemReason = style({
   fontSize: vars.typography.size.xs,
-  color: '#374151',
+  color: vars.text.secondary,
 });
 
 // ── EntityInspector header slot ─────────────────────────────────
@@ -226,7 +226,7 @@ export const activityItem = style({
   display: 'flex',
   gap: '0.75rem',
   padding: '0.625rem 0',
-  borderBottom: '1px solid #e5e7eb',
+  borderBottom: `1px solid ${vars.border.color.muted}`,
   selectors: {
     '&:last-child': {
       borderBottom: 'none',
@@ -250,20 +250,20 @@ export const activityContent = style({
 
 export const activityDescription = style({
   fontSize: '0.8125rem',
-  color: '#111827',
+  color: vars.text.primary,
   margin: 0,
 });
 
 export const activityMeta = style({
   fontSize: vars.typography.size.xs,
-  color: '#6b7280',
+  color: vars.text.tertiary,
   margin: '0.125rem 0 0 0',
 });
 
 export const activityEmpty = style({
   padding: `${vars.spacing['5']} ${vars.spacing['3']}`,
   textAlign: 'center',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   fontSize: vars.typography.size.sm,
 });
 

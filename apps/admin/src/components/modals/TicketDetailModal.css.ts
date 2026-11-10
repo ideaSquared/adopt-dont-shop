@@ -13,12 +13,12 @@ export const ticketTitle = style({
   margin: 0,
   fontSize: vars.typography.size.xl,
   fontWeight: vars.typography.weight.semibold,
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 export const ticketId = style({
   fontSize: vars.typography.size.sm,
-  color: '#6b7280',
+  color: vars.text.tertiary,
   fontFamily: '"Courier New", monospace',
 });
 
@@ -54,24 +54,24 @@ export const detailLabel = style({
   fontWeight: vars.typography.weight.semibold,
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const detailValue = style({
   fontSize: vars.typography.size.sm,
-  color: '#111827',
+  color: vars.text.primary,
   fontWeight: vars.typography.weight.medium,
 });
 
 export const emptyValue = style({
-  color: '#9ca3af',
+  color: vars.text.tertiary,
   fontStyle: 'italic',
 });
 
 export const descriptionSection = style({
   padding: vars.spacing['3'],
-  background: '#f9fafb',
-  border: '1px solid #e5e7eb',
+  background: vars.background.muted,
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: vars.border.radius.base,
 });
 
@@ -80,13 +80,13 @@ export const descriptionLabel = style({
   fontWeight: vars.typography.weight.semibold,
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   marginBottom: '0.75rem',
 });
 
 export const descriptionText = style({
   fontSize: vars.typography.size.sm,
-  color: '#111827',
+  color: vars.text.primary,
   lineHeight: 1.6,
   whiteSpace: 'pre-wrap',
 });
@@ -103,13 +103,13 @@ export const responsesHeader = style({
   gap: vars.spacing['2'],
   fontSize: vars.typography.size.sm,
   fontWeight: vars.typography.weight.semibold,
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 export const responseCard = style({
   padding: vars.spacing['3'],
-  background: '#ffffff',
-  border: '1px solid #e5e7eb',
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: vars.border.radius.base,
   display: 'flex',
   flexDirection: 'column',
@@ -136,17 +136,17 @@ export const responseMeta = style({
 export const responderInfo = style({
   fontSize: vars.typography.size.sm,
   fontWeight: vars.typography.weight.semibold,
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 export const responseTime = style({
   fontSize: vars.typography.size.xs,
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const responseContent = style({
   fontSize: vars.typography.size.sm,
-  color: '#374151',
+  color: vars.text.secondary,
   lineHeight: 1.6,
   whiteSpace: 'pre-wrap',
 });
@@ -156,7 +156,7 @@ export const replyForm = style({
   flexDirection: 'column',
   gap: vars.spacing['3'],
   paddingTop: vars.spacing['3'],
-  borderTop: '1px solid #e5e7eb',
+  borderTop: `1px solid ${vars.border.color.muted}`,
 });
 
 export const buttonGroup = style({
@@ -168,18 +168,18 @@ export const buttonGroup = style({
 export const emptyState = style({
   padding: vars.spacing['5'],
   textAlign: 'center',
-  color: '#9ca3af',
+  color: vars.text.tertiary,
   fontStyle: 'italic',
 });
 
 export const detailValueSecondary = style({
   fontSize: '0.8125rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const detailValueMeta = style({
   fontSize: vars.typography.size.xs,
-  color: '#6b7280',
+  color: vars.text.tertiary,
   marginTop: vars.spacing['1'],
 });
 
@@ -217,7 +217,7 @@ export const activityItem = style({
   display: 'flex',
   gap: '0.75rem',
   padding: '0.625rem 0',
-  borderBottom: '1px solid #e5e7eb',
+  borderBottom: `1px solid ${vars.border.color.muted}`,
   ':last-child': {
     borderBottom: 'none',
   },
@@ -239,20 +239,20 @@ export const activityContent = style({
 
 export const activityDescription = style({
   fontSize: '0.8125rem',
-  color: '#111827',
+  color: vars.text.primary,
   margin: 0,
 });
 
 export const activityMeta = style({
   fontSize: vars.typography.size.xs,
-  color: '#6b7280',
+  color: vars.text.tertiary,
   margin: '0.125rem 0 0 0',
 });
 
 export const activityEmpty = style({
   padding: `${vars.spacing['5']} ${vars.spacing['3']}`,
   textAlign: 'center',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   fontSize: vars.typography.size.sm,
 });
 

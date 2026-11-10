@@ -3,7 +3,7 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const description = style({
   fontSize: vars.typography.size.sm,
-  color: '#374151',
+  color: vars.text.secondary,
   lineHeight: 1.5,
   margin: 0,
 });

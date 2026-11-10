@@ -122,7 +122,7 @@ const Analytics: React.FC = () => {
               filters={{ timeRange }}
               onFilterChange={(_name, value) => setTimeRange(String(value))}
             />
-            <Button variant='outline' size='md'>
+            <Button variant='outline' size='md' className={styles.exportButton}>
               <Download size='1em' className={styles.exportIcon} />
               Export Report
             </Button>

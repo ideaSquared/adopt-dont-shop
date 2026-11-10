@@ -11,8 +11,8 @@ export const formGroup = style({
 });
 
 export const infoBox = style({
-  background: '#f9fafb',
-  border: '1px solid #e5e7eb',
+  background: vars.background.muted,
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: vars.border.radius.base,
   padding: vars.spacing['3'],
   marginBottom: '1.25rem',
@@ -21,7 +21,7 @@ export const infoBox = style({
 export const infoLabel = style({
   fontSize: vars.typography.size.xs,
   fontWeight: vars.typography.weight.semibold,
-  color: '#6b7280',
+  color: vars.text.tertiary,
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
   marginBottom: '0.375rem',
@@ -29,13 +29,13 @@ export const infoLabel = style({
 
 export const infoValue = style({
   fontSize: '0.9375rem',
-  color: '#111827',
+  color: vars.text.primary,
   fontWeight: vars.typography.weight.medium,
 });
 
 export const helpText = style({
   fontSize: '0.8125rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   marginTop: '0.375rem',
 });
 
@@ -51,9 +51,9 @@ export const templateCard = style({
   flexDirection: 'column',
   alignItems: 'flex-start',
   padding: vars.spacing['3'],
-  border: '2px solid #d1d5db',
+  border: `2px solid ${vars.border.color.default}`,
   borderRadius: vars.border.radius.base,
-  background: '#ffffff',
+  background: vars.background.surface,
   cursor: 'pointer',
   transition: 'all 0.2s ease',
   textAlign: 'left',
@@ -79,8 +79,8 @@ export const templateIcon = style({
   width: '40px',
   height: '40px',
   borderRadius: vars.border.radius.base,
-  background: '#f9fafb',
-  color: '#6b7280',
+  background: vars.background.muted,
+  color: vars.text.tertiary,
   marginBottom: '0.75rem',
 });
 
@@ -92,19 +92,19 @@ export const templateIconSelected = style({
 export const templateName = style({
   fontSize: vars.typography.size.sm,
   fontWeight: vars.typography.weight.semibold,
-  color: '#111827',
+  color: vars.text.primary,
   marginBottom: vars.spacing['1'],
 });
 
 export const templateDescription = style({
   fontSize: vars.typography.size.xs,
-  color: '#6b7280',
+  color: vars.text.tertiary,
   lineHeight: 1.4,
 });
 
 export const templatePreview = style({
-  background: '#f9fafb',
-  border: '1px solid #e5e7eb',
+  background: vars.background.muted,
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: vars.border.radius.base,
   padding: vars.spacing['3'],
   marginBottom: '1.25rem',
@@ -113,7 +113,7 @@ export const templatePreview = style({
 export const previewLabel = style({
   fontSize: vars.typography.size.xs,
   fontWeight: vars.typography.weight.semibold,
-  color: '#6b7280',
+  color: vars.text.tertiary,
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
   marginBottom: vars.spacing['2'],
@@ -121,14 +121,14 @@ export const previewLabel = style({
 
 export const previewSubject = style({
   fontSize: '0.9375rem',
-  color: '#111827',
+  color: vars.text.primary,
   fontWeight: vars.typography.weight.semibold,
   marginBottom: vars.spacing['2'],
 });
 
 export const previewDescription = style({
   fontSize: vars.typography.size.sm,
-  color: '#6b7280',
+  color: vars.text.tertiary,
   lineHeight: 1.5,
 });
 
@@ -159,6 +159,6 @@ export const label = style({
   display: 'block',
   fontSize: vars.typography.size.sm,
   fontWeight: vars.typography.weight.semibold,
-  color: '#374151',
+  color: vars.text.secondary,
   marginBottom: vars.spacing['2'],
 });

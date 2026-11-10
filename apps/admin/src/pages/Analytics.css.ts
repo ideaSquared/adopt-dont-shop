@@ -2,8 +2,11 @@ import { style } from '@vanilla-extract/css';
 
 import { media, vars } from '@adopt-dont-shop/lib.components/theme';
 
+// Bottom-aligned so the Export button keeps its own height beside the
+// labelled time-range select instead of stretching to match it.
 export const headerActions = style({
   display: 'flex',
+  alignItems: 'flex-end',
   gap: '0.75rem',
 });
 
@@ -183,9 +186,29 @@ export const topItemValue = style({
 // Clamp the shared SearchToolbar to a compact width so the single time-range
 // select sits inline in the header next to the Export button rather than the
 // toolbar's default full width. maxWidth (not width) avoids any CSS
-// source-order fight with the toolbar's own `width: 100%`.
+// source-order fight with the toolbar's own `width: 100%`. In the header the
+// toolbar's bordered panel only boxes one select (which then overflowed it),
+// so drop the panel chrome here; '&&' outranks the toolbar's own class.
 export const headerFilter = style({
   maxWidth: '220px',
+  selectors: {
+    '&&': {
+      padding: 0,
+      background: 'transparent',
+      border: 'none',
+    },
+  },
+});
+
+// Matches the 2.5rem select beside it; '&&' outranks the Button size class.
+export const exportButton = style({
+  selectors: {
+    '&&': {
+      boxSizing: 'border-box',
+      height: '2.5rem',
+      whiteSpace: 'nowrap',
+    },
+  },
 });
 
 export const exportIcon = style({

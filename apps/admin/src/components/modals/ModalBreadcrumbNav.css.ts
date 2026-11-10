@@ -7,7 +7,7 @@ export const wrapper = style({
   justifyContent: 'space-between',
   gap: vars.spacing['3'],
   padding: `${vars.spacing['2']} 0 ${vars.spacing['3']} 0`,
-  borderBottom: '1px solid #e5e7eb',
+  borderBottom: `1px solid ${vars.border.color.muted}`,
   marginBottom: vars.spacing['3'],
 });
 
@@ -17,17 +17,17 @@ export const breadcrumb = style({
   gap: '0.375rem',
   flexWrap: 'wrap',
   fontSize: '0.8125rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   minWidth: 0,
 });
 
 export const segmentLink = style({
-  color: '#4b5563',
+  color: vars.text.secondary,
   textDecoration: 'none',
   borderRadius: vars.border.radius.sm,
   padding: '0.125rem 0.25rem',
   ':hover': {
-    color: '#111827',
+    color: vars.text.primary,
     textDecoration: 'underline',
   },
   ':focus-visible': {
@@ -37,12 +37,12 @@ export const segmentLink = style({
 });
 
 export const segmentCurrent = style({
-  color: '#111827',
+  color: vars.text.primary,
   fontWeight: vars.typography.weight.semibold,
 });
 
 export const separator = style({
-  color: '#9ca3af',
+  color: vars.text.tertiary,
   userSelect: 'none',
 });
 

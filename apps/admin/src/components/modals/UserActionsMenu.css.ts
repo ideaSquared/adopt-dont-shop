@@ -9,17 +9,17 @@ export const confirmationContent = style({
 
 export const confirmationMessage = style({
   margin: '0',
-  color: '#374151',
+  color: vars.text.secondary,
   lineHeight: '1.5',
 });
 
 export const userInfoBox = style({
   padding: vars.spacing['3'],
-  background: '#f9fafb',
-  border: '1px solid #e5e7eb',
+  background: vars.background.muted,
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: vars.border.radius.base,
   fontWeight: vars.typography.weight.medium,
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 export const buttonGroup = style({
@@ -27,7 +27,7 @@ export const buttonGroup = style({
   gap: '0.75rem',
   justifyContent: 'flex-end',
   paddingTop: vars.spacing['3'],
-  borderTop: '1px solid #e5e7eb',
+  borderTop: `1px solid ${vars.border.color.muted}`,
 });
 
 export const dangerBox = style({

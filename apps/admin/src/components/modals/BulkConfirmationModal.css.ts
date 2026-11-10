@@ -10,7 +10,7 @@ export const iconWrap = recipe({
     width: '40px',
     height: '40px',
     borderRadius: '10px',
-    background: '#ffffff',
+    background: vars.background.surface,
     flexShrink: 0,
   },
   variants: {
@@ -36,7 +36,7 @@ export const descriptionRow = style({
 export const description = style({
   margin: '0',
   fontSize: '0.9375rem',
-  color: '#374151',
+  color: vars.text.secondary,
   lineHeight: '1.5',
 });
 
@@ -44,13 +44,13 @@ export const countBadge = style({
   display: 'inline-flex',
   alignItems: 'center',
   gap: '0.375rem',
-  background: '#f3f4f6',
-  border: '1px solid #e5e7eb',
+  background: vars.background.muted,
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: vars.border.radius.base,
   padding: '0.5rem 0.875rem',
   fontSize: vars.typography.size.sm,
   fontWeight: vars.typography.weight.semibold,
-  color: '#374151',
+  color: vars.text.secondary,
   marginBottom: '1.25rem',
 });
 
@@ -81,7 +81,7 @@ export const resultIcon = style({
 export const failureGuidance = style({
   margin: '0',
   fontSize: '0.8125rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   lineHeight: '1.5',
 });
 
@@ -93,14 +93,14 @@ export const failedIdsList = style({
   listStyle: 'none',
   margin: `${vars.spacing['2']} 0 0`,
   padding: '0.5rem 0.75rem',
-  background: '#f9fafb',
-  border: '1px solid #e5e7eb',
+  background: vars.background.muted,
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '6px',
   maxHeight: '120px',
   overflowY: 'auto',
   fontSize: '0.8125rem',
   fontFamily: 'monospace',
-  color: '#374151',
+  color: vars.text.secondary,
 });
 
 export const failedIdItem = style({
