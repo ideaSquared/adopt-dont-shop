@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import clsx from 'clsx';
 
 import {
@@ -59,23 +59,32 @@ export const CheckboxInput = ({
   const effectiveHelperText = error || helperTextProp;
   const isChecked = checked || defaultChecked || false;
 
-  const handleContainerClick = () => {
-    if (!disabled && ref && typeof ref === 'object' && 'current' in ref && ref.current) {
-      ref.current.click();
+  // The wrapper toggles the input itself, so it needs the input whether or not the caller
+  // passed a ref.
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const setInputRef = (node: HTMLInputElement | null) => {
+    inputRef.current = node;
+    if (typeof ref === 'function') {
+      ref(node);
+    } else if (ref) {
+      ref.current = node;
+    }
+  };
+
+  const handleContainerClick = (event: React.MouseEvent) => {
+    // Clicks on the input or its label already toggle it natively.
+    const target = event.target;
+    const togglesNatively =
+      target === inputRef.current || (target instanceof Element && target.closest('label'));
+    if (!disabled && !togglesNatively) {
+      inputRef.current?.click();
     }
   };
 
   const handleContainerKeyDown = (event: React.KeyboardEvent) => {
-    if (
-      (event.key === 'Enter' || event.key === ' ') &&
-      !disabled &&
-      ref &&
-      typeof ref === 'object' &&
-      'current' in ref &&
-      ref.current
-    ) {
+    if ((event.key === 'Enter' || event.key === ' ') && !disabled) {
       event.preventDefault();
-      ref.current.click();
+      inputRef.current?.click();
     }
   };
 
@@ -90,7 +99,7 @@ export const CheckboxInput = ({
       >
         <input
           type='checkbox'
-          ref={ref}
+          ref={setInputRef}
           id={inputId}
           checked={checked}
           defaultChecked={defaultChecked}
