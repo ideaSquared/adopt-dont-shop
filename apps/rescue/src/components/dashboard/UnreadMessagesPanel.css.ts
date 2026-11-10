@@ -91,17 +91,6 @@ export const unreadDot = style({
   marginRight: '0.5rem',
 });
 
-export const emptyState = style({
-  padding: '1.5rem',
-  textAlign: 'center',
-  color: '#6b7280',
-});
-
-globalStyle(`${emptyState} p`, {
-  margin: '0.25rem 0',
-  fontSize: '0.875rem',
-});
-
 export const footer = style({
   padding: '0.75rem 1.5rem',
   textAlign: 'center',
