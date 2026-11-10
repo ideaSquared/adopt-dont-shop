@@ -468,6 +468,19 @@ describe('PetsService', () => {
       });
     });
 
+    it('asks for the requested page size when one is given', async () => {
+      mockApiService.get.mockResolvedValueOnce({ success: true, data: [] });
+
+      const result = await service.getPetsByRescue('rescue-1', 1, 100);
+
+      expect(result.pagination.limit).toBe(100);
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets', {
+        rescueId: 'rescue-1',
+        page: 1,
+        limit: 100,
+      });
+    });
+
     it('falls back to the requested page when pagination is absent', async () => {
       mockApiService.get.mockResolvedValueOnce({ success: true, data: [] });
 

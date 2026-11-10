@@ -260,7 +260,11 @@ export class PetsService {
   /**
    * Get pets by rescue organization
    */
-  async getPetsByRescue(rescueId: string, page: number = 1): Promise<PaginatedResponse<Pet>> {
+  async getPetsByRescue(
+    rescueId: string,
+    page: number = 1,
+    limit: number = 20
+  ): Promise<PaginatedResponse<Pet>> {
     try {
       const response = await this.apiService.get<{
         success: boolean;
@@ -275,14 +279,14 @@ export class PetsService {
       }>(PETS_ENDPOINTS.PETS, {
         rescueId,
         page,
-        limit: 20,
+        limit,
       });
 
       return {
         data: (response.data || []).map((p) => normalisePet(p)),
         pagination: {
           page: response.pagination?.page || page,
-          limit: 20,
+          limit,
           total: response.pagination?.total || 0,
           totalPages: response.pagination?.totalPages || 1,
           hasNext: response.pagination?.hasNext || false,
