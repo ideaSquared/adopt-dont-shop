@@ -1,5 +1,5 @@
 import React from 'react';
-import { TextArea } from '@adopt-dont-shop/lib.components';
+import { CheckboxInput, Input, TextArea } from '@adopt-dont-shop/lib.components';
 import { BooleanTiles } from './BooleanTiles';
 import * as styles from './QuestionField.css';
 import { CurrentPetsField } from './CurrentPetsField';
@@ -42,6 +42,8 @@ type QuestionFieldProps = {
   isPrefilled?: boolean;
 };
 
+const INPUT_TYPES = { date: 'date', email: 'email', phone: 'tel' } as const;
+
 const asString = (value: unknown): string => (typeof value === 'string' ? value : '');
 
 const asStringArray = (value: unknown): string[] =>
@@ -63,6 +65,19 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
   // own aria-required to expose "required field" semantically.
   const ariaRequired = isRequired ? true : undefined;
   const ariaLabel = isRequired ? `${questionText} (required)` : undefined;
+
+  const renderTextInput = (type: 'text' | 'email' | 'tel' | 'date') => (
+    <Input
+      type={type}
+      isFullWidth
+      variant={error ? 'error' : 'default'}
+      value={asString(value)}
+      placeholder={type === 'date' ? undefined : (placeholder ?? undefined)}
+      onChange={e => onChange(e.target.value || undefined)}
+      aria-required={ariaRequired}
+      aria-label={ariaLabel}
+    />
+  );
 
   const renderInput = () => {
     if (questionKey === 'household_members') {
@@ -145,20 +160,18 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
         return (
           <div className={styles.checkboxGroup} role='group' aria-label={ariaLabel}>
             {options?.map(opt => (
-              <label key={opt} className={styles.checkboxLabel}>
-                <input
-                  type='checkbox'
-                  checked={selected.includes(opt)}
-                  onChange={e => {
-                    const next = e.target.checked
-                      ? [...selected, opt]
-                      : selected.filter(s => s !== opt);
-                    onChange(next.length > 0 ? next : undefined);
-                  }}
-                  aria-required={ariaRequired}
-                />
-                {opt}
-              </label>
+              <CheckboxInput
+                key={opt}
+                label={opt}
+                checked={selected.includes(opt)}
+                onChange={e => {
+                  const next = e.target.checked
+                    ? [...selected, opt]
+                    : selected.filter(s => s !== opt);
+                  onChange(next.length > 0 ? next : undefined);
+                }}
+                aria-required={ariaRequired}
+              />
             ))}
           </div>
         );
@@ -166,9 +179,10 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
 
       case 'number':
         return (
-          <input
+          <Input
             type='number'
-            className={styles.input({ hasError: !!error })}
+            isFullWidth
+            variant={error ? 'error' : 'default'}
             value={typeof value === 'number' ? value : ''}
             placeholder={placeholder ?? undefined}
             onChange={e => onChange(e.target.value !== '' ? Number(e.target.value) : undefined)}
@@ -177,56 +191,24 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
           />
         );
 
-      case 'date':
-        return (
-          <input
-            type='date'
-            className={styles.input({ hasError: !!error })}
-            value={asString(value)}
-            onChange={e => onChange(e.target.value || undefined)}
-            aria-required={ariaRequired}
-            aria-label={ariaLabel}
-          />
-        );
-
       case 'address':
         return (
-          <textarea
-            className={styles.textArea({ hasError: !!error })}
+          <TextArea
             value={asString(value)}
             placeholder={placeholder ?? undefined}
             rows={3}
+            state={error ? 'error' : 'default'}
+            fullWidth
             onChange={e => onChange(e.target.value || undefined)}
             aria-required={ariaRequired}
             aria-label={ariaLabel}
           />
         );
 
+      case 'date':
       case 'email':
-        return (
-          <input
-            type='email'
-            className={styles.input({ hasError: !!error })}
-            value={asString(value)}
-            placeholder={placeholder ?? undefined}
-            onChange={e => onChange(e.target.value || undefined)}
-            aria-required={ariaRequired}
-            aria-label={ariaLabel}
-          />
-        );
-
       case 'phone':
-        return (
-          <input
-            type='tel'
-            className={styles.input({ hasError: !!error })}
-            value={asString(value)}
-            placeholder={placeholder ?? undefined}
-            onChange={e => onChange(e.target.value || undefined)}
-            aria-required={ariaRequired}
-            aria-label={ariaLabel}
-          />
-        );
+        return renderTextInput(INPUT_TYPES[questionType]);
 
       case 'file':
         return (
@@ -240,17 +222,7 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
         );
 
       default:
-        return (
-          <input
-            type='text'
-            className={styles.input({ hasError: !!error })}
-            value={asString(value)}
-            placeholder={placeholder ?? undefined}
-            onChange={e => onChange(e.target.value || undefined)}
-            aria-required={ariaRequired}
-            aria-label={ariaLabel}
-          />
-        );
+        return renderTextInput('text');
     }
   };
 
