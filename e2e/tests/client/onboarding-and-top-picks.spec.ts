@@ -52,7 +52,9 @@ async function walkToReview(page: Page, options: { pickDogs: boolean }): Promise
       await page.getByRole('button', { name: 'Edit' }).first().click();
     }
     for (const answer of ['House', 'No children', 'No other pets', 'No allergies']) {
-      await page.getByRole('radio', { name: answer }).check();
+      // Like the chips below, the radio is visually hidden under its label, so
+      // the label's own icon takes the pointer event; force the check through.
+      await page.getByRole('radio', { name: answer }).check({ force: true });
     }
     await page.getByRole('button', { name: 'Next' }).click();
 

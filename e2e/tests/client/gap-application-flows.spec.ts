@@ -240,7 +240,10 @@ test.describe('client application journeys', () => {
         DISPLAY_DATE
       );
       await expect(page.getByText(approved.applicationId, { exact: true })).toBeVisible();
-      await expect(page.getByText(approved.petId, { exact: true })).toBeVisible();
+      // The pet is shown by name, linked to its page (not as a raw id).
+      await expect(
+        page.getByRole('link', { name: await petNameOf(rescueApi, approved.petId), exact: true })
+      ).toHaveAttribute('href', `/pets/${approved.petId}`);
       // A decided application can no longer be withdrawn.
       await expect(page.getByRole('button', { name: 'Withdraw Application' })).toHaveCount(0);
 

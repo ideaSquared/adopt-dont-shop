@@ -4,7 +4,7 @@ import type { Locator, Page } from '@playwright/test';
 
 import { test, expect } from '../../fixtures';
 import { createVerifiedAdopter } from '../../helpers/accounts';
-import { openSettingsSection } from '../../helpers/account-settings';
+import { openProfileSettings, openSettingsSection } from '../../helpers/account-settings';
 import { dismissCookieBannerWhenShown } from '../../helpers/cookie-banner';
 import { openSignedInSession } from '../../helpers/signed-in-session';
 import {
@@ -19,8 +19,7 @@ import {
 // uses a throwaway adopter: 2FA gates every later login of the account.
 
 const openTwoFactorSettings = async (page: Page): Promise<Locator> => {
-  await page.goto('/profile');
-  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await openProfileSettings(page);
   return openSettingsSection(page, 'Two-factor sign-in');
 };
 
