@@ -7,15 +7,19 @@ import * as styles from './StaffList.css';
 interface StaffListProps {
   staff: StaffMember[];
   loading?: boolean;
+  onEdit?: (staffMember: StaffMember) => void;
   onRemove?: (staffMember: StaffMember) => void;
+  canEdit?: boolean;
   canRemove?: boolean;
-  currentUserId?: string; // Prevents self-removal
+  currentUserId?: string; // Prevents self-edit and self-removal
 }
 
 const StaffList: React.FC<StaffListProps> = ({
   staff,
   loading = false,
+  onEdit,
   onRemove,
+  canEdit = false,
   canRemove = false,
   currentUserId,
 }) => {
@@ -45,7 +49,9 @@ const StaffList: React.FC<StaffListProps> = ({
         <StaffCard
           key={staffMember.id}
           staffMember={staffMember}
+          onEdit={onEdit}
           onRemove={onRemove}
+          canEdit={canEdit && staffMember.userId !== currentUserId}
           canRemove={canRemove && staffMember.userId !== currentUserId}
         />
       ))}

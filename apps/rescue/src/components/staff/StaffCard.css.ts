@@ -35,3 +35,9 @@ export const staffEmail = style({
   fontSize: vars.typography.size.sm,
   overflowWrap: 'anywhere',
 });
+
+export const actions = style({
+  display: 'flex',
+  flexShrink: 0,
+  gap: vars.spacing['2'],
+});

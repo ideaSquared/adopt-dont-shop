@@ -4,8 +4,8 @@ import type { StaffMember } from '../../types/staff';
 import StaffList from './StaffList';
 
 /**
- * Behaviour tests for the staff list and its rows. A rescue admin can remove
- * colleagues, but never themselves.
+ * Behaviour tests for the staff list and its rows. A rescue admin can edit and
+ * remove colleagues, but never themselves.
  */
 const member = (overrides: Partial<StaffMember> = {}): StaffMember => ({
   id: 's1',
@@ -85,5 +85,31 @@ describe('StaffList', () => {
     render(<StaffList staff={[member({ userId: 'me' })]} canRemove currentUserId="me" />);
 
     expect(screen.queryByRole('button', { name: /remove/i })).not.toBeInTheDocument();
+  });
+
+  it("invokes the edit handler for another member's title when permitted", () => {
+    const onEdit = vi.fn();
+    render(<StaffList staff={[member()]} canEdit onEdit={onEdit} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Sarah Johnson' }));
+
+    expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }));
+  });
+
+  it('offers no edit button without permission or for the current user', () => {
+    render(
+      <StaffList
+        staff={[member({ id: 's1' }), member({ id: 's2', userId: 'me', firstName: 'Me' })]}
+        canEdit={false}
+        currentUserId="me"
+      />
+    );
+    expect(screen.queryByRole('button', { name: /^edit/i })).not.toBeInTheDocument();
+  });
+
+  it('hides the edit action for the current user even with permission', () => {
+    render(<StaffList staff={[member({ userId: 'me' })]} canEdit currentUserId="me" />);
+
+    expect(screen.queryByRole('button', { name: /^edit/i })).not.toBeInTheDocument();
   });
 });

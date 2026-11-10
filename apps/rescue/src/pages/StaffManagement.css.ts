@@ -7,6 +7,20 @@ export const pageContainer = style({
   margin: '0 auto',
 });
 
+export const headerActions = style({
+  display: 'flex',
+  gap: vars.spacing['3'],
+  alignItems: 'center',
+  '@media': {
+    // The header stacks vertically on mobile; let the action buttons stack and
+    // fill the width too rather than crowding onto one cramped row.
+    'screen and (max-width: 768px)': {
+      flexDirection: 'column',
+      alignItems: 'stretch',
+    },
+  },
+});
+
 export const pageContent = style({
   display: 'flex',
   flexDirection: 'column',

@@ -8,11 +8,11 @@ import {
   toast,
   useConfirm,
 } from '@adopt-dont-shop/lib.components';
-import { StaffList, InviteStaffModal, PendingInvitations } from '../components/staff';
-import { StaffMember } from '../types/staff';
+import { StaffList, StaffForm, InviteStaffModal, PendingInvitations } from '../components/staff';
+import { StaffMember, NewStaffMember } from '../types/staff';
 import { useStaff } from '../hooks/useStaff';
 import { useAuth, useHasPermission } from '@adopt-dont-shop/lib.auth';
-import { STAFF_CREATE, STAFF_DELETE } from '@adopt-dont-shop/lib.permissions';
+import { STAFF_CREATE, STAFF_DELETE, STAFF_UPDATE } from '@adopt-dont-shop/lib.permissions';
 import { InvitationPayload, type PendingInvitation } from '@adopt-dont-shop/lib.invitations';
 import { invitationService } from '../services/libraryServices';
 import * as styles from './StaffManagement.css';
@@ -24,13 +24,18 @@ const StaffManagement: React.FC = () => {
   // ADS-757: gate controls on permissions having loaded so they don't flash
   // hidden during the initial fetch.
   const { allowed: hasDeleteStaff, isLoading: deletePermLoading } = useHasPermission(STAFF_DELETE);
+  const { allowed: hasEditStaff, isLoading: editPermLoading } = useHasPermission(STAFF_UPDATE);
   const { allowed: hasAddStaff, isLoading: addPermLoading } = useHasPermission(STAFF_CREATE);
   const canDeleteStaff = hasDeleteStaff && !deletePermLoading;
+  const canEditStaff = hasEditStaff && !editPermLoading;
   const canAddStaff = hasAddStaff && !addPermLoading;
-  const { staff, loading, error, refetch, removeStaffMember } = useStaff();
+  const { staff, loading, error, refetch, addStaffMember, removeStaffMember, updateStaffMember } =
+    useStaff();
 
   // State for modals
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
 
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -127,6 +132,42 @@ const StaffManagement: React.FC = () => {
     }
   };
 
+  const handleAddStaff = async (staffData: NewStaffMember) => {
+    setActionLoading(true);
+
+    try {
+      const rescueId = getRescueId();
+      await addStaffMember(staffData, rescueId);
+      setShowAddForm(false);
+      toast.success('Staff member added successfully!');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to add staff member');
+      throw error;
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUpdateStaff = async (staffData: NewStaffMember) => {
+    if (!editingStaff) {
+      return;
+    }
+
+    setActionLoading(true);
+
+    try {
+      const rescueId = getRescueId();
+      await updateStaffMember(editingStaff.userId, { title: staffData.title }, rescueId);
+      setEditingStaff(null);
+      toast.success('Staff member updated successfully!');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update staff member');
+      throw error;
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleRemoveStaff = async (staffMember: StaffMember) => {
     if (staffMember.userId === user?.userId) {
       toast.error(
@@ -161,6 +202,8 @@ const StaffManagement: React.FC = () => {
 
   const handleCloseForm = () => {
     setShowInviteModal(false);
+    setShowAddForm(false);
+    setEditingStaff(null);
   };
 
   if (error) {
@@ -179,14 +222,24 @@ const StaffManagement: React.FC = () => {
         description="Invite people to help at your rescue, or remove people who no longer need access."
         actions={
           canAddStaff ? (
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={() => setShowInviteModal(true)}
-              disabled={actionLoading}
-            >
-              Invite Staff Member
-            </Button>
+            <div className={styles.headerActions}>
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={() => setShowInviteModal(true)}
+                disabled={actionLoading}
+              >
+                Invite Staff Member
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => setShowAddForm(true)}
+                disabled={actionLoading}
+              >
+                Add Existing User
+              </Button>
+            </div>
           ) : undefined
         }
       />
@@ -209,7 +262,9 @@ const StaffManagement: React.FC = () => {
           <StaffList
             staff={staff}
             loading={loading}
+            onEdit={canEditStaff ? setEditingStaff : undefined}
             onRemove={canDeleteStaff ? handleRemoveStaff : undefined}
+            canEdit={canEditStaff}
             canRemove={canDeleteStaff}
             currentUserId={user?.userId}
           />
@@ -220,6 +275,20 @@ const StaffManagement: React.FC = () => {
         <InviteStaffModal
           onSubmit={handleSendInvitation}
           onCancel={handleCloseForm}
+          loading={actionLoading}
+        />
+      )}
+
+      {showAddForm && (
+        <StaffForm onSubmit={handleAddStaff} onCancel={handleCloseForm} loading={actionLoading} />
+      )}
+
+      {editingStaff && (
+        <StaffForm
+          initialStaff={editingStaff}
+          onSubmit={handleUpdateStaff}
+          onCancel={handleCloseForm}
+          isEditing={true}
           loading={actionLoading}
         />
       )}
