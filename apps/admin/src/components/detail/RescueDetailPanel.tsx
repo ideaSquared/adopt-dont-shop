@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Heading,
   Text,
@@ -6,16 +7,19 @@ import {
   Skeleton,
   SkeletonText,
   Spinner,
+  StatusBadge,
+  ErrorState,
   EntityInspector,
   type EntityInspectorTab,
 } from '@adopt-dont-shop/lib.components';
-import { rescueStatusLabel, type RescueStatus } from '@adopt-dont-shop/lib.types';
+import { formatDateTime } from '@adopt-dont-shop/lib.utils';
 import { CircleCheck, CircleX, Mail } from 'lucide-react';
-import type { AdminRescue, RescueStatistics } from '@/types/rescue';
+import type { AdminRescue } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
 import { useEntityActivity } from '../../hooks';
 import * as styles from '../modals/RescueDetailModal.css';
 import { OverviewTab } from '../modals/RescueDetailModal/OverviewTab';
+import { formatRescueDate } from '../modals/RescueDetailModal/format-rescue-date';
 import { ContactTab } from '../modals/RescueDetailModal/ContactTab';
 import { PoliciesTab } from '../modals/RescueDetailModal/PoliciesTab';
 import { StaffTab } from '../modals/RescueDetailModal/StaffTab';
@@ -31,28 +35,11 @@ type RescueDetailPanelProps = {
   onSendEmail?: (rescue: AdminRescue) => void;
 };
 
-const formatDate = (dateString?: string): string => {
-  if (!dateString) {
-    return 'N/A';
-  }
-  return new Date(dateString).toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
+const useRescueDetail = (rescueId: string) =>
+  useQuery({
+    queryKey: ['rescues', 'detail', rescueId],
+    queryFn: () => rescueService.getById(rescueId, { includeStats: true }),
   });
-};
-
-const getStatusBadge = (status: RescueStatus) => {
-  const label = rescueStatusLabel(status);
-  switch (status) {
-    case 'verified':
-      return <span className={styles.badgeSuccess}>{label}</span>;
-    case 'pending':
-      return <span className={styles.badgeWarning}>{label}</span>;
-    default:
-      return <span className={styles.badgeDanger}>{label}</span>;
-  }
-};
 
 const ActivityTab: React.FC<{ rescueId: string }> = ({ rescueId }) => {
   const { data, isLoading, error } = useEntityActivity('rescue', rescueId);
@@ -82,8 +69,7 @@ const ActivityTab: React.FC<{ rescueId: string }> = ({ rescueId }) => {
           <div className={styles.staffInfo}>
             <div className={styles.staffName}>{activity.description}</div>
             <div className={styles.staffMeta}>
-              {activity.activityType} &middot;{' '}
-              {new Date(activity.createdAt).toLocaleString('en-GB')}
+              {activity.activityType} &middot; {formatDateTime(activity.createdAt)}
             </div>
           </div>
         </div>
@@ -136,34 +122,13 @@ export const RescueDetailPanel: React.FC<RescueDetailPanelProps> = ({
   onReject,
   onSendEmail,
 }) => {
-  const [rescue, setRescue] = useState<AdminRescue | null>(null);
-  const [, setStatistics] = useState<RescueStatistics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { data: rescue, isLoading, error, refetch } = useRescueDetail(rescueId);
 
-  useEffect(() => {
-    const fetchRescueDetails = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  const setRescue = (updated: AdminRescue) =>
+    queryClient.setQueryData(['rescues', 'detail', rescueId], updated);
 
-        const rescueData = await rescueService.getById(rescueId, { includeStats: true });
-        setRescue(rescueData);
-
-        if (rescueData.statistics) {
-          setStatistics(rescueData.statistics);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load rescue details');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRescueDetails();
-  }, [rescueId]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div aria-label='Loading rescue details' className={styles.skeletonContent}>
         <div className={styles.skeletonAvatarRow}>
@@ -180,7 +145,12 @@ export const RescueDetailPanel: React.FC<RescueDetailPanelProps> = ({
   }
 
   if (error) {
-    return <div className={styles.errorMessage}>{error}</div>;
+    return (
+      <ErrorState
+        message={error instanceof Error ? error.message : 'Failed to load rescue details'}
+        onRetry={() => void refetch()}
+      />
+    );
   }
 
   if (!rescue) {
@@ -231,7 +201,8 @@ export const RescueDetailPanel: React.FC<RescueDetailPanelProps> = ({
         <div className={styles.headerContent}>
           <Heading level='h2'>{rescue.name || 'Rescue Details'}</Heading>
           <Text className={styles.headerSpacing}>
-            {getStatusBadge(rescue.status)} &bull; Registered {formatDate(rescue.createdAt)}
+            <StatusBadge kind='rescue' status={rescue.status} /> &bull; Registered{' '}
+            {formatRescueDate(rescue.createdAt)}
           </Text>
         </div>
       }
