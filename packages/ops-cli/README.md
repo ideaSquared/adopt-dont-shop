@@ -92,6 +92,18 @@ pnpm ops doctor
 eval "$(pnpm --silent ops completion zsh)"                  # then: ads-ops pets <TAB>
 ```
 
+### Test data (dev and staging only)
+
+```bash
+pnpm ops demo create-rescue -e staging --pet-count 5        # preview, then confirm
+pnpm ops demo delete-rescue <rescueId> -e staging
+```
+
+`create-rescue` makes a verified rescue, an active owner login (a generated `demo-…@example.com`
+address and password, printed once in the result) and up to 10 sample pets. Sign in to the rescue
+app with that login. `delete-rescue` removes the pets and the rescue and deactivates the demo
+owner; it refuses any rescue `create-rescue` did not make. Both are refused in prod.
+
 How flags are built from the proto request message:
 
 - Field names become kebab-case flags: `includeArchived` is `--include-archived`.
