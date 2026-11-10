@@ -46,7 +46,6 @@ Standalone helpers exported alongside the service:
 
 - `safeHref` — XSS-hardened `href`/`src` sanitizer.
 - `escapeLikePattern` — escape SQL `LIKE`/`ILIKE` wildcards in user search terms.
-- `getErrorMessage` — user-facing message from an HTTP status / network error.
 - `safeFormatDate` — null-safe date formatter.
 - `resolveFileUrl` — resolve a relative upload path against `VITE_API_BASE_URL` (same-origin when unset); rejects non-http(s) schemes and placeholder hosts.
 - `openExternal` — open an http(s) URL in a new tab with `noopener,noreferrer`; ignores other schemes and malformed input.
