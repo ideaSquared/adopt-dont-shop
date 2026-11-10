@@ -36,44 +36,6 @@ export const filtersGrid = style({
 
 export const filterGroup = style({});
 
-export const filterLabel = style({
-  display: 'block',
-  marginBottom: '0.5rem',
-  fontWeight: '500',
-  fontSize: '0.875rem',
-  color: '#111827',
-});
-
-export const filterInput = style({
-  width: '100%',
-  padding: '0.75rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '4px',
-  fontSize: '0.875rem',
-  fontFamily: 'inherit',
-  background: 'white',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#3b82f6',
-    boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
-  },
-});
-
-export const filterSelect = style({
-  width: '100%',
-  padding: '0.75rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '4px',
-  fontSize: '0.875rem',
-  fontFamily: 'inherit',
-  background: 'white',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#3b82f6',
-    boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
-  },
-});
-
 export const filterActions = style({
   display: 'flex',
   gap: '0.75rem',
