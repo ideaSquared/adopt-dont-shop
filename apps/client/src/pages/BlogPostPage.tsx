@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { Link, useParams, useNavigate } from 'react-router';
 import { Container, EmptyState, PageHeader, Spinner } from '@adopt-dont-shop/lib.components';
 import { formatCustomDate } from '@adopt-dont-shop/lib.utils';
@@ -40,7 +41,7 @@ export const BlogPostPage: React.FC = () => {
   return (
     <Container className={styles.pageContainer}>
       <Link to='/blog' className={styles.backLink}>
-        ← Back to Blog
+        <ArrowLeft size='1em' aria-hidden='true' /> Back to Blog
       </Link>
 
       {post.featuredImageUrl && (

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { Link, useParams, useNavigate } from 'react-router';
 import { Container, EmptyState, PageHeader, Spinner } from '@adopt-dont-shop/lib.components';
 import { SafeHtml } from '@/components/SafeHtml';
@@ -37,7 +38,7 @@ export const HelpArticlePage: React.FC = () => {
   return (
     <Container className={styles.pageContainer}>
       <Link to='/help' className={styles.backLink}>
-        ← Back to Help Center
+        <ArrowLeft size='1em' aria-hidden='true' /> Back to Help Center
       </Link>
       <PageHeader title={article.title} />
       <SafeHtml html={article.content} className={styles.articleContent} />

@@ -1,4 +1,5 @@
 import React from 'react';
+import { PawPrint } from 'lucide-react';
 import { Link } from 'react-router';
 import { Container, EmptyState, PageHeader, Spinner } from '@adopt-dont-shop/lib.components';
 import { formatCustomDate } from '@adopt-dont-shop/lib.utils';
@@ -32,7 +33,9 @@ export const BlogPage: React.FC = () => {
               {post.featuredImageUrl ? (
                 <img src={post.featuredImageUrl} alt={post.title} className={styles.postImage} />
               ) : (
-                <div className={styles.postImagePlaceholder}>🐾</div>
+                <div className={styles.postImagePlaceholder} aria-hidden='true'>
+                  <PawPrint size='1em' />
+                </div>
               )}
               <div className={styles.postBody}>
                 <h2 className={styles.postTitle}>{post.title}</h2>
