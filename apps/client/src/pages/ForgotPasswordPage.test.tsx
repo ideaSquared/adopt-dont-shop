@@ -22,7 +22,7 @@ const submitForm = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.click(screen.getByRole('button', { name: /send reset instructions/i }));
 };
 
-const successHeading = () => screen.queryByRole('heading', { level: 2, name: /check your email/i });
+const successHeading = () => screen.queryByRole('heading', { level: 1, name: /check your email/i });
 
 describe('ForgotPasswordPage autocomplete attributes', () => {
   it('marks the email field as email so managers fill the saved address', () => {

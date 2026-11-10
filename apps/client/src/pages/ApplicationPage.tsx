@@ -1,6 +1,14 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { Alert, Button, Spinner, toast } from '@adopt-dont-shop/lib.components';
+import {
+  Alert,
+  Button,
+  ErrorState,
+  PageHeader,
+  Spinner,
+  toast,
+} from '@adopt-dont-shop/lib.components';
 import * as styles from './ApplicationPage.css';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { ApplicationForm, ApplicationProgress, QuickApplyView } from '@/components/application';
@@ -13,7 +21,7 @@ import { SubmissionSuccess } from '@/components/application/SubmissionSuccess';
 // drafts are persisted via PUT /api/v1/applications/drafts/:petId so the user
 // can resume on any device.
 import { useApplicationDraft } from '@/hooks/useApplicationDraft';
-import { petService, apiService, type Pet } from '@/services';
+import { petService, apiService } from '@/services';
 import { applicationProfileService } from '@/services/applicationProfileService';
 import {
   buildInitialAnswers,
@@ -170,21 +178,58 @@ const groupQuestionsByMacroStep = (questions: Question[], petName?: string): Cat
   return groups;
 };
 
+type ApplicationBootstrap =
+  | { kind: 'existing'; applicationId: string }
+  | {
+      kind: 'ready';
+      pet: Awaited<ReturnType<typeof petService.getPetById>>;
+      questions: Question[];
+      defaults: ApplicationDefaults | null;
+    };
+
+const isReadyBootstrap = (
+  value: ApplicationBootstrap | undefined
+): value is Extract<ApplicationBootstrap, { kind: 'ready' }> => value?.kind === 'ready';
+
+const loadApplicationBootstrap = async (petId: string): Promise<ApplicationBootstrap> => {
+  const pet = await petService.getPetById(petId);
+
+  // Check for an existing active application for this pet before showing the
+  // form. The list has no pet filter server-side, so fetch the largest page.
+  const existing = await apiService.get<{
+    data: { id: string; petId: string; status: string }[];
+  }>(`/api/v1/applications?petId=${encodeURIComponent(petId)}&limit=100`);
+  const active = findActiveApplicationForPet(existing.data, petId);
+  if (active) {
+    return { kind: 'existing', applicationId: active.id };
+  }
+
+  const [questionsResponse, defaults] = await Promise.all([
+    apiService.get<{ data: Question[] }>(`/api/v1/rescues/${pet.rescue_id}/questions`),
+    applicationProfileService.getApplicationDefaults().catch(() => null),
+  ]);
+  return {
+    kind: 'ready',
+    pet,
+    questions: questionsResponse.data.filter((q: Question) => q.isEnabled),
+    // The service returns its own defaults shape; narrowed once here.
+    defaults: (defaults as ApplicationDefaults | null) ?? null,
+  };
+};
+
 export const ApplicationPage: React.FC = () => {
   const { petId } = useParams<{ petId: string }>();
   const navigate = useNavigate();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
 
-  const [pet, setPet] = useState<Pet | null>(null);
-  const [allQuestions, setAllQuestions] = useState<Question[]>([]);
-  const [categories, setCategories] = useState<CategoryGroup[]>([]);
   const [currentStep, setCurrentStep] = useState(1);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [prefilledKeys, setPrefilledKeys] = useState<Set<string>>(() => new Set());
   const [viewMode, setViewMode] = useState<'quick' | 'guided'>('guided');
-  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  // Which bootstrap result the form state was last seeded from.
+  const [seededFrom, setSeededFrom] = useState<ApplicationBootstrap | null>(null);
   // ADS-581: once the user submits, swap the form for a rich success view
   // that names the next steps (confirmation email, response window, links to
   // the dashboard) instead of a vague toast + 3s auto-redirect.
@@ -200,53 +245,28 @@ export const ApplicationPage: React.FC = () => {
   const { saveStatus, lastSaved, scheduleSave, saveNow, clearDraft, loadedDraft } =
     useApplicationDraft(petId);
 
-  const loadData = useCallback(async () => {
-    if (!petId) {
-      return;
-    }
-    try {
-      setIsLoading(true);
-      const petData = await petService.getPetById(petId);
-      setPet(petData);
-
-      // Check for an existing active application for this pet before showing the
-      // form. The list has no pet filter server-side, so fetch the largest page.
-      const existing = await apiService.get<{
-        data: { id: string; petId: string; status: string }[];
-      }>(`/api/v1/applications?petId=${encodeURIComponent(petId)}&limit=100`);
-      const active = findActiveApplicationForPet(existing.data, petId);
-      if (active) {
-        navigate(`/applications/${active.id}`, {
-          state: { message: 'You already have an active application for this pet.' },
-        });
-        return;
-      }
-
-      const [questionsResponse, defaults] = await Promise.all([
-        apiService.get<{ data: Question[] }>(`/api/v1/rescues/${petData.rescue_id}/questions`),
-        applicationProfileService.getApplicationDefaults().catch(() => null),
-      ]);
-      const enabledQuestions = questionsResponse.data.filter((q: Question) => q.isEnabled);
-      setAllQuestions(enabledQuestions);
-      setCategories(groupQuestionsByMacroStep(enabledQuestions, petData.name));
-
-      const sources = {
-        user: user ?? null,
-        defaults: (defaults as ApplicationDefaults | null) ?? null,
-        customAnswers: (defaults as ApplicationDefaults | null)?.customAnswers ?? null,
-      };
-      const prePop = buildInitialAnswers(enabledQuestions, sources);
-      setAnswers(applyConditionalDefaults(prePop.answers));
-      setPrefilledKeys(prePop.prefilledKeys);
-      setViewMode(canQuickApply(enabledQuestions, sources) ? 'quick' : 'guided');
-    } catch (err) {
-      console.error('Failed to load application data:', err);
-      setError('Failed to load application information. Please try again.');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [petId, navigate, user]);
+  // Always reload on visit: the form state below is seeded from this result once.
+  const bootstrapQuery = useQuery({
+    queryKey: ['application-form', petId],
+    queryFn: () => loadApplicationBootstrap(petId ?? ''),
+    enabled: !!petId && isAuthenticated && !authLoading,
+    staleTime: 0,
+    gcTime: 0,
+  });
+  const bootstrap = bootstrapQuery.data;
+  const ready = isReadyBootstrap(bootstrap) ? bootstrap : null;
+  const pet = ready?.pet ?? null;
+  const allQuestions = useMemo(() => ready?.questions ?? [], [ready]);
+  const categories = useMemo<CategoryGroup[]>(
+    () => groupQuestionsByMacroStep(allQuestions, pet?.name),
+    [allQuestions, pet?.name]
+  );
+  const loadError = bootstrapQuery.isError
+    ? 'Failed to load application information. Please try again.'
+    : null;
+  const error = submitError ?? loadError;
+  const isLoading =
+    authLoading || bootstrapQuery.isLoading || (!!bootstrap && seededFrom !== bootstrap);
 
   const handleResumeDraft = useCallback(() => {
     if (!loadedDraft) {
@@ -275,8 +295,36 @@ export const ApplicationPage: React.FC = () => {
       navigate(`/login?redirect=/apply/${petId}`);
       return;
     }
-    loadData();
-  }, [petId, isAuthenticated, authLoading, navigate, loadData]);
+  }, [petId, isAuthenticated, authLoading, navigate]);
+
+  useEffect(() => {
+    if (!bootstrap || seededFrom === bootstrap) {
+      return;
+    }
+    if (bootstrap.kind === 'existing') {
+      navigate(`/applications/${bootstrap.applicationId}`, {
+        state: { message: 'You already have an active application for this pet.' },
+      });
+      setSeededFrom(bootstrap);
+      return;
+    }
+    const sources = {
+      user: user ?? null,
+      defaults: bootstrap.defaults,
+      customAnswers: bootstrap.defaults?.customAnswers ?? null,
+    };
+    const prePop = buildInitialAnswers(bootstrap.questions, sources);
+    setAnswers(applyConditionalDefaults(prePop.answers));
+    setPrefilledKeys(prePop.prefilledKeys);
+    setViewMode(canQuickApply(bootstrap.questions, sources) ? 'quick' : 'guided');
+    setSeededFrom(bootstrap);
+  }, [bootstrap, seededFrom, navigate, user]);
+
+  useEffect(() => {
+    if (loadError) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [loadError]);
 
   const handleChange = useCallback(
     (updated: Record<string, unknown>) => {
@@ -314,7 +362,7 @@ export const ApplicationPage: React.FC = () => {
     }
     try {
       setIsSubmitting(true);
-      setError(null);
+      setSubmitError(null);
 
       // The gateway answers with the application view, whose id is `id`.
       const result = await apiService.post<{ data: { id: string } }>('/api/v1/applications', {
@@ -361,9 +409,9 @@ export const ApplicationPage: React.FC = () => {
           missing.length > 0
             ? `${missing.length} required ${missing.length === 1 ? 'answer is' : 'answers are'} still missing: ${missing.join(', ')}.`
             : 'A few required answers are still missing.';
-        setError(`${intro} Pop back through and double-check each section.`);
+        setSubmitError(`${intro} Pop back through and double-check each section.`);
       } else {
-        setError(
+        setSubmitError(
           message ?? 'Something went wrong sending your application. Mind giving it another go?'
         );
       }
@@ -403,9 +451,7 @@ export const ApplicationPage: React.FC = () => {
   if (error && !pet) {
     return (
       <div className={styles.container}>
-        <Alert variant='error' title='Error'>
-          {error}
-        </Alert>
+        <ErrorState message={error} onRetry={() => void bootstrapQuery.refetch()} />
         <Button onClick={() => navigate('/search')} className={styles.backToSearchButton}>
           Back to Search
         </Button>
@@ -433,10 +479,12 @@ export const ApplicationPage: React.FC = () => {
   return (
     <div className={styles.container}>
       {!showQuickApply && (
-        <div className={styles.header}>
-          <h1>Let&apos;s get you adopting {pet?.name} 🐾</h1>
-          <p>A few quick questions and {pet?.name}&apos;s rescue will take it from there.</p>
-        </div>
+        <PageHeader
+          title={<>Let&apos;s get you adopting {pet?.name} 🐾</>}
+          description={
+            <>A few quick questions and {pet?.name}&apos;s rescue will take it from there.</>
+          }
+        />
       )}
 
       {loadedDraft && draftDecision === null && (
@@ -449,7 +497,7 @@ export const ApplicationPage: React.FC = () => {
 
       {error && (
         <div className={styles.sectionAlert}>
-          <Alert variant='error' title='Error' onClose={() => setError(null)}>
+          <Alert variant='error' title='Error' onClose={() => setSubmitError(null)}>
             {error}
           </Alert>
         </div>

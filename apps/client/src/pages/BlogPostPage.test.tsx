@@ -9,12 +9,14 @@ vi.mock('@/services/cmsService', () => ({
   },
 }));
 
+const navigateMock = vi.hoisted(() => vi.fn());
+
 vi.mock('react-router', async () => {
   const actual = await vi.importActual('react-router');
   return {
     ...actual,
     useParams: () => ({ slug: 'test-post' }),
-    useNavigate: () => vi.fn(),
+    useNavigate: () => navigateMock,
   };
 });
 
@@ -42,9 +44,7 @@ describe('BlogPostPage – XSS sanitization', () => {
 
     const { container } = render(<BlogPostPage />);
 
-    await waitFor(() => {
-      expect(screen.queryByText('Loading')).not.toBeInTheDocument();
-    });
+    await screen.findByRole('heading', { name: 'Test Post' });
 
     expect(container.querySelector('script')).toBeNull();
     expect(container).toHaveTextContent('Safe content');
@@ -57,9 +57,7 @@ describe('BlogPostPage – XSS sanitization', () => {
 
     const { container } = render(<BlogPostPage />);
 
-    await waitFor(() => {
-      expect(screen.queryByText('Loading')).not.toBeInTheDocument();
-    });
+    await screen.findByRole('heading', { name: 'Test Post' });
 
     const paragraph = container.querySelector('p');
     expect(paragraph?.getAttribute('onclick')).toBeNull();
@@ -73,11 +71,21 @@ describe('BlogPostPage – XSS sanitization', () => {
 
     const { container } = render(<BlogPostPage />);
 
-    await waitFor(() => {
-      expect(screen.queryByText('Loading')).not.toBeInTheDocument();
-    });
+    await screen.findByRole('heading', { name: 'Test Post' });
 
     expect(container.querySelector('h2')).not.toBeNull();
     expect(container.querySelector('strong')).not.toBeNull();
+  });
+});
+
+describe('BlogPostPage – missing post', () => {
+  it('sends the reader back to the blog when the post cannot be loaded', async () => {
+    vi.mocked(cmsPublicService.getBlogPost).mockRejectedValue(new Error('404'));
+
+    render(<BlogPostPage />);
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith('/blog', { replace: true });
+    });
   });
 });
