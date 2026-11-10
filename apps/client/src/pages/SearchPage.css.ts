@@ -7,45 +7,6 @@ export const searchContainer = style({
   minHeight: 'calc(100vh - 200px)',
 });
 
-export const searchHeader = style({
-  textAlign: 'center',
-  marginBottom: '2rem',
-});
-
-export const browseToggle = style({
-  marginTop: '1.25rem',
-});
-
-globalStyle(`${searchHeader} h1`, {
-  fontFamily: vars.typography.family.display,
-  fontSize: '2.5rem',
-  color: vars.text.primary,
-  marginBottom: '1rem',
-});
-
-globalStyle(`${searchHeader} p`, {
-  fontSize: '1.2rem',
-  color: vars.text.secondary,
-  maxWidth: '600px',
-  margin: '0 auto',
-});
-
-globalStyle(`${searchHeader} h1`, {
-  '@media': {
-    '(max-width: 768px)': {
-      fontSize: '2rem',
-    },
-  },
-});
-
-globalStyle(`${searchHeader} p`, {
-  '@media': {
-    '(max-width: 768px)': {
-      fontSize: '1rem',
-    },
-  },
-});
-
 export const filtersCard = style({
   marginBottom: '2rem',
   padding: '1.5rem',
