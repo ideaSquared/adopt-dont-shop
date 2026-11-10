@@ -1,16 +1,21 @@
 import React, { useState, useMemo } from 'react';
 import clsx from 'clsx';
-import { Heading, Text, Button, MetricCard, SearchToolbar } from '@adopt-dont-shop/lib.components';
-import { CircleCheck, Download, Heart, MessageSquare, Users } from 'lucide-react';
 import {
-  PageContainer,
-  PageHeader,
-  HeaderLeft,
+  Button,
   Card,
-  CardHeader,
-  CardTitle,
   CardContent,
-} from '../components/ui';
+  CardHeader,
+  EmptyState,
+  ErrorState,
+  Heading,
+  MetricCard,
+  PageHeader,
+  SearchToolbar,
+  Skeleton,
+  Stack,
+} from '@adopt-dont-shop/lib.components';
+import { formatCustomDate } from '@adopt-dont-shop/lib.utils';
+import { CircleCheck, Download, Heart, MessageSquare, Users } from 'lucide-react';
 import { usePlatformMetrics, useDashboardAnalytics } from '../hooks';
 import * as styles from './Analytics.css';
 
@@ -92,48 +97,41 @@ const Analytics: React.FC = () => {
     });
   }, [popularPetTypes]);
 
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-  };
-
   return (
-    <PageContainer>
-      <PageHeader>
-        <HeaderLeft>
-          <Heading level='h1'>Platform Analytics</Heading>
-          <Text>Comprehensive analytics and data insights</Text>
-        </HeaderLeft>
-        <div className={styles.headerActions}>
-          <SearchToolbar
-            className={styles.headerFilter}
-            filterConfig={[
-              {
-                name: 'timeRange',
-                label: 'Time range',
-                type: 'select',
-                options: [
-                  { value: '7days', label: 'Last 7 Days' },
-                  { value: '30days', label: 'Last 30 Days' },
-                  { value: '90days', label: 'Last 90 Days' },
-                  { value: '12months', label: 'Last 12 Months' },
-                ],
-              },
-            ]}
-            filters={{ timeRange }}
-            onFilterChange={(_name, value) => setTimeRange(String(value))}
-          />
-          <Button variant='outline' size='md'>
-            <Download size='1em' className={styles.exportIcon} />
-            Export Report
-          </Button>
-        </div>
-      </PageHeader>
+    <Stack spacing='lg'>
+      <PageHeader
+        title='Platform Analytics'
+        description='Comprehensive analytics and data insights'
+        actions={
+          <div className={styles.headerActions}>
+            <SearchToolbar
+              className={styles.headerFilter}
+              filterConfig={[
+                {
+                  name: 'timeRange',
+                  label: 'Time range',
+                  type: 'select',
+                  options: [
+                    { value: '7days', label: 'Last 7 Days' },
+                    { value: '30days', label: 'Last 30 Days' },
+                    { value: '90days', label: 'Last 90 Days' },
+                    { value: '12months', label: 'Last 12 Months' },
+                  ],
+                },
+              ]}
+              filters={{ timeRange }}
+              onFilterChange={(_name, value) => setTimeRange(String(value))}
+            />
+            <Button variant='outline' size='md'>
+              <Download size='1em' className={styles.exportIcon} />
+              Export Report
+            </Button>
+          </div>
+        }
+      />
 
       {analyticsError && (
-        <div className={styles.errorBanner} role='alert'>
-          Failed to load analytics data. Please try again.
-        </div>
+        <ErrorState size='sm' title='Failed to load analytics data. Please try again.' />
       )}
 
       <div className={styles.statsGrid}>
@@ -180,12 +178,14 @@ const Analytics: React.FC = () => {
       <div className={styles.analyticsGrid}>
         <Card className={styles.chartCard}>
           <CardHeader>
-            <CardTitle>Adoption Trends</CardTitle>
+            <Heading level='h3' size='lg'>
+              Adoption Trends
+            </Heading>
           </CardHeader>
           <CardContent>
             <div className={styles.chartContainer}>
               {isLoading ? (
-                <div className={clsx(styles.skeletonBlock, styles.skeletonFullHeight)} />
+                <Skeleton height='100%' radius='6px' />
               ) : adoptionTrends.length > 0 ? (
                 <div className={styles.barChart}>
                   {adoptionTrends.map(d => (
@@ -198,12 +198,12 @@ const Analytics: React.FC = () => {
                       }}
                     >
                       <div className={styles.barValue}>{d.value}</div>
-                      <div className={styles.barLabel}>{formatDate(d.date)}</div>
+                      <div className={styles.barLabel}>{formatCustomDate(d.date, 'dd MMM')}</div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className={styles.chartEmptyState}>No adoption data for this period</div>
+                <EmptyState size='sm' title='No adoption data for this period' />
               )}
             </div>
           </CardContent>
@@ -211,12 +211,14 @@ const Analytics: React.FC = () => {
 
         <Card className={styles.chartCard}>
           <CardHeader>
-            <CardTitle>Applications by Status</CardTitle>
+            <Heading level='h3' size='lg'>
+              Applications by Status
+            </Heading>
           </CardHeader>
           <CardContent>
             <div className={styles.chartContainer}>
               {isLoading ? (
-                <div className={clsx(styles.skeletonBlock, styles.skeletonFullHeight)} />
+                <Skeleton height='100%' radius='6px' />
               ) : analyticsData ? (
                 (() => {
                   const statusData = Object.entries(analyticsData.applications.statusMetrics).map(
@@ -248,7 +250,7 @@ const Analytics: React.FC = () => {
                   );
                 })()
               ) : (
-                <div className={styles.chartEmptyState}>No application data available</div>
+                <EmptyState size='sm' title='No application data available' />
               )}
             </div>
           </CardContent>
@@ -256,12 +258,14 @@ const Analytics: React.FC = () => {
 
         <Card className={styles.chartCard}>
           <CardHeader>
-            <CardTitle>Pet Type Distribution</CardTitle>
+            <Heading level='h3' size='lg'>
+              Pet Type Distribution
+            </Heading>
           </CardHeader>
           <CardContent>
             <div className={styles.pieChartContainer}>
               {isLoading ? (
-                <div className={clsx(styles.skeletonBlock, styles.skeletonPie)} />
+                <Skeleton width='200px' height='200px' radius='50%' />
               ) : petPieSlices.length > 0 ? (
                 <>
                   <svg className={styles.pieChart} viewBox='0 0 200 200'>
@@ -286,7 +290,7 @@ const Analytics: React.FC = () => {
                   </div>
                 </>
               ) : (
-                <div className={styles.pieEmptyState}>No pet type data for this period</div>
+                <EmptyState size='sm' title='No pet type data for this period' />
               )}
             </div>
           </CardContent>
@@ -294,13 +298,15 @@ const Analytics: React.FC = () => {
 
         <Card className={styles.chartCard}>
           <CardHeader>
-            <CardTitle>Top Performing Rescues</CardTitle>
+            <Heading level='h3' size='lg'>
+              Top Performing Rescues
+            </Heading>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className={styles.topItemsList}>
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className={clsx(styles.skeletonBlock, styles.skeletonRow3rem)} />
+                  <Skeleton key={i} height='3rem' radius='6px' />
                 ))}
               </div>
             ) : topRescues.length > 0 ? (
@@ -321,14 +327,12 @@ const Analytics: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className={styles.emptyStatePadded}>
-                No rescue performance data for this period
-              </div>
+              <EmptyState size='sm' title='No rescue performance data for this period' />
             )}
           </CardContent>
         </Card>
       </div>
-    </PageContainer>
+    </Stack>
   );
 };
 

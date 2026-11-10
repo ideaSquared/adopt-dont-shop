@@ -164,6 +164,10 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     React.createElement('div', props, children),
   Card: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
+  CardHeader: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
+    React.createElement('div', props, children),
+  CardContent: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
+    React.createElement('div', props, children),
   // ADS-B3: shared Badge now backs the admin status pills (Audit, Messages).
   // Mirror the real component's text output + status role; badge-specific props
   // (variant/size/etc.) are dropped so they don't leak onto the DOM node.
