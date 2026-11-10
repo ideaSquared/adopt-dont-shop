@@ -1,4 +1,5 @@
 import React from 'react';
+import { Modal } from '@adopt-dont-shop/lib.components';
 import { Link } from 'react-router';
 import * as styles from './AnonymousFirstLikeModal.css';
 
@@ -26,32 +27,19 @@ export const AnonymousFirstLikeModal: React.FC<AnonymousFirstLikeModalProps> = (
   onCtaClick,
 }) => {
   return (
-    <div
-      className={styles.backdrop}
-      role='dialog'
-      aria-modal='true'
-      aria-labelledby='anon-like-title'
-    >
-      <div className={styles.card}>
-        <button type='button' className={styles.close} aria-label='Dismiss' onClick={onDismiss}>
-          ×
-        </button>
+    <Modal isOpen onClose={onDismiss} size='sm' title="It's a Match!">
+      <div className={styles.body}>
         {petImage && <img src={petImage} alt={petName} className={styles.image} />}
-        <div className={styles.body}>
-          <h2 id='anon-like-title' className={styles.title}>
-            It&apos;s a Match!
-          </h2>
-          <p className={styles.subtitle}>You and {petName} could be a match. Sign up to apply.</p>
-          <Link
-            to={`/register?petId=${encodeURIComponent(petId)}`}
-            className={styles.cta}
-            onClick={onCtaClick}
-          >
-            Sign up to apply
-          </Link>
-        </div>
+        <p className={styles.subtitle}>You and {petName} could be a match. Sign up to apply.</p>
+        <Link
+          to={`/register?petId=${encodeURIComponent(petId)}`}
+          className={styles.cta}
+          onClick={onCtaClick}
+        >
+          Sign up to apply
+        </Link>
       </div>
-    </div>
+    </Modal>
   );
 };
 

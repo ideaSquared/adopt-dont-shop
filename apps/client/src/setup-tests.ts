@@ -74,29 +74,36 @@ type StubDropdownMenuItem = {
 type StubDropdownMenuProps = {
   triggerLabel: string;
   items: StubDropdownMenuItem[];
-  trigger?: React.ReactElement;
+  trigger?: React.ReactElement<React.ComponentPropsWithoutRef<'button'>>;
   header?: React.ReactNode;
   disabled?: boolean;
 };
 
 // Test double for the shared DropdownMenu / DropdownButton: a trigger button
 // that toggles a role="menu" list of role="menuitem" entries, closing on select.
-const StubDropdownMenu = ({ triggerLabel, items, header, disabled }: StubDropdownMenuProps) => {
+const StubDropdownMenu = ({
+  triggerLabel,
+  items,
+  trigger,
+  header,
+  disabled,
+}: StubDropdownMenuProps) => {
   const [open, setOpen] = React.useState(false);
+  const triggerProps = {
+    'aria-haspopup': 'menu',
+    'aria-expanded': open,
+    disabled,
+    onClick: () => setOpen(current => !current),
+  };
   return React.createElement(
     'div',
     null,
-    React.createElement(
-      'button',
-      {
-        type: 'button',
-        'aria-haspopup': 'menu',
-        'aria-expanded': open,
-        disabled,
-        onClick: () => setOpen(current => !current),
-      },
-      triggerLabel
-    ),
+    trigger
+      ? React.cloneElement(trigger, {
+          'aria-label': trigger.props['aria-label'] ?? triggerLabel,
+          ...triggerProps,
+        })
+      : React.createElement('button', { type: 'button', ...triggerProps }, triggerLabel),
     open
       ? React.createElement(
           'div',
@@ -126,6 +133,63 @@ const StubDropdownMenu = ({ triggerLabel, items, header, disabled }: StubDropdow
           )
         )
       : null
+  );
+};
+
+type StubModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
+  children?: React.ReactNode;
+  showCloseButton?: boolean;
+  closeOnEscape?: boolean;
+  header?: React.ReactNode;
+  footer?: React.ReactNode;
+  'data-testid'?: string;
+};
+
+// Test double for the shared Modal: renders nothing when closed, otherwise a
+// role="dialog" with the title, a "Close modal" button and Escape-to-close.
+const StubModal = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+  showCloseButton = true,
+  closeOnEscape = true,
+  header,
+  footer,
+  'data-testid': testId,
+}: StubModalProps) => {
+  React.useEffect(() => {
+    if (!isOpen || !closeOnEscape) {
+      return undefined;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, closeOnEscape, onClose]);
+
+  if (!isOpen) {
+    return null;
+  }
+  return React.createElement(
+    'div',
+    { role: 'dialog', 'aria-modal': 'true', 'aria-label': title, 'data-testid': testId },
+    header ?? (title ? React.createElement('h2', null, title) : null),
+    children,
+    showCloseButton
+      ? React.createElement('button', {
+          type: 'button',
+          'aria-label': 'Close modal',
+          onClick: onClose,
+        })
+      : null,
+    footer
   );
 };
 
@@ -234,8 +298,7 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   },
   TextArea: (props: React.ComponentPropsWithoutRef<'textarea'>) =>
     React.createElement('textarea', props),
-  Modal: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
-    React.createElement('div', props, children),
+  Modal: StubModal,
   // Shared app-shell components: pass-through boundary, minimal 404.
   ErrorBoundary: ({ children }: { children?: React.ReactNode }) => children,
   NotFoundPage: () => React.createElement('h1', null, '404'),

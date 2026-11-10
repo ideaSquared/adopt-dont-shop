@@ -1,30 +1,62 @@
-/**
- * UX P2 I: the modal backdrop used to claim role="button" with a tabIndex
- * and an aria-label purely so the click-to-dismiss handler satisfied lint.
- * That announced a phantom button to screen readers — the real close
- * affordance is the explicit ✕ button inside the modal. The backdrop
- * should be role="presentation".
- */
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { renderWithProviders } from '../../test-utils/render';
 import { LoginPromptModal } from './LoginPromptModal';
 
-describe('LoginPromptModal backdrop accessibility (UX P2 I)', () => {
-  it('renders the modal backdrop without role="button"', () => {
+describe('LoginPromptModal', () => {
+  it('announces itself as a named dialog', () => {
     renderWithProviders(<LoginPromptModal isOpen={true} onClose={vi.fn()} />);
 
-    // No backdrop "Close modal" button should be announced.
-    expect(screen.queryByRole('button', { name: /close modal/i })).toBeNull();
+    expect(screen.getByRole('dialog', { name: /join adopt don't shop/i })).toBeInTheDocument();
+  });
+
+  it('renders nothing while closed', () => {
+    renderWithProviders(<LoginPromptModal isOpen={false} onClose={vi.fn()} />);
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('offers account creation and sign-in links', () => {
+    renderWithProviders(<LoginPromptModal isOpen={true} onClose={vi.fn()} />);
+
+    expect(screen.getByRole('link', { name: /create account/i })).toHaveAttribute(
+      'href',
+      '/register'
+    );
+    expect(screen.getByRole('link', { name: /sign in/i })).toHaveAttribute('href', '/login');
+  });
+
+  it('does not announce a phantom backdrop button', () => {
+    renderWithProviders(<LoginPromptModal isOpen={true} onClose={vi.fn()} />);
+
     expect(screen.queryByRole('button', { name: /close notifications/i })).toBeNull();
   });
 
-  it('keeps the explicit close affordance inside the modal', () => {
+  it('closes from the continue browsing button', () => {
     const onClose = vi.fn();
     renderWithProviders(<LoginPromptModal isOpen={true} onClose={onClose} />);
 
-    // The "Continue browsing" skip button is still a real affordance.
-    expect(screen.getByRole('button', { name: /continue browsing/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /continue browsing/i }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes from the close button', () => {
+    const onClose = vi.fn();
+    renderWithProviders(<LoginPromptModal isOpen={true} onClose={onClose} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /close modal/i }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes when Escape is pressed', () => {
+    const onClose = vi.fn();
+    renderWithProviders(<LoginPromptModal isOpen={true} onClose={onClose} />);
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

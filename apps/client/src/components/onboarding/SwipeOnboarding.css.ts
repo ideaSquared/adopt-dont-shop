@@ -1,15 +1,4 @@
 import { globalStyle, keyframes, style } from '@vanilla-extract/css';
-import { recipe } from '@vanilla-extract/recipes';
-
-export const fadeIn = keyframes({
-  from: { opacity: 0 },
-  to: { opacity: 1 },
-});
-
-export const slideIn = keyframes({
-  from: { transform: 'translateY(50px)', opacity: 0 },
-  to: { transform: 'translateY(0)', opacity: 1 },
-});
 
 export const swipeDemo = keyframes({
   '0%': { transform: 'translateX(0) rotate(0deg)' },
@@ -19,80 +8,8 @@ export const swipeDemo = keyframes({
   '100%': { transform: 'translateX(0) rotate(0deg)' },
 });
 
-export const overlay = recipe({
-  base: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    background: 'rgba(0, 0, 0, 0.8)',
-    backdropFilter: 'blur(8px)',
-    zIndex: 9999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '2rem',
-    animationName: fadeIn,
-    animationDuration: '0.3s',
-    animationTimingFunction: 'ease-out',
-    '@media': {
-      '(prefers-reduced-motion: reduce)': { animation: 'none' },
-    },
-  },
-  variants: {
-    show: {
-      true: {
-        display: 'flex',
-      },
-      false: {
-        display: 'none',
-      },
-    },
-  },
-  defaultVariants: { show: false },
-});
-
 export const modalContent = style({
-  background: 'white',
-  borderRadius: '24px',
-  padding: '2.5rem',
-  maxWidth: '500px',
-  width: '100%',
   textAlign: 'center',
-  position: 'relative',
-  animationName: slideIn,
-  animationDuration: '0.4s',
-  animationTimingFunction: 'ease-out',
-  boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-  '@media': {
-    '(max-width: 768px)': {
-      padding: '2rem',
-      margin: '1rem',
-    },
-    '(prefers-reduced-motion: reduce)': { animation: 'none' },
-  },
-});
-
-export const closeButton = style({
-  position: 'absolute',
-  top: '1rem',
-  right: '1rem',
-  background: 'none',
-  border: 'none',
-  color: '#999',
-  cursor: 'pointer',
-  padding: '0.5rem',
-  borderRadius: '50%',
-  transition: 'all 0.2s ease',
-  ':hover': {
-    background: '#f5f5f5',
-    color: '#666',
-  },
-});
-
-globalStyle(`${closeButton} svg`, {
-  width: '24px',
-  height: '24px',
 });
 
 export const iconContainer = style({
@@ -109,19 +26,6 @@ export const swipeIcon = style({
   animationIterationCount: 'infinite',
   '@media': {
     '(prefers-reduced-motion: reduce)': { animation: 'none' },
-  },
-});
-
-export const title = style({
-  fontSize: '2rem',
-  fontWeight: 700,
-  marginBottom: '1rem',
-  color: '#333',
-  lineHeight: 1.2,
-  '@media': {
-    '(max-width: 768px)': {
-      fontSize: '1.75rem',
-    },
   },
 });
 
@@ -208,26 +112,6 @@ export const primaryButton = style({
   '@media': {
     '(max-width: 768px)': {
       justifyContent: 'center',
-    },
-  },
-});
-
-export const secondaryButton = style({
-  background: 'none',
-  border: '2px solid #e9ecef',
-  color: '#666',
-  padding: '1rem 2rem',
-  borderRadius: '50px',
-  fontWeight: 500,
-  cursor: 'pointer',
-  transition: 'all 0.3s ease',
-  ':hover': {
-    borderColor: '#dee2e6',
-    background: '#f8f9fa',
-  },
-  '@media': {
-    '(max-width: 768px)': {
-      width: '100%',
     },
   },
 });

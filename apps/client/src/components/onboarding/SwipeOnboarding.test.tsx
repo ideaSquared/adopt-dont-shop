@@ -6,7 +6,7 @@
  */
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { act, screen } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
 import { renderWithProviders } from '../../test-utils/render';
 import { SwipeOnboarding } from './SwipeOnboarding';
 
@@ -40,5 +40,37 @@ describe('SwipeOnboarding backdrop accessibility (UX P2 I)', () => {
     advancePastShowTimer();
 
     expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
+  });
+
+  it('shows as a named dialog once the delay has passed', () => {
+    renderWithProviders(<SwipeOnboarding onClose={vi.fn()} />);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    advancePastShowTimer();
+
+    expect(
+      screen.getByRole('dialog', { name: /meet your new favorite feature/i })
+    ).toBeInTheDocument();
+  });
+
+  it('remembers the dismissal and notifies the parent when Escape is pressed', () => {
+    const onClose = vi.fn();
+    renderWithProviders(<SwipeOnboarding onClose={onClose} />);
+    advancePastShowTimer();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(window.localStorage.getItem('hasSeenSwipeOnboarding')).toBe('true');
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('closes from the Maybe Later button', () => {
+    const onClose = vi.fn();
+    renderWithProviders(<SwipeOnboarding onClose={onClose} />);
+    advancePastShowTimer();
+
+    fireEvent.click(screen.getByRole('button', { name: /maybe later/i }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });
