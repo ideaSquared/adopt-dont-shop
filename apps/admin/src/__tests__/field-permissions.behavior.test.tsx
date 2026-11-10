@@ -234,7 +234,7 @@ describe('FieldPermissions page', () => {
       await waitFor(() => expect(screen.getByText('email')).toBeInTheDocument());
       mockGet.mockClear();
 
-      await userEvent.setup().click(screen.getByRole('button', { name: /^pets$/i }));
+      await userEvent.setup().click(screen.getByRole('tab', { name: /^pets$/i }));
 
       await waitFor(() => expect(mockGet).toHaveBeenCalledWith(expect.stringContaining('/pets/')));
     });

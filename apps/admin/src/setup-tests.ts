@@ -691,6 +691,52 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
           .toUpperCase()
           .slice(0, 2)
     ),
+  // Mirrors the real Alert: an alert-role region with optional title and body.
+  Alert: ({ children, title }: { children?: React.ReactNode; title?: string }) =>
+    React.createElement(
+      'div',
+      { role: 'alert' },
+      title ? React.createElement('strong', null, title) : null,
+      children
+    ),
+  // Mirrors the real Tabs: a tablist of role="tab" buttons and the active panel.
+  Tabs: ({
+    tabs,
+    value,
+    onChange,
+    'aria-label': ariaLabel,
+  }: {
+    tabs: ReadonlyArray<{ id: string; label: React.ReactNode; content: React.ReactNode }>;
+    value: string;
+    onChange: (id: string) => void;
+    'aria-label'?: string;
+  }) =>
+    React.createElement(
+      'div',
+      null,
+      React.createElement(
+        'div',
+        { role: 'tablist', 'aria-label': ariaLabel },
+        ...tabs.map(tab =>
+          React.createElement(
+            'button',
+            {
+              key: tab.id,
+              type: 'button',
+              role: 'tab',
+              'aria-selected': tab.id === value,
+              onClick: () => onChange(tab.id),
+            },
+            tab.label
+          )
+        )
+      ),
+      React.createElement(
+        'div',
+        { role: 'tabpanel' },
+        tabs.find(tab => tab.id === value)?.content ?? null
+      )
+    ),
   DateTime: ({ value }: { value: string }) => React.createElement('span', null, value),
   // ADS-1079: shared MetricCard now backs the admin stat tiles (Analytics,
   // Messages). Mirror the real formatting so tests asserting on grouped values
