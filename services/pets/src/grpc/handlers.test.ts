@@ -157,6 +157,20 @@ function makeMocks() {
   return { deps, poolMock: pool, clientMock: client, natsMock: nats, rescueClient };
 }
 
+// The decoded `{ id, payload }` envelopes published on `subject`.
+function publishedOn(mocks: ReturnType<typeof makeMocks>, subject: string) {
+  const decoder = new TextDecoder();
+  return mocks.natsMock.publish.mock.calls
+    .filter(([s]) => s === subject)
+    .map(
+      ([, data]) =>
+        JSON.parse(decoder.decode(data as Uint8Array)) as {
+          id: string;
+          payload: Record<string, unknown>;
+        }
+    );
+}
+
 const BASE_CREATE: CreatePetRequest = {
   name: 'Rex',
   rescueId: RESCUE_ID,
@@ -1383,7 +1397,72 @@ describe('updatePetStatus', () => {
     expect(res.transition.toStatus).toBe(PetsV1.PetStatus.PET_STATUS_PENDING);
     // BEGIN → SELECT … FOR UPDATE (lock + re-validate) → INSERT transition →
     // UPDATE pet → COMMIT → publish
-    expect(order).toEqual(['BEGIN', 'SELECT', 'INSERT', 'UPDATE', 'COMMIT', 'NATS_PUBLISH']);
+    // statusChanged + actionTaken, both after COMMIT
+    expect(order).toEqual([
+      'BEGIN',
+      'SELECT',
+      'INSERT',
+      'UPDATE',
+      'COMMIT',
+      'NATS_PUBLISH',
+      'NATS_PUBLISH',
+    ]);
+  });
+
+  it('audits the transition as pets.actionTaken with a per-transition id', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ status: 'available' })] });
+    mocks.clientMock.query.mockImplementation(async (sql: string) =>
+      /FOR UPDATE/.test(sql)
+        ? { rows: [petRow({ status: 'available' })] }
+        : { rows: [petRow({ status: 'pending' })] }
+    );
+
+    const res = await updatePetStatus(mocks.deps, STAFF, {
+      petId: 'pet-1',
+      toStatus: PetsV1.PetStatus.PET_STATUS_PENDING,
+      reason: 'application opened',
+    } as never);
+
+    const [event] = publishedOn(mocks, 'pets.actionTaken');
+    expect(event.id).toBe(`pets.actionTaken.updateStatus.pet-1.${res.transition.transitionId}`);
+    expect(event.payload).toMatchObject({
+      eventId: event.id,
+      service: 'service.pets',
+      subject: 'pets.actionTaken',
+      aggregateType: 'pet',
+      aggregateId: 'pet-1',
+      actorUserId: STAFF.userId,
+      action: 'updateStatus',
+      outcome: 'success',
+      payload: {
+        rescueId: RESCUE_ID,
+        fromStatus: 'available',
+        toStatus: 'pending',
+        reason: 'application opened',
+      },
+    });
+  });
+
+  it('does not audit when the transaction rolls back', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ status: 'available' })] });
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (/FOR UPDATE/.test(sql)) {
+        return { rows: [petRow({ status: 'available' })] };
+      }
+      if (/UPDATE pets\.pets/.test(sql)) {
+        throw new Error('boom');
+      }
+      return { rows: [] };
+    });
+
+    await expect(
+      updatePetStatus(mocks.deps, STAFF, {
+        petId: 'pet-1',
+        toStatus: PetsV1.PetStatus.PET_STATUS_PENDING,
+      } as never)
+    ).rejects.toThrow('boom');
+
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 
   it('PERMISSION_DENIED for staff at a different rescue', async () => {
@@ -1466,10 +1545,54 @@ describe('deletePet', () => {
 
     const res = await deletePet(mocks.deps, STAFF, { petId: 'pet-1' });
     expect(res.deleted).toBe(true);
-    expect(order).toEqual(['BEGIN', 'UPDATE', 'COMMIT', 'NATS_PUBLISH']);
+    // pets.deleted + pets.actionTaken, both after COMMIT
+    expect(order).toEqual(['BEGIN', 'UPDATE', 'COMMIT', 'NATS_PUBLISH', 'NATS_PUBLISH']);
     // calls[0] is the transaction's own BEGIN; the UPDATE is calls[1].
     const sql = mocks.clientMock.query.mock.calls[1][0] as string;
     expect(sql).toMatch(/deleted_at = now\(\)/);
+  });
+
+  it('audits the delete as pets.actionTaken, unique per occurrence', async () => {
+    mocks.poolMock.query.mockResolvedValue({ rows: [petRow()] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+
+    await deletePet(mocks.deps, STAFF, { petId: 'pet-1' });
+    await deletePet(mocks.deps, STAFF, { petId: 'pet-1' });
+
+    const [first, second] = publishedOn(mocks, 'pets.actionTaken');
+    expect(first.payload).toMatchObject({
+      eventId: first.id,
+      service: 'service.pets',
+      aggregateType: 'pet',
+      aggregateId: 'pet-1',
+      actorUserId: STAFF.userId,
+      action: 'delete',
+      outcome: 'success',
+      payload: { rescueId: RESCUE_ID },
+    });
+    expect(first.id).not.toBe(second.id);
+  });
+
+  it('does not audit when the transaction rolls back', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (/deleted_at = now\(\)/.test(sql)) {
+        throw new Error('boom');
+      }
+      return { rows: [] };
+    });
+
+    await expect(deletePet(mocks.deps, STAFF, { petId: 'pet-1' })).rejects.toThrow('boom');
+
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('does not audit a delete refused for lack of permission', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
+    await expect(deletePet(mocks.deps, OTHER_STAFF, { petId: 'pet-1' })).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 
   it('PERMISSION_DENIED when the rescue that owns the pet is no longer verified', async () => {
