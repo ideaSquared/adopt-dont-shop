@@ -3,34 +3,12 @@ import { Link } from 'react-router';
 import * as styles from '../ChatDetailModal.css';
 import { type Conversation } from '@adopt-dont-shop/lib.chat';
 import { Clock, Info, MessageSquare, Users } from 'lucide-react';
+import { formatChatTimestamp } from './format-chat-timestamp';
 
 type DetailsTabProps = {
   conversation: Conversation;
   getStatusBadge: (status?: string) => React.ReactNode;
   onClose: () => void;
-};
-
-const formatTimestamp = (timestamp: string) => {
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) {
-    return 'Just now';
-  }
-  if (diffMins < 60) {
-    return `${diffMins}m ago`;
-  }
-  if (diffHours < 24) {
-    return `${diffHours}h ago`;
-  }
-  if (diffDays < 7) {
-    return `${diffDays}d ago`;
-  }
-  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
 export const DetailsTab: React.FC<DetailsTabProps> = ({
@@ -87,7 +65,7 @@ export const DetailsTab: React.FC<DetailsTabProps> = ({
         <Clock size='1em' />
         Created
       </div>
-      <div className={styles.detailValue}>{formatTimestamp(conversation.createdAt)}</div>
+      <div className={styles.detailValue}>{formatChatTimestamp(conversation.createdAt)}</div>
     </div>
 
     <div className={styles.detailItem}>
@@ -95,7 +73,7 @@ export const DetailsTab: React.FC<DetailsTabProps> = ({
         <Clock size='1em' />
         Last Updated
       </div>
-      <div className={styles.detailValue}>{formatTimestamp(conversation.updatedAt)}</div>
+      <div className={styles.detailValue}>{formatChatTimestamp(conversation.updatedAt)}</div>
     </div>
 
     <div className={styles.detailItem}>
@@ -113,7 +91,7 @@ export const DetailsTab: React.FC<DetailsTabProps> = ({
           Last Message
         </div>
         <div className={styles.detailValue}>
-          {formatTimestamp(conversation.lastMessage.timestamp || '')}
+          {formatChatTimestamp(conversation.lastMessage.timestamp || '')}
         </div>
       </div>
     )}
