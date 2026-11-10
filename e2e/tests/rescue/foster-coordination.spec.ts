@@ -73,11 +73,7 @@ test.describe('foster coordination', () => {
     }
   });
 
-  // App bug: the list shows each placement's status as the raw enum number (1)
-  // rather than "active", so the "End placement" button (only rendered for
-  // status 'active') never appears and a manager cannot end a placement from
-  // the UI. Remove the fixme once the status is mapped.
-  test.fixme('a manager can end a placement from the list', async ({ page, apiAs }) => {
+  test('a manager can end a placement from the list', async ({ page, apiAs }) => {
     const rescueApi = await apiAs('rescue');
     const { petId } = await createAvailablePet(rescueApi, 'Foster');
     await startPlacement(rescueApi, petId);

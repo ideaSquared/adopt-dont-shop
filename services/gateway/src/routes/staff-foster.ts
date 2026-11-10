@@ -12,6 +12,7 @@ import {
   type ColleagueProfile,
   type CreateFosterPlacementRequest,
   type EndFosterPlacementRequest,
+  type FosterPlacement,
   type ListFosterPlacementsRequest,
 } from '@adopt-dont-shop/proto';
 
@@ -44,6 +45,16 @@ const fosterStatusFromString = (raw: string | undefined): RescueV1.FosterPlaceme
       return RescueV1.FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_UNSPECIFIED;
   }
 };
+
+// The SPA reads the status as the lowercase name ('active'), not the proto
+// enum number the rescue service returns.
+const fosterPlacementToView = (placement: FosterPlacement | undefined) =>
+  placement && {
+    ...placement,
+    status: RescueV1.fosterPlacementStatusToJSON(placement.status)
+      .slice('FOSTER_PLACEMENT_STATUS_'.length)
+      .toLowerCase(),
+  };
 
 const endOutcomeFromString = (raw: string | undefined): RescueV1.FosterEndOutcome => {
   switch (raw) {
@@ -198,7 +209,7 @@ export const registerStaffFosterRoutes = async (
       };
       try {
         const res = await client.createFosterPlacement(grpcReq, buildMetadata(req));
-        return reply.code(201).send({ success: true, data: res.placement });
+        return reply.code(201).send({ success: true, data: fosterPlacementToView(res.placement) });
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -240,7 +251,10 @@ export const registerStaffFosterRoutes = async (
       };
       try {
         const res = await client.listFosterPlacements(grpcReq, buildMetadata(req));
-        return reply.send({ success: true, data: res.placements ?? [] });
+        return reply.send({
+          success: true,
+          data: (res.placements ?? []).map(fosterPlacementToView),
+        });
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -272,7 +286,7 @@ export const registerStaffFosterRoutes = async (
           { placementId: req.params.id },
           buildMetadata(req)
         );
-        return reply.send({ success: true, data: res.placement });
+        return reply.send({ success: true, data: fosterPlacementToView(res.placement) });
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -320,7 +334,7 @@ export const registerStaffFosterRoutes = async (
       };
       try {
         const res = await client.endFosterPlacement(grpcReq, buildMetadata(req));
-        return reply.send({ success: true, data: res.placement });
+        return reply.send({ success: true, data: fosterPlacementToView(res.placement) });
       } catch (err) {
         return handleGrpcError(err, reply);
       }
