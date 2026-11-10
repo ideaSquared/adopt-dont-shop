@@ -1,5 +1,6 @@
-// Backfill the pet type / breed snapshot (migration 016) on applications
-// that predate it, or whose StartDraft stamp did not land.
+// Backfill the denormalised pet type / breed (migration 016) on applications
+// that predate the columns, or whose StartDraft stamp did not land. Pet
+// edits after that arrive through the pets.updated subscriber.
 //
 // One pass per run, paged by application_id, so rows whose pet can no
 // longer be looked up (deleted pet, pets outage) are skipped rather than
@@ -10,25 +11,29 @@
 import type { Pool } from 'pg';
 
 import type { PetsClient } from '../grpc/pets-client.js';
-import { petSnapshot, stampPetSnapshot, type PetSnapshot } from '../grpc/pet-snapshot.js';
+import {
+  petSearchFields,
+  stampPetSearchFields,
+  type PetSearchFields,
+} from '../grpc/pet-search-fields.js';
 import { principalToMetadata } from '../grpc/principal.js';
 import { SYSTEM_PRINCIPAL } from '../grpc/system-principal.js';
 
-export type ApplicationPetSnapshotOptions = { batchSize: number };
-export type ApplicationPetSnapshotResult = { updatedCount: number };
+export type ApplicationPetSearchFieldsOptions = { batchSize: number };
+export type ApplicationPetSearchFieldsResult = { updatedCount: number };
 
 type PendingRow = { application_id: string; pet_id: string };
 
 const lookUpPets = async (
   petsClient: PetsClient,
   petIds: string[]
-): Promise<Map<string, PetSnapshot>> => {
+): Promise<Map<string, PetSearchFields>> => {
   const metadata = principalToMetadata(SYSTEM_PRINCIPAL);
   const looked = await Promise.all(
     petIds.map(async petId => {
       try {
         const res = await petsClient.getPet({ petId }, metadata);
-        return [petId, petSnapshot(res.pet)] as const;
+        return [petId, petSearchFields(res.pet)] as const;
       } catch {
         return undefined;
       }
@@ -37,11 +42,11 @@ const lookUpPets = async (
   return new Map(looked.filter(entry => entry !== undefined));
 };
 
-export async function backfillApplicationPetSnapshots(
+export async function backfillApplicationPetSearchFields(
   deps: { pool: Pool },
   petsClient: PetsClient,
-  opts: ApplicationPetSnapshotOptions
-): Promise<ApplicationPetSnapshotResult> {
+  opts: ApplicationPetSearchFieldsOptions
+): Promise<ApplicationPetSearchFieldsResult> {
   let updatedCount = 0;
   let after = '';
 
@@ -58,13 +63,13 @@ export async function backfillApplicationPetSnapshots(
       break;
     }
 
-    const snapshots = await lookUpPets(petsClient, [...new Set(rows.map(r => r.pet_id))]);
+    const petFields = await lookUpPets(petsClient, [...new Set(rows.map(r => r.pet_id))]);
     const fillable = rows.flatMap(row => {
-      const snapshot = snapshots.get(row.pet_id);
-      return snapshot?.petType ? [{ applicationId: row.application_id, snapshot }] : [];
+      const fields = petFields.get(row.pet_id);
+      return fields?.petType ? [{ applicationId: row.application_id, fields }] : [];
     });
-    for (const { applicationId, snapshot } of fillable) {
-      await stampPetSnapshot(deps.pool, applicationId, snapshot);
+    for (const { applicationId, fields } of fillable) {
+      await stampPetSearchFields(deps.pool, applicationId, fields);
     }
     updatedCount += fillable.length;
 

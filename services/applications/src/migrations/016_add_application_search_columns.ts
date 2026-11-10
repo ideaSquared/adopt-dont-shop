@@ -1,18 +1,18 @@
 import type { MigrationBuilder } from 'node-pg-migrate';
 
-// Searchable snapshot columns for the staff applications list.
+// Denormalised search columns for the staff applications list.
 //
 // The list filters on pet type / breed and searches by applicant name or
 // email, but those live in other services' schemas (pets, auth) and there
-// are no cross-schema joins. Snapshot them onto the read model instead:
+// are no cross-schema joins. Copy them onto the read model instead:
 //
 //   - applicant_name / applicant_email come from the applicant's own
 //     answers (personalInfo); the projector rewrites them on every write,
 //     and this migration backfills them from the stored answers.
 //   - pet_type / pet_breed are stamped when the draft starts (StartDraft
-//     already fetches the pet). Existing rows are filled by the
-//     application-pet-snapshot job, since the pets data is in another
-//     schema.
+//     already fetches the pet) and rewritten from pets.updated events.
+//     Existing rows are filled by the application-pet-search-fields job,
+//     since the pets data is in another schema.
 //
 // All nullable: expand-only, so the running code is unaffected.
 

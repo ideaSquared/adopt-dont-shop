@@ -1074,6 +1074,23 @@ describe('updatePet', () => {
     expect(opts?.msgID).toBe('pets.updated.pet-1.5');
   });
 
+  it("carries the pet's current type and breed on pets.updated so consumers can keep copies current", async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ version: 4 })] });
+    mocks.clientMock.query.mockResolvedValue({
+      rows: [petRow({ type: 'cat', extra_json: { breed: 'Maine Coon' }, version: 5 })],
+    });
+
+    await updatePet(mocks.deps, STAFF, { petId: 'pet-1', name: 'Rexy' } as never);
+
+    const data = mocks.natsMock.publish.mock.calls[0][1] as Uint8Array | string;
+    const text = typeof data === 'string' ? data : new TextDecoder().decode(data);
+    expect(JSON.parse(text).payload).toMatchObject({
+      petId: 'pet-1',
+      type: 'cat',
+      breed: 'Maine Coon',
+    });
+  });
+
   it('stores the canonical image list on update: bare `images` folded into image_urls', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] }); // fetchPet
     let storedExtra = '';

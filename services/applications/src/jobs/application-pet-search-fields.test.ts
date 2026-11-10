@@ -5,7 +5,7 @@ import { PetsV1 } from '@adopt-dont-shop/proto';
 
 import type { PetsClient } from '../grpc/pets-client.js';
 
-import { backfillApplicationPetSnapshots } from './application-pet-snapshot.js';
+import { backfillApplicationPetSearchFields } from './application-pet-search-fields.js';
 
 type Row = { application_id: string; pet_id: string };
 
@@ -34,8 +34,8 @@ const pet = (petId: string, type: PetsV1.PetType, breed?: string) => ({
 const makePetsClient = (getPet: ReturnType<typeof vi.fn>) =>
   ({ getPet, close: vi.fn() }) as unknown as PetsClient;
 
-describe('backfillApplicationPetSnapshots', () => {
-  it('fills pet type and breed on applications that predate the snapshot, one lookup per pet', async () => {
+describe('backfillApplicationPetSearchFields', () => {
+  it('fills pet type and breed on applications that predate the columns, one lookup per pet', async () => {
     const { pool, updates } = makePool([
       [
         { application_id: 'app-1', pet_id: 'pet-1' },
@@ -49,7 +49,7 @@ describe('backfillApplicationPetSnapshots', () => {
         : pet('pet-2', PetsV1.PetType.PET_TYPE_CAT)
     );
 
-    const { updatedCount } = await backfillApplicationPetSnapshots(
+    const { updatedCount } = await backfillApplicationPetSearchFields(
       { pool },
       makePetsClient(getPet),
       { batchSize: 10 }
@@ -78,7 +78,7 @@ describe('backfillApplicationPetSnapshots', () => {
       return pet('pet-2', PetsV1.PetType.PET_TYPE_RABBIT);
     });
 
-    const { updatedCount } = await backfillApplicationPetSnapshots(
+    const { updatedCount } = await backfillApplicationPetSearchFields(
       { pool },
       makePetsClient(getPet),
       { batchSize: 10 }
@@ -98,7 +98,7 @@ describe('backfillApplicationPetSnapshots', () => {
     ]);
     const getPet = vi.fn().mockRejectedValue(Object.assign(new Error('nope'), { code: 5 }));
 
-    await backfillApplicationPetSnapshots({ pool }, makePetsClient(getPet), { batchSize: 2 });
+    await backfillApplicationPetSearchFields({ pool }, makePetsClient(getPet), { batchSize: 2 });
 
     const selects = query.mock.calls.filter(([sql]) => (sql as string).includes('SELECT'));
     expect(selects).toHaveLength(2);

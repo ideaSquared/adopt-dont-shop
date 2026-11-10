@@ -17,11 +17,13 @@ import { loadConfig } from './config.js';
 import { createPetsClient } from './grpc/pets-client.js';
 import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
 import { purgeExpiredApplicationDrafts } from './jobs/application-draft-retention.js';
-import { backfillApplicationPetSnapshots } from './jobs/application-pet-snapshot.js';
+import { backfillApplicationPetSearchFields } from './jobs/application-pet-search-fields.js';
+import { registerPetUpdatesSubscriber } from './nats/pet-updates.js';
 
-// Pet type / breed search snapshot backfill (migration 016): hourly, in small batches.
-const PET_SNAPSHOT_BACKFILL_INTERVAL_MS = 60 * 60 * 1000;
-const PET_SNAPSHOT_BACKFILL_BATCH_SIZE = 100;
+// Backfill of the denormalised pet type / breed (migration 016) for rows the stamp and the
+// pets.updated subscriber missed: hourly, in small batches.
+const PET_SEARCH_FIELDS_BACKFILL_INTERVAL_MS = 60 * 60 * 1000;
+const PET_SEARCH_FIELDS_BACKFILL_BATCH_SIZE = 100;
 import { createServer } from './server.js';
 
 const main = async (): Promise<void> => {
@@ -57,7 +59,7 @@ const main = async (): Promise<void> => {
     const { startOutboxRelay } = await import('@adopt-dont-shop/events');
     const outboxRelay = startOutboxRelay({ pool, nats, logger });
 
-    // Shared by the gRPC handlers and the pet snapshot backfill; the gRPC server closes it.
+    // Shared by the gRPC handlers and the pet search fields backfill; the gRPC server closes it.
     const petsClient = createPetsClient({ address: config.petsGrpcUrl });
     grpc = await startGrpcServer({ config, pool, nats, logger, petsClient });
     grpcReady = true;
@@ -71,6 +73,12 @@ const main = async (): Promise<void> => {
       service: 'applications',
       erase: eraseApplications,
       onError: (err, subject) => logger.error('gdpr erasure subscriber error', { subject, err }),
+    });
+    // Keeps the denormalised pet type / breed on applications current (migration 016).
+    const petUpdates = registerPetUpdatesSubscriber({
+      nats,
+      pool,
+      onError: (err, subject) => logger.error('pets.updated subscriber error', { subject, err }),
     });
 
     // Application-drafts retention purge (ADS-1320) — see
@@ -94,16 +102,16 @@ const main = async (): Promise<void> => {
           },
         },
         {
-          name: 'application-pet-snapshot-backfill',
-          intervalMs: PET_SNAPSHOT_BACKFILL_INTERVAL_MS,
+          name: 'application-pet-search-fields-backfill',
+          intervalMs: PET_SEARCH_FIELDS_BACKFILL_INTERVAL_MS,
           runOnStart: true,
           run: async () => {
-            const { updatedCount } = await backfillApplicationPetSnapshots(
+            const { updatedCount } = await backfillApplicationPetSearchFields(
               { pool: dbPool },
               petsClient,
-              { batchSize: PET_SNAPSHOT_BACKFILL_BATCH_SIZE }
+              { batchSize: PET_SEARCH_FIELDS_BACKFILL_BATCH_SIZE }
             );
-            logger.info('application-pet-snapshot-backfill complete', { updatedCount });
+            logger.info('application-pet-search-fields-backfill complete', { updatedCount });
           },
         },
       ],
@@ -131,6 +139,7 @@ const main = async (): Promise<void> => {
 
     const teardown = async (): Promise<void> => {
       outboxRelay.stop();
+      await petUpdates.drain();
       await scheduler?.stop();
       return runServiceShutdown({ httpServer, grpc, nats, pool, logger });
     };

@@ -165,7 +165,7 @@ export async function listApplications(
   }
 
   // The filters below narrow within the scope above; they can never widen what the caller sees.
-  // Pet type / breed and applicant name / email are snapshot columns (migration 016).
+  // Pet type / breed and applicant name / email are denormalised columns (migration 016).
   if (req.petIdFilter !== undefined && req.petIdFilter !== '') {
     where.push(`pet_id = $${p++}`);
     params.push(req.petIdFilter);

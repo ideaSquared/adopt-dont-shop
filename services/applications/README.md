@@ -87,7 +87,7 @@ source of truth), `applications` (read-model projection),
 `application_reference_checks`, `application_timeline_notes`, and `event_outbox`
 (the transactional publish-after-commit outbox — see
 [`packages/events`](../../packages/events/README.md)).
-Migrations: `src/migrations/001`–`015`.
+Migrations: `src/migrations/001`–`016`.
 
 **NATS** — emits (publish-after-commit): `applications.draftCreated`,
 `applications.draftUpdated`, `applications.submitted`,
@@ -95,7 +95,9 @@ Migrations: `src/migrations/001`–`015`.
 `applications.homeVisitCompleted`, `applications.approved`,
 `applications.rejected`, `applications.withdrawn`, `applications.adopted`;
 participates in the `gdpr.erasureCompleted` saga. Consumes
-`gdpr.erasureRequested` (durable `gdpr-applications`).
+`gdpr.erasureRequested` (durable `gdpr-applications`) and `pets.updated` (durable
+`applications-pets-updated`), which keeps each application's denormalised pet type / breed
+current for the staff list search; an hourly job backfills rows the events missed.
 
 ## Environment variables consumed
 

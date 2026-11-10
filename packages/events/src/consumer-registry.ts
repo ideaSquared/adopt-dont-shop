@@ -88,6 +88,12 @@ export const CONSUMER_REGISTRY: RegistryEntry[] = [
           'Subscribes to pets.created for automatic content scanning; files a report if the listing description trips the scanner.',
       },
       {
+        service: 'service.applications',
+        file: 'services/applications/src/nats/pet-updates.ts',
+        description:
+          "Subscribes to pets.updated to keep each application's denormalised pet type / breed (list search) current.",
+      },
+      {
         service: 'service.audit',
         file: 'services/audit/src/nats/subscribers.ts',
         description: 'Wildcard *.actionTaken captures pets.actionTaken.',

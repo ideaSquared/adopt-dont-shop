@@ -1,16 +1,20 @@
-// Pet type / breed snapshot on the applications read model (migration 016).
+// Denormalised pet type / breed on the applications read model (migration 016).
 //
 // Staff filter the applications list by pet type and breed, but the pet
-// lives in the pets service's schema. StartDraft already fetches the pet, so
-// it stamps these columns; the application-pet-snapshot job fills rows that
-// predate them. The projector's UPSERT never writes these columns, so later
-// projections keep them.
+// lives in the pets service's schema. Kept current three ways:
+//   - StartDraft stamps them from the pet it already fetches;
+//   - the pets.updated subscriber (src/nats/pet-updates.ts) rewrites them
+//     whenever the pet changes (event-carried state transfer);
+//   - the application-pet-search-fields job fills rows that predate the
+//     columns or whose StartDraft stamp did not land.
+// The projector's UPSERT never writes these columns, so later projections
+// keep them.
 
 import type { Pool, PoolClient } from 'pg';
 
 import { PetsV1 } from '@adopt-dont-shop/proto';
 
-export type PetSnapshot = { petType: string | null; petBreed: string | null };
+export type PetSearchFields = { petType: string | null; petBreed: string | null };
 
 // The same lowercase token the gateway's list view shows (PET_TYPE_DOG → 'dog').
 function petTypeToken(type: PetsV1.PetType | undefined): string | null {
@@ -36,17 +40,17 @@ function breedName(extraJson: string | undefined): string | null {
   }
 }
 
-export function petSnapshot(pet: PetsV1.Pet | undefined): PetSnapshot {
+export function petSearchFields(pet: PetsV1.Pet | undefined): PetSearchFields {
   return { petType: petTypeToken(pet?.type), petBreed: breedName(pet?.extraJson) };
 }
 
-export async function stampPetSnapshot(
+export async function stampPetSearchFields(
   db: Pick<Pool | PoolClient, 'query'>,
   applicationId: string,
-  snapshot: PetSnapshot
+  fields: PetSearchFields
 ): Promise<void> {
   await db.query(
     `UPDATE applications SET pet_type = $1, pet_breed = $2 WHERE application_id = $3`,
-    [snapshot.petType, snapshot.petBreed, applicationId]
+    [fields.petType, fields.petBreed, applicationId]
   );
 }

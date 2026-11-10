@@ -846,7 +846,14 @@ export async function updatePet(
     publish({
       type: 'pets.updated',
       id: `pets.updated.${req.petId}.${updated.version}`,
-      payload: { petId: req.petId, rescueId: existing.rescue_id },
+      // type / breed let consumers that keep a copy (service.applications' list search columns)
+      // stay current without calling back.
+      payload: {
+        petId: req.petId,
+        rescueId: existing.rescue_id,
+        type: updated.type,
+        breed: storedBreedName(updated),
+      },
     });
   });
 
@@ -854,6 +861,12 @@ export async function updatePet(
     throw new HandlerError('INTERNAL', 'update returned no rows');
   }
   return { pet: rowToProto(updated) };
+}
+
+// The free-text breed name the pet shows, kept in extra_json (the row holds only breed ids).
+function storedBreedName(row: PetRow): string | null {
+  const breed = isRecord(row.extra_json) ? row.extra_json.breed : undefined;
+  return typeof breed === 'string' && breed.trim() !== '' ? breed.trim() : null;
 }
 
 // --- UpdateStatus (event-sourced command) ----------------------------

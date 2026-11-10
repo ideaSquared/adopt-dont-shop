@@ -40,7 +40,11 @@ import { HandlerError, type HandlerDeps } from './adapter.js';
 import { requireDraftScope, runCommand, runCreateCommand } from './command-runner.js';
 import { loadAggregate } from './event-store.js';
 import type { PetsClient } from './pets-client.js';
-import { petSnapshot, stampPetSnapshot, type PetSnapshot } from './pet-snapshot.js';
+import {
+  petSearchFields,
+  stampPetSearchFields,
+  type PetSearchFields,
+} from './pet-search-fields.js';
 import { principalToMetadata } from './principal.js';
 import { stateToProto } from './state-mapper.js';
 
@@ -79,7 +83,7 @@ export function makeStartDraft(
       throw new HandlerError('PERMISSION_DENIED', `'${APPLICATIONS_CREATE}' required`);
     }
 
-    const { rescueId, snapshot } = await resolvePet(petsClient, principal, req.petId);
+    const { rescueId, petFields } = await resolvePet(petsClient, principal, req.petId);
 
     // A POST /applications that died after StartDraft strands a draft the
     // adopter can't list. Resume it rather than trip the one-open-application
@@ -109,9 +113,10 @@ export function makeStartDraft(
         rescueId: s.rescueId,
       },
     }));
-    // Search snapshot for the staff list. Best-effort: the application-pet-snapshot job fills
+    // Denormalised pet fields for the staff list search. Best-effort: the
+    // application-pet-search-fields job fills
     // any row this misses.
-    await stampPetSnapshot(deps.pool, state.applicationId, snapshot);
+    await stampPetSearchFields(deps.pool, state.applicationId, petFields);
 
     return { application: stateToProto(state) };
   };
@@ -135,7 +140,7 @@ async function resolvePet(
   petsClient: PetsClient,
   principal: Principal,
   petId: string
-): Promise<{ rescueId: string; snapshot: PetSnapshot }> {
+): Promise<{ rescueId: string; petFields: PetSearchFields }> {
   let res;
   try {
     res = await petsClient.getPet({ petId }, principalToMetadata(principal));
@@ -154,7 +159,7 @@ async function resolvePet(
   if (rescueId === undefined || rescueId === '') {
     throw new HandlerError('INVALID_ARGUMENT', `pet ${petId} has no owning rescue`);
   }
-  return { rescueId, snapshot: petSnapshot(res.pet) };
+  return { rescueId, petFields: petSearchFields(res.pet) };
 }
 
 // --- SaveDraftAnswers ------------------------------------------------
