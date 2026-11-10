@@ -1,0 +1,75 @@
+{
+  "consumer": {
+    "name": "service.applications"
+  },
+  "messages": [
+    {
+      "contents": {
+        "breed": "Labrador Retriever",
+        "petId": "pet-001",
+        "type": "dog",
+        "version": 5
+      },
+      "description": "pets.updated event",
+      "matchingRules": {
+        "body": {
+          "$.breed": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.petId": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.type": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.version": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "integer"
+              }
+            ]
+          }
+        }
+      },
+      "metadata": {
+        "contentType": "application/json"
+      },
+      "providerStates": [
+        {
+          "name": "a pet with a breed is edited"
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "pact-js": {
+      "version": "17.0.0"
+    },
+    "pactRust": {
+      "ffi": "0.5.4",
+      "models": "1.3.11"
+    },
+    "pactSpecification": {
+      "version": "3.0.0"
+    }
+  },
+  "provider": {
+    "name": "service.pets"
+  }
+}

@@ -102,6 +102,11 @@ several consumers shipped reading fields their producer never sent:
 | `service.notifications` | `service.pets`         | `pets.statusChanged`, `pets.deleted`                                                           |
 | `service.notifications` | `service.rescue`       | `rescue.verified`, `rescue.rejected`, `rescue.staffInvited`, `rescue.staffInvitationCancelled` |
 | `service.notifications` | `service.chat`         | `chat.messageCreated`                                                                          |
+| `service.applications`  | `service.pets`         | `pets.updated`                                                                                 |
+| `service.applications`  | `service.auth`         | `auth.userProfileChanged`                                                                      |
+| `service.moderation`    | `service.pets`         | `pets.created`                                                                                 |
+| `service.moderation`    | `service.chat`         | `chat.messageCreated`                                                                          |
+| `service.moderation`    | `service.applications` | `applications.submitted`                                                                       |
 
 Two rules for these, stricter than the GDPR pair above:
 

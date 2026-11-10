@@ -1,8 +1,9 @@
 // Provider verification: service.chat → chat.messageCreated NATS event
 //
-// Reads the pact file written by
-// services/notifications/test/contracts/notifications-chat-message-created.consumer.test.ts
-// and proves chat.messageCreated carries what service.notifications reads.
+// Reads the pact files written by
+// services/notifications/test/contracts/notifications-chat-message-created.consumer.test.ts and
+// services/moderation/test/contracts/moderation-chat-message-created.consumer.test.ts, and proves
+// chat.messageCreated carries what service.notifications and service.moderation read.
 //
 // The message provider runs the real sendMessage handler with a stubbed pool
 // and a NATS double, and returns the payload it actually published. See
@@ -103,6 +104,18 @@ describe('service.chat — provider verification for chat.messageCreated', () =>
       logLevel: 'warn',
       pactUrls: [resolve(PACT_DIR, 'service.notifications-service.chat.json')],
       messageProviders: { 'chat.messageCreated event': provideMessageCreated },
+    });
+    await expect(verifier.verify()).resolves.not.toThrow();
+  });
+
+  it('fulfils the interaction declared by service.moderation', async () => {
+    const verifier = new MessageProviderPact({
+      provider: 'service.chat',
+      logLevel: 'warn',
+      pactUrls: [resolve(PACT_DIR, 'service.moderation-service.chat.json')],
+      messageProviders: {
+        'chat.messageCreated event with a message body': provideMessageCreated,
+      },
     });
     await expect(verifier.verify()).resolves.not.toThrow();
   });

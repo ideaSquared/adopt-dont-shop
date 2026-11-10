@@ -72,6 +72,15 @@ const draftStream = () => [
   ev('draftCreated', 1, { adopterId: 'usr-adopter', petId: 'pet-001', rescueId: 'rescue-001' }),
 ];
 
+// A draft whose answers include the free-text why-adopt answer moderation scans.
+const answeredDraftStream = () => [
+  ...draftStream(),
+  ev('draftAnswersSaved', 2, {
+    answersPatch: { why_adopt: 'We have a big garden and work from home.' },
+    references: null,
+  }),
+];
+
 const underReviewStream = () => [
   ...draftStream(),
   ev('draftSubmitted', 2),
@@ -131,6 +140,12 @@ async function provideSubmitted(): Promise<unknown> {
   return payloadPublishedOn(nats, 'applications.submitted');
 }
 
+async function provideSubmittedWithWhyAdopt(): Promise<unknown> {
+  const { deps, nats } = depsWithStream(answeredDraftStream());
+  await submitDraft(deps, ADOPTER, { applicationId: APPLICATION_ID, expectedVersion: 2 });
+  return payloadPublishedOn(nats, 'applications.submitted');
+}
+
 async function provideApproved(): Promise<unknown> {
   const { deps, nats } = depsWithStream(decidableStream());
   await approve(deps, STAFF, { applicationId: APPLICATION_ID, notes: 'Great match' });
@@ -185,6 +200,18 @@ describe('service.applications — provider verification for applications.* even
         'applications.homeVisitScheduled event': provideHomeVisitScheduled,
         'applications.homeVisitCompleted event': provideHomeVisitCompleted,
         'applications.adopted event': provideAdopted,
+      },
+    });
+    await expect(verifier.verify()).resolves.not.toThrow();
+  });
+
+  it('fulfils the interaction declared by service.moderation', async () => {
+    const verifier = new MessageProviderPact({
+      provider: 'service.applications',
+      logLevel: 'warn',
+      pactUrls: [resolve(PACT_DIR, 'service.moderation-service.applications.json')],
+      messageProviders: {
+        'applications.submitted event with a why-adopt answer': provideSubmittedWithWhyAdopt,
       },
     });
     await expect(verifier.verify()).resolves.not.toThrow();
