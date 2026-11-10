@@ -42,7 +42,10 @@ const fullySeededRoutes = () => ({
   'GET /api/v1/pets': ({ search }) => {
     const name = new URLSearchParams(search).get('search');
     const pet = personas.PETS.find(p => p.name === name);
-    return [200, { data: [{ pet_id: `pet-${name}`, name, status: pet.status }] }];
+    return [
+      200,
+      { data: [{ pet_id: `pet-${name}`, name, status: pet.status, featured: !!pet.featured }] },
+    ];
   },
   'POST /api/v1/pets/pet-Buddy/favorite': () => [409, { error: 'already favourited' }],
   'POST /api/v1/pets/pet-Luna/favorite': () => [409, { error: 'already favourited' }],
@@ -171,6 +174,33 @@ describe('createGenerator', () => {
     }
   });
 
+  it('flags a seeded featured pet that an earlier run left unfeatured', async () => {
+    const routes = {
+      ...fullySeededRoutes(),
+      'GET /api/v1/pets': ({ search }) => {
+        const name = new URLSearchParams(search).get('search');
+        const pet = personas.PETS.find(p => p.name === name);
+        return [
+          200,
+          { data: [{ pet_id: `pet-${name}`, name, status: pet.status, featured: false }] },
+        ];
+      },
+      ...Object.fromEntries(
+        personas.PETS.map(p => [`PATCH /api/v1/pets/pet-${p.name}`, () => [200, {}]])
+      ),
+    };
+    const { fetchImpl, calls } = fakeGateway(routes);
+    const generator = createGenerator({ baseUrl: BASE, password: 'pw', fetchImpl });
+
+    await generator.run(personas);
+
+    const featuredNames = personas.PETS.filter(p => p.featured).map(p => p.name);
+    expect(featuredNames.length).toBeGreaterThan(0);
+    const patches = calls.filter(c => c.method === 'PATCH' && c.path.startsWith('/api/v1/pets/'));
+    expect(patches.map(c => c.path)).toEqual(featuredNames.map(n => `/api/v1/pets/pet-${n}`));
+    expect(patches.every(c => c.body.featured === true)).toBe(true);
+  });
+
   it('registers and verifies a missing adopter through the public sign-up flow', async () => {
     const created = new Set();
     const routes = {
@@ -211,7 +241,10 @@ describe('createGenerator', () => {
           return [200, { data: [] }];
         }
         const pet = personas.PETS.find(p => p.name === name);
-        return [200, { data: [{ pet_id: `pet-${name}`, name, status: pet.status }] }];
+        return [
+          200,
+          { data: [{ pet_id: `pet-${name}`, name, status: pet.status, featured: !!pet.featured }] },
+        ];
       },
       'POST /api/v1/pets': () => [201, { data: { pet_id: 'pet-Max', status: 'available' } }],
       'POST /api/v1/pets/pet-Max/status': () => [200, {}],
@@ -242,6 +275,9 @@ describe('createGenerator', () => {
       ],
       ...Object.fromEntries(
         personas.PETS.map(p => [`POST /api/v1/pets/pet-${p.name}/status`, () => [200, {}]])
+      ),
+      ...Object.fromEntries(
+        personas.PETS.map(p => [`PATCH /api/v1/pets/pet-${p.name}`, () => [200, {}]])
       ),
     };
     const { fetchImpl, calls } = fakeGateway(routes);

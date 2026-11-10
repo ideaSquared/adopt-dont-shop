@@ -211,6 +211,9 @@ export const createGenerator = ({ baseUrl, password, fetchImpl, log = () => {} }
     for (const toStatus of hops) {
       await staff.post(`/api/v1/pets/${petId}/status`, { toStatus, reason: 'dev seed' });
     }
+    if (pet.featured && !created.featured) {
+      await staff.patch(`/api/v1/pets/${petId}`, { featured: true });
+    }
     log(`  ${existing ? '=' : '+'} ${pet.name} (${pet.status})`);
     return [pet.name, petId];
   };

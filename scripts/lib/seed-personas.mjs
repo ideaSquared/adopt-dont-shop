@@ -114,7 +114,9 @@ export const ADOPTERS = [
 // Created by a staff member of `rescue` (`createdBy`), then moved to `status`
 // through the pet status machine. Pets always start 'available'. `breed` is a
 // breed NAME from the pets service's catalogue for the pet's `type`; the
-// service resolves it to a breed id.
+// service resolves it to a breed id. `featured` pets fill the client home
+// page's Featured Pets section (how pets get featured for real, e.g. paid
+// slots, is not decided yet).
 export const PETS = [
   {
     name: 'Buddy',
@@ -126,6 +128,7 @@ export const PETS = [
     size: 'large',
     ageGroup: 'adult',
     status: 'available',
+    featured: true,
     shortDescription: 'A friendly Labrador looking for an active family.',
   },
   {
