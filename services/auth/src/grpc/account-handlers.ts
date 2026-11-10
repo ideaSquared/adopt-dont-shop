@@ -18,6 +18,7 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 
 import { withTransaction } from '@adopt-dont-shop/events';
+import { NewPasswordSchema } from '@adopt-dont-shop/lib.validation';
 
 import type { Principal } from '@adopt-dont-shop/authz';
 import type {
@@ -49,7 +50,6 @@ import { HandlerError, rowToProtoUser, type HandlerDeps, type UserRow } from './
 
 const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1h
-const MIN_PASSWORD_LENGTH = 8;
 
 // Random URL-safe bearer token. The raw value is sent to the user (email);
 // only its SHA-256 hash is stored — see hashToken().
@@ -61,12 +61,15 @@ export function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
+// Rule for SETTING a new password (register, reset, change, invitation, bootstrap).
+// Never call this on a password that is only being checked (login, 2FA, email
+// change, currentPassword): existing accounts may predate the rule.
+export const PASSWORD_RULE_MESSAGE =
+  'password must be 8-128 characters with an uppercase letter, a lowercase letter, a digit and a special character';
+
 export function assertPassword(pw: string): void {
-  if (pw.length < MIN_PASSWORD_LENGTH) {
-    throw new HandlerError(
-      'INVALID_ARGUMENT',
-      `password must be at least ${MIN_PASSWORD_LENGTH} characters`
-    );
+  if (!NewPasswordSchema.safeParse(pw).success) {
+    throw new HandlerError('INVALID_ARGUMENT', PASSWORD_RULE_MESSAGE);
   }
 }
 
