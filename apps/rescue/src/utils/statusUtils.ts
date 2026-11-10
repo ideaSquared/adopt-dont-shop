@@ -33,30 +33,3 @@ export const getStatusColor = (
       return 'secondary';
   }
 };
-
-export const getStatusDescription = (status: string): string => {
-  const descriptions: Record<string, string> = {
-    submitted: 'Application submitted for review',
-    approved: 'Application approved',
-    rejected: 'Application rejected',
-    withdrawn: 'Application withdrawn by applicant',
-  };
-
-  return descriptions[status] || 'Status information not available';
-};
-
-export const isFinalStatus = (status: string): boolean => {
-  const finalStatuses = ['approved', 'rejected', 'withdrawn'];
-  return finalStatuses.includes(status);
-};
-
-export const getStatusPriority = (status: string): number => {
-  const priorities: Record<string, number> = {
-    submitted: 1,
-    approved: 2,
-    rejected: 3,
-    withdrawn: 4,
-  };
-
-  return priorities[status] || 999;
-};

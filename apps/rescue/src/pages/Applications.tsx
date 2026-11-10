@@ -10,6 +10,7 @@ import type { ApplicationListItem } from '../types/applications';
 import { buildBulkUpdatePayload, type BulkStageAction } from '../utils/applicationStageTransitions';
 import type { StageAction } from '../types/applicationStages';
 import * as styles from './Applications.css';
+import * as pageLayout from './PageLayout.css';
 
 const Applications: React.FC = () => {
   // ADS-644: when deep-linked from a pet card or foster row, scope the
@@ -191,8 +192,8 @@ const Applications: React.FC = () => {
   };
 
   return (
-    <div className="page-container">
-      <div className="page-header">
+    <div className={pageLayout.pageContainer}>
+      <div className={pageLayout.pageHeader}>
         <h1>Application Management</h1>
         <p>Review and process adoption applications.</p>
       </div>

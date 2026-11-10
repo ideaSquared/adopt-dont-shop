@@ -15,6 +15,7 @@ import {
 } from '@adopt-dont-shop/lib.components';
 import { formatDate } from '@adopt-dont-shop/lib.utils';
 import * as styles from './FosterCoordination.css';
+import * as pageLayout from './PageLayout.css';
 
 const FosterCoordination: React.FC = () => {
   const { user } = useAuth();
@@ -230,8 +231,8 @@ const FosterCoordination: React.FC = () => {
   }));
 
   return (
-    <div className={`page-container ${styles.pageContainer}`}>
-      <div className={`page-header ${styles.pageHeader}`}>
+    <div className={`${pageLayout.pageContainer} ${styles.pageContainer}`}>
+      <div className={`${pageLayout.pageHeader} ${styles.pageHeader}`}>
         <div>
           <h1>Foster Coordination</h1>
           <p>Manage active and historical foster placements for your rescue.</p>

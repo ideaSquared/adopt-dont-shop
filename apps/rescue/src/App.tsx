@@ -33,7 +33,6 @@ const ReportBuilderPage = lazy(() => import('./pages/ReportBuilderPage'));
 const ReportViewPage = lazy(() => import('./pages/ReportViewPage'));
 const RegisterRescue = lazy(() => import('./pages/RegisterRescue'));
 
-import './App.css';
 import * as styles from './AppRouting.css';
 
 const PageLoader = () => (
