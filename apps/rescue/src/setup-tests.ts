@@ -356,6 +356,32 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     ),
   CheckboxInput: ({ children, ...props }: any) =>
     React.createElement('input', { type: 'checkbox', ...props }, children),
+  // Mirrors the real FileUpload contract: a labelled file input that rejects files outside
+  // `accept` with the same message, then hands the accepted File[] to onFilesSelect.
+  FileUpload: ({ label, accept, multiple, disabled, onFilesSelect, onError }: any) =>
+    React.createElement(
+      'label',
+      null,
+      label,
+      React.createElement('input', {
+        type: 'file',
+        accept,
+        multiple,
+        disabled,
+        onChange: (e: any) => {
+          const files: File[] = Array.from(e.target.files ?? []);
+          const accepted = files.filter(
+            f => !accept || accept.split(',').some((t: string) => f.type.match(t.trim()))
+          );
+          files
+            .filter(f => !accepted.includes(f))
+            .forEach(f => onError?.(`${f.name} is not an accepted file type`));
+          if (accepted.length > 0) {
+            onFilesSelect?.(accepted);
+          }
+        },
+      })
+    ),
   // Mirrors the real SelectInput contract (options + value + onChange(value),
   // trigger id taken from data-testid) with a native <select>, so forms built on
   // it stay queryable by label and by option.

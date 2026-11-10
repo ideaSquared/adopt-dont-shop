@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Button,
+  FileUpload,
   FormField,
   Input,
   Modal,
@@ -195,7 +196,6 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [imageError, setImageError] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
   // Monotonically increasing id so each upload slot has a stable React key
   // across reorders / removals.
   const nextLocalIdRef = useRef(0);
@@ -380,12 +380,11 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
       });
   };
 
-  const handleFilesSelected = (fileList: FileList | null) => {
+  const handleFilesSelected = (selected: File[]) => {
     setImageError(null);
-    if (!fileList || fileList.length === 0) {
+    if (selected.length === 0) {
       return;
     }
-    const selected = Array.from(fileList);
     const remainingSlots = Math.max(0, MAX_IMAGES - images.length);
     const overflow = selected.length > remainingSlots;
     const toProcess = overflow ? selected.slice(0, remainingSlots) : selected;
@@ -412,12 +411,6 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
 
     if (overflow) {
       setImageError(`You can attach a maximum of ${MAX_IMAGES} images per pet.`);
-    }
-
-    // Allow re-selecting the same file later (browsers won't refire change
-    // for an identical FileList).
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
     }
   };
 
@@ -672,15 +665,16 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
           </div>
 
           <div className={styles.formGroup({ fullWidth: true })}>
-            <label htmlFor="petImages">Add Pet Photos</label>
-            <input
-              id="petImages"
-              ref={fileInputRef}
-              type="file"
+            <FileUpload
+              label="Add Pet Photos"
               multiple
+              fullWidth
+              size="sm"
               accept={ACCEPTED_IMAGE_TYPES}
-              onChange={e => handleFilesSelected(e.target.files)}
               disabled={remainingSlots === 0}
+              placeholder="Choose photos, or drop them here"
+              onFilesSelect={handleFilesSelected}
+              onError={setImageError}
             />
             <div className={styles.imageHelper}>
               {remainingSlots} of {MAX_IMAGES} slots remaining. First photo is the primary listing

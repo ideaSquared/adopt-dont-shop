@@ -31,7 +31,7 @@ const PAGES: PageCase[] = [
   {
     id: 'RES-040',
     path: '/staff',
-    heading: 'Staff & Volunteer Management',
+    heading: 'Staff',
     // A rescue manager gets 403 listing their own rescue's pending invitations.
     knownIssues: [/403 GET .*\/rescues\/[^/]+\/invitations/, /AuthorizationError: forbidden/],
   },
@@ -45,13 +45,6 @@ const PAGES: PageCase[] = [
     heading: 'Analytics & Reporting',
     // Charts compute NaN coordinates when there is no data to plot.
     knownIssues: [/NaN/],
-  },
-  {
-    id: 'RES-091',
-    path: '/reports',
-    heading: 'Reports',
-    // A rescue manager gets 403 on the reports list and templates endpoints.
-    knownIssues: [/403 GET .*\/api\/v1\/reports/],
   },
 ];
 

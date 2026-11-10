@@ -207,7 +207,7 @@ describe('PetFormModal — image upload field (ADS-574)', () => {
       fireEvent.change(fileInput, { target: { files: [badFile] } });
     });
 
-    expect(await screen.findByText(/not a supported image type/i)).toBeInTheDocument();
+    expect(await screen.findByText(/not an accepted file type/i)).toBeInTheDocument();
     expect(uploadImage).not.toHaveBeenCalled();
   });
 

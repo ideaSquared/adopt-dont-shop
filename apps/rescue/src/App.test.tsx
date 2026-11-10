@@ -59,4 +59,14 @@ describe('rescue App [ADS-497 modal wiring]', () => {
 
     expect(screen.getByTestId('cookie-banner-sentinel')).toBeInTheDocument();
   });
+
+  it('has no reports route: rescues do not get a reports feature', async () => {
+    render(
+      <MemoryRouter initialEntries={['/reports']}>
+        <App />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole('heading', { name: '404' })).toBeInTheDocument();
+  });
 });

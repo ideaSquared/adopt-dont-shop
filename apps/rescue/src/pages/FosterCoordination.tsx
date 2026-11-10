@@ -14,6 +14,7 @@ import {
   Input,
   Modal,
   PageHeader,
+  SelectInput,
   TextArea,
   useConfirm,
   ConfirmDialog,
@@ -24,6 +25,16 @@ import {
 } from '@adopt-dont-shop/lib.components';
 import { formatDate } from '@adopt-dont-shop/lib.utils';
 import * as styles from './FosterCoordination.css';
+
+type StatusFilter = 'all' | 'active' | 'completed';
+const DEFAULT_STATUS_FILTER: StatusFilter = 'active';
+const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
+  { value: 'active', label: 'Active' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'all', label: 'All' },
+];
+const isStatusFilter = (value: string | string[]): value is StatusFilter =>
+  STATUS_OPTIONS.some(option => option.value === value);
 
 const NO_PLACEMENTS: FosterPlacement[] = [];
 const NO_PETS: Pet[] = [];
@@ -66,7 +77,7 @@ const FosterCoordination: React.FC = () => {
   const petIdFilter = searchParams.get('petId');
 
   const [actionError, setActionError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed'>('active');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(DEFAULT_STATUS_FILTER);
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ petId: '', fosterUserId: '', startDate: '', notes: '' });
   const [endingId, setEndingId] = useState<string | null>(null);
@@ -271,18 +282,21 @@ const FosterCoordination: React.FC = () => {
         />
       )}
 
-      <div className={styles.filterRow}>
-        <FormField label="Filter:" htmlFor="foster-status-filter">
-          <select
-            id="foster-status-filter"
+      <div className={styles.filtersContainer}>
+        <div className={styles.filtersHeader}>
+          <h3>Filter Placements</h3>
+        </div>
+        <div className={styles.filtersGrid}>
+          <SelectInput
+            label="Status"
             value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value as typeof statusFilter)}
-          >
-            <option value="active">Active</option>
-            <option value="completed">Completed</option>
-            <option value="all">All</option>
-          </select>
-        </FormField>
+            onChange={value =>
+              setStatusFilter(isStatusFilter(value) ? value : DEFAULT_STATUS_FILTER)
+            }
+            options={STATUS_OPTIONS}
+            fullWidth
+          />
+        </div>
       </div>
 
       {loading ? (

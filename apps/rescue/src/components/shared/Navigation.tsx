@@ -11,7 +11,6 @@ import {
 import {
   ChartColumnIncreasing,
   ClipboardList,
-  FileText,
   House,
   LayoutDashboard,
   Menu,
@@ -86,7 +85,6 @@ const Navigation: React.FC = () => {
           // Volunteers don't have reports.read.rescue and so don't see this.
           requiresAnyOf: ['reports.read.rescue' as Permission],
         },
-        { path: '/reports', label: 'Reports', icon: <FileText size="1em" /> },
         { path: '/settings', label: 'Settings', icon: <Settings size="1em" /> },
         { path: '/user-settings', label: 'My Settings', icon: <User size="1em" /> },
       ],

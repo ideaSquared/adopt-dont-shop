@@ -693,3 +693,57 @@ describe('RescueApplicationService.getApplications applicant identity', () => {
     });
   });
 });
+
+// The gateway list route only honours page, limit, status, rescue and adopter, so the other
+// filters the UI offers (including the petId deep link from the foster page) have to be applied
+// to the returned rows or they silently do nothing.
+describe('RescueApplicationService.getApplications narrows by filters the gateway ignores', () => {
+  const service = new RescueApplicationService();
+  const raw = (id: string, petId: string, overrides: Record<string, unknown> = {}) => ({
+    id,
+    petId,
+    userId: 'usr-1',
+    rescueId: 'rsc-1',
+    status: 'submitted',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    submittedAt: '2026-01-01T00:00:00.000Z',
+    data: {},
+    ...overrides,
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    apiServiceMock.get.mockResolvedValue({
+      data: [
+        raw('app-1', 'pet-1', { userName: 'Jane Doe', petType: 'Dog' }),
+        raw('app-2', 'pet-2', { userName: 'Sam Smith', petType: 'Cat' }),
+      ],
+    });
+  });
+
+  it('returns only the applications for the pet when filtered by petId', async () => {
+    const { applications, total } = await service.getApplications({ petId: 'pet-2' });
+
+    expect(applications.map(a => a.id)).toEqual(['app-2']);
+    expect(total).toBe(1);
+  });
+
+  it('returns only matching applications when filtered by pet type', async () => {
+    const { applications } = await service.getApplications({ petType: 'dog' });
+
+    expect(applications.map(a => a.id)).toEqual(['app-1']);
+  });
+
+  it('returns only matching applications when searching by applicant name', async () => {
+    const { applications } = await service.getApplications({ searchQuery: 'sam' });
+
+    expect(applications.map(a => a.id)).toEqual(['app-2']);
+  });
+
+  it('returns every application when no filter is set', async () => {
+    const { applications } = await service.getApplications({});
+
+    expect(applications).toHaveLength(2);
+  });
+});
