@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, Hand, Heart, Info, X } from 'lucide-react';
+import { ArrowRight, Hand, Heart, Info } from 'lucide-react';
+import { Button, Modal } from '@adopt-dont-shop/lib.components';
 import { Link } from 'react-router';
 import * as styles from './SwipeOnboarding.css';
 
@@ -35,35 +36,15 @@ export const SwipeOnboarding: React.FC<SwipeOnboardingProps> = ({ onClose }) => 
     onClose();
   };
 
-  if (!show) {
-    return null;
-  }
-
   return (
-    // UX P2 I: backdrop is a click-target convenience, not an interactive
-    // control — the accessible close affordance is the ✕ button inside.
-    <div
-      className={styles.overlay({ show: true })}
-      onClick={handleClose}
-      role='presentation'
-      onKeyDown={e => {
-        if (e.key === 'Escape') {
-          handleClose();
-        }
-      }}
-    >
-      <div className={styles.modalContent} onClick={e => e.stopPropagation()} role='presentation'>
-        <button className={styles.closeButton} onClick={handleClose} aria-label='Close'>
-          <X size='1em' />
-        </button>
-
+    <Modal isOpen={show} onClose={handleClose} size='md' title='Meet Your New Favorite Feature'>
+      <div className={styles.modalContent}>
         <div className={styles.iconContainer}>
           <div className={styles.swipeIcon}>
             <Hand size='1em' />
           </div>
         </div>
 
-        <div className={styles.title}>Meet Your New Favorite Feature</div>
         <div className={styles.subtitle}>
           Swipe through adoptable pets matched to your preferences. It&apos;s fast, fun, and a
           better way to browse.
@@ -102,11 +83,11 @@ export const SwipeOnboarding: React.FC<SwipeOnboardingProps> = ({ onClose }) => 
             <Hand size='1em' />
             Start Swiping
           </Link>
-          <button className={styles.secondaryButton} onClick={handleClose}>
+          <Button variant='outline' isRounded onClick={handleClose}>
             Maybe Later
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

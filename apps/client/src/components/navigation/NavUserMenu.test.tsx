@@ -65,23 +65,17 @@ describe('NavUserMenu', () => {
     expect(screen.getByText('alex@example.com')).toBeInTheDocument();
   });
 
-  it('links each menu item to the correct route', async () => {
+  it.each([
+    ['Profile', '/profile'],
+    ['My applications', '/applications'],
+    ['Settings', '/profile?tab=settings'],
+    ['Help', '/help'],
+  ])('navigates to the right route when %s is chosen', async (label, route) => {
     const user = userEvent.setup();
     renderWithProviders(<NavUserMenu />);
     await user.click(screen.getByRole('button', { name: /user menu/i }));
-    expect(await screen.findByRole('menuitem', { name: /profile/i })).toHaveAttribute(
-      'href',
-      '/profile'
-    );
-    expect(screen.getByRole('menuitem', { name: /my applications/i })).toHaveAttribute(
-      'href',
-      '/applications'
-    );
-    expect(screen.getByRole('menuitem', { name: /settings/i })).toHaveAttribute(
-      'href',
-      '/profile?tab=settings'
-    );
-    expect(screen.getByRole('menuitem', { name: /help/i })).toHaveAttribute('href', '/help');
+    await user.click(await screen.findByRole('menuitem', { name: label }));
+    expect(mockNavigate).toHaveBeenCalledWith(route);
   });
 
   it('calls logout and navigates home when Log out is clicked', async () => {

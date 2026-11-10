@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router';
 import {
   Card,
@@ -8,7 +9,6 @@ import {
 } from '@adopt-dont-shop/lib.components';
 import { PetCardSkeletonGrid } from '@/components/skeletons';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import type { MatchTopPick } from '@adopt-dont-shop/lib.matching';
 import { useMatchPreferences } from '@/hooks/useMatchPreferences';
 import { matchingService } from '@/services';
 import { resolveFileUrl } from '@adopt-dont-shop/lib.utils';
@@ -42,38 +42,16 @@ export const TopPicksHomeModule: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const { hasPreferences } = useMatchPreferences();
   const navigate = useNavigate();
-  const [picks, setPicks] = useState<MatchTopPick[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [errored, setErrored] = useState(false);
-
-  useEffect(() => {
-    if (!isAuthenticated || !hasPreferences) {
-      return;
-    }
-    let cancelled = false;
-    const load = async () => {
-      try {
-        setLoading(true);
-        setErrored(false);
-        const data = await matchingService.getTopPicks(3);
-        if (!cancelled) {
-          setPicks(data);
-        }
-      } catch {
-        if (!cancelled) {
-          setErrored(true);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated, hasPreferences]);
+  const {
+    data: picks = [],
+    isLoading: loading,
+    isError: errored,
+  } = useQuery({
+    queryKey: ['matching', 'top-picks', 3],
+    queryFn: () => matchingService.getTopPicks(3),
+    enabled: isAuthenticated && hasPreferences,
+    retry: false,
+  });
 
   if (!isAuthenticated || !hasPreferences || errored) {
     return null;

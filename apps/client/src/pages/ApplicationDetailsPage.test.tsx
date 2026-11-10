@@ -189,6 +189,7 @@ describe('ApplicationDetailsPage withdrawing', () => {
 
     render(<ApplicationDetailsPage />);
     await screen.findByRole('button', { name: /message rescue/i });
+    await user.click(screen.getByRole('button', { name: /^withdraw application$/i }));
     // The modal's confirm button is rendered after the page's own trigger button.
     const buttons = screen.getAllByRole('button', { name: /^withdraw application$/i });
     await user.click(buttons[buttons.length - 1]);
@@ -206,6 +207,7 @@ describe('ApplicationDetailsPage withdrawing', () => {
 
     render(<ApplicationDetailsPage />);
     await screen.findByRole('button', { name: /message rescue/i });
+    await user.click(screen.getByRole('button', { name: /^withdraw application$/i }));
     const buttons = screen.getAllByRole('button', { name: /^withdraw application$/i });
     await user.click(buttons[buttons.length - 1]);
 

@@ -1,5 +1,7 @@
 import React from 'react';
 import clsx from 'clsx';
+import { X } from 'lucide-react';
+import { Button } from '@adopt-dont-shop/lib.components';
 import * as styles from './MemberField.css';
 
 export type PetKind = 'dog' | 'cat' | 'rabbit' | 'bird' | 'small' | 'reptile' | 'fish' | 'other';
@@ -177,14 +179,15 @@ export const CurrentPetsField: React.FC<Props> = ({ value, onChange, hasError = 
                     </label>
                   </div>
                 </div>
-                <button
-                  type='button'
+                <Button
+                  variant='ghost'
+                  size='sm'
                   className={styles.removeButton}
                   onClick={() => removePet(pet.id)}
                   aria-label={`Remove ${config.label}`}
                 >
-                  ×
-                </button>
+                  <X size='1em' />
+                </Button>
               </div>
             );
           })}

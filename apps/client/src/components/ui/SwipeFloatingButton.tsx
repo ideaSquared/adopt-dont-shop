@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Hand, X } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
+import { Button } from '@adopt-dont-shop/lib.components';
 import * as styles from './SwipeFloatingButton.css';
 
 interface SwipeFloatingButtonProps {
@@ -57,9 +58,15 @@ export const SwipeFloatingButton: React.FC<SwipeFloatingButtonProps> = ({ classN
   return (
     <div className={`${styles.floatingContainer({ show })}${className ? ` ${className}` : ''}`}>
       <div className={styles.calloutBubble({ show: showCallout && !dismissed })}>
-        <button className={styles.closeButton} onClick={handleDismiss} aria-label='Dismiss'>
+        <Button
+          variant='ghost'
+          size='sm'
+          className={styles.closeButton}
+          onClick={handleDismiss}
+          aria-label='Dismiss'
+        >
           <X size='1em' />
-        </button>
+        </Button>
         <h4>Try Swiping! 🐾</h4>
         <p>Discover pets faster with our fun swipe feature</p>
       </div>

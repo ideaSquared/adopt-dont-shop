@@ -91,46 +91,10 @@ export const select = recipe({
   },
 });
 
-export const textArea = recipe({
-  base: {
-    ...baseInputStyle,
-    color: vars.text.primary,
-    background: vars.background.body,
-    resize: 'vertical',
-    minHeight: '80px',
-    ':focus': {
-      borderColor: vars.colors.primary,
-      boxShadow: `0 0 0 2px ${vars.colors.primaryBgSubtle}`,
-    },
-  },
-  variants: {
-    hasError: {
-      true: {
-        border: `1px solid ${vars.colors.danger}`,
-      },
-      false: {
-        border: `1px solid ${vars.border.color.default}`,
-      },
-    },
-  },
-  defaultVariants: {
-    hasError: false,
-  },
-});
-
 export const checkboxGroup = style({
   display: 'flex',
   flexDirection: 'column',
   gap: '0.5rem',
-});
-
-export const checkboxLabel = style({
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.5rem',
-  fontSize: '0.9375rem',
-  color: vars.text.primary,
-  cursor: 'pointer',
 });
 
 export const errorText = style({

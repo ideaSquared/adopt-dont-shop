@@ -33,8 +33,22 @@ describe('AnonymousFirstLikeModal (ADS-626)', () => {
         onCtaClick={vi.fn()}
       />
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close modal' }));
     expect(onDismiss).toHaveBeenCalled();
+  });
+
+  it('invokes onDismiss when Escape is pressed', () => {
+    const onDismiss = vi.fn();
+    renderWithProviders(
+      <AnonymousFirstLikeModal
+        petId='pet-1'
+        petName='Buddy'
+        onDismiss={onDismiss}
+        onCtaClick={vi.fn()}
+      />
+    );
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
   it('invokes onCtaClick when the CTA link is clicked', () => {

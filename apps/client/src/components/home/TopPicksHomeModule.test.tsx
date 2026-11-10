@@ -70,7 +70,16 @@ describe('TopPicksHomeModule', () => {
       'href',
       '/match/top-picks'
     );
-    expect(screen.getByText('Rex')).toBeInTheDocument();
+    expect(await screen.findByText('Rex')).toBeInTheDocument();
+  });
+
+  it('renders nothing when the request fails', async () => {
+    authState.isAuthenticated = true;
+    matchPreferencesState.hasPreferences = true;
+    getTopPicks.mockRejectedValueOnce(new Error('boom'));
+    const { container } = renderWithProviders(<TopPicksHomeModule />);
+    await waitFor(() => expect(getTopPicks).toHaveBeenCalled());
+    await waitFor(() => expect(container).toBeEmptyDOMElement());
   });
 
   it('renders nothing when the API returns an empty result', async () => {
