@@ -71,10 +71,6 @@ export const title = style({
 // Two lines at most, so every row stays a similar height however long the message is.
 export const message = style({
   color: vars.text.secondary,
-  display: '-webkit-box',
-  WebkitLineClamp: 2,
-  WebkitBoxOrient: 'vertical',
-  overflow: 'hidden',
   overflowWrap: 'anywhere',
 });
 

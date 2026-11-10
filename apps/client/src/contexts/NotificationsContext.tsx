@@ -38,17 +38,45 @@ interface NotificationsProviderProps {
 }
 
 // The gateway lists notifications as proto JSON: the id is `notificationId` and the link target
-// is `relatedEntityType` / `relatedEntityId` rather than an `actionUrl`.
+// is `relatedEntityType` / `relatedEntityId` (plus `dataJson` for messages) rather than an
+// `actionUrl`.
 const WireNotificationFieldsSchema = z.object({
   notificationId: z.string().optional(),
   relatedEntityType: z.string().optional(),
   relatedEntityId: z.string().optional(),
+  dataJson: z.string().optional(),
 });
+type WireNotificationFields = z.infer<typeof WireNotificationFieldsSchema>;
 
-const ENTITY_ROUTES: Record<string, (id: string) => string> = {
-  NOTIFICATION_RELATED_ENTITY_TYPE_APPLICATION: id => `/applications/${id}`,
-  NOTIFICATION_RELATED_ENTITY_TYPE_PET: id => `/pets/${id}`,
-  NOTIFICATION_RELATED_ENTITY_TYPE_CONVERSATION: id => `/chat/${id}`,
+// A new-message notification's related entity is the message; the chat it belongs to is in its
+// data payload (services/notifications buildChatMessageReceivedCreate).
+const MessageDataSchema = z.object({ chatId: z.string().min(1) });
+
+const chatIdFrom = (dataJson: string | undefined): string | undefined => {
+  try {
+    const parsed = MessageDataSchema.safeParse(JSON.parse(dataJson ?? ''));
+    return parsed.success ? parsed.data.chatId : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const toApplication = ({ relatedEntityId }: WireNotificationFields) =>
+  relatedEntityId && `/applications/${relatedEntityId}`;
+
+const ENTITY_ROUTES: Record<string, (wire: WireNotificationFields) => string | undefined> = {
+  NOTIFICATION_RELATED_ENTITY_TYPE_APPLICATION: toApplication,
+  // Home visit and adoption updates carry the application id as their related entity.
+  NOTIFICATION_RELATED_ENTITY_TYPE_HOME_VISIT: toApplication,
+  NOTIFICATION_RELATED_ENTITY_TYPE_ADOPTION: toApplication,
+  NOTIFICATION_RELATED_ENTITY_TYPE_PET: ({ relatedEntityId }) =>
+    relatedEntityId && `/pets/${relatedEntityId}`,
+  NOTIFICATION_RELATED_ENTITY_TYPE_CONVERSATION: ({ relatedEntityId }) =>
+    relatedEntityId && `/chat/${relatedEntityId}`,
+  NOTIFICATION_RELATED_ENTITY_TYPE_MESSAGE: ({ dataJson }) => {
+    const chatId = chatIdFrom(dataJson);
+    return chatId && `/chat/${chatId}`;
+  },
 };
 
 const fromWire = (notification: Notification): Notification => {
@@ -56,13 +84,13 @@ const fromWire = (notification: Notification): Notification => {
   if (!wire.success) {
     return notification;
   }
-  const { notificationId, relatedEntityType, relatedEntityId } = wire.data;
-  const toRoute = relatedEntityType ? ENTITY_ROUTES[relatedEntityType] : undefined;
+  const toRoute = wire.data.relatedEntityType
+    ? ENTITY_ROUTES[wire.data.relatedEntityType]
+    : undefined;
   return {
     ...notification,
-    id: notification.id || notificationId || '',
-    actionUrl:
-      notification.actionUrl ?? (toRoute && relatedEntityId ? toRoute(relatedEntityId) : undefined),
+    id: notification.id || wire.data.notificationId || '',
+    actionUrl: notification.actionUrl ?? (toRoute?.(wire.data) || undefined),
   };
 };
 

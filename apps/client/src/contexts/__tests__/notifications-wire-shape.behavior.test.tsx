@@ -99,4 +99,31 @@ describe('NotificationsProvider with the gateway wire shape', () => {
       undefined,
     ]);
   });
+
+  it('opens the chat for a new-message notification and the application for visit and adoption updates', async () => {
+    getUserNotificationsMock.mockReset();
+    getUserNotificationsMock.mockResolvedValue({
+      data: [
+        {
+          ...wireNotification('n-msg', 'NOTIFICATION_RELATED_ENTITY_TYPE_MESSAGE', 'msg-1'),
+          dataJson: JSON.stringify({ chatId: 'chat-9', messageId: 'msg-1', senderUserId: 'u-2' }),
+        },
+        {
+          ...wireNotification('n-bad', 'NOTIFICATION_RELATED_ENTITY_TYPE_MESSAGE', 'msg-2'),
+          dataJson: 'not json',
+        },
+        wireNotification('n-visit', 'NOTIFICATION_RELATED_ENTITY_TYPE_HOME_VISIT', 'app-2'),
+        wireNotification('n-adopt', 'NOTIFICATION_RELATED_ENTITY_TYPE_ADOPTION', 'app-3'),
+      ],
+    });
+    const { getCtx } = renderWithProvider();
+    await waitFor(() => expect(getCtx().notifications).toHaveLength(4));
+
+    expect(getCtx().notifications.map(n => n.actionUrl)).toEqual([
+      '/chat/chat-9',
+      undefined,
+      '/applications/app-2',
+      '/applications/app-3',
+    ]);
+  });
 });
