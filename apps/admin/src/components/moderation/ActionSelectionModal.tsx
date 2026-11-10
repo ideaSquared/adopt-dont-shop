@@ -8,6 +8,7 @@ import {
   TextArea,
   toast,
 } from '@adopt-dont-shop/lib.components';
+import { formatCustomDate } from '@adopt-dont-shop/lib.utils';
 import * as styles from './ActionSelectionModal.css';
 
 export type ActionType =
@@ -94,10 +95,7 @@ const toActionType = (value: string | string[]): ActionType =>
 const describeSuspensionEnd = (days: number): string =>
   days === INDEFINITE
     ? 'No expiry date is recorded; the suspension stays until an admin lifts it.'
-    : `The recorded expiry date is ${new Date(Date.now() + days * DAY_MS).toLocaleDateString(
-        'en-GB',
-        { day: 'numeric', month: 'long', year: 'numeric' }
-      )}. The account is not reactivated automatically; reactivate the account manually after that date.`;
+    : `The recorded expiry date is ${formatCustomDate(Date.now() + days * DAY_MS, 'd MMMM yyyy')}. The account is not reactivated automatically; reactivate the account manually after that date.`;
 
 export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
   isOpen,

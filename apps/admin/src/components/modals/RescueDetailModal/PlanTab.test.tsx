@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '../../../test-utils';
+import { toast } from '@adopt-dont-shop/lib.components';
 import { PlanTab } from './PlanTab';
 import type { AdminRescue } from '@/types/rescue';
 
@@ -100,7 +101,7 @@ describe('PlanTab', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /save plan/i }));
 
-    expect(await screen.findByText('Plan updated successfully.')).toBeInTheDocument();
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Plan updated successfully.'));
     expect(onRescueUpdated).toHaveBeenCalled();
   });
 

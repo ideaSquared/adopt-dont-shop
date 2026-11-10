@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router';
+import { Button } from '@adopt-dont-shop/lib.components';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import * as styles from './ModalBreadcrumbNav.css';
 
@@ -80,24 +81,24 @@ export const ModalBreadcrumbNav: React.FC<ModalBreadcrumbNavProps> = ({
 
       {hasNav && (
         <div className={styles.navButtons}>
-          <button
-            type='button'
-            className={styles.navButton}
+          <Button
+            variant='outline'
+            size='sm'
             onClick={handlePrev}
             disabled={prevId === undefined}
             aria-label='Previous item'
           >
             <ChevronLeft size='1em' />
-          </button>
-          <button
-            type='button'
-            className={styles.navButton}
+          </Button>
+          <Button
+            variant='outline'
+            size='sm'
             onClick={handleNext}
             disabled={nextId === undefined}
             aria-label='Next item'
           >
             <ChevronRight size='1em' />
-          </button>
+          </Button>
         </div>
       )}
     </div>

@@ -47,39 +47,6 @@ export const infoValue = style({
   wordBreak: 'break-word',
 });
 
-export const badgeSuccess = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '0.375rem 0.875rem',
-  borderRadius: '9999px',
-  fontSize: '0.8125rem',
-  fontWeight: '600',
-  background: '#d1fae5',
-  color: '#065f46',
-});
-
-export const badgeWarning = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '0.375rem 0.875rem',
-  borderRadius: '9999px',
-  fontSize: '0.8125rem',
-  fontWeight: '600',
-  background: '#fef3c7',
-  color: '#92400e',
-});
-
-export const badgeDanger = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '0.375rem 0.875rem',
-  borderRadius: '9999px',
-  fontSize: '0.8125rem',
-  fontWeight: '600',
-  background: '#fee2e2',
-  color: '#991b1b',
-});
-
 export const statsGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -200,33 +167,6 @@ export const formRow = style({
   },
 });
 
-export const formGroup = style({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.375rem',
-  flex: 1,
-});
-
-export const label = style({
-  fontSize: '0.8125rem',
-  fontWeight: '500',
-  color: '#374151',
-});
-
-export const input = style({
-  padding: '0.625rem 0.875rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '6px',
-  fontSize: '0.875rem',
-  color: '#111827',
-  background: '#ffffff',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#667eea',
-    boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',
-  },
-});
-
 export const formActions = style({
   display: 'flex',
   gap: '0.75rem',
@@ -265,10 +205,6 @@ export const planSectionTitle = style({
   margin: '0 0 1rem',
   fontSize: '0.9375rem',
   color: '#111827',
-});
-
-export const errorMessageSpacing = style({
-  marginBottom: '1rem',
 });
 
 export const staffSectionHeader = style({
@@ -343,16 +279,6 @@ export const skeletonAvatarText = style({
 
 export const skeletonName = style({
   marginBottom: '0.5rem',
-});
-
-export const successMessage = style({
-  padding: '0.75rem',
-  marginBottom: '1rem',
-  background: '#f0fdf4',
-  border: '1px solid #bbf7d0',
-  borderRadius: '0.375rem',
-  color: '#166534',
-  fontSize: '0.875rem',
 });
 
 // ── Actions tab (split-pane detail panel) ─────────────────────────
