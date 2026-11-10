@@ -40,9 +40,9 @@ export type ApplicationSubmittedEvent = {
   petId: string;
   rescueId: string;
   submittedAt: string;
-  // The free-text fields the scanner inspects. The publisher serialises
-  // the relevant subset from answers to keep payloads bounded; both
-  // optional so an older publisher without them still parses cleanly.
-  message?: string;
+  // The adopter's why-adopt answer (answers.why_adopt), the free text the
+  // scanner inspects. The publisher sends only this answer, to keep PII in
+  // the event to a minimum. Optional: absent when unanswered, and an older
+  // publisher without it still parses cleanly.
   whyAdopt?: string;
 };

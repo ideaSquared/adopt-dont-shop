@@ -241,6 +241,11 @@ export async function submitDraft(
         petId: s.petId,
         rescueId: s.rescueId,
         submittedAt: s.submittedAt,
+        // service.moderation scans this for disallowed content. Only the
+        // why-adopt free text rides the event: it is the open prose answer,
+        // with no contact details, and it keeps PII in the outbox and
+        // JetStream to a minimum.
+        ...whyAdoptOf(s.answers),
       },
     }),
     s => requireDraftScope(principal, APPLICATIONS_UPDATE, s)
@@ -250,6 +255,11 @@ export async function submitDraft(
 }
 
 // --- Helpers ---------------------------------------------------------
+
+function whyAdoptOf(answers: Record<string, unknown>): { whyAdopt?: string } {
+  const value = answers.why_adopt;
+  return typeof value === 'string' && value.trim() !== '' ? { whyAdopt: value } : {};
+}
 
 function parseJsonObject(raw: string | undefined, field: string): Record<string, unknown> {
   if (raw === undefined || raw === '') {
