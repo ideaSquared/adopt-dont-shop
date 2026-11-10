@@ -6,7 +6,7 @@ import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useStatsig } from '@/hooks/useStatsig';
 import { useFeatureGate } from '@adopt-dont-shop/lib.feature-flags';
 import { petService } from '@/services';
-import { Button, ErrorState } from '@adopt-dont-shop/lib.components';
+import { Button, EmptyState, ErrorState } from '@adopt-dont-shop/lib.components';
 import { useQuery } from '@tanstack/react-query';
 import { PetCardSkeletonGrid } from '@/components/skeletons';
 import React, { useEffect } from 'react';
@@ -47,7 +47,12 @@ export const HomePage: React.FC = () => {
 
   const featuredQuery = useQuery({
     queryKey: ['pets', 'featured', FEATURED_PET_COUNT],
-    queryFn: () => petService.getFeaturedPets(FEATURED_PET_COUNT),
+    queryFn: async () => {
+      const featured = await petService.getFeaturedPets(FEATURED_PET_COUNT);
+      // No pet is flagged as featured yet: show the newest listings instead of a blank section.
+      return featured.length > 0 ? featured : petService.getRecentPets(FEATURED_PET_COUNT);
+    },
+    staleTime: 5 * 60 * 1000,
   });
   const featuredPets = featuredQuery.data ?? [];
   const isLoading = featuredQuery.isLoading;
@@ -208,11 +213,18 @@ export const HomePage: React.FC = () => {
 
           {!isLoading && !error && (
             <>
-              <div className={styles.petGrid}>
-                {featuredPets.map(pet => (
-                  <PetCard key={pet.pet_id} pet={pet} />
-                ))}
-              </div>
+              {featuredPets.length === 0 ? (
+                <EmptyState
+                  title='No pets listed right now'
+                  description='New pets are added all the time, so please check back soon.'
+                />
+              ) : (
+                <div className={styles.petGrid}>
+                  {featuredPets.map(pet => (
+                    <PetCard key={pet.pet_id} pet={pet} />
+                  ))}
+                </div>
+              )}
 
               <div className={styles.centerAlign}>
                 <Link to='/search' onClick={handleViewAllPetsClick}>

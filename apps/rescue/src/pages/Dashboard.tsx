@@ -4,39 +4,49 @@ import {
   Button,
   Card,
   Container,
-  Heading,
   MetricCard,
   PageHeader,
   Text,
 } from '@adopt-dont-shop/lib.components';
-import {
-  ChartColumnIncreasing,
-  CircleCheck,
-  CircleX,
-  ClipboardList,
-  Heart,
-  Info,
-  PawPrint,
-  TriangleAlert,
-  X,
-} from 'lucide-react';
+import { ClipboardList, Heart, PawPrint, X } from 'lucide-react';
+import { Link } from 'react-router';
 import { useAuth, authService, STORAGE_KEYS } from '@adopt-dont-shop/lib.auth';
+import { useUnreadConversations } from '@adopt-dont-shop/lib.chat';
 import { useDashboardData } from '../hooks';
-import { UnreadMessagesPanel } from '../components/dashboard/UnreadMessagesPanel';
 import { DashboardSkeleton } from '../components/skeletons';
-import { formatRelativeDate } from '@adopt-dont-shop/lib.utils';
 import { apiService } from '../services/libraryServices';
 import * as styles from './Dashboard.css';
 
-const notificationIcons: Record<string, typeof Info> = {
-  success: CircleCheck,
-  warning: TriangleAlert,
-  error: CircleX,
-};
+type AttentionItem = { key: string; text: string; actionLabel: string; to: string };
+
+const plural = (count: number, singular: string, pluralForm: string): string =>
+  `${count} ${count === 1 ? singular : pluralForm}`;
+
+const buildAttentionItems = (
+  pendingApplications: number,
+  unreadMessages: number
+): AttentionItem[] =>
+  [
+    {
+      key: 'applications',
+      count: pendingApplications,
+      text: `${plural(pendingApplications, 'adoption application is', 'adoption applications are')} waiting for you to review.`,
+      actionLabel: 'Review applications',
+      to: '/applications',
+    },
+    {
+      key: 'messages',
+      count: unreadMessages,
+      text: `You have ${plural(unreadMessages, 'unread message', 'unread messages')} from adopters.`,
+      actionLabel: 'Read messages',
+      to: '/communication',
+    },
+  ].filter(item => item.count > 0);
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
-  const { dashboardData, recentActivities, notifications, loading, error } = useDashboardData();
+  const { dashboardData, loading, error } = useDashboardData();
+  const { totalUnread } = useUnreadConversations();
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
 
   if (loading) {
@@ -97,30 +107,15 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  const {
-    totalPets,
-    successfulAdoptions,
-    pendingApplications,
-    adoptionRate,
-    monthlyAdoptions,
-    petStatusDistribution,
-  } = dashboardData;
+  const { totalPets, successfulAdoptions, pendingApplications } = dashboardData;
+  const attentionItems = buildAttentionItems(pendingApplications, totalUnread);
 
   return (
     <Container className={styles.dashboardContainer}>
       <PageHeader
         title="Rescue Dashboard"
-        description="Welcome back! Here's what's happening with your rescue today."
+        description={`Welcome back, ${user?.firstName || 'Team Member'}. Here is what needs you today.`}
       />
-
-      {/* Welcome Message for Current User */}
-      <div className={styles.welcomeMessage}>
-        <h2>Welcome back, {user?.firstName || 'Team Member'}! 👋</h2>
-        <p>
-          You're logged in as a {user?.userType?.replace('_', ' ') || 'rescue staff member'}. Here's
-          your rescue overview for today.
-        </p>
-      </div>
 
       {/* First-time-user onboarding banner */}
       {!onboardingDismissed && totalPets === 0 && pendingApplications === 0 && (
@@ -153,177 +148,60 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* ADS-643: Unread adopter messages — surfaced above the non-urgent
-          metrics so rescue staff see new conversations first on every viewport. */}
-      <UnreadMessagesPanel />
+      <section aria-labelledby="attention-heading">
+        <h2 id="attention-heading" className={styles.sectionHeading}>
+          What needs your attention
+        </h2>
+        {attentionItems.length === 0 ? (
+          <p className={styles.allClear} data-testid="all-clear">
+            You are all caught up. Nothing is waiting for you right now.
+          </p>
+        ) : (
+          <ul className={styles.attentionList} data-testid="attention-list">
+            {attentionItems.map(item => (
+              <li key={item.key} className={styles.attentionItem}>
+                <p className={styles.attentionText}>{item.text}</p>
+                <Link to={item.to} className={styles.actionLink}>
+                  {item.actionLabel}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
-      {/* Key Metrics Row */}
-      <div className={styles.metricsGrid}>
-        <MetricCard
-          icon={<PawPrint size="1em" />}
-          label="Total Pets"
-          value={totalPets}
-          helperText="↑ 5% from last month"
-        />
-        <MetricCard
-          icon={<Heart size="1em" />}
-          label="Successful Adoptions"
-          value={successfulAdoptions}
-          helperText="↑ 12% from last month"
-        />
-        <MetricCard
-          icon={<ClipboardList size="1em" />}
-          label="Pending Applications"
-          value={pendingApplications}
-          helperText="↓ 2% from last month"
-        />
-        <MetricCard
-          icon={<ChartColumnIncreasing size="1em" />}
-          label="Adoption Rate"
-          value={`${adoptionRate}%`}
-          helperText="↑ 3% from last month"
-        />
-      </div>
-
-      {/* Charts and Analytics Row */}
-      <div className={styles.analyticsGrid}>
-        <Card>
-          <div className={styles.cardSectionHeader}>
-            <Heading level="h3" className={styles.cardSectionHeading}>
-              Monthly Adoptions
-            </Heading>
-          </div>
-          <div className={styles.cardSectionBody}>
-            <div className={styles.chartArea}>
-              {monthlyAdoptions.map(item => (
-                <div key={item.month} className={styles.chartColumn}>
-                  <div
-                    className={styles.chartBar}
-                    style={{ height: `${(item.adoptions / 23) * 100}%` }}
-                    title={`${item.month}: ${item.adoptions} adoptions`}
-                  />
-                  <Text className={styles.chartMonthLabel}>{item.month}</Text>
-                  <Text className={styles.chartValueLabel}>{item.adoptions}</Text>
-                </div>
-              ))}
-            </div>
-            <div className={styles.chartSummary}>
-              <Text className={styles.chartSummaryRow}>
-                <strong>Total Adoptions: </strong>
-                {monthlyAdoptions.reduce((sum, item) => sum + item.adoptions, 0)}
-              </Text>
-              <Text className={styles.chartSummaryRow}>
-                <strong>Best Month: </strong>
-                {
-                  monthlyAdoptions.reduce((best, current) =>
-                    current.adoptions > best.adoptions ? current : best
-                  ).month
-                }
-              </Text>
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <div className={styles.cardSectionHeader}>
-            <Heading level="h3" className={styles.cardSectionHeading}>
-              Pet Status Distribution
-            </Heading>
-          </div>
-          <div className={styles.cardSectionBody}>
-            <div className={styles.statusList}>
-              {petStatusDistribution.map(status => (
-                <div key={status.name} className={styles.statusRow}>
-                  <div className={styles.statusLabelWrap}>
-                    <div className={styles.statusDot} style={{ backgroundColor: status.color }} />
-                    <Text className={styles.statusName}>{status.name}</Text>
-                  </div>
-                  <Text className={styles.statusValueChip}>{status.value}</Text>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <div className={styles.cardSectionHeader}>
-            <Heading level="h3" className={styles.cardSectionHeading}>
-              Recent Activity
-            </Heading>
-          </div>
-          <div className={styles.cardSectionBody}>
-            <div className={styles.activityList}>
-              {recentActivities.length > 0 ? (
-                recentActivities.map((activity, index) => {
-                  const isLast = index === recentActivities.length - 1;
-                  return (
-                    <div
-                      key={activity.id}
-                      className={isLast ? styles.activityItemLast : styles.activityItem}
-                    >
-                      <Text className={styles.activityTimestamp}>
-                        {formatRelativeDate(activity.timestamp)}
-                      </Text>
-                      <Text className={styles.activityMessage}>{activity.message}</Text>
-                    </div>
-                  );
-                })
-              ) : (
-                <Text className={styles.emptyActivityMessage}>No recent activities</Text>
-              )}
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Notifications */}
-      <Card className={styles.notificationsCard}>
-        <div className={styles.cardSectionHeader}>
-          <Heading level="h3" className={styles.notificationsHeading}>
-            Recent Notifications
-            {notifications.filter(n => !n.read).length > 0 && (
-              <span className={styles.unreadBadge}>
-                {notifications.filter(n => !n.read).length}
-              </span>
-            )}
-          </Heading>
+      <section aria-labelledby="quick-actions-heading">
+        <h2 id="quick-actions-heading" className={styles.sectionHeading}>
+          Common jobs
+        </h2>
+        <div className={styles.quickActions}>
+          <Link to="/pets" className={styles.actionLink}>
+            Add or update a pet
+          </Link>
+          <Link to="/staff" className={styles.actionLink}>
+            Invite a volunteer
+          </Link>
         </div>
-        <div className={styles.notificationsBody}>
-          {notifications.length > 0 ? (
-            notifications.map(notification => {
-              const NotificationIcon = notificationIcons[notification.type] ?? Info;
+      </section>
 
-              return (
-                <div
-                  key={notification.id}
-                  className={`${styles.notificationRowBase} ${
-                    notification.read ? styles.notificationRowRead : styles.notificationRowUnread
-                  }`}
-                >
-                  <div className={styles.notificationIcon}>
-                    <NotificationIcon size="1em" aria-hidden="true" />
-                  </div>
-                  <div className={styles.notificationContent}>
-                    <Text className={styles.notificationTitle}>{notification.title}</Text>
-                    <Text className={styles.notificationBody}>{notification.message}</Text>
-                    <Text className={styles.notificationTimestamp}>
-                      {formatRelativeDate(notification.timestamp)}
-                    </Text>
-                  </div>
-                  {!notification.read && <div className={styles.unreadDot} />}
-                </div>
-              );
-            })
-          ) : (
-            <Text className={styles.emptyNotifications}>No notifications</Text>
-          )}
+      <section aria-labelledby="numbers-heading">
+        <h2 id="numbers-heading" className={styles.sectionHeading}>
+          Your rescue at a glance
+        </h2>
+        <div className={styles.metricsGrid}>
+          <MetricCard icon={<PawPrint size="1em" />} label="Pets listed" value={totalPets} />
+          <MetricCard
+            icon={<ClipboardList size="1em" />}
+            label="Applications waiting"
+            value={pendingApplications}
+          />
+          <MetricCard
+            icon={<Heart size="1em" />}
+            label="Adopted in the last 30 days"
+            value={successfulAdoptions}
+          />
         </div>
-        <div className={styles.notificationsFooter}>
-          <Button variant="ghost" size="sm">
-            View All Notifications
-          </Button>
-        </div>
-      </Card>
+      </section>
     </Container>
   );
 };

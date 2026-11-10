@@ -325,7 +325,7 @@ describe('makeRecommend', () => {
       const { res } = await recommendWith([dogPet('p-1')], { sampleCount: 5, medianDays: 12 });
       expect(res.candidates[0].activityLabel).toEqual({
         kind: 'similar_adopted_fast',
-        text: 'Pets like Buddy adopted in <30 days',
+        text: 'Pets like this get adopted fast',
       });
     });
 

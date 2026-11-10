@@ -34,7 +34,7 @@ export const BottomTabBar: React.FC = () => {
           label: 'Top Picks',
           icon: <Star size='1em' aria-hidden='true' />,
         },
-        { to: '/favorites', label: 'Favorites', icon: <Heart size='1em' aria-hidden='true' /> },
+        { to: '/favorites', label: 'Favourites', icon: <Heart size='1em' aria-hidden='true' /> },
         {
           to: '/chat',
           label: 'Messages',

@@ -429,6 +429,20 @@ message ListApplicationsRequest {
   // "Page X of Y". The principal scope (adopter-owns / rescue-staff /
   // admin) still applies — offset mode never widens what a caller sees.
   optional uint32 page = 6;
+  // Narrow to one pet's applications (the rescue app's foster page deep
+  // link). Applied on top of the principal scope, never widening it.
+  optional string pet_id_filter = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  // Free-text match on the applicant's name or email (case-insensitive substring).
+  optional string search = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  // Pet type token as the list shows it ('dog', 'cat', ...), case-insensitive.
+  optional string pet_type_filter = 9;
+  // Case-insensitive substring of the pet's breed name.
+  optional string pet_breed_filter = 10;
+  // DB priority token: 'low' | 'normal' | 'high' | 'urgent'.
+  optional string priority_filter = 11;
+  // ISO-8601 bounds on submitted_at (inclusive).
+  optional string submitted_from = 12 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string submitted_to = 13 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ListApplicationsResponse {

@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const formContainer = style({
@@ -46,21 +46,15 @@ export const listInput = style({
 export const listItem = style({
   display: 'flex',
   gap: vars.spacing['2'],
-  alignItems: 'center',
+  // Stretch so the Remove button is exactly as tall as the text box.
+  alignItems: 'stretch',
 });
 
-export const listItemInput = style({
+// The shared Input wraps itself with a bottom margin, which pushed the text box off the
+// button's centre line. The row owns the spacing here.
+globalStyle(`${listItem} > :first-child`, {
   flex: 1,
-  padding: '0.75rem',
-  border: '1px solid #d1d5db',
-  borderRadius: vars.border.radius.base,
-  fontSize: vars.typography.size.sm,
-  transition: 'border-color 0.2s',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#3b82f6',
-    boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
-  },
+  marginBottom: 0,
 });
 
 export const buttonGroup = style({

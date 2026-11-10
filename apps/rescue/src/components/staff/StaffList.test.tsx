@@ -4,9 +4,8 @@ import type { StaffMember } from '../../types/staff';
 import StaffList from './StaffList';
 
 /**
- * Behaviour tests for the staff list and its cards. Staff management lets a
- * rescue admin search, filter by verification status, and edit/remove
- * colleagues — but never themselves.
+ * Behaviour tests for the staff list and its rows. A rescue admin can edit and
+ * remove colleagues, but never themselves.
  */
 const member = (overrides: Partial<StaffMember> = {}): StaffMember => ({
   id: 's1',
@@ -58,7 +57,6 @@ describe('StaffList', () => {
     expect(screen.getByText('Manager')).toBeInTheDocument();
     expect(screen.getByText('Volunteer')).toBeInTheDocument();
     expect(screen.getByText('sarah@rescue.org')).toBeInTheDocument();
-    expect(screen.getByText('Showing 2 of 2 staff members')).toBeInTheDocument();
   });
 
   it('identifies staff by name, not by their raw user id', () => {
@@ -68,78 +66,50 @@ describe('StaffList', () => {
     expect(screen.queryByText('su1')).not.toBeInTheDocument();
   });
 
-  it('filters the list by search term', () => {
-    render(
-      <StaffList
-        staff={[member(), member({ id: 's2', userId: 'su2', firstName: 'Bob', lastName: 'Lee' })]}
-      />
-    );
-
-    fireEvent.change(screen.getByPlaceholderText('Search staff members...'), {
-      target: { value: 'bob' },
-    });
-
-    expect(screen.queryByText('Sarah Johnson')).not.toBeInTheDocument();
-    expect(screen.getByText('Bob Lee')).toBeInTheDocument();
-    expect(screen.getByText('Showing 1 of 2 staff members')).toBeInTheDocument();
-  });
-
-  it('filters by verification status', () => {
-    render(
-      <StaffList
-        staff={[
-          member(),
-          member({ id: 's2', userId: 'su2', firstName: 'Pending', isVerified: false }),
-        ]}
-      />
-    );
-
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'pending' } });
-
-    expect(screen.queryByText('Sarah Johnson')).not.toBeInTheDocument();
-    expect(screen.getByText('Pending Johnson')).toBeInTheDocument();
-  });
-
-  it('shows the no-results empty state when a search matches nothing', () => {
-    render(<StaffList staff={[member()]} />);
-
-    fireEvent.change(screen.getByPlaceholderText('Search staff members...'), {
-      target: { value: 'zzz' },
-    });
-
-    expect(screen.getByText('No Results Found')).toBeInTheDocument();
-  });
-
-  it('invokes edit and remove handlers for other staff when permitted', () => {
-    const onEdit = vi.fn();
+  it('invokes the remove handler for another member when permitted', () => {
     const onRemove = vi.fn();
-    render(<StaffList staff={[member()]} canEdit canRemove onEdit={onEdit} onRemove={onRemove} />);
+    render(<StaffList staff={[member()]} canRemove onRemove={onRemove} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Sarah Johnson' }));
 
-    expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }));
     expect(onRemove).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }));
   });
 
-  it('hides edit/remove actions for the current user to prevent self-management', () => {
-    render(<StaffList staff={[member({ userId: 'me' })]} canEdit canRemove currentUserId="me" />);
+  it('offers no remove button without permission', () => {
+    render(<StaffList staff={[member()]} />);
 
-    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Remove' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /remove/i })).not.toBeInTheDocument();
   });
 
-  it('shows a verification badge reflecting each member status', () => {
+  it('hides the remove action for the current user to prevent self-removal', () => {
+    render(<StaffList staff={[member({ userId: 'me' })]} canRemove currentUserId="me" />);
+
+    expect(screen.queryByRole('button', { name: /remove/i })).not.toBeInTheDocument();
+  });
+
+  it("invokes the edit handler for another member's title when permitted", () => {
+    const onEdit = vi.fn();
+    render(<StaffList staff={[member()]} canEdit onEdit={onEdit} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Sarah Johnson' }));
+
+    expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }));
+  });
+
+  it('offers no edit button without permission or for the current user', () => {
     render(
       <StaffList
-        staff={[
-          member(),
-          member({ id: 's2', userId: 'su2', firstName: 'Unverified', isVerified: false }),
-        ]}
+        staff={[member({ id: 's1' }), member({ id: 's2', userId: 'me', firstName: 'Me' })]}
+        canEdit={false}
+        currentUserId="me"
       />
     );
+    expect(screen.queryByRole('button', { name: /^edit/i })).not.toBeInTheDocument();
+  });
 
-    expect(screen.getByText('Verified')).toBeInTheDocument();
-    expect(screen.getByText('Pending')).toBeInTheDocument();
+  it('hides the edit action for the current user even with permission', () => {
+    render(<StaffList staff={[member({ userId: 'me' })]} canEdit currentUserId="me" />);
+
+    expect(screen.queryByRole('button', { name: /^edit/i })).not.toBeInTheDocument();
   });
 });

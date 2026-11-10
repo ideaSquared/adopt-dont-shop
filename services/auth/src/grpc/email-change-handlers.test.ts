@@ -70,8 +70,21 @@ function makeMocks(scenario: Scenario = {}) {
       const pending = scenario.pending === undefined ? PENDING : scenario.pending;
       return { rows: pending ? [pending] : [] };
     }
-    if (/SET email = pending_email/.test(sql) && scenario.swapError) {
-      throw scenario.swapError;
+    if (/SET email = pending_email/.test(sql)) {
+      if (scenario.swapError) {
+        throw scenario.swapError;
+      }
+      return {
+        rows: [
+          {
+            user_id: 'usr-1',
+            first_name: 'Alex',
+            last_name: 'Jenkinson',
+            email: 'new@example.com',
+            updated_at: new Date('2026-04-01T09:00:00Z'),
+          },
+        ],
+      };
     }
     return { rows: [] };
   };
@@ -281,6 +294,22 @@ describe('confirmEmailChange', () => {
     expect(audit?.payload).toMatchObject({ aggregateId: 'usr-1', outcome: 'success' });
     expect(JSON.stringify(audit)).not.toContain('raw-token');
     expect(JSON.stringify(audit)).not.toContain('new@example.com');
+  });
+
+  it('announces the new email so services holding a copy of it stay current', async () => {
+    const { deps, calls, natsPublish } = makeMocks();
+
+    await confirmEmailChange(deps, null, { token: 'raw-token' });
+
+    const [swap] = sqlMatching(calls, /SET email = pending_email/);
+    expect(swap.sql).toContain('updated_at = now()');
+    expect(eventOn(natsPublish, 'auth.userProfileChanged')?.payload).toEqual({
+      userId: 'usr-1',
+      firstName: 'Alex',
+      lastName: 'Jenkinson',
+      email: 'new@example.com',
+      updatedAt: '2026-04-01T09:00:00.000Z',
+    });
   });
 
   it('rejects an unknown, used or expired token with invalid_or_expired_token', async () => {

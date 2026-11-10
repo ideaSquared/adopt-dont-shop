@@ -24,6 +24,8 @@ export async function eraseApplications(
             notes = NULL,
             interview_notes = NULL,
             home_visit_notes = NULL,
+            applicant_name = NULL,
+            applicant_email = NULL,
             updated_at = now()
       WHERE user_id = $1`,
     [payload.userId]

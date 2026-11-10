@@ -59,6 +59,11 @@ vi.mock('@adopt-dont-shop/lib.components', async () => {
       React.createElement('input', props),
     TextArea: ({ children: _children, ...props }: Record<string, unknown>) =>
       React.createElement('textarea', props),
+    CheckboxInput: ({
+      label: _label,
+      description: _description,
+      ...props
+    }: Record<string, unknown>) => React.createElement('input', { type: 'checkbox', ...props }),
     FormField: ({
       label,
       htmlFor,

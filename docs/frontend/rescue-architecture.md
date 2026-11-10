@@ -64,10 +64,6 @@ Authenticated (inside `ProtectedRoute` → `Layout`):
 /communication          Communication
 /foster                 FosterCoordination
 /analytics              Analytics
-/reports                Reports
-/reports/new            ReportBuilderPage
-/reports/:id            ReportViewPage
-/reports/:id/edit       ReportBuilderPage
 *                       NotFoundPage
 /accept-invitation, /register-rescue also resolve here; /login redirects to /
 ```

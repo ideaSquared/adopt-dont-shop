@@ -208,6 +208,37 @@ describe('applications routes', () => {
     });
   });
 
+  it('GET /api/v1/applications forwards the search, pet, priority and date filters', async () => {
+    mocks.list.mockResolvedValue({ applications: [APP] });
+    const qs = new URLSearchParams({
+      search: 'jane',
+      petType: 'Dog',
+      petBreed: 'retriever',
+      priority: 'high',
+      submittedFrom: '2026-01-01T00:00:00.000Z',
+      submittedTo: '2026-02-01T00:00:00.000Z',
+    });
+    await app.inject({ method: 'GET', url: `/api/v1/applications?${qs}`, headers: STAFF });
+    expect(mocks.list.mock.calls[0][0]).toMatchObject({
+      search: 'jane',
+      petTypeFilter: 'Dog',
+      petBreedFilter: 'retriever',
+      priorityFilter: 'high',
+      submittedFrom: '2026-01-01T00:00:00.000Z',
+      submittedTo: '2026-02-01T00:00:00.000Z',
+    });
+  });
+
+  it('GET /api/v1/applications forwards a petId filter', async () => {
+    mocks.list.mockResolvedValue({ applications: [APP] });
+    await app.inject({
+      method: 'GET',
+      url: '/api/v1/applications?petId=pet-7',
+      headers: STAFF,
+    });
+    expect(mocks.list.mock.calls[0][0]).toMatchObject({ petIdFilter: 'pet-7' });
+  });
+
   it('GET /api/v1/applications/:id passes includeTimeline', async () => {
     mocks.get.mockResolvedValue({ application: APP, timeline: [] });
     await app.inject({
@@ -1274,7 +1305,12 @@ describe('GET /api/v1/applications name enrichment (ADS-1192)', () => {
     const e = makeEnrichment();
     e.listMock.mockResolvedValue({ applications: [SUBMITTED_APP], total: 1 });
     e.petGet.mockResolvedValue({
-      pet: { petId: 'pet-a', name: 'Rex', type: PetsV1.PetType.PET_TYPE_DOG },
+      pet: {
+        petId: 'pet-a',
+        name: 'Rex',
+        type: PetsV1.PetType.PET_TYPE_DOG,
+        extraJson: JSON.stringify({ breed: 'Labrador Retriever' }),
+      },
     });
     e.getApplicantProfile.mockResolvedValue({
       userId: 'usr-a',
@@ -1299,6 +1335,7 @@ describe('GET /api/v1/applications name enrichment (ADS-1192)', () => {
         userEmail: 'jane@example.com',
         petName: 'Rex',
         petType: 'dog',
+        petBreed: 'Labrador Retriever',
         rescueName: 'Happy Paws',
       });
     } finally {

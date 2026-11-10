@@ -193,15 +193,6 @@ export const select = style({
   },
 });
 
-export const checkboxLabel = style({
-  display: 'flex',
-  alignItems: 'center',
-  gap: vars.spacing['2'],
-  fontSize: vars.typography.size.sm,
-  color: '#374151',
-  cursor: 'pointer',
-});
-
 export const formActions = style({
   display: 'flex',
   justifyContent: 'flex-end',
@@ -226,12 +217,6 @@ export const templateGrid = style({
   display: 'flex',
   flexWrap: 'wrap',
   gap: vars.spacing['2'],
-});
-
-export const helpText = style({
-  fontSize: '0.8125rem',
-  color: '#6b7280',
-  margin: `${vars.spacing['1']} 0 0 0`,
 });
 
 export const loadingState = style({

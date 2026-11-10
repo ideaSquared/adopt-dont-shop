@@ -37,12 +37,12 @@ const openAsManager = async (browser: Browser, rescue: ThrowawayRescue): Promise
   return { manager, managerContext };
 };
 
-// The staff card around an email: the nearest block that also holds the card's "Added:" row.
+// The staff list row that shows this email.
 const staffCard = (page: Page, email: string) =>
   page
-    .getByRole('main')
-    .getByText(email, { exact: true })
-    .locator('xpath=ancestor::*[.//*[normalize-space()="Added:"]][1]');
+    .getByRole('list', { name: 'Staff members' })
+    .getByRole('listitem')
+    .filter({ has: page.getByText(email, { exact: true }) });
 
 const sendInvitation = async (page: Page, email: string, title?: string): Promise<void> => {
   await page.goto('/staff');

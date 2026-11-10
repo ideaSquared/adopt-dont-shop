@@ -344,7 +344,35 @@ export interface ListApplicationsRequest {
    * "Page X of Y". The principal scope (adopter-owns / rescue-staff /
    * admin) still applies — offset mode never widens what a caller sees.
    */
-  page?: number | undefined;
+  page?:
+    | number
+    | undefined;
+  /**
+   * Narrow to one pet's applications (the rescue app's foster page deep
+   * link). Applied on top of the principal scope, never widening it.
+   */
+  petIdFilter?:
+    | string
+    | undefined;
+  /** Free-text match on the applicant's name or email (case-insensitive substring). */
+  search?:
+    | string
+    | undefined;
+  /** Pet type token as the list shows it ('dog', 'cat', ...), case-insensitive. */
+  petTypeFilter?:
+    | string
+    | undefined;
+  /** Case-insensitive substring of the pet's breed name. */
+  petBreedFilter?:
+    | string
+    | undefined;
+  /** DB priority token: 'low' | 'normal' | 'high' | 'urgent'. */
+  priorityFilter?:
+    | string
+    | undefined;
+  /** ISO-8601 bounds on submitted_at (inclusive). */
+  submittedFrom?: string | undefined;
+  submittedTo?: string | undefined;
 }
 
 export interface ListApplicationsResponse {
@@ -3003,6 +3031,13 @@ function createBaseListApplicationsRequest(): ListApplicationsRequest {
     rescueIdFilter: undefined,
     adopterIdFilter: undefined,
     page: undefined,
+    petIdFilter: undefined,
+    search: undefined,
+    petTypeFilter: undefined,
+    petBreedFilter: undefined,
+    priorityFilter: undefined,
+    submittedFrom: undefined,
+    submittedTo: undefined,
   };
 }
 
@@ -3025,6 +3060,27 @@ export const ListApplicationsRequest: MessageFns<ListApplicationsRequest> = {
     }
     if (message.page !== undefined) {
       writer.uint32(48).uint32(message.page);
+    }
+    if (message.petIdFilter !== undefined) {
+      writer.uint32(58).string(message.petIdFilter);
+    }
+    if (message.search !== undefined) {
+      writer.uint32(66).string(message.search);
+    }
+    if (message.petTypeFilter !== undefined) {
+      writer.uint32(74).string(message.petTypeFilter);
+    }
+    if (message.petBreedFilter !== undefined) {
+      writer.uint32(82).string(message.petBreedFilter);
+    }
+    if (message.priorityFilter !== undefined) {
+      writer.uint32(90).string(message.priorityFilter);
+    }
+    if (message.submittedFrom !== undefined) {
+      writer.uint32(98).string(message.submittedFrom);
+    }
+    if (message.submittedTo !== undefined) {
+      writer.uint32(106).string(message.submittedTo);
     }
     return writer;
   },
@@ -3084,6 +3140,62 @@ export const ListApplicationsRequest: MessageFns<ListApplicationsRequest> = {
           message.page = reader.uint32();
           continue;
         }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.petIdFilter = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.search = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.petTypeFilter = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.petBreedFilter = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.priorityFilter = reader.string();
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.submittedFrom = reader.string();
+          continue;
+        }
+        case 13: {
+          if (tag !== 106) {
+            break;
+          }
+
+          message.submittedTo = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -3113,6 +3225,37 @@ export const ListApplicationsRequest: MessageFns<ListApplicationsRequest> = {
         ? globalThis.String(object.adopter_id_filter)
         : undefined,
       page: isSet(object.page) ? globalThis.Number(object.page) : undefined,
+      petIdFilter: isSet(object.petIdFilter)
+        ? globalThis.String(object.petIdFilter)
+        : isSet(object.pet_id_filter)
+        ? globalThis.String(object.pet_id_filter)
+        : undefined,
+      search: isSet(object.search) ? globalThis.String(object.search) : undefined,
+      petTypeFilter: isSet(object.petTypeFilter)
+        ? globalThis.String(object.petTypeFilter)
+        : isSet(object.pet_type_filter)
+        ? globalThis.String(object.pet_type_filter)
+        : undefined,
+      petBreedFilter: isSet(object.petBreedFilter)
+        ? globalThis.String(object.petBreedFilter)
+        : isSet(object.pet_breed_filter)
+        ? globalThis.String(object.pet_breed_filter)
+        : undefined,
+      priorityFilter: isSet(object.priorityFilter)
+        ? globalThis.String(object.priorityFilter)
+        : isSet(object.priority_filter)
+        ? globalThis.String(object.priority_filter)
+        : undefined,
+      submittedFrom: isSet(object.submittedFrom)
+        ? globalThis.String(object.submittedFrom)
+        : isSet(object.submitted_from)
+        ? globalThis.String(object.submitted_from)
+        : undefined,
+      submittedTo: isSet(object.submittedTo)
+        ? globalThis.String(object.submittedTo)
+        : isSet(object.submitted_to)
+        ? globalThis.String(object.submitted_to)
+        : undefined,
     };
   },
 
@@ -3136,6 +3279,27 @@ export const ListApplicationsRequest: MessageFns<ListApplicationsRequest> = {
     if (message.page !== undefined) {
       obj.page = Math.round(message.page);
     }
+    if (message.petIdFilter !== undefined) {
+      obj.petIdFilter = message.petIdFilter;
+    }
+    if (message.search !== undefined) {
+      obj.search = message.search;
+    }
+    if (message.petTypeFilter !== undefined) {
+      obj.petTypeFilter = message.petTypeFilter;
+    }
+    if (message.petBreedFilter !== undefined) {
+      obj.petBreedFilter = message.petBreedFilter;
+    }
+    if (message.priorityFilter !== undefined) {
+      obj.priorityFilter = message.priorityFilter;
+    }
+    if (message.submittedFrom !== undefined) {
+      obj.submittedFrom = message.submittedFrom;
+    }
+    if (message.submittedTo !== undefined) {
+      obj.submittedTo = message.submittedTo;
+    }
     return obj;
   },
 
@@ -3150,6 +3314,13 @@ export const ListApplicationsRequest: MessageFns<ListApplicationsRequest> = {
     message.rescueIdFilter = object.rescueIdFilter ?? undefined;
     message.adopterIdFilter = object.adopterIdFilter ?? undefined;
     message.page = object.page ?? undefined;
+    message.petIdFilter = object.petIdFilter ?? undefined;
+    message.search = object.search ?? undefined;
+    message.petTypeFilter = object.petTypeFilter ?? undefined;
+    message.petBreedFilter = object.petBreedFilter ?? undefined;
+    message.priorityFilter = object.priorityFilter ?? undefined;
+    message.submittedFrom = object.submittedFrom ?? undefined;
+    message.submittedTo = object.submittedTo ?? undefined;
     return message;
   },
 };

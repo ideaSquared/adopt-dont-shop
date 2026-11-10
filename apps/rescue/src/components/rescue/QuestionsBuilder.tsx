@@ -5,6 +5,7 @@ import {
   Alert,
   Button,
   Card,
+  CheckboxInput,
   ConfirmDialog,
   FormField,
   Input,
@@ -660,16 +661,13 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
             </div>
 
             <div className={styles.formGroup}>
-              <label className={styles.checkboxLabel}>
-                <input
-                  type="checkbox"
-                  data-testid="question-required-checkbox"
-                  checked={formData.isRequired}
-                  onChange={e => handleFieldChange('isRequired', e.target.checked)}
-                />
-                Required field
-              </label>
-              <p className={styles.helpText}>Applicants must answer this question</p>
+              <CheckboxInput
+                data-testid="question-required-checkbox"
+                label="Required field"
+                description="Applicants must answer this question"
+                checked={formData.isRequired}
+                onChange={e => handleFieldChange('isRequired', e.target.checked)}
+              />
             </div>
           </div>
 

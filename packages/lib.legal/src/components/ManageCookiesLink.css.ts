@@ -10,13 +10,13 @@ export const link = style({
   padding: 0,
   cursor: 'pointer',
   color: vars.text.secondary,
-  fontSize: '0.875rem',
-  fontFamily: 'inherit',
+  font: 'inherit',
+  fontSize: vars.typography.size.sm,
+  lineHeight: 'inherit',
   textDecoration: 'none',
   selectors: {
     '&:hover': {
       color: vars.text.primary,
-      textDecoration: 'underline',
     },
     '&:focus-visible': {
       outline: `2px solid ${vars.colors.primaryHover}`,

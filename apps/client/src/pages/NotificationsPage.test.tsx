@@ -7,6 +7,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router';
 import { ThemeProvider } from '@adopt-dont-shop/lib.components';
 
@@ -19,6 +20,9 @@ const notificationsStateMock: {
   markAllAsRead: () => void;
   clearAll: () => void;
   isLoading: boolean;
+  hasMore: boolean;
+  isLoadingMore: boolean;
+  loadMore: () => Promise<void>;
 } = {
   notifications: [],
   unreadCount: 0,
@@ -26,6 +30,9 @@ const notificationsStateMock: {
   markAllAsRead: vi.fn(),
   clearAll: vi.fn(),
   isLoading: false,
+  hasMore: false,
+  isLoadingMore: false,
+  loadMore: vi.fn(async () => undefined),
 };
 
 vi.mock('@adopt-dont-shop/lib.auth', async () => {
@@ -61,6 +68,7 @@ const renderPage = (initialEntry = '/notifications') =>
         <Routes>
           <Route path='/notifications' element={<NotificationsPage />} />
           <Route path='/login' element={<div data-testid='login-page'>Login</div>} />
+          <Route path='/applications/:id' element={<div data-testid='application-page' />} />
         </Routes>
       </MemoryRouter>
     </ThemeProvider>
@@ -70,6 +78,7 @@ describe('NotificationsPage auth guard', () => {
   beforeEach(() => {
     notificationsStateMock.notifications = [];
     notificationsStateMock.isLoading = false;
+    notificationsStateMock.hasMore = false;
   });
 
   it('redirects unauthenticated visitors to /login', () => {
@@ -125,5 +134,73 @@ describe('NotificationsPage timestamps', () => {
     ];
     renderPage();
     expect(screen.getByText('5 Mar 2024')).toBeInTheDocument();
+  });
+});
+
+describe('NotificationsPage clicking a notification', () => {
+  const unread = {
+    id: 'n1',
+    title: 'Application update',
+    message: 'Your application moved forward',
+    createdAt: '2024-03-05T10:00:00Z',
+    readAt: null,
+    actionUrl: '/applications/app-1',
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockIsAuthenticated.value = true;
+    notificationsStateMock.isLoading = false;
+  });
+
+  it('marks an unread notification as read and opens its link', async () => {
+    notificationsStateMock.notifications = [unread];
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: /application update/i }));
+
+    expect(notificationsStateMock.markAsRead).toHaveBeenCalledWith('n1');
+    expect(screen.getByTestId('application-page')).toBeInTheDocument();
+  });
+
+  it('stays on the page and does not re-mark a read notification without a link', async () => {
+    notificationsStateMock.notifications = [
+      { ...unread, readAt: '2024-03-06T10:00:00Z', actionUrl: undefined },
+    ];
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: /application update/i }));
+
+    expect(notificationsStateMock.markAsRead).not.toHaveBeenCalled();
+    expect(screen.getByRole('heading', { name: /^notifications$/i })).toBeInTheDocument();
+  });
+});
+
+describe('NotificationsPage load more', () => {
+  const item = { id: 'n-1', title: 'Hello', message: 'Message', createdAt: '2026-01-01T00:00:00Z' };
+
+  beforeEach(() => {
+    mockIsAuthenticated.value = true;
+    notificationsStateMock.notifications = [item];
+    notificationsStateMock.isLoading = false;
+    notificationsStateMock.loadMore = vi.fn(async () => undefined);
+  });
+
+  it('offers to load more when the gateway has more notifications', async () => {
+    notificationsStateMock.hasMore = true;
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Load more notifications' }));
+
+    expect(notificationsStateMock.loadMore).toHaveBeenCalled();
+  });
+
+  it('hides the load more button on the last page', () => {
+    notificationsStateMock.hasMore = false;
+    renderPage();
+
+    expect(
+      screen.queryByRole('button', { name: 'Load more notifications' })
+    ).not.toBeInTheDocument();
   });
 });

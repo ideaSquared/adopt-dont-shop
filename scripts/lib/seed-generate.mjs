@@ -185,7 +185,7 @@ export const createGenerator = ({ baseUrl, password, fetchImpl, log = () => {} }
     return (res.body.data ?? []).find(p => p.name === name);
   };
 
-  const ensurePet = async (pet, rescueId) => {
+  const ensurePet = async (pet, rescueId, superAdmin) => {
     const staff = await as(pet.createdBy);
     const existing = await findPet(staff, rescueId, pet.name);
     const created =
@@ -210,6 +210,10 @@ export const createGenerator = ({ baseUrl, password, fetchImpl, log = () => {} }
     }
     for (const toStatus of hops) {
       await staff.post(`/api/v1/pets/${petId}/status`, { toStatus, reason: 'dev seed' });
+    }
+    // Featuring is an admin decision, so the super_admin sets it, not the rescue.
+    if (pet.featured && !created.featured) {
+      await superAdmin.patch(`/api/v1/pets/${petId}`, { featured: true });
     }
     log(`  ${existing ? '=' : '+'} ${pet.name} (${pet.status})`);
     return [pet.name, petId];
@@ -295,7 +299,7 @@ export const createGenerator = ({ baseUrl, password, fetchImpl, log = () => {} }
     log('pets');
     const petIds = {};
     for (const pet of data.PETS) {
-      const [name, id] = await ensurePet(pet, rescueIds[pet.rescue]);
+      const [name, id] = await ensurePet(pet, rescueIds[pet.rescue], superAdmin);
       petIds[name] = id;
     }
 

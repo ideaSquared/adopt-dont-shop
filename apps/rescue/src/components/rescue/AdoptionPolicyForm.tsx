@@ -244,7 +244,6 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
             {formData.requirements.map((req, index) => (
               <div key={requirementIds.current[index]} className={styles.listItem}>
                 <Input
-                  className={styles.listItemInput}
                   aria-label={`Requirement ${index + 1}`}
                   value={req}
                   onChange={e => updateListItem('requirements', index, e.target.value)}
@@ -277,7 +276,6 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
             {formData.policies.map((p, index) => (
               <div key={policyIds.current[index]} className={styles.listItem}>
                 <Input
-                  className={styles.listItemInput}
                   aria-label={`Policy ${index + 1}`}
                   value={p}
                   onChange={e => updateListItem('policies', index, e.target.value)}

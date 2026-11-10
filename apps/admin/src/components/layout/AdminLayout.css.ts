@@ -4,7 +4,7 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 export const layoutContainer = style({
   display: 'flex',
   minHeight: '100vh',
-  background: '#f3f4f6',
+  background: vars.background.body,
 });
 
 // The sidebar is a sticky, in-flow flex item, so it reserves its own width
@@ -39,7 +39,7 @@ export const contentWrapper = style({
 // smallest surface that keeps the cookies-policy promise of an on-page
 // withdrawal control.
 export const layoutFooter = style({
-  borderTop: '1px solid #e5e7eb',
+  borderTop: `1px solid ${vars.border.color.muted}`,
   padding: '0.75rem 2rem',
   display: 'flex',
   justifyContent: 'flex-end',

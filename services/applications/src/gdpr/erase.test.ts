@@ -41,6 +41,16 @@ describe('eraseApplications', () => {
     expect(updateSql).toMatch(/documents\s*=/);
   });
 
+  it('clears the denormalised applicant name and email used by the staff list search', async () => {
+    const { client, query } = makeClient();
+
+    await eraseApplications(client, payload);
+
+    const updateSql = sqlMatching(query, /UPDATE applications\.applications/);
+    expect(updateSql).toMatch(/applicant_name\s*=\s*NULL/);
+    expect(updateSql).toMatch(/applicant_email\s*=\s*NULL/);
+  });
+
   it('hard-deletes document metadata from the application_documents table', async () => {
     const { client, query } = makeClient();
 

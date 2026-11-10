@@ -40,6 +40,12 @@ describe('RescueApplicationService.getApplications query parameters (ADS-575)', 
     return new URLSearchParams(url.slice(queryStart + 1));
   };
 
+  it("forwards the foster page's pet filter as a petId query parameter", async () => {
+    await service.getApplications({ petId: 'pet-7' });
+
+    expect(getRequestedParams().get('petId')).toBe('pet-7');
+  });
+
   it('forwards a pet-type filter as a petType query parameter', async () => {
     const filter: ApplicationFilter = { petType: 'Dog' };
 
@@ -691,5 +697,43 @@ describe('RescueApplicationService.getApplications applicant identity', () => {
       applicantName: 'Ann Lee',
       applicantEmail: 'ann@example.com',
     });
+  });
+});
+
+// The gateway filters search, pet type / breed, priority and dates server-side, so the page the
+// server returns is shown as-is, with the server's pagination.
+describe('RescueApplicationService.getApplications shows the server-filtered page', () => {
+  const service = new RescueApplicationService();
+  const raw = (id: string, overrides: Record<string, unknown> = {}) => ({
+    id,
+    petId: `pet-${id}`,
+    userId: 'usr-1',
+    rescueId: 'rsc-1',
+    status: 'submitted',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    submittedAt: '2026-01-01T00:00:00.000Z',
+    data: {},
+    ...overrides,
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns every row the server sent, with its pagination, for a filtered request', async () => {
+    apiServiceMock.get.mockResolvedValue({
+      data: [raw('app-1', { petType: 'cat' }), raw('app-2', { petType: 'cat' })],
+      pagination: { page: 1, limit: 2, total: 50, totalPages: 25 },
+    });
+
+    const { applications, total, totalPages } = await service.getApplications({
+      petType: 'dog',
+      searchQuery: 'sam',
+    });
+
+    expect(applications.map(a => a.id)).toEqual(['app-1', 'app-2']);
+    expect(total).toBe(50);
+    expect(totalPages).toBe(25);
   });
 });

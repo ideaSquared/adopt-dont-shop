@@ -34,12 +34,17 @@ globalStyle(`${pageHeader} p`, {
   fontSize: vars.typography.size.base,
 });
 
+// The tab panel around this has no fixed height, so the chat panel sizes itself to the
+// viewport (page header + tabs take roughly 15rem) instead of collapsing and leaving a blank
+// area below it.
 export const chatContainer = style({
-  flex: 1,
   display: 'grid',
-  gridTemplateColumns: '350px 1fr',
+  gridTemplateColumns: 'minmax(300px, 380px) 1fr',
+  height: 'calc(100dvh - 15rem)',
+  minHeight: '28rem',
   overflow: 'hidden',
-  minHeight: 0,
+  border: `1px solid ${vars.border.color.default}`,
+  borderRadius: vars.border.radius.lg,
   '@media': {
     'screen and (max-width: 768px)': {
       gridTemplateColumns: '1fr',

@@ -1,7 +1,14 @@
 import { NotificationsService, Notification } from '@adopt-dont-shop/lib.notifications';
 import { apiService } from '@/services/libraryServices';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type InfiniteData,
+} from '@tanstack/react-query';
 import { createContext, useContext, ReactNode, useMemo, useCallback } from 'react';
+import { z } from 'zod';
 
 interface NotificationsContextType {
   notificationsService: NotificationsService;
@@ -11,6 +18,9 @@ interface NotificationsContextType {
   markAllAsRead: (userId: string) => Promise<void>;
   clearAll: (userId: string) => Promise<void>;
   isLoading: boolean;
+  hasMore: boolean;
+  isLoadingMore: boolean;
+  loadMore: () => Promise<void>;
 }
 
 const NotificationsContext = createContext<NotificationsContextType | null>(null);
@@ -27,6 +37,75 @@ interface NotificationsProviderProps {
   children: ReactNode;
   userId?: string;
 }
+
+// The gateway lists notifications as proto JSON: the id is `notificationId` and the link target
+// is `relatedEntityType` / `relatedEntityId` (plus `dataJson` for messages) rather than an
+// `actionUrl`.
+const WireNotificationFieldsSchema = z.object({
+  notificationId: z.string().optional(),
+  relatedEntityType: z.string().optional(),
+  relatedEntityId: z.string().optional(),
+  dataJson: z.string().optional(),
+});
+type WireNotificationFields = z.infer<typeof WireNotificationFieldsSchema>;
+
+// A new-message notification's related entity is the message; the chat it belongs to is in its
+// data payload (services/notifications buildChatMessageReceivedCreate).
+const MessageDataSchema = z.object({ chatId: z.string().min(1) });
+
+const chatIdFrom = (dataJson: string | undefined): string | undefined => {
+  try {
+    const parsed = MessageDataSchema.safeParse(JSON.parse(dataJson ?? ''));
+    return parsed.success ? parsed.data.chatId : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const toApplication = ({ relatedEntityId }: WireNotificationFields) =>
+  relatedEntityId && `/applications/${relatedEntityId}`;
+
+const ENTITY_ROUTES: Record<string, (wire: WireNotificationFields) => string | undefined> = {
+  NOTIFICATION_RELATED_ENTITY_TYPE_APPLICATION: toApplication,
+  // Home visit and adoption updates carry the application id as their related entity.
+  NOTIFICATION_RELATED_ENTITY_TYPE_HOME_VISIT: toApplication,
+  NOTIFICATION_RELATED_ENTITY_TYPE_ADOPTION: toApplication,
+  NOTIFICATION_RELATED_ENTITY_TYPE_PET: ({ relatedEntityId }) =>
+    relatedEntityId && `/pets/${relatedEntityId}`,
+  NOTIFICATION_RELATED_ENTITY_TYPE_CONVERSATION: ({ relatedEntityId }) =>
+    relatedEntityId && `/chat/${relatedEntityId}`,
+  NOTIFICATION_RELATED_ENTITY_TYPE_MESSAGE: ({ dataJson }) => {
+    const chatId = chatIdFrom(dataJson);
+    return chatId && `/chat/${chatId}`;
+  },
+};
+
+const fromWire = (notification: Notification): Notification => {
+  const wire = WireNotificationFieldsSchema.safeParse(notification);
+  if (!wire.success) {
+    return notification;
+  }
+  const toRoute = wire.data.relatedEntityType
+    ? ENTITY_ROUTES[wire.data.relatedEntityType]
+    : undefined;
+  return {
+    ...notification,
+    id: notification.id || wire.data.notificationId || '',
+    actionUrl: notification.actionUrl ?? (toRoute?.(wire.data) || undefined),
+  };
+};
+
+type NotificationsPage = { items: Notification[]; hasNext: boolean };
+type CachedNotifications = InfiniteData<NotificationsPage, number>;
+
+const mapItems = (
+  cached: CachedNotifications | undefined,
+  update: (current: Notification[]) => Notification[]
+): CachedNotifications | undefined =>
+  cached && {
+    ...cached,
+    pages: cached.pages.map(page => ({ ...page, items: update(page.items) })),
+  };
 
 const markRead = (notification: Notification): Notification => ({
   ...notification,
@@ -47,47 +126,87 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
     );
   }, []);
 
-  const notificationsQuery = useQuery({
+  const notificationsQuery = useInfiniteQuery({
     queryKey,
     enabled: !!userId,
-    queryFn: async () => {
+    initialPageParam: 1,
+    queryFn: async ({ pageParam }): Promise<NotificationsPage> => {
       try {
-        const response = await notificationsService.getUserNotifications(userId ?? '');
-        return response.data || [];
+        const response =
+          pageParam > 1
+            ? await notificationsService.getUserNotifications(userId ?? '', { page: pageParam })
+            : await notificationsService.getUserNotifications(userId ?? '');
+        return {
+          items: (response.data || []).map(fromWire),
+          hasNext: response.pagination?.hasNext ?? false,
+        };
       } catch (error) {
         console.error('Failed to load notifications:', error);
         throw error;
       }
     },
+    getNextPageParam: (lastPage, _pages, lastPageParam) =>
+      lastPage.hasNext ? lastPageParam + 1 : undefined,
   });
-  const notifications = useMemo(() => notificationsQuery.data ?? [], [notificationsQuery.data]);
+  const notifications = useMemo(
+    () => notificationsQuery.data?.pages.flatMap(page => page.items) ?? [],
+    [notificationsQuery.data]
+  );
   const isLoading = notificationsQuery.isLoading;
+  const hasMore = notificationsQuery.hasNextPage;
+  const isLoadingMore = notificationsQuery.isFetchingNextPage;
+  const { fetchNextPage } = notificationsQuery;
+  const loadMore = useCallback(async (): Promise<void> => {
+    await fetchNextPage();
+  }, [fetchNextPage]);
 
-  const unreadCount = useMemo(() => {
-    return notifications.filter(n => !n.readAt).length;
-  }, [notifications]);
+  // The badge counts every unread notification, not just the pages loaded so far. If the count
+  // is unavailable it falls back to the loaded ones.
+  const unreadCountKey = useMemo(
+    () => ['notifications', userId, 'unread-count'] as const,
+    [userId]
+  );
+  const unreadCountQuery = useQuery({
+    queryKey: unreadCountKey,
+    enabled: !!userId,
+    queryFn: async () => (await notificationsService.getUnreadCount(userId ?? '')).data.count,
+  });
+  const loadedUnreadCount = useMemo(
+    () => notifications.filter(n => !n.readAt).length,
+    [notifications]
+  );
+  const unreadCount = unreadCountQuery.data ?? loadedUnreadCount;
+  const refreshUnreadCount = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: unreadCountKey }),
+    [queryClient, unreadCountKey]
+  );
 
   const updateCached = useCallback(
     (update: (current: Notification[]) => Notification[]) =>
-      queryClient.setQueryData<Notification[]>(queryKey, current => update(current ?? [])),
+      queryClient.setQueryData<CachedNotifications>(queryKey, cached => mapItems(cached, update)),
     [queryClient, queryKey]
   );
 
   // These actions report failures to the console, not the app-wide generic toast, and never reject.
   const markAsReadMutation = useMutation({
     mutationFn: (id: string) => notificationsService.markAsRead([id]),
-    onSuccess: (_result, id) =>
+    onSuccess: (_result, id) => {
       updateCached(current =>
         current.map(notification =>
           notification.id === id ? markRead(notification) : notification
         )
-      ),
+      );
+      return refreshUnreadCount();
+    },
     onError: error => console.error('Failed to mark notification as read:', error),
   });
 
   const markAllAsReadMutation = useMutation({
     mutationFn: (currentUserId: string) => notificationsService.markAllAsRead(currentUserId),
-    onSuccess: () => updateCached(current => current.map(markRead)),
+    onSuccess: () => {
+      updateCached(current => current.map(markRead));
+      return refreshUnreadCount();
+    },
     onError: error => console.error('Failed to mark all notifications as read:', error),
   });
 
@@ -97,14 +216,15 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
     mutationFn: (snapshot: Notification[]) =>
       Promise.all(snapshot.map(n => notificationsService.deleteNotification(n.id))),
     onMutate: () => {
-      const snapshot = queryClient.getQueryData<Notification[]>(queryKey) ?? [];
-      queryClient.setQueryData<Notification[]>(queryKey, []);
+      const snapshot = queryClient.getQueryData<CachedNotifications>(queryKey);
+      queryClient.setQueryData<CachedNotifications>(queryKey, cached => mapItems(cached, () => []));
       return { snapshot };
     },
     onError: (error, _snapshot, context) => {
       console.error('Failed to clear all notifications:', error);
-      queryClient.setQueryData<Notification[]>(queryKey, context?.snapshot ?? []);
+      queryClient.setQueryData<CachedNotifications>(queryKey, context?.snapshot);
     },
+    onSettled: () => refreshUnreadCount(),
   });
 
   const { mutateAsync: markAsReadAsync } = markAsReadMutation;
@@ -141,6 +261,9 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
       markAllAsRead,
       clearAll,
       isLoading,
+      hasMore,
+      isLoadingMore,
+      loadMore,
     }),
     [
       notificationsService,
@@ -150,6 +273,9 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
       markAllAsRead,
       clearAll,
       isLoading,
+      hasMore,
+      isLoadingMore,
+      loadMore,
     ]
   );
 

@@ -263,6 +263,23 @@ describe('createPet', () => {
     expect(order).toEqual(['BEGIN', 'INSERT', 'COMMIT', 'NATS_PUBLISH']);
   });
 
+  it("carries the listing's descriptions on pets.created so moderation can scan them", async () => {
+    mocks.clientMock.query.mockResolvedValue({ rows: [petRow()] });
+
+    await createPet(mocks.deps, STAFF, {
+      ...BASE_CREATE,
+      shortDescription: 'Friendly lab',
+      longDescription: 'Loves walks and other dogs.',
+    });
+
+    const data = mocks.natsMock.publish.mock.calls[0][1] as Uint8Array | string;
+    const text = typeof data === 'string' ? data : new TextDecoder().decode(data);
+    expect(JSON.parse(text).payload).toMatchObject({
+      shortDescription: 'Friendly lab',
+      longDescription: 'Loves walks and other dogs.',
+    });
+  });
+
   it('super_admin can create for any rescue', async () => {
     mocks.clientMock.query.mockResolvedValue({ rows: [petRow()] });
     const res = await createPet(mocks.deps, SUPER_ADMIN, BASE_CREATE);
@@ -1010,6 +1027,33 @@ describe('updatePet', () => {
     expect(updateSql).toMatch(/archived = \$1/);
   });
 
+  it('PERMISSION_DENIED when rescue staff try to feature a pet (admins decide featuring)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
+    await expect(
+      updatePet(mocks.deps, STAFF, { petId: 'pet-1', featured: true } as never)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+  });
+
+  it('lets a platform admin feature a pet', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
+    let updateSql = '';
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (sql.trim().startsWith('UPDATE')) {
+        updateSql = sql;
+      }
+      return { rows: [petRow({ featured: true })] };
+    });
+
+    const res = await updatePet(mocks.deps, PLATFORM_ADMIN, {
+      petId: 'pet-1',
+      featured: true,
+    } as never);
+
+    expect(res.pet.featured).toBe(true);
+    expect(updateSql).toMatch(/featured = \$1/);
+  });
+
   it('writes only the supplied fields + publishes pets.updated after commit', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
     const order: string[] = [];
@@ -1045,6 +1089,24 @@ describe('updatePet', () => {
     // The DomainEvent.id is passed via the publish options (3rd arg).
     const opts = mocks.natsMock.publish.mock.calls[0][2] as { msgID?: string } | undefined;
     expect(opts?.msgID).toBe('pets.updated.pet-1.5');
+  });
+
+  it("carries the pet's current type and breed on pets.updated so consumers can keep copies current", async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ version: 4 })] });
+    mocks.clientMock.query.mockResolvedValue({
+      rows: [petRow({ type: 'cat', extra_json: { breed: 'Maine Coon' }, version: 5 })],
+    });
+
+    await updatePet(mocks.deps, STAFF, { petId: 'pet-1', name: 'Rexy' } as never);
+
+    const data = mocks.natsMock.publish.mock.calls[0][1] as Uint8Array | string;
+    const text = typeof data === 'string' ? data : new TextDecoder().decode(data);
+    expect(JSON.parse(text).payload).toMatchObject({
+      petId: 'pet-1',
+      type: 'cat',
+      breed: 'Maine Coon',
+      version: 5,
+    });
   });
 
   it('stores the canonical image list on update: bare `images` folded into image_urls', async () => {

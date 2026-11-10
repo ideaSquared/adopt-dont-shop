@@ -27,10 +27,6 @@ const FosterCoordination = lazy(() => import('./pages/FosterCoordination'));
 const AcceptInvitation = lazy(() => import('./pages/AcceptInvitation'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const Analytics = lazy(() => import('./pages/Analytics'));
-// Reports (ADS-105)
-const Reports = lazy(() => import('./pages/Reports'));
-const ReportBuilderPage = lazy(() => import('./pages/ReportBuilderPage'));
-const ReportViewPage = lazy(() => import('./pages/ReportViewPage'));
 const RegisterRescue = lazy(() => import('./pages/RegisterRescue'));
 
 import * as styles from './AppRouting.css';
@@ -135,10 +131,6 @@ function App() {
                       />
                       <Route path="/foster" element={<FosterCoordination />} />
                       <Route path="/analytics" element={<Analytics />} />
-                      <Route path="/reports" element={<Reports />} />
-                      <Route path="/reports/new" element={<ReportBuilderPage />} />
-                      <Route path="/reports/:id" element={<ReportViewPage />} />
-                      <Route path="/reports/:id/edit" element={<ReportBuilderPage />} />
                       {/* ADS-480: 404 catch-all inside the protected subtree */}
                       <Route path="*" element={<NotFoundPage homeLabel="Back to dashboard" />} />
                     </Routes>

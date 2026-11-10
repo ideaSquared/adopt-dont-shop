@@ -23,7 +23,63 @@ import { PetDetailPanel, EntityDetailLayout } from '../components/detail';
 import type { AdminPet, PetStatus } from '../services/petService';
 import * as styles from './Pets.css';
 
-type BulkPetActionType = 'publish' | 'unpublish' | 'archive';
+type BulkPetActionType = 'publish' | 'unpublish' | 'archive' | 'feature' | 'unfeature';
+
+// Copy for each bulk action's confirmation. `{noun}` is "1 pet" / "3 pets".
+const BULK_ACTION_COPY: Record<
+  BulkPetActionType,
+  {
+    title: string;
+    description: string;
+    confirmLabel: string;
+    variant: 'danger' | 'warning' | 'info';
+    reasonLabel: string;
+    reasonPlaceholder: string;
+  }
+> = {
+  publish: {
+    title: 'Publish {noun}?',
+    description:
+      'This will set {noun} to available for adoption and they will appear in public listings.',
+    confirmLabel: 'Publish Pets',
+    variant: 'info',
+    reasonLabel: 'Reason for publishing',
+    reasonPlaceholder: 'Explain why these pets are being published...',
+  },
+  unpublish: {
+    title: 'Unpublish {noun}?',
+    description:
+      'This will set {noun} to unavailable and they will be removed from public listings.',
+    confirmLabel: 'Unpublish Pets',
+    variant: 'warning',
+    reasonLabel: 'Reason for unpublishing',
+    reasonPlaceholder: 'Explain why these pets are being unpublished...',
+  },
+  archive: {
+    title: 'Archive {noun}?',
+    description: 'This will archive {noun} and mark them as inactive.',
+    confirmLabel: 'Archive Pets',
+    variant: 'danger',
+    reasonLabel: 'Reason for archiving',
+    reasonPlaceholder: 'Explain why these pets are being archived...',
+  },
+  feature: {
+    title: 'Feature {noun}?',
+    description: 'This will show {noun} in Featured Pets on the adopter home page.',
+    confirmLabel: 'Feature Pets',
+    variant: 'info',
+    reasonLabel: 'Reason for featuring',
+    reasonPlaceholder: 'Explain why these pets are being featured...',
+  },
+  unfeature: {
+    title: 'Unfeature {noun}?',
+    description: 'This will remove {noun} from Featured Pets on the adopter home page.',
+    confirmLabel: 'Unfeature Pets',
+    variant: 'warning',
+    reasonLabel: 'Reason for unfeaturing',
+    reasonPlaceholder: 'Explain why these pets are no longer featured...',
+  },
+};
 
 // Text users see today; the colour comes from the shared pet status variant.
 const PET_STATUS_LABELS: Record<PetStatus, string> = {
@@ -129,6 +185,13 @@ const Pets: React.FC = () => {
 
     if (bulkAction === 'archive') {
       result = await bulkUpdatePets.mutateAsync({ petIds, operation: 'archive', reason });
+    } else if (bulkAction === 'feature' || bulkAction === 'unfeature') {
+      result = await bulkUpdatePets.mutateAsync({
+        petIds,
+        operation: 'feature',
+        data: { featured: bulkAction === 'feature' },
+        reason,
+      });
     } else {
       result = await bulkUpdatePets.mutateAsync({
         petIds,
@@ -141,6 +204,9 @@ const Pets: React.FC = () => {
     setBulkResult({ succeeded: result.successCount, failed: result.failedCount });
     setSelectedRows(new Set());
   };
+
+  const bulkCopy = BULK_ACTION_COPY[bulkAction ?? 'archive'];
+  const bulkNoun = `${selectedRows.size} pet${selectedRows.size !== 1 ? 's' : ''}`;
 
   const handleBulkModalClose = () => {
     setBulkAction(null);
@@ -288,6 +354,16 @@ const Pets: React.FC = () => {
                   onClick: () => setBulkAction('unpublish'),
                 },
                 {
+                  label: 'Feature',
+                  variant: 'neutral',
+                  onClick: () => setBulkAction('feature'),
+                },
+                {
+                  label: 'Unfeature',
+                  variant: 'neutral',
+                  onClick: () => setBulkAction('unfeature'),
+                },
+                {
                   label: 'Archive',
                   variant: 'danger',
                   onClick: () => setBulkAction('archive'),
@@ -321,55 +397,15 @@ const Pets: React.FC = () => {
         isOpen={bulkAction !== null}
         onClose={handleBulkModalClose}
         onConfirm={handleBulkConfirm}
-        title={(() => {
-          const count = selectedRows.size;
-          const noun = `${count} pet${count !== 1 ? 's' : ''}`;
-          if (bulkAction === 'publish') {
-            return `Publish ${noun}?`;
-          }
-          if (bulkAction === 'unpublish') {
-            return `Unpublish ${noun}?`;
-          }
-          return `Archive ${noun}?`;
-        })()}
-        description={(() => {
-          const count = selectedRows.size;
-          const noun = `${count} pet${count !== 1 ? 's' : ''}`;
-          if (bulkAction === 'publish') {
-            return `This will set ${noun} to available for adoption and they will appear in public listings.`;
-          }
-          if (bulkAction === 'unpublish') {
-            return `This will set ${noun} to unavailable and they will be removed from public listings.`;
-          }
-          return `This will archive ${noun} and mark them as inactive.`;
-        })()}
+        title={bulkCopy.title.replace('{noun}', bulkNoun)}
+        description={bulkCopy.description.replace('{noun}', bulkNoun)}
         selectedCount={selectedRows.size}
-        confirmLabel={
-          bulkAction === 'publish'
-            ? 'Publish Pets'
-            : bulkAction === 'unpublish'
-              ? 'Unpublish Pets'
-              : 'Archive Pets'
-        }
-        variant={
-          bulkAction === 'archive' ? 'danger' : bulkAction === 'unpublish' ? 'warning' : 'info'
-        }
+        confirmLabel={bulkCopy.confirmLabel}
+        variant={bulkCopy.variant}
         // ADS-651: every bulk state-change records a reason in the audit log.
         requireReason
-        reasonLabel={
-          bulkAction === 'publish'
-            ? 'Reason for publishing'
-            : bulkAction === 'unpublish'
-              ? 'Reason for unpublishing'
-              : 'Reason for archiving'
-        }
-        reasonPlaceholder={
-          bulkAction === 'publish'
-            ? 'Explain why these pets are being published...'
-            : bulkAction === 'unpublish'
-              ? 'Explain why these pets are being unpublished...'
-              : 'Explain why these pets are being archived...'
-        }
+        reasonLabel={bulkCopy.reasonLabel}
+        reasonPlaceholder={bulkCopy.reasonPlaceholder}
         isLoading={bulkUpdatePets.isPending}
         resultSummary={bulkResult}
       />

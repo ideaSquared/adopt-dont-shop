@@ -19,10 +19,20 @@ const staffMember = {
   addedAt: '2024-01-01',
 };
 
-const { useStaffMock, getPendingInvitationsMock, removeStaffMemberMock } = vi.hoisted(() => ({
+const {
+  useStaffMock,
+  getPendingInvitationsMock,
+  removeStaffMemberMock,
+  sendInvitationMock,
+  addStaffMemberMock,
+  updateStaffMemberMock,
+} = vi.hoisted(() => ({
   useStaffMock: vi.fn(),
   getPendingInvitationsMock: vi.fn(),
   removeStaffMemberMock: vi.fn(),
+  sendInvitationMock: vi.fn(),
+  addStaffMemberMock: vi.fn(),
+  updateStaffMemberMock: vi.fn(),
 }));
 
 vi.mock('../hooks/useStaff', () => ({ useStaff: useStaffMock }));
@@ -35,15 +45,21 @@ vi.mock('@adopt-dont-shop/lib.auth', () => ({
 vi.mock('../services/libraryServices', () => ({
   invitationService: {
     getPendingInvitations: getPendingInvitationsMock,
-    sendInvitation: vi.fn(),
+    sendInvitation: sendInvitationMock,
     cancelInvitation: vi.fn(),
   },
 }));
 
 vi.mock('../components/staff', () => ({
-  StaffOverview: () => null,
-  StaffForm: () => null,
-  InviteStaffModal: () => null,
+  InviteStaffModal: ({
+    onSubmit,
+  }: {
+    onSubmit: (invitation: { email: string; title: string }) => Promise<void>;
+  }) => (
+    <button onClick={() => onSubmit({ email: 'new@rescue.org', title: 'Volunteer' })}>
+      Send invitation
+    </button>
+  ),
   PendingInvitations: ({ invitations }: { invitations: Array<{ email: string }> }) => (
     <ul>
       {invitations.map(invitation => (
@@ -54,18 +70,38 @@ vi.mock('../components/staff', () => ({
   StaffList: ({
     staff,
     onRemove,
+    onEdit,
   }: {
     staff: Array<typeof staffMember>;
     onRemove?: (member: typeof staffMember) => void;
+    onEdit?: (member: typeof staffMember) => void;
   }) => (
     <ul>
       {staff.map(member => (
         <li key={member.userId}>
           {member.firstName}
-          <button onClick={() => onRemove?.(member)}>Remove {member.firstName}</button>
+          {onEdit && <button onClick={() => onEdit(member)}>Edit {member.firstName}</button>}
+          {onRemove && <button onClick={() => onRemove(member)}>Remove {member.firstName}</button>}
         </li>
       ))}
     </ul>
+  ),
+  StaffForm: ({
+    isEditing,
+    onSubmit,
+  }: {
+    isEditing?: boolean;
+    onSubmit: (data: { userId: string; title: string }) => Promise<void>;
+  }) => (
+    <button
+      onClick={() =>
+        onSubmit(
+          isEditing ? { userId: 'su2', title: 'Head Volunteer' } : { userId: 'su9', title: 'Vet' }
+        )
+      }
+    >
+      {isEditing ? 'Save title' : 'Save new staff member'}
+    </button>
   ),
 }));
 
@@ -76,9 +112,9 @@ const staffState = (overrides: Record<string, unknown> = {}) => ({
   loading: false,
   error: null,
   refetch: vi.fn(),
-  addStaffMember: vi.fn(),
+  addStaffMember: addStaffMemberMock,
   removeStaffMember: removeStaffMemberMock,
-  updateStaffMember: vi.fn(),
+  updateStaffMember: updateStaffMemberMock,
   ...overrides,
 });
 
@@ -117,6 +153,64 @@ describe('StaffManagement', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Remove Sarah' }));
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('not allowed'));
+  });
+
+  it('sends an invitation from the prominent Invite button and confirms with a toast', async () => {
+    sendInvitationMock.mockResolvedValue(undefined);
+
+    renderWithProviders(<StaffManagement />);
+    fireEvent.click(screen.getByRole('button', { name: 'Invite Staff Member' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
+
+    await waitFor(() =>
+      expect(sendInvitationMock).toHaveBeenCalledWith('rescue-1', {
+        email: 'new@rescue.org',
+        title: 'Volunteer',
+      })
+    );
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith('Invitation sent to new@rescue.org!')
+    );
+  });
+
+  it('adds an existing user to the rescue and confirms with a toast', async () => {
+    addStaffMemberMock.mockResolvedValue(undefined);
+    renderWithProviders(<StaffManagement />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add Existing User' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save new staff member' }));
+
+    await waitFor(() =>
+      expect(addStaffMemberMock).toHaveBeenCalledWith({ userId: 'su9', title: 'Vet' }, 'rescue-1')
+    );
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith('Staff member added successfully!')
+    );
+  });
+
+  it("updates a staff member's title and confirms with a toast", async () => {
+    updateStaffMemberMock.mockResolvedValue(undefined);
+    renderWithProviders(<StaffManagement />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Sarah' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save title' }));
+
+    await waitFor(() =>
+      expect(updateStaffMemberMock).toHaveBeenCalledWith(
+        'su2',
+        { title: 'Head Volunteer' },
+        'rescue-1'
+      )
+    );
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith('Staff member updated successfully!')
+    );
+  });
+
+  it('does not bring back the team overview', () => {
+    renderWithProviders(<StaffManagement />);
+
+    expect(screen.queryByText('Team Overview')).not.toBeInTheDocument();
   });
 
   it('offers a retry when the staff list fails to load', () => {

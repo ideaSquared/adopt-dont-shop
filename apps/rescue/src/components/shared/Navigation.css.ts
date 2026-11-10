@@ -20,7 +20,7 @@ export const mobileBar = style({
       position: 'sticky',
       top: 0,
       zIndex: 1000,
-      background: vars.colors.primaryTextEmphasis,
+      background: vars.gray['900'],
       color: 'white',
     },
   },

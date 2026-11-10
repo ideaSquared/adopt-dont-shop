@@ -151,7 +151,7 @@ type UpdateStatusBody = {
 type BulkUpdateBody = {
   petIds?: string[];
   operation?: string;
-  data?: { status?: string };
+  data?: { status?: string; featured?: boolean };
   reason?: string;
 };
 
@@ -1069,6 +1069,8 @@ export const registerPetsRoutes = async (
               type: 'object',
               properties: {
                 status: { type: 'string' },
+                // 'feature' only: false unfeatures. Defaults to true.
+                featured: { type: 'boolean' },
               },
             },
             reason: { type: 'string' },
@@ -1150,7 +1152,7 @@ export const registerPetsRoutes = async (
           case 'archive':
             return client.update({ petId, archived: true }, metadata);
           case 'feature':
-            return client.update({ petId, featured: true }, metadata);
+            return client.update({ petId, featured: body.data?.featured ?? true }, metadata);
           default:
             return client.delete({ petId }, metadata);
         }

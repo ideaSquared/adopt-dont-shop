@@ -109,7 +109,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ className }) => {
               icon={<Heart size='1em' aria-hidden='true' />}
               onClick={() => trackNavClick('favorites')}
             >
-              Favorites
+              Favourites
             </NavLink>
           )}
           {isAuthenticated && (

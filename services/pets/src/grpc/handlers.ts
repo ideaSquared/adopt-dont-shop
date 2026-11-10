@@ -23,7 +23,13 @@ import { randomUUID } from 'node:crypto';
 
 import { status as grpcStatus } from '@grpc/grpc-js';
 
-import { hasPermission, requirePermission, type Principal } from '@adopt-dont-shop/authz';
+import {
+  fieldWriteGuard,
+  hasPermission,
+  requirePermission,
+  resolveFieldAccessMap,
+  type Principal,
+} from '@adopt-dont-shop/authz';
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
 import {
   PETS_CREATE,
@@ -385,7 +391,14 @@ export async function createPet(
     publish({
       type: 'pets.created',
       id: `pets.created.${petId}`,
-      payload: { petId, rescueId, type: typeToDb(req.type) },
+      // The descriptions are what service.moderation's pets.created scanner checks.
+      payload: {
+        petId,
+        rescueId,
+        type: typeToDb(req.type),
+        shortDescription: req.shortDescription ?? null,
+        longDescription: req.longDescription ?? null,
+      },
     });
   });
 
@@ -713,6 +726,21 @@ export async function updatePet(
   assertRescueScopedUpdate(principal, existing);
   await assertRescueMayWrite(deps, principal, existing.rescue_id);
 
+  // Featuring a pet is a platform decision (admins today, paid slots later), so it is
+  // field-guarded on top of the rescue-scoped update permission.
+  if (req.featured !== undefined) {
+    const check = fieldWriteGuard(
+      { featured: req.featured },
+      resolveFieldAccessMap('pets', principal.roles)
+    );
+    if (!check.allowed) {
+      throw new HandlerError(
+        'PERMISSION_DENIED',
+        `cannot write field(s): ${check.blockedFields.join(', ')}`
+      );
+    }
+  }
+
   // Build the SET clause from the supplied optional fields only.
   const sets: string[] = [];
   const params: unknown[] = [];
@@ -825,7 +853,16 @@ export async function updatePet(
     publish({
       type: 'pets.updated',
       id: `pets.updated.${req.petId}.${updated.version}`,
-      payload: { petId: req.petId, rescueId: existing.rescue_id },
+      // type / breed let consumers that keep a copy (service.applications' list search columns)
+      // stay current without calling back.
+      payload: {
+        petId: req.petId,
+        rescueId: existing.rescue_id,
+        type: updated.type,
+        breed: storedBreedName(updated),
+        // Lets consumers keep only the latest edit when events arrive out of order.
+        version: updated.version,
+      },
     });
   });
 
@@ -833,6 +870,12 @@ export async function updatePet(
     throw new HandlerError('INTERNAL', 'update returned no rows');
   }
   return { pet: rowToProto(updated) };
+}
+
+// The free-text breed name the pet shows, kept in extra_json (the row holds only breed ids).
+function storedBreedName(row: PetRow): string | null {
+  const breed = isRecord(row.extra_json) ? row.extra_json.breed : undefined;
+  return typeof breed === 'string' && breed.trim() !== '' ? breed.trim() : null;
 }
 
 // --- UpdateStatus (event-sourced command) ----------------------------

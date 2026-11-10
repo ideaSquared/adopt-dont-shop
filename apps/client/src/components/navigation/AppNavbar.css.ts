@@ -132,8 +132,12 @@ globalStyle(`${badgeOverlay} span[role='status']`, {
   fontWeight: 800,
   lineHeight: 1,
   letterSpacing: '0.02em',
-  background: vars.colors.dangerHover,
-  color: vars.text.inverse,
-  border: `2px solid ${vars.colors.primaryActive}`,
+  // The navbar gradient is the same rose in every theme (its icons are a fixed
+  // white), so the badge uses fixed colours too: dark red on white is 7:1+ and
+  // stands out from the bar, where the theme-aware inverse text was dark-on-red
+  // in dark mode.
+  background: '#ffffff',
+  color: '#9f1239',
+  border: '2px solid #be123c',
   boxShadow: '0 1px 2px rgba(0, 0, 0, 0.25)',
 });

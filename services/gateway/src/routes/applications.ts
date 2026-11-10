@@ -78,6 +78,7 @@ import { buildPaginationEnvelope, parsePagination } from '../middleware/paginati
 import { lookupById } from '../utils/entity-names.js';
 
 import { mapWithConcurrency } from './reports.js';
+import { petToView } from './pets-view.js';
 
 // ADS-1323: applicationIds fanned out one gRPC call per id with no cap — an
 // unbounded array is a fan-out DoS vector, the same class of bug commit
@@ -130,6 +131,7 @@ const APPLICATION_LIST_ITEM_SCHEMA = {
     userEmail: { type: 'string' },
     petName: { type: 'string' },
     petType: { type: 'string' },
+    petBreed: { type: 'string' },
     rescueName: { type: 'string' },
   },
 } as const;
@@ -1039,6 +1041,13 @@ export const registerApplicationsRoutes = async (
             status: { type: 'string' },
             rescue: { type: 'string' },
             adopter: { type: 'string' },
+            petId: { type: 'string' },
+            search: { type: 'string' },
+            petType: { type: 'string' },
+            petBreed: { type: 'string' },
+            priority: { type: 'string' },
+            submittedFrom: { type: 'string' },
+            submittedTo: { type: 'string' },
           },
         },
         response: {
@@ -1085,6 +1094,13 @@ export const registerApplicationsRoutes = async (
         statusFilter: parseStatus(q.status),
         rescueIdFilter: q.rescue,
         adopterIdFilter: q.adopter,
+        petIdFilter: q.petId,
+        search: q.search,
+        petTypeFilter: q.petType,
+        petBreedFilter: q.petBreed,
+        priorityFilter: q.priority,
+        submittedFrom: q.submittedFrom,
+        submittedTo: q.submittedTo,
       };
       const meta = buildMetadata(req);
       try {
@@ -1808,6 +1824,7 @@ type ApplicationEnrichment = {
   userEmail: string;
   petName: string;
   petType: string;
+  petBreed: string;
   rescueName: string;
 };
 
@@ -1821,6 +1838,12 @@ function fullName(user: GetApplicantProfileResponse): string {
   return [user.firstName, user.lastName]
     .filter((part): part is string => part !== undefined && part !== '')
     .join(' ');
+}
+
+// The breed name the pets API shows (kept in the pet's extra_json; the proto has only ids).
+function petBreedName(pet: Pet): string {
+  const breed = petToView(pet).breed;
+  return typeof breed === 'string' ? breed : '';
 }
 
 function petTypeToken(type: PetsV1.PetType): string {
@@ -1865,6 +1888,7 @@ async function enrichApplicationViews(
       userEmail: user?.email ?? '',
       petName: pet?.name ?? '',
       petType: pet ? petTypeToken(pet.type) : '',
+      petBreed: pet ? petBreedName(pet) : '',
       rescueName: rescue?.name ?? '',
     };
   });

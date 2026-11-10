@@ -77,7 +77,7 @@ describe('SwipeCard — activity label (ADS-632)', () => {
         pet={makePet({
           activityLabel: {
             kind: 'similar_adopted_fast',
-            text: 'Pets like Buddy adopted in <30 days',
+            text: 'Pets like this get adopted fast',
           },
         })}
         onSwipe={vi.fn()}

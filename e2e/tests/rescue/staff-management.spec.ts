@@ -6,7 +6,7 @@ import { URLS } from '../../playwright.config';
 
 /**
  * The staff page lists the rescue's team with each member's name, role and
- * status. It runs on a rescue of its own whose team the test knows exactly: a
+ * email. It runs on a rescue of its own whose team the test knows exactly: a
  * manager and one volunteer.
  */
 test.describe('rescue staff management', () => {
@@ -14,7 +14,7 @@ test.describe('rescue staff management', () => {
   // (10 a minute per IP, shared with every other spec); a retry can wait out the window.
   test.describe.configure({ timeout: 180_000 });
 
-  test('the team is listed with names, roles and verified status, and can be searched', async ({
+  test('the team is listed with names, roles and emails, and others can be edited or removed', async ({
     browser,
     apiAs,
   }) => {
@@ -31,37 +31,26 @@ test.describe('rescue staff management', () => {
       await dismissCookieBannerWhenShown(page);
       await page.goto('/staff');
 
-      await expect(page.getByRole('heading', { name: 'Staff & Volunteer Management' })).toBeVisible(
-        { timeout: 30_000 }
-      );
-      const main = page.getByRole('main');
-      await expect(main.getByText('Showing 2 of 2 staff members')).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByRole('heading', { name: 'Staff', exact: true })).toBeVisible({
+        timeout: 30_000,
+      });
+      const rows = page.getByRole('list', { name: 'Staff members' }).getByRole('listitem');
+      await expect(rows).toHaveCount(2, { timeout: 30_000 });
 
-      // Each member: name, role (title), email and verified status on one card.
-      const managerCard = main
-        .getByText(rescue.owner.email, { exact: true })
-        .locator('xpath=ancestor::*[.//*[normalize-space()="Added:"]][1]');
+      // Each member: name, role (title) and email on one row.
+      const managerCard = rows.filter({ has: page.getByText(rescue.owner.email, { exact: true }) });
       await expect(managerCard.getByRole('heading', { name: 'Rae E2E' })).toBeVisible();
       await expect(managerCard.getByText('Manager', { exact: true })).toBeVisible();
-      await expect(managerCard.getByText('Verified')).toBeVisible();
 
-      const volunteerCard = main
-        .getByText(volunteer.email, { exact: true })
-        .locator('xpath=ancestor::*[.//*[normalize-space()="Added:"]][1]');
+      const volunteerCard = rows.filter({ has: page.getByText(volunteer.email, { exact: true }) });
       await expect(volunteerCard.getByRole('heading', { name: 'Vera E2E' })).toBeVisible();
       await expect(volunteerCard.getByText('Kennel Volunteer', { exact: true })).toBeVisible();
-      await expect(volunteerCard.getByText('Verified')).toBeVisible();
 
       // A manager can edit or remove others, but not themselves.
       await expect(volunteerCard.getByRole('button', { name: 'Edit' })).toBeVisible();
       await expect(volunteerCard.getByRole('button', { name: 'Remove' })).toBeVisible();
+      await expect(managerCard.getByRole('button', { name: 'Edit' })).toBeHidden();
       await expect(managerCard.getByRole('button', { name: 'Remove' })).toBeHidden();
-
-      // Searching by role narrows the list to that member.
-      await main.getByPlaceholder('Search staff members...').fill('Kennel Volunteer');
-      await expect(main.getByText('Showing 1 of 2 staff members')).toBeVisible();
-      await expect(main.getByText(volunteer.email, { exact: true })).toBeVisible();
-      await expect(main.getByText(rescue.owner.email, { exact: true })).toBeHidden();
     } finally {
       await context.close();
     }

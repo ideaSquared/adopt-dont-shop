@@ -8,13 +8,7 @@ import {
   toast,
   useConfirm,
 } from '@adopt-dont-shop/lib.components';
-import {
-  StaffList,
-  StaffForm,
-  StaffOverview,
-  InviteStaffModal,
-  PendingInvitations,
-} from '../components/staff';
+import { StaffList, StaffForm, InviteStaffModal, PendingInvitations } from '../components/staff';
 import { StaffMember, NewStaffMember } from '../types/staff';
 import { useStaff } from '../hooks/useStaff';
 import { useAuth, useHasPermission } from '@adopt-dont-shop/lib.auth';
@@ -154,17 +148,6 @@ const StaffManagement: React.FC = () => {
     }
   };
 
-  const handleEditStaff = (staffMember: StaffMember) => {
-    if (staffMember.userId === user?.userId) {
-      toast.error(
-        'You cannot edit your own profile. Please ask another admin to make changes to your account.'
-      );
-      return;
-    }
-
-    setEditingStaff(staffMember);
-  };
-
   const handleUpdateStaff = async (staffData: NewStaffMember) => {
     if (!editingStaff) {
       return;
@@ -218,15 +201,15 @@ const StaffManagement: React.FC = () => {
   };
 
   const handleCloseForm = () => {
-    setShowAddForm(false);
     setShowInviteModal(false);
+    setShowAddForm(false);
     setEditingStaff(null);
   };
 
   if (error) {
     return (
       <div className={styles.pageContainer}>
-        <PageHeader title="Staff & Volunteer Management" />
+        <PageHeader title="Staff" />
         <ErrorState title="Unable to Load Staff" message={error} onRetry={refetch} />
       </div>
     );
@@ -235,13 +218,14 @@ const StaffManagement: React.FC = () => {
   return (
     <div className={styles.pageContainer}>
       <PageHeader
-        title="Staff & Volunteer Management"
-        description="Manage your rescue team, send invitations, and coordinate activities."
+        title="Staff"
+        description="Invite people to help at your rescue, or remove people who no longer need access."
         actions={
           canAddStaff ? (
             <div className={styles.headerActions}>
               <Button
                 variant="primary"
+                size="lg"
                 onClick={() => setShowInviteModal(true)}
                 disabled={actionLoading}
               >
@@ -249,6 +233,7 @@ const StaffManagement: React.FC = () => {
               </Button>
               <Button
                 variant="outline"
+                size="lg"
                 onClick={() => setShowAddForm(true)}
                 disabled={actionLoading}
               >
@@ -260,11 +245,6 @@ const StaffManagement: React.FC = () => {
       />
 
       <div className={styles.pageContent}>
-        <div className={styles.section}>
-          <h2>Team Overview</h2>
-          <StaffOverview staff={staff} loading={loading} />
-        </div>
-
         {pendingInvitations.length > 0 && (
           <div className={styles.section}>
             <h2>Pending Invitations</h2>
@@ -278,15 +258,14 @@ const StaffManagement: React.FC = () => {
         )}
 
         <div className={styles.section}>
-          <h2>Staff Directory</h2>
+          <h2>Your team</h2>
           <StaffList
             staff={staff}
             loading={loading}
-            onEdit={canEditStaff ? handleEditStaff : undefined}
+            onEdit={canEditStaff ? setEditingStaff : undefined}
             onRemove={canDeleteStaff ? handleRemoveStaff : undefined}
             canEdit={canEditStaff}
             canRemove={canDeleteStaff}
-            showSearch={true}
             currentUserId={user?.userId}
           />
         </div>

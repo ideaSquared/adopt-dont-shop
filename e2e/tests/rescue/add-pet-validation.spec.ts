@@ -45,7 +45,7 @@ test.describe('add pet form validation', () => {
       buffer: Buffer.from('not a picture'),
     });
 
-    await expect(dialog.getByText('notes.txt is not a supported image type.')).toBeVisible();
+    await expect(dialog.getByText('notes.txt is not an accepted file type')).toBeVisible();
     await expect(dialog.getByRole('list', { name: 'Attached pet photos' })).toBeHidden();
   });
 

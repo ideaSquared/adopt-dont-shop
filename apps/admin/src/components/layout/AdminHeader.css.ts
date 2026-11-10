@@ -13,8 +13,8 @@ const MOBILE = `(max-width: ${SIDEBAR_MOBILE_MAX_WIDTH})`;
 export const headerContainer = style({
   height: '80px',
   flexShrink: 0,
-  background: '#ffffff',
-  borderBottom: '1px solid #e5e7eb',
+  background: vars.background.surface,
+  borderBottom: `1px solid ${vars.border.color.muted}`,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
@@ -53,12 +53,14 @@ export const userButton = style({
   gap: '0.75rem',
   padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
   background: 'transparent',
-  border: '1px solid #d1d5db',
+  // A native button's text colour is ButtonText; set it so the chevron follows the theme.
+  color: vars.text.primary,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: vars.border.radius.base,
   cursor: 'pointer',
   transition: 'all 0.2s ease',
   ':hover': {
-    background: '#f9fafb',
+    background: vars.background.muted,
     borderColor: vars.colors.primary,
   },
 });
@@ -79,11 +81,11 @@ export const userInfo = style({
 export const userName = style({
   fontWeight: vars.typography.weight.semibold,
   fontSize: vars.typography.size.sm,
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 export const userRole = style({
   fontSize: vars.typography.size.xs,
-  color: '#6b7280',
+  color: vars.text.secondary,
   textTransform: 'capitalize',
 });

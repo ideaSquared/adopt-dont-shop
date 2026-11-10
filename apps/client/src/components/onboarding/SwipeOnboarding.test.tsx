@@ -48,7 +48,7 @@ describe('SwipeOnboarding backdrop accessibility (UX P2 I)', () => {
     advancePastShowTimer();
 
     expect(
-      screen.getByRole('dialog', { name: /meet your new favorite feature/i })
+      screen.getByRole('dialog', { name: /meet your new favourite feature/i })
     ).toBeInTheDocument();
   });
 

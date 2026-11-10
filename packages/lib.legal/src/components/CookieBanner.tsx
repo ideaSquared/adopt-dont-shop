@@ -231,7 +231,7 @@ export const CookieBanner = () => {
                 aria-labelledby={analyticsLabelId}
                 data-testid='cookie-banner-analytics-toggle'
               />
-              <span id={analyticsLabelId}>
+              <span id={analyticsLabelId} className={styles.categoryText}>
                 Analytics
                 <span className={styles.categoryMeta}>Optional</span>
               </span>

@@ -350,7 +350,9 @@ export class DiscoveryService {
     // so timers don't accumulate across repeated calls in a long-lived SPA.
     this.clearPreloads();
 
-    pets.forEach((pet) => {
+    // Only the cards about to be shown: preloading all 20 queue images at once
+    // competes with the visible card's image and slows first paint.
+    pets.slice(0, 3).forEach((pet) => {
       if (pet.images && pet.images.length > 0) {
         // Preload first image immediately, others in background
         const img = new Image();

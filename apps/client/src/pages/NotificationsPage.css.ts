@@ -1,4 +1,4 @@
-import { globalStyle, style } from '@vanilla-extract/css';
+import { style } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 import { recipe } from '@vanilla-extract/recipes';
@@ -9,51 +9,93 @@ export const container = style({
   padding: vars.spacing['5'],
 });
 
-export const notificationCard = recipe({
+export const list = style({
+  listStyle: 'none',
+  margin: 0,
+  padding: 0,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.spacing['3'],
+});
+
+export const notificationItem = recipe({
   base: {
-    marginBottom: vars.spacing['3'],
+    display: 'block',
+    width: '100%',
+    minHeight: '5.5rem',
+    textAlign: 'left',
+    font: 'inherit',
+    color: vars.text.primary,
+    background: vars.background.surface,
+    border: `${vars.border.width.thin} solid ${vars.border.color.default}`,
+    borderRadius: vars.border.radius.lg,
+    padding: 0,
     cursor: 'pointer',
-    ':hover': {
-      transform: 'translateY(-2px)',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+    transition: `background ${vars.transitions.fast}, box-shadow ${vars.transitions.fast}`,
+    selectors: {
+      '&:hover': {
+        background: vars.background.muted,
+        boxShadow: vars.shadows.sm,
+      },
+      '&:focus-visible': {
+        outline: `${vars.border.width.base} solid ${vars.border.color.focus}`,
+        outlineOffset: '2px',
+      },
     },
   },
   variants: {
     isRead: {
       true: {
-        opacity: '0.6',
-        borderLeft: '4px solid transparent',
+        borderLeft: `4px solid transparent`,
       },
       false: {
-        opacity: '1',
-        borderLeft: '4px solid #6366f1',
+        borderLeft: `4px solid ${vars.colors.primary}`,
+        background: vars.colors.primaryBgSubtle,
       },
     },
   },
 });
 
 export const notificationContent = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.spacing['1'],
   padding: vars.spacing['3'],
 });
 
-globalStyle(`${notificationContent} .title`, {
+export const title = style({
   fontWeight: vars.typography.weight.semibold,
-  marginBottom: vars.spacing['2'],
   color: vars.text.primary,
 });
 
-globalStyle(`${notificationContent} .message`, {
-  color: vars.text.tertiary,
-  marginBottom: vars.spacing['2'],
+// Two lines at most, so every row stays a similar height however long the message is.
+export const message = style({
+  color: vars.text.secondary,
+  overflowWrap: 'anywhere',
 });
 
-globalStyle(`${notificationContent} .timestamp`, {
+export const timestamp = style({
   fontSize: vars.typography.size.sm,
-  color: vars.text.muted,
+  color: vars.text.tertiary,
+});
+
+export const srOnly = style({
+  position: 'absolute',
+  width: '1px',
+  height: '1px',
+  overflow: 'hidden',
+  clip: 'rect(0, 0, 0, 0)',
+  whiteSpace: 'nowrap',
 });
 
 export const loadingList = style({
   display: 'flex',
   flexDirection: 'column',
   gap: vars.spacing['3'],
+});
+
+export const loadMore = style({
+  display: 'flex',
+  justifyContent: 'center',
+  marginTop: vars.spacing['4'],
 });

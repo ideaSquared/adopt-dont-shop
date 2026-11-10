@@ -182,7 +182,7 @@ describe('rescue Navigation [ADS-645 / A7 ADS-1077]', () => {
     );
   });
 
-  it('places Staff, Analytics, Reports and Settings under Admin', () => {
+  it('places Staff, Analytics and Settings under Admin', () => {
     renderNav({ permissions: RESCUE_ADMIN_PERMS });
 
     const admin = screen.getByRole('group', { name: 'Admin' });
@@ -191,10 +191,7 @@ describe('rescue Navigation [ADS-645 / A7 ADS-1077]', () => {
       'href',
       '/analytics'
     );
-    expect(within(admin).getByRole('link', { name: /Reports/ })).toHaveAttribute(
-      'href',
-      '/reports'
-    );
+    expect(within(admin).queryByRole('link', { name: /Reports/ })).not.toBeInTheDocument();
     expect(within(admin).getByRole('link', { name: 'Settings' })).toHaveAttribute(
       'href',
       '/settings'

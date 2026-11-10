@@ -6,14 +6,14 @@ import type {
   DashboardNotification,
 } from '../types/dashboard';
 
-const { useDashboardDataMock, clearTokensMock, clearCsrfTokenMock, reloadMock } = vi.hoisted(
-  () => ({
+const { useDashboardDataMock, clearTokensMock, clearCsrfTokenMock, reloadMock, unreadMock } =
+  vi.hoisted(() => ({
     useDashboardDataMock: vi.fn(),
     clearTokensMock: vi.fn(),
     clearCsrfTokenMock: vi.fn(),
     reloadMock: vi.fn(),
-  })
-);
+    unreadMock: vi.fn(),
+  }));
 
 vi.mock('../hooks', () => ({
   useDashboardData: useDashboardDataMock,
@@ -29,8 +29,8 @@ vi.mock('../services/libraryServices', () => ({
   apiService: { clearCsrfToken: clearCsrfTokenMock },
 }));
 
-vi.mock('../components/dashboard/UnreadMessagesPanel', () => ({
-  UnreadMessagesPanel: () => <div data-testid="unread-messages-panel" />,
+vi.mock('@adopt-dont-shop/lib.chat', () => ({
+  useUnreadConversations: unreadMock,
 }));
 
 import Dashboard from './Dashboard';
@@ -69,6 +69,7 @@ const notifications: DashboardNotification[] = [
 describe('Rescue Dashboard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    unreadMock.mockReturnValue({ totalUnread: 0, unreadByConversationId: {} });
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: { ...window.location, reload: reloadMock },
@@ -122,7 +123,8 @@ describe('Rescue Dashboard', () => {
     expect(screen.getByText('No dashboard data available.')).toBeInTheDocument();
   });
 
-  it('renders metrics, activity, and notifications once data has loaded', () => {
+  it('lists what needs attention with a plain action for each item', () => {
+    unreadMock.mockReturnValue({ totalUnread: 2, unreadByConversationId: {} });
     useDashboardDataMock.mockReturnValue({
       dashboardData,
       recentActivities,
@@ -134,12 +136,49 @@ describe('Rescue Dashboard', () => {
     renderWithProviders(<Dashboard />);
 
     expect(screen.getByText(/welcome back, riley/i)).toBeInTheDocument();
-    expect(screen.getByTestId('unread-messages-panel')).toBeInTheDocument();
-    expect(screen.getByText('12')).toBeInTheDocument(); // total pets
-    expect(screen.getByText('Buddy was adopted')).toBeInTheDocument();
-    expect(screen.getByText('New application')).toBeInTheDocument();
-    // Unread badge shows the count of unread notifications.
-    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(screen.getByText(/3 adoption applications are waiting/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Review applications' })).toHaveAttribute(
+      'href',
+      '/applications'
+    );
+    expect(screen.getByText(/2 unread messages from adopters/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Read messages' })).toHaveAttribute(
+      'href',
+      '/communication'
+    );
+  });
+
+  it('shows the key numbers and no longer renders charts, activity or notification feeds', () => {
+    useDashboardDataMock.mockReturnValue({
+      dashboardData,
+      recentActivities,
+      notifications,
+      loading: false,
+      error: null,
+    });
+
+    renderWithProviders(<Dashboard />);
+
+    expect(screen.getByText('Pets listed')).toBeInTheDocument();
+    expect(screen.getByText('12')).toBeInTheDocument();
+    expect(screen.getByText('Adopted in the last 30 days')).toBeInTheDocument();
+    expect(screen.queryByText('Buddy was adopted')).not.toBeInTheDocument();
+    expect(screen.queryByText('Recent Notifications')).not.toBeInTheDocument();
+  });
+
+  it('says everything is done when nothing needs attention', () => {
+    useDashboardDataMock.mockReturnValue({
+      dashboardData: { ...dashboardData, pendingApplications: 0 },
+      recentActivities: [],
+      notifications: [],
+      loading: false,
+      error: null,
+    });
+
+    renderWithProviders(<Dashboard />);
+
+    expect(screen.getByTestId('all-clear')).toBeInTheDocument();
+    expect(screen.queryByTestId('attention-list')).not.toBeInTheDocument();
   });
 
   it('shows and dismisses the first-time onboarding banner when the rescue has no pets or applications', () => {

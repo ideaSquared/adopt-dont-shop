@@ -26,8 +26,10 @@ export const sidebar = recipe({
     position: 'sticky',
     top: 0,
     width: EXPANDED_WIDTH,
-    backgroundColor: vars.background.inverse,
-    color: vars.text.inverse,
+    // The sidebar is dark chrome in every theme. `background.inverse` / `text.inverse` flip to
+    // light in the dark theme, which turned the whole sidebar white, so use the fixed palette.
+    backgroundColor: vars.gray['900'],
+    color: vars.gray['100'],
     borderRight: `${vars.border.width.thin} solid ${vars.border.color.strong}`,
     transition: `width ${vars.transitions.base}, transform ${vars.transitions.base}`,
     overflowY: 'auto',
@@ -146,7 +148,7 @@ export const groupLabel = style({
   fontWeight: vars.typography.weight.semibold,
   letterSpacing: vars.typography.letterSpacing.wide,
   textTransform: 'uppercase',
-  color: vars.text.tertiary,
+  color: vars.gray['400'],
 });
 
 export const groupList = style({

@@ -58,7 +58,7 @@ const renderItem = (item: DropdownMenuItem, index: number) => (
       disabled={item.disabled}
       onSelect={item.onClick}
     >
-      {item.to ? <a href={item.to}>{renderItemBody(item)}</a> : <div>{renderItemBody(item)}</div>}
+      {item.to ? <a href={item.to}>{renderItemBody(item)}</a> : renderItemBody(item)}
     </DropdownMenuPrimitive.Item>
   </React.Fragment>
 );

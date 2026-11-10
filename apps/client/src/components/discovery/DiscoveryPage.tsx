@@ -358,7 +358,7 @@ export const DiscoveryPage: React.FC = () => {
             {showFilters ? 'Hide Filters' : 'Show Filters'}
           </button>
           <Link className={styles.actionLinkPrimary} to='/favorites'>
-            Favorites
+            Favourites
           </Link>
         </div>
       </div>

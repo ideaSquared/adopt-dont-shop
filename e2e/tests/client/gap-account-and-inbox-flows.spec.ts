@@ -292,12 +292,8 @@ test.describe('client profile, password, chat and notifications', () => {
     }
   });
 
-  // CLI-110. KNOWN APP BUG: opening a notification sends PATCH /notifications/mark-read
-  // with the card's `id`, but the gateway lists notifications as `notificationId`, so the
-  // request is 400 "notification_id must be a valid UUID" and the notification stays
-  // unread. Remove test.fail when a single notification can be marked read.
+  // CLI-110: opening one notification marks only that one read.
   test('opening one notification marks only that one read', async ({ browser, apiAs }) => {
-    test.fail(true, 'mark-read is sent an undefined id and answers 400');
     const rescueApi = await apiAs('rescue');
     const session = await openSignedInSession(browser, await createVerifiedAdopter('notify-one'));
     const { page } = session;
@@ -309,11 +305,17 @@ test.describe('client profile, password, chat and notifications', () => {
       const markAll = page.getByRole('button', { name: /^Mark All Read \(\d+\)$/ });
       const unread = Number(/\((\d+)\)/.exec((await markAll.textContent()) ?? '')?.[1]);
 
+      // Opening it marks it read and goes to the application it is about.
+      const markedRead = page.waitForResponse(
+        res => res.url().includes('/api/v1/notifications/mark-read') && res.ok()
+      );
       await page.getByText('Application approved!').click();
+      await markedRead;
+      await expect(page).toHaveURL(/\/applications\/[^/]+$/);
+
+      await page.goto('/notifications');
       await expect(page.getByRole('button', { name: `Mark All Read (${unread - 1})` })).toBeVisible(
-        {
-          timeout: 5_000,
-        }
+        { timeout: 20_000 }
       );
     } finally {
       await session.close();

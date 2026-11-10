@@ -18,7 +18,7 @@ export const LoginPromptModal: React.FC<LoginPromptModalProps> = ({
   const getActionMessage = () => {
     switch (action) {
       case 'like':
-        return 'add pets to your favorites';
+        return 'add pets to your favourites';
       case 'super_like':
         return 'super like pets';
       case 'pass':

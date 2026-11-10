@@ -789,15 +789,54 @@ describe('updateAccount', () => {
 
   it('updates only the supplied fields', async () => {
     const updated = userRowFixture({ first_name: 'Joey', timezone: 'Europe/London' });
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [updated] });
+    mocks.clientScript([updated]);
     const res = await updateAccount(mocks.deps, PRINCIPAL, {
       firstName: 'Joey',
       timezone: 'Europe/London',
     });
     expect(res.user.firstName).toBe('Joey');
-    const sql = mocks.poolMock.query.mock.calls[0][0] as string;
+    const sql = realQueries(mocks.clientMock.query)[0][0] as string;
     expect(sql).toContain('first_name = $1');
     expect(sql).toContain('timezone = $2');
     expect(sql).not.toContain('last_name');
+  });
+
+  // Decoded payloads of every event published on `subject`.
+  const publishedPayloads = (subject: string): Array<Record<string, unknown>> =>
+    mocks.natsMock.publish.mock.calls
+      .filter(c => c[0] === subject)
+      .map(c => {
+        const data = c[1] as Uint8Array | string;
+        const text = typeof data === 'string' ? data : new TextDecoder().decode(data);
+        return JSON.parse(text).payload;
+      });
+
+  it('announces a name change so services holding a copy of it stay current', async () => {
+    mocks.clientScript([
+      userRowFixture({
+        first_name: 'Joey',
+        updated_at: new Date('2026-03-01T10:00:00Z'),
+      }),
+    ]);
+
+    await updateAccount(mocks.deps, PRINCIPAL, { firstName: 'Joey' });
+
+    expect(publishedPayloads('auth.userProfileChanged')).toEqual([
+      {
+        userId: 'usr-1',
+        firstName: 'Joey',
+        lastName: 'Jenkinson',
+        email: 'a@example.com',
+        updatedAt: '2026-03-01T10:00:00.000Z',
+      },
+    ]);
+  });
+
+  it('does not announce a profile change when the name is untouched', async () => {
+    mocks.clientScript([userRowFixture({ timezone: 'Europe/London' })]);
+
+    await updateAccount(mocks.deps, PRINCIPAL, { timezone: 'Europe/London' });
+
+    expect(publishedPayloads('auth.userProfileChanged')).toEqual([]);
   });
 });

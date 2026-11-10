@@ -68,7 +68,7 @@ test.describe('signed-out visitor', () => {
     // links for the actions it does show, so assert that behaviour.
     await openAvailablePet(page);
 
-    await expect(page.getByRole('button', { name: /add to favorites/i })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /add to favou?rites/i })).toHaveCount(0);
     await expect(page.getByRole('link', { name: /sign in to apply/i })).toHaveAttribute(
       'href',
       /^\/login\?redirect=/,

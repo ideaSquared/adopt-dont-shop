@@ -100,4 +100,50 @@ describe('CheckboxInput', () => {
     });
     expect(checkbox).toHaveFocus();
   });
+
+  describe('without a ref from the caller', () => {
+    it('toggles when the visible box is clicked', async () => {
+      const user = userEvent.setup();
+      const handleChange = vi.fn();
+      renderWithTheme(<CheckboxInput label='Required field' onChange={handleChange} />);
+
+      await user.click(screen.getByText('✓'));
+
+      expect(handleChange).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('checkbox')).toBeChecked();
+    });
+
+    it('toggles with Enter and Space on its focusable wrapper', async () => {
+      const user = userEvent.setup();
+      const handleChange = vi.fn();
+      renderWithTheme(<CheckboxInput label='Required field' onChange={handleChange} />);
+
+      screen.getByRole('button').focus();
+      await user.keyboard('{Enter}');
+      await user.keyboard(' ');
+
+      expect(handleChange).toHaveBeenCalledTimes(2);
+      expect(screen.getByRole('checkbox')).not.toBeChecked();
+    });
+  });
+
+  it('toggles exactly once when its label is clicked, with or without a ref', async () => {
+    const user = userEvent.setup();
+    const WithRef: React.FC = () => {
+      const inputRef = useRef<HTMLInputElement>(null);
+      return <CheckboxInput ref={inputRef} label='With ref' />;
+    };
+    renderWithTheme(
+      <>
+        <CheckboxInput label='Without ref' />
+        <WithRef />
+      </>
+    );
+
+    await user.click(screen.getByText('Without ref'));
+    await user.click(screen.getByText('With ref'));
+
+    expect(screen.getByRole('checkbox', { name: 'Without ref' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'With ref' })).toBeChecked();
+  });
 });
