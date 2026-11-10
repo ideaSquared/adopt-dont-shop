@@ -20,6 +20,8 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
+import { NewPasswordSchema } from '@adopt-dont-shop/lib.validation';
+
 import type { CreateRescueRequest } from '@adopt-dont-shop/proto';
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
@@ -54,7 +56,7 @@ const RegisterRescueBodySchema = z.object({
   firstName: required(100),
   lastName: required(100),
   email: z.string().trim().min(1, 'is required').max(254).email('must be a valid email'),
-  password: z.string().min(8, 'must be at least 8 characters').max(128),
+  password: NewPasswordSchema,
   // Organisation. `rescueEmail` is the rescue's public contact address;
   // `email` above is the owner's login.
   name: required(255),

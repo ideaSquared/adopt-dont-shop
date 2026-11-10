@@ -142,7 +142,8 @@ describe('POST /api/v1/rescues/register', () => {
 
   it.each([
     ['a missing owner name', { firstName: '' }],
-    ['a weak password', { password: 'short' }],
+    ['a too short password', { password: 'short' }],
+    ['a long but weak password', { password: 'longbutweakpassword' }],
     ['an invalid owner email', { email: 'nope' }],
     ['a missing organisation name', { name: '' }],
     ['a missing address', { address: '' }],
