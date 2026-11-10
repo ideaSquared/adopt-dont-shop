@@ -838,10 +838,10 @@ export async function refreshToken(
     `SELECT jti FROM auth.revoked_tokens WHERE jti = $1`,
     [claims.jti]
   );
-  if (denied.rows.length > 0) {
-    tokenRefreshCounter.inc({ outcome: 'token_revoked' });
-    throw new HandlerError('UNAUTHENTICATED', 'refresh token revoked');
-  }
+  // A denylisted jti is NOT rejected here: rotation denylists the old jti in
+  // the same transaction that revokes its row, so a replay of a rotated token
+  // is denylisted AND has a revoked row. Rejecting early would make reuse
+  // detection unreachable; the check below folds the denylist in instead.
 
   // Confirm the persisted refresh row is still active. A row is active
   // only when BOTH revocation columns agree: `revoked_at` (set by the
@@ -854,7 +854,12 @@ export async function refreshToken(
     `SELECT * FROM auth.refresh_tokens WHERE token_hash = $1`,
     [incomingTokenHash]
   );
-  if (stored.rows.length === 0 || stored.rows[0].revoked_at !== null || stored.rows[0].is_revoked) {
+  if (
+    denied.rows.length > 0 ||
+    stored.rows.length === 0 ||
+    stored.rows[0].revoked_at !== null ||
+    stored.rows[0].is_revoked
+  ) {
     tokenRefreshCounter.inc({ outcome: 'token_revoked' });
     // When a revoked token row exists, it was either already rotated (reuse
     // attack) or explicitly revoked. Either way, revoking the entire family

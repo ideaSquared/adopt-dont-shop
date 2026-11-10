@@ -324,7 +324,9 @@ describe('auth_token_refreshes_total counter', () => {
       iat: 1700000000,
       exp: 1800000000,
     });
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ jti: 'revoked-jti' }] }); // denylist hit
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [{ jti: 'revoked-jti' }] }) // denylist hit
+      .mockResolvedValueOnce({ rows: [] }); // no stored row
 
     await expect(
       refreshToken(mocks.deps, null, { refreshToken: 'revoked.jwt' })

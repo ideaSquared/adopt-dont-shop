@@ -1113,7 +1113,9 @@ describe('refreshToken', () => {
       iat: 0,
       exp: 9_000_000_000,
     });
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ jti: 'j' }] });
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [{ jti: 'j' }] })
+      .mockResolvedValueOnce({ rows: [] }); // no stored row to attribute a family to
     await expect(refreshToken(mocks.deps, null, { refreshToken: 'tok' })).rejects.toMatchObject({
       code: 'UNAUTHENTICATED',
     });
@@ -1362,7 +1364,7 @@ describe('refreshToken', () => {
     });
     // Token was already rotated (attacker used it first)
     mocks.poolMock.query
-      .mockResolvedValueOnce({ rows: [] }) // not denylisted
+      .mockResolvedValueOnce({ rows: [{ jti: 'old-jti' }] }) // rotation denylisted the old jti
       .mockResolvedValueOnce({
         rows: [
           {
@@ -1409,7 +1411,7 @@ describe('refreshToken', () => {
       exp: 9_000_000_000,
     });
     mocks.poolMock.query
-      .mockResolvedValueOnce({ rows: [] }) // not denylisted
+      .mockResolvedValueOnce({ rows: [{ jti: 'stolen-jti' }] }) // rotation denylisted the old jti
       .mockResolvedValueOnce({
         rows: [
           {
