@@ -125,6 +125,20 @@ function makeMocks() {
   return { deps, poolMock: pool, clientMock: client, natsMock: nats };
 }
 
+// The decoded `{ id, payload }` envelopes published on `subject`.
+function publishedOn(mocks: ReturnType<typeof makeMocks>, subject: string) {
+  const decoder = new TextDecoder();
+  return mocks.natsMock.publish.mock.calls
+    .filter(([s]) => s === subject)
+    .map(
+      ([, data]) =>
+        JSON.parse(decoder.decode(data as Uint8Array)) as {
+          id: string;
+          payload: Record<string, unknown>;
+        }
+    );
+}
+
 const BASE_CREATE: CreateRescueRequest = {
   name: 'Pawsome',
   email: 'hi@p.example',
@@ -1050,8 +1064,70 @@ describe('verifyRescue', () => {
     } as never);
 
     expect(res.rescue.status).toBe(RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED);
-    expect(order).toEqual(['BEGIN', 'UPDATE', 'COMMIT', 'NATS_PUBLISH']);
-    expect(publishedSubjects).toEqual(['rescue.verified']);
+    expect(order).toEqual(['BEGIN', 'UPDATE', 'COMMIT', 'NATS_PUBLISH', 'NATS_PUBLISH']);
+    expect(publishedSubjects).toEqual(['rescue.verified', 'rescue.actionTaken']);
+  });
+
+  it('audits a verification as rescue.actionTaken, versioned by the row', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ status: 'pending' })] });
+    mocks.clientMock.query.mockResolvedValue({
+      rows: [rescueRow({ status: 'verified', version: 7 })],
+    });
+
+    await verifyRescue(mocks.deps, ADMIN, {
+      rescueId: 'rsc-1',
+      toStatus: RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED,
+      verificationSource: RescueV1.RescueVerificationSource.RESCUE_VERIFICATION_SOURCE_MANUAL,
+    } as never);
+
+    const [event] = publishedOn(mocks, 'rescue.actionTaken');
+    expect(event.id).toBe('rescue.actionTaken.verify.rsc-1.7');
+    expect(event.payload).toMatchObject({
+      eventId: event.id,
+      aggregateType: 'rescue',
+      aggregateId: 'rsc-1',
+      actorUserId: ADMIN.userId,
+      action: 'verify',
+      outcome: 'success',
+      payload: { fromStatus: 'pending', toStatus: 'verified', verificationSource: 'manual' },
+    });
+  });
+
+  it('audits a rejection with its reason', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ status: 'pending' })] });
+    mocks.clientMock.query.mockResolvedValue({
+      rows: [rescueRow({ status: 'rejected', version: 2 })],
+    });
+
+    await verifyRescue(mocks.deps, ADMIN, {
+      rescueId: 'rsc-1',
+      toStatus: RescueV1.RescueStatus.RESCUE_STATUS_REJECTED,
+      failureReason: 'no charity number',
+    } as never);
+
+    const [event] = publishedOn(mocks, 'rescue.actionTaken');
+    expect(event.payload).toMatchObject({
+      action: 'reject',
+      payload: { toStatus: 'rejected', reason: 'no charity number' },
+    });
+  });
+
+  it('does not audit when the verification rolls back', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ status: 'pending' })] });
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (/UPDATE rescue\.rescues/.test(sql)) {
+        throw new Error('boom');
+      }
+      return { rows: [] };
+    });
+
+    await expect(
+      verifyRescue(mocks.deps, ADMIN, {
+        rescueId: 'rsc-1',
+        toStatus: RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED,
+      } as never)
+    ).rejects.toThrow('boom');
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 
   it('INVALID_ARGUMENT when rejecting without a failure reason', async () => {
@@ -1078,7 +1154,7 @@ describe('verifyRescue', () => {
       failureReason: 'no proof of charity registration',
     } as never);
 
-    expect(publishedSubjects).toEqual(['rescue.rejected']);
+    expect(publishedSubjects).toEqual(['rescue.rejected', 'rescue.actionTaken']);
   });
 });
 
@@ -1128,8 +1204,8 @@ describe('deleteRescue', () => {
     } as never);
 
     expect(res.rescue.rescueId).toBe('rsc-1');
-    expect(order).toEqual(['BEGIN', 'UPDATE', 'COMMIT', 'NATS_PUBLISH']);
-    expect(publishedSubjects).toEqual(['rescue.deleted']);
+    expect(order).toEqual(['BEGIN', 'UPDATE', 'COMMIT', 'NATS_PUBLISH', 'NATS_PUBLISH']);
+    expect(publishedSubjects).toEqual(['rescue.deleted', 'rescue.actionTaken']);
     // The UPDATE only matches a not-yet-deleted row and stamps deleted_at.
     const sql = mocks.clientMock.query.mock.calls[1][0] as string;
     expect(sql).toMatch(/deleted_at = now\(\)/);
@@ -1140,13 +1216,46 @@ describe('deleteRescue', () => {
     mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow()] });
     let msgID: string | undefined;
     mocks.natsMock.publish.mockImplementation(
-      (_subject: string, _data: unknown, opts: { msgID?: string }) => {
-        msgID = opts.msgID;
+      (subject: string, _data: unknown, opts: { msgID?: string }) => {
+        if (subject === 'rescue.deleted') {
+          msgID = opts.msgID;
+        }
       }
     );
 
     await deleteRescue(mocks.deps, ADMIN, { rescueId: 'rsc-1' } as never);
     expect(msgID).toBe('rescue.deleted.rsc-1');
+  });
+
+  it('audits the delete as rescue.actionTaken', async () => {
+    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow()] });
+
+    await deleteRescue(mocks.deps, ADMIN, { rescueId: 'rsc-1', reason: 'duplicate listing' });
+
+    const [event] = publishedOn(mocks, 'rescue.actionTaken');
+    expect(event.payload).toMatchObject({
+      eventId: event.id,
+      service: 'service.rescue',
+      subject: 'rescue.actionTaken',
+      aggregateType: 'rescue',
+      aggregateId: 'rsc-1',
+      actorUserId: ADMIN.userId,
+      action: 'delete',
+      outcome: 'success',
+      payload: { reason: 'duplicate listing' },
+    });
+  });
+
+  it('does not audit when the delete rolls back', async () => {
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (/deleted_at = now\(\)/.test(sql)) {
+        throw new Error('boom');
+      }
+      return { rows: [] };
+    });
+
+    await expect(deleteRescue(mocks.deps, ADMIN, { rescueId: 'rsc-1' })).rejects.toThrow('boom');
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 
   it('NOT_FOUND when the rescue is missing or already soft-deleted (no publish)', async () => {

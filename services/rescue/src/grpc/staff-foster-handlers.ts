@@ -59,6 +59,7 @@ import {
   type UpdateStaffMemberResponse,
 } from '@adopt-dont-shop/proto';
 
+import { rescueActionTaken } from './audit.js';
 import { HandlerError, type HandlerDeps } from './handlers.js';
 import type { PetsClient } from './pets-client.js';
 import { principalToMetadata } from './principal.js';
@@ -331,6 +332,15 @@ export async function createStaffMember(
         addedBy: principal.userId,
       },
     });
+    publish(
+      rescueActionTaken(randomUUID(), {
+        aggregateType: 'staff_member',
+        aggregateId: staffMemberId,
+        action: 'create',
+        actorUserId: principal.userId,
+        details: { rescueId: req.rescueId, userId: req.userId, title: req.title ?? null },
+      })
+    );
 
     return row;
   });
@@ -370,12 +380,12 @@ export async function updateStaffMember(
       );
     }
 
-    const updateRes = await client.query<StaffMemberRow>(
+    const updateRes = await client.query<StaffMemberRow & { version: number }>(
       `
       UPDATE rescue.staff_members
       SET title = COALESCE($3, title), updated_by = $4, version = version + 1, updated_at = now()
       WHERE rescue_id = $1 AND user_id = $2
-      RETURNING ${STAFF_SELECT}
+      RETURNING ${STAFF_SELECT}, version
       `,
       [req.rescueId, req.userId, req.title ?? null, principal.userId]
     );
@@ -386,13 +396,24 @@ export async function updateStaffMember(
 
     publish({
       type: 'rescue.staffMemberUpdated',
-      id: `rescue.staffMemberUpdated.${row.staff_member_id}`,
+      // Versioned: the same membership can be updated many times, and a bare
+      // staff_member_id would be de-duped as a replay of the first update.
+      id: `rescue.staffMemberUpdated.${row.staff_member_id}:${updated.version}`,
       payload: {
         staffMemberId: row.staff_member_id,
         rescueId: req.rescueId,
         userId: req.userId,
       },
     });
+    publish(
+      rescueActionTaken(String(updated.version), {
+        aggregateType: 'staff_member',
+        aggregateId: row.staff_member_id,
+        action: 'update',
+        actorUserId: principal.userId,
+        details: { rescueId: req.rescueId, userId: req.userId, title: updated.title },
+      })
+    );
 
     return updated;
   });
@@ -457,6 +478,15 @@ export async function removeStaffMember(
         userId: req.userId,
       },
     });
+    publish(
+      rescueActionTaken(randomUUID(), {
+        aggregateType: 'staff_member',
+        aggregateId: row.staff_member_id,
+        action: 'remove',
+        actorUserId: principal.userId,
+        details: { rescueId: req.rescueId, userId: req.userId },
+      })
+    );
   });
 
   return { removed: true };

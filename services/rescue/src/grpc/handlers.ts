@@ -84,6 +84,7 @@ import {
   type RescueStatusDb,
   type RescueVerificationSourceDb,
 } from './enum-map.js';
+import { rescueActionTaken } from './audit.js';
 import { isLegalTransition } from './status-machine.js';
 import type { Coordinates, Geocoder } from '../geocode.js';
 
@@ -964,6 +965,30 @@ export async function verifyRescue(
         reason: req.failureReason ?? null,
       },
     });
+    if (updated) {
+      publish(
+        rescueActionTaken(String(updated.version), {
+          aggregateType: 'rescue',
+          aggregateId: req.rescueId,
+          action:
+            toStatus === 'verified'
+              ? 'verify'
+              : toStatus === 'rejected'
+                ? 'reject'
+                : 'updateStatus',
+          actorUserId: principal.userId,
+          details: {
+            fromStatus: existing.status,
+            toStatus,
+            reason: req.failureReason ?? null,
+            verificationSource:
+              req.verificationSource !== undefined
+                ? verificationSourceToDb(req.verificationSource)
+                : null,
+          },
+        })
+      );
+    }
   });
 
   if (!updated) {
@@ -1014,6 +1039,15 @@ export async function deleteRescue(
           reason: req.reason ?? null,
         },
       });
+      publish(
+        rescueActionTaken(randomUUID(), {
+          aggregateType: 'rescue',
+          aggregateId: req.rescueId,
+          action: 'delete',
+          actorUserId: principal.userId,
+          details: { reason: req.reason ?? null },
+        })
+      );
     }
   });
 
