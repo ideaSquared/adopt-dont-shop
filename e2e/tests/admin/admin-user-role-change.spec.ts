@@ -14,7 +14,7 @@ test.describe('changing a user role in the admin app', () => {
 
     await dismissCookieBannerPatiently(page);
     await page.goto('/users');
-    await page.getByPlaceholder(/search by name or email/i).fill(target.email);
+    await page.getByRole('searchbox', { name: 'Search', exact: true }).fill(target.email);
     // Wait for the debounced search to settle (header row + the one match).
     await expect(page.getByRole('row')).toHaveCount(2, { timeout: 30_000 });
     const row = page.getByRole('row').filter({ hasText: target.email });

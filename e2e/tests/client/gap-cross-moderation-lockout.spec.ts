@@ -70,7 +70,7 @@ test.describe('X-003 report and moderate', () => {
 
       // 3) Admin: suspend an account from the Users page.
       await admin.goto('/users');
-      await admin.getByPlaceholder(/search by name or email/i).fill(target.email);
+      await admin.getByRole('searchbox', { name: 'Search', exact: true }).fill(target.email);
       await expect(admin.getByRole('row')).toHaveCount(2, { timeout: 15_000 });
       const row = admin.getByRole('row').filter({ hasText: target.email });
       await row.getByRole('cell').filter({ hasText: target.email }).click();

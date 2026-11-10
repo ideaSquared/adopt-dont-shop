@@ -30,7 +30,7 @@ const findUserId = async (adminApi: AdminApi, email: string): Promise<string> =>
 const openUserActions = async (page: Page, account: Account): Promise<void> => {
   await page.goto('/users');
   await dismissCookieBannerPatiently(page);
-  await page.getByPlaceholder(/search by name or email/i).fill(account.email);
+  await page.getByRole('searchbox', { name: 'Search', exact: true }).fill(account.email);
   // Header row + the one match: the debounced search has settled.
   await expect(page.getByRole('row')).toHaveCount(2, { timeout: 15_000 });
   await page
