@@ -6,6 +6,7 @@
  * mutations that refetch on success.
  */
 import { renderHook, waitFor, act } from '@testing-library/react';
+import { QueryWrapper } from './query-test-wrapper';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const serviceMocks = vi.hoisted(() => ({
@@ -50,7 +51,7 @@ describe('useApplicationDetails', () => {
   });
 
   it('does not fetch when no application id is provided', async () => {
-    const { result } = renderHook(() => useApplicationDetails(null));
+    const { result } = renderHook(() => useApplicationDetails(null), { wrapper: QueryWrapper });
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(serviceMocks.getApplicationById).not.toHaveBeenCalled();
@@ -58,7 +59,7 @@ describe('useApplicationDetails', () => {
   });
 
   it('loads the application and all sub-resources', async () => {
-    const { result } = renderHook(() => useApplicationDetails('app1'));
+    const { result } = renderHook(() => useApplicationDetails('app1'), { wrapper: QueryWrapper });
 
     await waitFor(() => expect(result.current.application).not.toBeNull());
 
@@ -72,7 +73,7 @@ describe('useApplicationDetails', () => {
   it('isolates a references failure without losing the rest of the modal', async () => {
     serviceMocks.getReferenceChecks.mockRejectedValue(new Error('refs down'));
 
-    const { result } = renderHook(() => useApplicationDetails('app1'));
+    const { result } = renderHook(() => useApplicationDetails('app1'), { wrapper: QueryWrapper });
 
     await waitFor(() => expect(result.current.referencesError).toBe('refs down'));
     expect(result.current.application).not.toBeNull();
@@ -85,7 +86,7 @@ describe('useApplicationDetails', () => {
     serviceMocks.getHomeVisits.mockRejectedValue(new Error('visits down'));
     serviceMocks.getApplicationTimeline.mockRejectedValue(new Error('timeline down'));
 
-    const { result } = renderHook(() => useApplicationDetails('app1'));
+    const { result } = renderHook(() => useApplicationDetails('app1'), { wrapper: QueryWrapper });
 
     await waitFor(() => expect(result.current.homeVisitsError).toBe('visits down'));
     expect(result.current.timelineError).toBe('timeline down');
@@ -95,14 +96,14 @@ describe('useApplicationDetails', () => {
   it('sets a top-level error when the main application fetch fails', async () => {
     serviceMocks.getApplicationById.mockRejectedValue(new Error('not found'));
 
-    const { result } = renderHook(() => useApplicationDetails('app1'));
+    const { result } = renderHook(() => useApplicationDetails('app1'), { wrapper: QueryWrapper });
 
     await waitFor(() => expect(result.current.error).toBe('not found'));
   });
 
   it('updates a reference check then refetches', async () => {
     serviceMocks.updateReferenceCheck.mockResolvedValue(undefined);
-    const { result } = renderHook(() => useApplicationDetails('app1'));
+    const { result } = renderHook(() => useApplicationDetails('app1'), { wrapper: QueryWrapper });
     await waitFor(() => expect(result.current.application).not.toBeNull());
 
     await act(async () => {
@@ -120,7 +121,7 @@ describe('useApplicationDetails', () => {
 
   it('schedules a home visit then refetches', async () => {
     serviceMocks.scheduleHomeVisit.mockResolvedValue(undefined);
-    const { result } = renderHook(() => useApplicationDetails('app1'));
+    const { result } = renderHook(() => useApplicationDetails('app1'), { wrapper: QueryWrapper });
     await waitFor(() => expect(result.current.application).not.toBeNull());
 
     const visit = {
@@ -137,7 +138,7 @@ describe('useApplicationDetails', () => {
 
   it('adds a timeline event then refetches', async () => {
     serviceMocks.addTimelineEvent.mockResolvedValue(undefined);
-    const { result } = renderHook(() => useApplicationDetails('app1'));
+    const { result } = renderHook(() => useApplicationDetails('app1'), { wrapper: QueryWrapper });
     await waitFor(() => expect(result.current.application).not.toBeNull());
 
     await act(async () => {
@@ -149,7 +150,7 @@ describe('useApplicationDetails', () => {
 
   it('transitions stage and rethrows on failure so the modal can react', async () => {
     serviceMocks.transitionStage.mockRejectedValue(new Error('transition failed'));
-    const { result } = renderHook(() => useApplicationDetails('app1'));
+    const { result } = renderHook(() => useApplicationDetails('app1'), { wrapper: QueryWrapper });
     await waitFor(() => expect(result.current.application).not.toBeNull());
 
     let thrown: unknown;
@@ -168,13 +169,13 @@ describe('useApplicationDetails', () => {
 
   it('surfaces an update error without throwing for reference updates', async () => {
     serviceMocks.updateReferenceCheck.mockRejectedValue(new Error('update failed'));
-    const { result } = renderHook(() => useApplicationDetails('app1'));
+    const { result } = renderHook(() => useApplicationDetails('app1'), { wrapper: QueryWrapper });
     await waitFor(() => expect(result.current.application).not.toBeNull());
 
     await act(async () => {
       await result.current.updateReferenceCheck('ref1', 'verified');
     });
 
-    expect(result.current.error).toBe('update failed');
+    await waitFor(() => expect(result.current.error).toBe('update failed'));
   });
 });

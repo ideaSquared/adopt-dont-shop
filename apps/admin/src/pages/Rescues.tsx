@@ -1,17 +1,20 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import clsx from 'clsx';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
 import {
+  Alert,
+  Button,
   DataTable,
   type DataTableColumn,
-  Heading,
-  Text,
-  Input,
+  type FilterConfig,
+  PageHeader,
+  SearchToolbar,
+  Stack,
+  StatusBadge,
   useDebouncedValue,
 } from '@adopt-dont-shop/lib.components';
-import { CircleAlert, CircleCheck, CircleX, Eye, Mail, MapPin, Search } from 'lucide-react';
+import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
+import { CircleCheck, CircleX, Eye, Mail, MapPin } from 'lucide-react';
 import type { AdminRescue } from '@/types/rescue';
-import { rescueService } from '@/services/rescueService';
 import { exportData, type ExportColumn } from '@/services/exportService';
 import {
   RescueVerificationModal,
@@ -21,29 +24,33 @@ import {
 import { RescueDetailPanel, EntityDetailLayout } from '@/components/detail';
 import { ExportButton, BulkActionToolbar } from '@/components/ui';
 import { useBulkUpdateRescues } from '@/hooks';
+import { useRescues } from '@/hooks/useRescues';
 import * as styles from './Rescues.css';
 
-const getStatusBadge = (status: string) => {
-  switch (status) {
-    case 'verified':
-      return <span className={styles.badgeSuccess}>Verified</span>;
-    case 'pending':
-      return <span className={styles.badgeWarning}>Pending Review</span>;
-    case 'rejected':
-      return <span className={styles.badgeDanger}>Rejected</span>;
-    default:
-      return <span className={styles.badgeNeutral}>{status}</span>;
-  }
+// Text users see today; the colour comes from the shared rescue status variant.
+const RESCUE_BADGE_LABELS: Record<string, string> = {
+  verified: 'Verified',
+  pending: 'Pending Review',
+  rejected: 'Rejected',
 };
 
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-};
+const getStatusBadge = (status: string) => (
+  <StatusBadge kind='rescue' status={status} label={RESCUE_BADGE_LABELS[status] ?? status} />
+);
+
+const filterConfig: FilterConfig[] = [
+  {
+    name: 'status',
+    label: 'Verification Status',
+    type: 'select',
+    options: [
+      { value: 'all', label: 'All Statuses' },
+      { value: 'verified', label: 'Verified' },
+      { value: 'pending', label: 'Pending Review' },
+      { value: 'rejected', label: 'Rejected' },
+    ],
+  },
+];
 
 const VALID_RESCUE_STATUS_FILTERS: ReadonlySet<string> = new Set([
   'pending',
@@ -58,10 +65,6 @@ const Rescues: React.FC = () => {
   const [searchParams] = useSearchParams();
   const initialStatusParam = searchParams.get('status');
 
-  const [rescues, setRescues] = useState<AdminRescue[]>([]);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
   const [statusFilter, setStatusFilter] = useState<string>(
@@ -89,35 +92,26 @@ const Rescues: React.FC = () => {
   const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: number } | null>(null);
   const bulkUpdateRescues = useBulkUpdateRescues();
 
-  const fetchRescues = useCallback(async (): Promise<void> => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const result = await rescueService.getAll({
-        page: currentPage,
-        limit: itemsPerPage,
-        search: debouncedSearchQuery || undefined,
-        status:
-          statusFilter !== 'all'
-            ? (statusFilter as 'pending' | 'verified' | 'suspended' | 'inactive')
-            : undefined,
-      });
-
-      setRescues(result.data);
-      setTotalPages(result.pagination?.totalPages ?? 1);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch rescues');
-      setRescues([]);
-      setTotalPages(1);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentPage, itemsPerPage, debouncedSearchQuery, statusFilter]);
-
-  useEffect(() => {
-    fetchRescues();
-  }, [fetchRescues]);
+  const rescuesQuery = useRescues({
+    page: currentPage,
+    limit: itemsPerPage,
+    search: debouncedSearchQuery || undefined,
+    status:
+      statusFilter !== 'all'
+        ? (statusFilter as 'pending' | 'verified' | 'suspended' | 'inactive')
+        : undefined,
+  });
+  const rescues: AdminRescue[] = rescuesQuery.data?.data ?? [];
+  const totalPages = rescuesQuery.data?.pagination?.totalPages ?? 1;
+  const loading = rescuesQuery.isFetching;
+  const error = rescuesQuery.error
+    ? rescuesQuery.error instanceof Error
+      ? rescuesQuery.error.message
+      : 'Failed to fetch rescues'
+    : null;
+  const fetchRescues = (): void => {
+    void rescuesQuery.refetch();
+  };
 
   // Keep the detail pane in sync with the URL param for deep-linking.
   useEffect(() => {
@@ -239,7 +233,7 @@ const Rescues: React.FC = () => {
       label: 'Registered',
       width: '120px',
       sortable: false,
-      render: (_value, row) => formatDate((row as unknown as AdminRescue).createdAt),
+      render: (_value, row) => formatDisplayDate((row as unknown as AdminRescue).createdAt),
     },
     {
       key: 'verified',
@@ -248,7 +242,7 @@ const Rescues: React.FC = () => {
       sortable: false,
       render: (_value, row) => {
         const rescue = row as unknown as AdminRescue;
-        return rescue.verifiedAt ? formatDate(rescue.verifiedAt) : '-';
+        return rescue.verifiedAt ? formatDisplayDate(rescue.verifiedAt) : '-';
       },
     },
     {
@@ -266,42 +260,46 @@ const Rescues: React.FC = () => {
             onKeyDown={e => e.stopPropagation()}
             role='presentation'
           >
-            <button
-              className={styles.iconButton}
+            <Button
+              variant='ghost'
+              size='sm'
               title='View details'
               aria-label='View details'
               onClick={() => handleViewDetails(rescue.rescueId)}
             >
               <Eye size='1em' aria-hidden />
-            </button>
+            </Button>
             {rescue.status === 'pending' && (
               <>
-                <button
-                  className={clsx(styles.iconButton, styles.approveButton)}
+                <Button
+                  variant='success'
+                  size='sm'
                   title='Approve'
                   aria-label='Approve'
                   onClick={() => handleApprove(rescue)}
                 >
                   <CircleCheck size='1em' aria-hidden />
-                </button>
-                <button
-                  className={clsx(styles.iconButton, styles.rejectButton)}
+                </Button>
+                <Button
+                  variant='danger'
+                  size='sm'
                   title='Reject'
                   aria-label='Reject'
                   onClick={() => handleReject(rescue)}
                 >
                   <CircleX size='1em' aria-hidden />
-                </button>
+                </Button>
               </>
             )}
-            <button
-              className={styles.iconButton}
+            <Button
+              variant='ghost'
+              size='sm'
               title='Send email'
               aria-label='Send email'
               onClick={() => handleSendEmail(rescue)}
             >
               <Mail size='1em' aria-hidden />
-            </button>
+            </Button>
           </div>
         );
       },
@@ -309,57 +307,30 @@ const Rescues: React.FC = () => {
   ];
 
   return (
-    <div className={styles.pageContainer}>
-      <div className={styles.pageHeader}>
-        <div className={styles.headerLeft}>
-          <Heading level='h1'>Rescue Management</Heading>
-          <Text>Manage rescue organizations and verification status</Text>
-        </div>
-        <div className={styles.headerActions}>
+    <Stack spacing='lg'>
+      <PageHeader
+        title='Rescue Management'
+        description='Manage rescue organizations and verification status'
+        actions={
           <ExportButton onExport={handleExport} disabled={loading || rescues.length === 0} />
-        </div>
-      </div>
+        }
+      />
 
-      {error && (
-        <div className={styles.errorMessage} role='alert'>
-          <CircleAlert size='1em' />
-          {error}
-        </div>
-      )}
+      {error && <Alert variant='error'>{error}</Alert>}
 
       <EntityDetailLayout
         detailOpen={detailRescueId !== null}
         onBack={handleCloseDetail}
         list={
           <>
-            <div className={styles.filterBar}>
-              <div className={styles.searchInputWrapper}>
-                <Search size='1em' />
-                <Input
-                  type='text'
-                  placeholder='Search by name, city, or email...'
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                />
-              </div>
-
-              <div className={styles.filterGroup}>
-                <label className={styles.filterLabel} htmlFor='rescue-status-filter'>
-                  Verification Status
-                </label>
-                <select
-                  id='rescue-status-filter'
-                  className={styles.select}
-                  value={statusFilter}
-                  onChange={e => setStatusFilter(e.target.value)}
-                >
-                  <option value='all'>All Statuses</option>
-                  <option value='verified'>Verified</option>
-                  <option value='pending'>Pending Review</option>
-                  <option value='rejected'>Rejected</option>
-                </select>
-              </div>
-            </div>
+            <SearchToolbar
+              searchValue={searchQuery}
+              onSearchChange={setSearchQuery}
+              searchPlaceholder='Search by name, city, or email...'
+              filterConfig={filterConfig}
+              filters={{ status: statusFilter }}
+              onFilterChange={(_name, value) => setStatusFilter(String(value))}
+            />
 
             <BulkActionToolbar
               selectedCount={selectedRows.size}
@@ -466,7 +437,7 @@ const Rescues: React.FC = () => {
         isLoading={bulkUpdateRescues.isPending}
         resultSummary={bulkResult}
       />
-    </div>
+    </Stack>
   );
 };
 

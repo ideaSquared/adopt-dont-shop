@@ -312,7 +312,7 @@ describe('Content Moderation page', () => {
 
     it('shows the Content Type filter', () => {
       renderWithProviders(<Moderation />);
-      expect(screen.getByText('Content Type')).toBeInTheDocument();
+      expect(screen.getByLabelText('Content Type')).toBeInTheDocument();
     });
 
     it('passes status filter to reports hook when admin selects Pending', async () => {

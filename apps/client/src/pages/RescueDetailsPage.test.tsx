@@ -10,6 +10,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import { renderWithProviders, screen } from '@/test-utils';
 import type { Rescue, Pet, PaginatedResponse } from '@/services';
 
@@ -31,6 +32,10 @@ vi.mock('@/services', () => ({
   petService: {
     getPetsByRescue: (...args: unknown[]) => getPetsByRescueMock(...args),
   },
+}));
+
+vi.mock('@/components/PetCard', () => ({
+  PetCard: ({ pet }: { pet: { name: string } }) => <div>{pet.name}</div>,
 }));
 
 import { RescueDetailsPage } from './RescueDetailsPage';
@@ -111,5 +116,27 @@ describe('RescueDetailsPage – contact fields present (authenticated viewer)', 
 
     const contactLink = await screen.findByRole('link', { name: /contact rescue/i });
     expect(contactLink).toHaveAttribute('href', 'mailto:team@happytails.org');
+  });
+});
+
+describe('RescueDetailsPage – pet pagination', () => {
+  const pageOf = (petId: string, page: number, hasNext: boolean): PaginatedResponse<Pet> => ({
+    data: [{ pet_id: petId, name: `Pet ${petId}`, type: 'dog', status: 'available' } as Pet],
+    pagination: { page, limit: 1, total: 2, totalPages: 2, hasNext, hasPrev: page > 1 },
+  });
+
+  it('appends the next page of pets when Load More Pets is pressed', async () => {
+    getRescueMock.mockResolvedValue(buildRescue());
+    getPetsByRescueMock.mockImplementation((_id: string, page: number) =>
+      Promise.resolve(page === 1 ? pageOf('a', 1, true) : pageOf('b', 2, false))
+    );
+
+    renderWithProviders(<RescueDetailsPage />);
+
+    expect(await screen.findByText('Showing 1 of 2 pets')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /load more pets/i }));
+
+    expect(await screen.findByText('Showing 2 of 2 pets')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /load more pets/i })).not.toBeInTheDocument();
   });
 });

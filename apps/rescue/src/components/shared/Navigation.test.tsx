@@ -86,6 +86,12 @@ vi.mock('@adopt-dont-shop/lib.components', async () => {
   return {
     Logo: () => <div data-testid="logo" />,
     NavSidebar,
+    Avatar: ({ name }: { name?: string }) => <div role="img" aria-label={`Avatar for ${name}`} />,
+    Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+      <button type="button" {...props}>
+        {children}
+      </button>
+    ),
   };
 });
 
@@ -274,6 +280,13 @@ describe('rescue Navigation [ADS-645 / A7 ADS-1077]', () => {
     await userEvent.click(signOut);
 
     expect(logout).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the signed-in user as an avatar with their role', () => {
+    renderNav({ permissions: RESCUE_ADMIN_PERMS });
+
+    expect(screen.getByRole('img', { name: 'Avatar for Test User' })).toBeInTheDocument();
+    expect(screen.getByText('Rescue Staff')).toBeInTheDocument();
   });
 
   it('opens and closes the mobile drawer via the hamburger and close controls', async () => {

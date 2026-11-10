@@ -93,63 +93,10 @@ globalStyle(`${mobileViewHideChat} > :last-child`, {
   },
 });
 
-export const toolbar = style({
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.5rem',
-  marginTop: '1rem',
-  flexWrap: 'wrap',
-});
-
-export const filterTab = style({
-  padding: '0.375rem 0.875rem',
-  borderRadius: '9999px',
-  border: `1px solid ${vars.border.color.muted}`,
-  background: vars.background.surface,
-  color: vars.text.secondary,
-  fontWeight: 500,
-  fontSize: '0.875rem',
-  cursor: 'pointer',
-  selectors: {
-    '&:hover': {
-      background: vars.background.muted,
-    },
-  },
-});
-
-export const filterTabActive = style({
-  background: vars.colors.infoHover,
-  borderColor: vars.colors.infoHover,
-  color: vars.background.surface,
-  selectors: {
-    '&:hover': {
-      background: vars.colors.infoActive,
-    },
-  },
-});
-
-export const actionGroup = style({
-  marginLeft: 'auto',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.5rem',
-});
-
 export const loadingContainer = style({
   flex: 1,
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
   background: vars.background.surface,
-});
-
-export const errorMessage = style({
-  background: vars.colors.dangerBgSubtle,
-  color: vars.colors.dangerTextEmphasis,
-  border: `1px solid ${vars.colors.dangerBorderSubtle}`,
-  padding: '1.5rem',
-  borderRadius: '8px',
-  margin: '2rem auto',
-  textAlign: 'center',
-  maxWidth: '400px',
 });

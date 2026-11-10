@@ -1,15 +1,22 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, useParams, useNavigate } from 'react-router';
+import { useMutation } from '@tanstack/react-query';
 import {
+  Badge,
   Button,
   DataTable,
   type DataTableColumn,
-  Input,
+  ErrorState,
+  MetricCard,
+  PageHeader,
+  SearchToolbar,
+  Stack,
+  StatusBadge,
   toast,
   useDebouncedValue,
   useFilterParamSetter,
 } from '@adopt-dont-shop/lib.components';
-import { CircleCheck, Eye, Search, Shield, TriangleAlert } from 'lucide-react';
+import { CircleCheck, Eye, Shield, TriangleAlert } from 'lucide-react';
 import { BulkActionToolbar } from '../components/ui';
 import {
   useReports,
@@ -35,21 +42,6 @@ import {
   type BulkModerationSubmitData,
 } from '../components/moderation/BulkModerationModal';
 import * as styles from './Moderation.css';
-
-const getStatusBadgeClass = (status: string): string => {
-  switch (status) {
-    case 'pending':
-      return styles.badgeDanger;
-    case 'under_review':
-      return styles.badgeInfo;
-    case 'resolved':
-      return styles.badgeSuccess;
-    case 'dismissed':
-      return styles.badgeNeutral;
-    default:
-      return styles.badgeNeutral;
-  }
-};
 
 const getStatusBadgeLabel = (status: string): string => {
   switch (status) {
@@ -81,18 +73,18 @@ const getPriorityIndicatorClass = (level: string): string => {
   }
 };
 
-const getContentTypeTagClass = (type: string): string => {
+const getContentTypeVariant = (type: string): React.ComponentProps<typeof Badge>['variant'] => {
   switch (type) {
     case 'pet':
-      return styles.contentTypeTagPet;
+      return 'success';
     case 'message':
-      return styles.contentTypeTagMessage;
+      return 'info';
     case 'user':
-      return styles.contentTypeTagUser;
+      return 'primary';
     case 'rescue':
-      return styles.contentTypeTagRescue;
+      return 'warning';
     default:
-      return styles.contentTypeTagDefault;
+      return 'neutral';
   }
 };
 
@@ -167,6 +159,15 @@ const Moderation: React.FC = () => {
 
   const setFilterParam = useFilterParamSetter(setSearchParams);
 
+  const handleFilterChange = (name: string, value: string | boolean) => {
+    const next = String(value);
+    if (name === 'entityType') {
+      setEntityTypeParam(next);
+      return;
+    }
+    setFilterParam(name, next);
+  };
+
   const { reportId } = useParams<{ reportId?: string }>();
   const navigate = useNavigate();
 
@@ -187,7 +188,6 @@ const Moderation: React.FC = () => {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [bulkKind, setBulkKind] = useState<BulkModerationActionKind | null>(null);
   const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: number } | null>(null);
-  const [isBulkLoading, setIsBulkLoading] = useState(false);
 
   const {
     data: reportsData,
@@ -328,14 +328,9 @@ const Moderation: React.FC = () => {
     setBulkResult(null);
   };
 
-  const handleBulkSubmit = async (data: BulkModerationSubmitData) => {
-    const reportIds = Array.from(selectedRows);
-    if (reportIds.length === 0) {
-      return;
-    }
-
-    setIsBulkLoading(true);
-    try {
+  const bulkMutation = useMutation({
+    mutationFn: async (data: BulkModerationSubmitData) => {
+      const reportIds = Array.from(selectedRows);
       if (data.kind === 'dismiss') {
         // Backend writes one audit log row per dismissed report.
         const result = await moderationService.bulkUpdateReports({
@@ -343,11 +338,9 @@ const Moderation: React.FC = () => {
           action: 'dismiss',
           resolutionNotes: data.reason,
         });
-        setBulkResult({
-          succeeded: result.updated,
-          failed: reportIds.length - result.updated,
-        });
-      } else if (data.kind === 'sanction' && data.sanction) {
+        return { succeeded: result.updated, failed: reportIds.length - result.updated };
+      }
+      if (data.kind === 'sanction' && data.sanction) {
         // Bulk sanctions: iterate per report so each action creates its own
         // moderation action + audit-log entry (MODERATION_ACTION_TAKEN).
         const outcomes = await Promise.all(
@@ -373,16 +366,27 @@ const Moderation: React.FC = () => {
             }
           })
         );
-        setBulkResult({
+        return {
           succeeded: outcomes.filter(Boolean).length,
           failed: outcomes.filter(o => !o).length,
-        });
+        };
+      }
+      return null;
+    },
+    onSuccess: summary => {
+      if (summary) {
+        setBulkResult(summary);
       }
       setSelectedRows(new Set());
-      await refetch();
-    } finally {
-      setIsBulkLoading(false);
+    },
+    onSettled: () => refetch(),
+  });
+
+  const handleBulkSubmit = async (data: BulkModerationSubmitData) => {
+    if (selectedRows.size === 0) {
+      return;
     }
+    await bulkMutation.mutateAsync(data);
   };
 
   // Columns use the shared DataTable's key/label/render shape. Server-side sort
@@ -403,9 +407,9 @@ const Moderation: React.FC = () => {
             <div className={styles.reportSummary}>{report.description.substring(0, 80)}...</div>
 
             <div className={styles.reportTagRow}>
-              <span className={getContentTypeTagClass(report.reportedEntityType)}>
+              <Badge variant={getContentTypeVariant(report.reportedEntityType)}>
                 {report.reportedEntityType}
-              </span>
+              </Badge>
             </div>
           </div>
         );
@@ -424,9 +428,11 @@ const Moderation: React.FC = () => {
       render: (_value, row) => {
         const report = row as Report;
         return (
-          <span className={getStatusBadgeClass(report.status)}>
-            {getStatusBadgeLabel(report.status)}
-          </span>
+          <StatusBadge
+            kind='report'
+            status={report.status}
+            label={getStatusBadgeLabel(report.status)}
+          />
         );
       },
     },
@@ -451,24 +457,26 @@ const Moderation: React.FC = () => {
             onKeyDown={e => e.stopPropagation()}
             role='presentation'
           >
-            <button
-              className={styles.iconButton}
+            <Button
+              variant='outline'
+              size='sm'
               title='View Details'
               aria-label='View Details'
               onClick={() => handleOpenDetailModal(report)}
             >
               <Eye size='1em' aria-hidden />
-            </button>
+            </Button>
             {report.status === 'pending' || report.status === 'under_review' ? (
-              <button
-                className={styles.iconButton}
+              <Button
+                variant='outline'
+                size='sm'
                 title='Take Action'
                 aria-label='Take Action'
                 onClick={() => handleOpenActionModal(report)}
                 disabled={isActionLoading}
               >
                 <Shield size='1em' aria-hidden />
-              </button>
+              </Button>
             ) : null}
           </div>
         );
@@ -477,134 +485,95 @@ const Moderation: React.FC = () => {
   ];
 
   if (error) {
-    return (
-      <div className={styles.pageContainer}>
-        <div className={styles.errorBanner}>Error loading reports: {error.message}</div>
-      </div>
-    );
+    return <ErrorState size='sm' title={`Error loading reports: ${error.message}`} />;
   }
 
   return (
-    <div className={styles.pageContainer}>
-      <div className={styles.pageHeader}>
-        <div className={styles.headerLeft}>
-          <h1>Content Moderation</h1>
-          <p>Review and manage reported content across the platform</p>
-        </div>
-      </div>
+    <Stack spacing='lg'>
+      <PageHeader
+        title='Content Moderation'
+        description='Review and manage reported content across the platform'
+      />
 
       <div className={styles.statsBar}>
-        <div className={styles.statCard}>
-          <div className={styles.statIconRed}>
-            <TriangleAlert size='1em' />
-          </div>
-          <div className={styles.statDetails}>
-            <div className={styles.statLabel}>Pending Reviews</div>
-            <div className={styles.statValue}>{metrics.pendingReports}</div>
-          </div>
-        </div>
-
-        <div className={styles.statCard}>
-          <div className={styles.statIconBlue}>
-            <Shield size='1em' />
-          </div>
-          <div className={styles.statDetails}>
-            <div className={styles.statLabel}>Under Review</div>
-            <div className={styles.statValue}>{metrics.underReviewReports}</div>
-          </div>
-        </div>
-
-        <div className={styles.statCard}>
-          <div className={styles.statIconOrange}>
-            <TriangleAlert size='1em' />
-          </div>
-          <div className={styles.statDetails}>
-            <div className={styles.statLabel}>Critical Priority</div>
-            <div className={styles.statValue}>{metrics.criticalReports}</div>
-          </div>
-        </div>
-
-        <div className={styles.statCard}>
-          <div className={styles.statIconGreen}>
-            <CircleCheck size='1em' />
-          </div>
-          <div className={styles.statDetails}>
-            <div className={styles.statLabel}>Resolved</div>
-            <div className={styles.statValue}>{metrics.resolvedReports}</div>
-          </div>
-        </div>
+        <MetricCard
+          icon={<TriangleAlert size='1em' />}
+          iconColor='#ef4444'
+          label='Pending Reviews'
+          value={metrics.pendingReports}
+        />
+        <MetricCard
+          icon={<Shield size='1em' />}
+          iconColor='#3b82f6'
+          label='Under Review'
+          value={metrics.underReviewReports}
+        />
+        <MetricCard
+          icon={<TriangleAlert size='1em' />}
+          iconColor='#ea580c'
+          label='Critical Priority'
+          value={metrics.criticalReports}
+        />
+        <MetricCard
+          icon={<CircleCheck size='1em' />}
+          iconColor='#10b981'
+          label='Resolved'
+          value={metrics.resolvedReports}
+        />
       </div>
 
-      <div className={styles.filterBar}>
-        <div className={styles.searchWrapper}>
-          <div className={styles.searchIcon}>
-            <Search size='1em' />
-          </div>
-          <Input
-            className={styles.searchInputPadded}
-            placeholder='Search reports...'
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-        </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor='mod-status-filter'>
-            Status
-          </label>
-          <select
-            id='mod-status-filter'
-            className={styles.select}
-            value={statusFilter}
-            onChange={e => setFilterParam('status', e.target.value)}
-          >
-            <option value='all'>All Statuses</option>
-            <option value='pending'>Pending</option>
-            <option value='under_review'>Under Review</option>
-            <option value='resolved'>Resolved</option>
-            <option value='dismissed'>Dismissed</option>
-            <option value='escalated'>Escalated</option>
-          </select>
-        </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor='mod-severity-filter'>
-            Severity
-          </label>
-          <select
-            id='mod-severity-filter'
-            className={styles.select}
-            value={severityFilter}
-            onChange={e => setFilterParam('severity', e.target.value)}
-          >
-            <option value='all'>All Severities</option>
-            <option value='critical'>Critical</option>
-            <option value='high'>High</option>
-            <option value='medium'>Medium</option>
-            <option value='low'>Low</option>
-          </select>
-        </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor='mod-type-filter'>
-            Content Type
-          </label>
-          <select
-            id='mod-type-filter'
-            className={styles.select}
-            value={entityTypeFilter}
-            onChange={e => setEntityTypeParam(e.target.value)}
-          >
-            <option value='all'>All Types</option>
-            <option value='user'>User</option>
-            <option value='rescue'>Rescue</option>
-            <option value='pet'>Pet</option>
-            <option value='message'>Message</option>
-            <option value='application'>Application</option>
-            <option value='conversation'>Conversation</option>
-          </select>
-        </div>
-      </div>
+      <SearchToolbar
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder='Search reports...'
+        filterConfig={[
+          {
+            name: 'status',
+            label: 'Status',
+            type: 'select',
+            options: [
+              { value: 'all', label: 'All Statuses' },
+              { value: 'pending', label: 'Pending' },
+              { value: 'under_review', label: 'Under Review' },
+              { value: 'resolved', label: 'Resolved' },
+              { value: 'dismissed', label: 'Dismissed' },
+              { value: 'escalated', label: 'Escalated' },
+            ],
+          },
+          {
+            name: 'severity',
+            label: 'Severity',
+            type: 'select',
+            options: [
+              { value: 'all', label: 'All Severities' },
+              { value: 'critical', label: 'Critical' },
+              { value: 'high', label: 'High' },
+              { value: 'medium', label: 'Medium' },
+              { value: 'low', label: 'Low' },
+            ],
+          },
+          {
+            name: 'entityType',
+            label: 'Content Type',
+            type: 'select',
+            options: [
+              { value: 'all', label: 'All Types' },
+              { value: 'user', label: 'User' },
+              { value: 'rescue', label: 'Rescue' },
+              { value: 'pet', label: 'Pet' },
+              { value: 'message', label: 'Message' },
+              { value: 'application', label: 'Application' },
+              { value: 'conversation', label: 'Conversation' },
+            ],
+          },
+        ]}
+        filters={{
+          status: statusFilter,
+          severity: severityFilter,
+          entityType: entityTypeFilter,
+        }}
+        onFilterChange={handleFilterChange}
+      />
 
       {entityIdFilter ? (
         <div className={styles.entityFilterBanner} role='status'>
@@ -676,10 +645,10 @@ const Moderation: React.FC = () => {
         kind={bulkKind ?? 'dismiss'}
         selectedCount={selectedRows.size}
         selectedSeverities={selectedSeverities}
-        isLoading={isBulkLoading}
+        isLoading={bulkMutation.isPending}
         resultSummary={bulkResult}
       />
-    </div>
+    </Stack>
   );
 };
 

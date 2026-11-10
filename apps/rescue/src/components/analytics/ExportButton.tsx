@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { Download, File, FileText, Mail } from 'lucide-react';
-import * as styles from './ExportButton.css';
+import { File, FileText, Mail } from 'lucide-react';
+import { DropdownMenu } from '@adopt-dont-shop/lib.components';
 
-interface ExportButtonProps {
+type ExportButtonProps = {
   onExportCSV: () => Promise<void>;
   onExportPDF: () => Promise<void>;
   onEmailReport: () => Promise<void>;
   disabled?: boolean;
-}
+};
 
 const ExportButton: React.FC<ExportButtonProps> = ({
   onExportCSV,
@@ -15,82 +15,28 @@ const ExportButton: React.FC<ExportButtonProps> = ({
   onEmailReport,
   disabled = false,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [loadingState, setLoadingState] = useState<'csv' | 'pdf' | 'email' | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
-  const handleExport = async (type: 'csv' | 'pdf' | 'email', handler: () => Promise<void>) => {
-    setLoadingState(type);
+  const run = async (handler: () => Promise<void>) => {
+    setIsExporting(true);
     try {
       await handler();
     } finally {
-      setLoadingState(null);
-      setIsOpen(false);
+      setIsExporting(false);
     }
   };
-
-  const handleClickOutside = (e: MouseEvent) => {
-    const target = e.target as HTMLElement;
-    if (!target.closest('[data-export-button]')) {
-      setIsOpen(false);
-    }
-  };
-
-  React.useEffect(() => {
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    } else {
-      document.removeEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen]);
 
   return (
-    <div className={styles.container} data-export-button>
-      <button
-        className={styles.trigger({ disabled })}
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-      >
-        <Download size="1em" />
-        <span>Export Report</span>
-      </button>
-
-      <div className={styles.dropdown({ isOpen })}>
-        <button
-          className={styles.exportOption({ loading: loadingState === 'csv' })}
-          onClick={() => handleExport('csv', onExportCSV)}
-        >
-          {loadingState === 'csv' ? <div className={styles.loadingSpinner} /> : <File size="1em" />}
-          <span className={styles.optionLabel}>Export as CSV</span>
-        </button>
-
-        <button
-          className={styles.exportOption({ loading: loadingState === 'pdf' })}
-          onClick={() => handleExport('pdf', onExportPDF)}
-        >
-          {loadingState === 'pdf' ? (
-            <div className={styles.loadingSpinner} />
-          ) : (
-            <FileText size="1em" />
-          )}
-          <span className={styles.optionLabel}>Export as PDF</span>
-        </button>
-
-        <button
-          className={styles.exportOption({ loading: loadingState === 'email' })}
-          onClick={() => handleExport('email', onEmailReport)}
-        >
-          {loadingState === 'email' ? (
-            <div className={styles.loadingSpinner} />
-          ) : (
-            <Mail size="1em" />
-          )}
-          <span className={styles.optionLabel}>Email Report</span>
-        </button>
-      </div>
-    </div>
+    <DropdownMenu
+      triggerLabel={isExporting ? 'Exporting...' : 'Export Report'}
+      disabled={disabled || isExporting}
+      align="end"
+      items={[
+        { label: 'Export as CSV', icon: <File size="1em" />, onClick: () => run(onExportCSV) },
+        { label: 'Export as PDF', icon: <FileText size="1em" />, onClick: () => run(onExportPDF) },
+        { label: 'Email Report', icon: <Mail size="1em" />, onClick: () => run(onEmailReport) },
+      ]}
+    />
   );
 };
 

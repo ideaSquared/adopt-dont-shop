@@ -9,18 +9,6 @@ export const container = style({
   padding: '2rem',
 });
 
-export const header = style({
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: '2rem',
-});
-
-globalStyle(`${header} h1`, {
-  margin: '0',
-  color: vars.text.primary,
-});
-
 export const notificationCard = recipe({
   base: {
     marginBottom: '1rem',

@@ -165,6 +165,45 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
           ? getStatusDisplay(props.kind, props.status).label
           : null)
     ),
+  Tabs: ({
+    tabs,
+    value,
+    onChange,
+    'aria-label': ariaLabel,
+  }: {
+    tabs: ReadonlyArray<{ id: string; label: React.ReactNode; content: React.ReactNode }>;
+    value: string;
+    onChange: (id: string) => void;
+    'aria-label'?: string;
+  }) =>
+    React.createElement(
+      'div',
+      null,
+      React.createElement(
+        'div',
+        { role: 'tablist', 'aria-label': ariaLabel },
+        tabs.map(tab =>
+          React.createElement(
+            'button',
+            {
+              key: tab.id,
+              type: 'button',
+              role: 'tab',
+              'aria-selected': tab.id === value,
+              onClick: () => onChange(tab.id),
+            },
+            tab.label
+          )
+        )
+      ),
+      tabs.map(tab =>
+        React.createElement(
+          'div',
+          { key: tab.id, role: 'tabpanel', hidden: tab.id !== value },
+          tab.content
+        )
+      )
+    ),
   DropdownMenu: ({ triggerLabel, items, trigger, header, disabled }: StubDropdownMenuProps) =>
     React.createElement(StubDropdownMenu, { triggerLabel, items, trigger, header, disabled }),
   DropdownButton: ({ triggerLabel, items, header, disabled }: StubDropdownMenuProps) =>
@@ -189,8 +228,12 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     React.createElement('div', props, children),
   Card: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
-  Button: ({ children, ...props }: React.ComponentPropsWithoutRef<'button'>) =>
-    React.createElement('button', props, children),
+  Button: ({
+    children,
+    startIcon,
+    ...props
+  }: React.ComponentPropsWithoutRef<'button'> & { startIcon?: React.ReactNode }) =>
+    React.createElement('button', props, startIcon, children),
   Input: ({
     label,
     error,

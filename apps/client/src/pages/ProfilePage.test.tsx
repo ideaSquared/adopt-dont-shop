@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@adopt-dont-shop/lib.components';
 import { createMockUser } from '@adopt-dont-shop/lib.dev-tools';
 
@@ -85,19 +86,23 @@ vi.mock('@adopt-dont-shop/lib.account', () => ({
 }));
 
 import { ProfilePage } from './ProfilePage';
-import { apiService } from '@/services';
+import { apiService, applicationService } from '@/services';
 
-const renderProfilePage = () =>
-  render(
-    <ThemeProvider>
-      <MemoryRouter initialEntries={['/profile']}>
-        <ProfilePage />
-      </MemoryRouter>
-    </ThemeProvider>
+const renderProfilePage = () => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <MemoryRouter initialEntries={['/profile']}>
+          <ProfilePage />
+        </MemoryRouter>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
+};
 
 const openPrivacyTab = async (user: ReturnType<typeof userEvent.setup>) => {
-  await user.click(screen.getByRole('button', { name: /^settings$/i }));
+  await user.click(screen.getByRole('tab', { name: /^settings$/i }));
   await user.click(screen.getByRole('button', { name: /change privacy & data/i }));
 };
 
@@ -106,7 +111,7 @@ describe('ProfilePage settings', () => {
     const user = userEvent.setup();
     renderProfilePage();
 
-    await user.click(screen.getByRole('button', { name: /^settings$/i }));
+    await user.click(screen.getByRole('tab', { name: /^settings$/i }));
 
     expect(screen.getByText('Open settings section: none')).toBeInTheDocument();
   });
@@ -115,7 +120,7 @@ describe('ProfilePage settings', () => {
     const user = userEvent.setup();
     renderProfilePage();
 
-    await user.click(screen.getByRole('button', { name: /^settings$/i }));
+    await user.click(screen.getByRole('tab', { name: /^settings$/i }));
 
     expect(screen.queryByText('Shared details form')).not.toBeInTheDocument();
   });
@@ -219,5 +224,40 @@ describe('ProfilePage self-service data export (ADS-1320)', () => {
     await user.click(await screen.findByRole('button', { name: /download my data/i }));
 
     expect(await screen.findByText(/failed to download your data/i)).toBeInTheDocument();
+  });
+});
+
+describe('ProfilePage applications tab', () => {
+  const getApplicationsMock = vi.mocked(applicationService.getUserApplications);
+
+  it('lists the adopter applications with a readable status', async () => {
+    const user = userEvent.setup();
+    getApplicationsMock.mockResolvedValue([
+      {
+        id: 'application-abcdef123456',
+        petId: 'pet-1',
+        petName: 'Biscuit',
+        status: 'approved',
+        submittedAt: '2024-03-05T10:00:00Z',
+        createdAt: '2024-03-05T10:00:00Z',
+      },
+    ] as Awaited<ReturnType<typeof applicationService.getUserApplications>>);
+    renderProfilePage();
+
+    await user.click(screen.getByRole('tab', { name: /^applications$/i }));
+
+    expect(await screen.findByText('Application #123456')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Biscuit' })).toBeInTheDocument();
+    expect(screen.getByText('Submitted 5 Mar 2024')).toBeInTheDocument();
+  });
+
+  it('shows an error when the applications cannot be loaded', async () => {
+    const user = userEvent.setup();
+    getApplicationsMock.mockRejectedValue(new Error('boom'));
+    renderProfilePage();
+
+    await user.click(screen.getByRole('tab', { name: /^applications$/i }));
+
+    expect(await screen.findByText(/failed to load applications/i)).toBeInTheDocument();
   });
 });

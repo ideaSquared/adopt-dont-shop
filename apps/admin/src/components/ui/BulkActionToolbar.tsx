@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button } from '@adopt-dont-shop/lib.components';
 import * as styles from './BulkActionToolbar.css';
 import { SquareCheck, X } from 'lucide-react';
 
@@ -16,6 +17,9 @@ type BulkActionToolbarProps = {
   onSelectAll: () => void;
   onClearSelection: () => void;
 };
+
+const buttonVariant = (variant: BulkAction['variant']) =>
+  variant === 'neutral' || variant === undefined ? 'outline' : variant;
 
 export const BulkActionToolbar: React.FC<BulkActionToolbarProps> = ({
   selectedCount,
@@ -36,36 +40,37 @@ export const BulkActionToolbar: React.FC<BulkActionToolbarProps> = ({
       </div>
 
       {selectedCount < totalCount && (
-        <button className={styles.selectAllButton} onClick={onSelectAll} type='button'>
+        <Button variant='ghost' size='sm' onClick={onSelectAll}>
           Select all {totalCount}
-        </button>
+        </Button>
       )}
 
       <div className={styles.divider} />
 
       <div className={styles.actionGroup}>
         {actions.map(action => (
-          <button
+          <Button
             key={action.label}
-            className={styles.actionButton({ variant: action.variant ?? 'neutral' })}
+            variant={buttonVariant(action.variant)}
+            size='sm'
             onClick={action.onClick}
             disabled={action.disabled}
-            type='button'
           >
             {action.label}
-          </button>
+          </Button>
         ))}
       </div>
 
-      <button
+      <Button
+        variant='outline'
+        size='sm'
         className={styles.clearButton}
         onClick={onClearSelection}
-        type='button'
         aria-label='Clear selection'
+        startIcon={<X size='1em' />}
       >
-        <X size='1em' />
         Clear
-      </button>
+      </Button>
     </div>
   );
 };

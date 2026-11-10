@@ -7,7 +7,8 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router';
-import { render, act } from '@testing-library/react';
+import { render, act, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NotificationsProvider, useNotifications } from '../NotificationsContext';
 
 const deleteNotificationMock = vi.fn();
@@ -43,16 +44,19 @@ const TestConsumer: React.FC<{ onContext: (ctx: ReturnType<typeof useNotificatio
 
 const renderWithProvider = (userId = 'u-1') => {
   let capturedCtx: ReturnType<typeof useNotifications> | null = null;
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
-    <MemoryRouter>
-      <NotificationsProvider userId={userId}>
-        <TestConsumer
-          onContext={ctx => {
-            capturedCtx = ctx;
-          }}
-        />
-      </NotificationsProvider>
-    </MemoryRouter>
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <NotificationsProvider userId={userId}>
+          <TestConsumer
+            onContext={ctx => {
+              capturedCtx = ctx;
+            }}
+          />
+        </NotificationsProvider>
+      </MemoryRouter>
+    </QueryClientProvider>
   );
   return { getCtx: () => capturedCtx! };
 };
@@ -71,9 +75,7 @@ describe('NotificationsProvider clearAll server-side delete', () => {
     const { getCtx } = renderWithProvider();
 
     // Wait for notifications to load
-    await act(async () => {
-      await Promise.resolve();
-    });
+    await waitFor(() => expect(getCtx().notifications).toHaveLength(2));
 
     await act(async () => {
       await getCtx().clearAll('u-1');
@@ -88,9 +90,7 @@ describe('NotificationsProvider clearAll server-side delete', () => {
     deleteNotificationMock.mockRejectedValue(new Error('server error'));
     const { getCtx } = renderWithProvider();
 
-    await act(async () => {
-      await Promise.resolve();
-    });
+    await waitFor(() => expect(getCtx().notifications).toHaveLength(2));
 
     await act(async () => {
       try {

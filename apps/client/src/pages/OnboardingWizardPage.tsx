@@ -1,4 +1,5 @@
 import { useAuth } from '@adopt-dont-shop/lib.auth';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
   Button,
@@ -7,10 +8,11 @@ import {
   Stepper,
   type StepperStep,
 } from '@adopt-dont-shop/lib.components';
-import type { AdopterLifestyle } from '@adopt-dont-shop/lib.matching';
-import React, { useEffect, useState } from 'react';
+import type { AdopterLifestyle, AdopterMatchProfile } from '@adopt-dont-shop/lib.matching';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router';
 import { matchingService } from '@/services';
+import { MATCH_PROFILE_QUERY_KEY } from '@/hooks/useMatchPreferences';
 import * as styles from './OnboardingWizardPage.css';
 
 /**
@@ -225,73 +227,62 @@ const listLabels = (values: string[], options: Option[]): string =>
     ? 'Not set'
     : values.map(v => options.find(o => o.value === v)?.label ?? v).join(', ');
 
+const EMPTY_FORM: FormState = {
+  housing_type: '',
+  has_children: '',
+  has_other_pets: '',
+  allergies: '',
+  activity_level: '',
+  hours_alone_daily: 0,
+  yard: false,
+  preferred_types: [],
+  preferred_sizes: [],
+  preferred_age_groups: [],
+  preferred_energy: [],
+  open_to_special_needs: false,
+  max_distance_km: '',
+  notify_new_matches: false,
+};
+
+// ADS-688: prefer the granular `*_type` field the wizard now persists.
+// Fall back to the boolean for profiles created before that field
+// existed (true → first non-"none" choice; false → "none").
+const formFromProfile = (p: Partial<AdopterMatchProfile> | null | undefined): FormState => {
+  if (!p) {
+    return EMPTY_FORM;
+  }
+  const restoredChildren =
+    p.lifestyle?.children_type ?? (p.lifestyle?.has_children ? 'young' : 'none');
+  const restoredOtherPets =
+    p.lifestyle?.other_pets_type ?? (p.lifestyle?.has_other_pets ? 'dogs' : 'none');
+  return {
+    ...EMPTY_FORM,
+    preferred_types: p.preferred_types ?? [],
+    preferred_sizes: p.preferred_sizes ?? [],
+    preferred_age_groups: p.preferred_age_groups ?? [],
+    preferred_energy: p.preferred_energy ?? [],
+    housing_type: p.lifestyle?.housing_type ?? '',
+    has_children: restoredChildren,
+    has_other_pets: restoredOtherPets,
+    activity_level: p.lifestyle?.activity_level ?? '',
+    hours_alone_daily: p.lifestyle?.hours_alone_daily ?? 0,
+    yard: p.lifestyle?.yard ?? false,
+    max_distance_km: p.max_distance_km ?? '',
+    open_to_special_needs: !!p.open_to_special_needs,
+    notify_new_matches: !!p.notify_new_matches,
+    allergies: p.allergies ?? '',
+  };
+};
+
 export const OnboardingWizardPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
-  const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [showSkipWarning, setShowSkipWarning] = useState(false);
-  const [form, setForm] = useState<FormState>({
-    housing_type: '',
-    has_children: '',
-    has_other_pets: '',
-    allergies: '',
-    activity_level: '',
-    hours_alone_daily: 0,
-    yard: false,
-    preferred_types: [],
-    preferred_sizes: [],
-    preferred_age_groups: [],
-    preferred_energy: [],
-    open_to_special_needs: false,
-    max_distance_km: '',
-    notify_new_matches: false,
+  // A missing or unreadable profile is fine on first visit: the wizard starts empty.
+  const profileQuery = useQuery({
+    queryKey: MATCH_PROFILE_QUERY_KEY,
+    queryFn: () => matchingService.getMatchProfile(),
+    enabled: isAuthenticated,
+    retry: false,
   });
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setLoading(false);
-      return;
-    }
-    const load = async () => {
-      try {
-        const p = await matchingService.getMatchProfile();
-        if (p) {
-          // ADS-688: prefer the granular `*_type` field the wizard now persists.
-          // Fall back to the boolean for profiles created before that field
-          // existed (true → first non-"none" choice; false → "none").
-          const restoredChildren =
-            p.lifestyle?.children_type ?? (p.lifestyle?.has_children ? 'young' : 'none');
-          const restoredOtherPets =
-            p.lifestyle?.other_pets_type ?? (p.lifestyle?.has_other_pets ? 'dogs' : 'none');
-          setForm(f => ({
-            ...f,
-            preferred_types: p.preferred_types ?? [],
-            preferred_sizes: p.preferred_sizes ?? [],
-            preferred_age_groups: p.preferred_age_groups ?? [],
-            preferred_energy: p.preferred_energy ?? [],
-            housing_type: p.lifestyle?.housing_type ?? '',
-            has_children: restoredChildren,
-            has_other_pets: restoredOtherPets,
-            activity_level: p.lifestyle?.activity_level ?? '',
-            hours_alone_daily: p.lifestyle?.hours_alone_daily ?? 0,
-            yard: p.lifestyle?.yard ?? false,
-            max_distance_km: p.max_distance_km ?? '',
-            open_to_special_needs: !!p.open_to_special_needs,
-            notify_new_matches: !!p.notify_new_matches,
-            allergies: p.allergies ?? '',
-          }));
-        }
-      } catch {
-        // First-time load — empty profile is fine.
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [isAuthenticated]);
 
   if (!isAuthenticated) {
     return (
@@ -312,13 +303,35 @@ export const OnboardingWizardPage: React.FC = () => {
     );
   }
 
-  if (loading) {
+  if (profileQuery.isLoading) {
     return (
       <div className={styles.container}>
         <Spinner />
       </div>
     );
   }
+
+  return <OnboardingWizard initialForm={formFromProfile(profileQuery.data)} />;
+};
+
+type OnboardingWizardProps = { initialForm: FormState };
+
+const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ initialForm }) => {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [step, setStep] = useState(1);
+  const [showSkipWarning, setShowSkipWarning] = useState(false);
+  const [form, setForm] = useState<FormState>(initialForm);
+
+  const saveProfile = useMutation({
+    mutationFn: (payload: Parameters<typeof matchingService.updateMatchProfile>[0]) =>
+      matchingService.updateMatchProfile(payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: MATCH_PROFILE_QUERY_KEY }),
+    // The wizard shows its own inline error; opt out of the app-wide generic toast.
+    onError: err => console.error('Failed to save match profile', err),
+  });
+  const saving = saveProfile.isPending;
+  const error = saveProfile.isError ? 'Failed to save preferences.' : null;
 
   const buildPayload = () => {
     const lifestyle: AdopterLifestyle = {
@@ -373,18 +386,8 @@ export const OnboardingWizardPage: React.FC = () => {
     };
   };
 
-  const submit = async () => {
-    try {
-      setSaving(true);
-      setError(null);
-      await matchingService.updateMatchProfile(buildPayload());
-      navigate('/match/top-picks');
-    } catch (err) {
-      console.error('Failed to save match profile', err);
-      setError('Failed to save preferences.');
-    } finally {
-      setSaving(false);
-    }
+  const submit = () => {
+    saveProfile.mutate(buildPayload(), { onSuccess: () => navigate('/match/top-picks') });
   };
 
   const handleSkipStep = () => {
@@ -607,9 +610,9 @@ export const OnboardingWizardPage: React.FC = () => {
       <div className={styles.reviewSection}>
         <h4>
           Home &amp; Lifestyle
-          <button className={styles.editButton} onClick={() => goToStep(1)} type='button'>
+          <Button variant='ghost' size='sm' onClick={() => goToStep(1)}>
             Edit
-          </button>
+          </Button>
         </h4>
         <div className={styles.reviewItem}>
           <span>Housing</span>
@@ -652,9 +655,9 @@ export const OnboardingWizardPage: React.FC = () => {
       <div className={styles.reviewSection}>
         <h4>
           Pet Preferences
-          <button className={styles.editButton} onClick={() => goToStep(2)} type='button'>
+          <Button variant='ghost' size='sm' onClick={() => goToStep(2)}>
             Edit
-          </button>
+          </Button>
         </h4>
         <div className={styles.reviewItem}>
           <span>Types</span>
@@ -681,9 +684,9 @@ export const OnboardingWizardPage: React.FC = () => {
       <div className={styles.reviewSection}>
         <h4>
           Discovery Settings
-          <button className={styles.editButton} onClick={() => goToStep(3)} type='button'>
+          <Button variant='ghost' size='sm' onClick={() => goToStep(3)}>
             Edit
-          </button>
+          </Button>
         </h4>
         <div className={styles.reviewItem}>
           <span>Max distance</span>

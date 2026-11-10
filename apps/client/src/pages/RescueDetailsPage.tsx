@@ -1,76 +1,39 @@
 import { PetCard } from '@/components/PetCard';
-import { rescueService, petService, Rescue, Pet } from '@/services';
-import { Badge, Button, Card } from '@adopt-dont-shop/lib.components';
+import type { Rescue } from '@/services';
+import { Button, Card, ErrorState, StatusBadge } from '@adopt-dont-shop/lib.components';
 import { RescueDetailSkeleton } from '@/components/skeletons';
 import { rescueStatusLabel } from '@adopt-dont-shop/lib.types';
 import { safeHref } from '@adopt-dont-shop/lib.utils';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { BadgeCheck, Globe, Info, Mail, MapPin, PawPrint, Phone } from 'lucide-react';
 import { Link, useParams } from 'react-router';
 import { AdoptionPoliciesDisplay } from '@/components/rescue/AdoptionPoliciesDisplay';
 import * as styles from './RescueDetailsPage.css';
+import { useRescue, useRescuePets } from './useRescueDetails';
 
 interface RescueDetailsPageProps {}
 
 export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
   const { id } = useParams<{ id: string }>();
-  const [rescue, setRescue] = useState<Rescue | null>(null);
-  const [pets, setPets] = useState<Pet[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [petsLoading, setPetsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPets, setTotalPets] = useState(0);
-  const [hasMorePets, setHasMorePets] = useState(false);
+  const rescueQuery = useRescue(id);
+  const petsQuery = useRescuePets(id);
+  const rescue = rescueQuery.data ?? null;
+  const pets = petsQuery.data?.pages.flatMap(page => page.data) ?? [];
+  const totalPets = petsQuery.data?.pages[0]?.pagination.total ?? 0;
+  const hasMorePets = petsQuery.hasNextPage;
+  const petsLoading = petsQuery.isFetchingNextPage;
+  const loading = rescueQuery.isLoading || petsQuery.isLoading;
+  const error = !id
+    ? 'Rescue ID is required'
+    : rescueQuery.isError || petsQuery.isError
+      ? 'Failed to load rescue details. Please try again.'
+      : null;
 
-  useEffect(() => {
-    const fetchRescue = async () => {
-      if (!id) {
-        setError('Rescue ID is required');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const [rescueData, petsData] = await Promise.all([
-          rescueService.getRescue(id),
-          petService.getPetsByRescue(id, 1),
-        ]);
-
-        setRescue(rescueData);
-        setPets(petsData.data);
-        setTotalPets(petsData.pagination.total);
-        setHasMorePets(petsData.pagination.hasNext);
-      } catch (err) {
-        console.error('Failed to fetch rescue:', err);
-        setError('Failed to load rescue details. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRescue();
-  }, [id]);
-
-  const loadMorePets = async () => {
-    if (!id || !hasMorePets || petsLoading) {
+  const loadMorePets = () => {
+    if (!hasMorePets || petsLoading) {
       return;
     }
-
-    try {
-      setPetsLoading(true);
-      const nextPage = currentPage + 1;
-      const petsData = await petService.getPetsByRescue(id, nextPage);
-
-      setPets(prevPets => [...prevPets, ...petsData.data]);
-      setCurrentPage(nextPage);
-      setHasMorePets(petsData.pagination.hasNext);
-    } catch (err) {
-      console.error('Failed to load more pets:', err);
-    } finally {
-      setPetsLoading(false);
-    }
+    void petsQuery.fetchNextPage();
   };
 
   const formatRescueType = (rescue: Rescue) => {
@@ -94,9 +57,11 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
   if (error || !rescue) {
     return (
       <div className={styles.pageContainer}>
-        <div className={styles.errorContainer}>
-          <h2>Rescue Not Found</h2>
-          <p>{error || 'The rescue you are looking for could not be found.'}</p>
+        <ErrorState
+          title='Rescue Not Found'
+          message={error || 'The rescue you are looking for could not be found.'}
+        />
+        <div className={styles.errorActions}>
           <Link to='/'>
             <Button variant='primary'>Back to Home</Button>
           </Link>
@@ -137,9 +102,12 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
           )}
         </div>
         <div className='verification-badge'>
-          <Badge variant={rescue.status === 'verified' ? 'success' : 'warning'}>
-            {rescue.status === 'verified' ? '✓ Verified' : rescueStatusLabel(rescue.status)}
-          </Badge>
+          <StatusBadge
+            kind='rescue'
+            status={rescue.status}
+            label={rescue.status === 'verified' ? '✓ Verified' : undefined}
+            variant={rescue.status === 'verified' ? 'success' : 'warning'}
+          />
         </div>
         <div className='contact-info'>
           {contactEmail && (
@@ -322,11 +290,11 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
               <Button
                 className={styles.loadMoreButton}
                 onClick={loadMorePets}
-                disabled={petsLoading}
+                isLoading={petsLoading}
                 variant='outline'
                 size='lg'
               >
-                {petsLoading ? 'Loading...' : 'Load More Pets'}
+                Load More Pets
               </Button>
             )}
           </>

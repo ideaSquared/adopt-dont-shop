@@ -39,10 +39,8 @@ describe('FieldPermissions loading states', () => {
   describe('while loading', () => {
     it('shows a loading skeleton before field data arrives', () => {
       mockGet.mockImplementation(() => new Promise(() => {}));
-      const { container } = renderWithProviders(<FieldPermissions />);
-      expect(
-        container.querySelector('[aria-label="Loading field permissions"]')
-      ).toBeInTheDocument();
+      renderWithProviders(<FieldPermissions />);
+      expect(screen.getAllByTestId('skeleton-row').length).toBeGreaterThan(0);
     });
 
     it('does not show field names while loading', () => {
@@ -77,12 +75,10 @@ describe('FieldPermissions loading states', () => {
         return Promise.resolve({ data: [] });
       });
 
-      const { container } = renderWithProviders(<FieldPermissions />);
+      renderWithProviders(<FieldPermissions />);
 
       await waitFor(() => {
-        expect(
-          container.querySelector('[aria-label="Loading field permissions"]')
-        ).not.toBeInTheDocument();
+        expect(screen.queryAllByTestId('skeleton-row')).toHaveLength(0);
       });
     });
   });

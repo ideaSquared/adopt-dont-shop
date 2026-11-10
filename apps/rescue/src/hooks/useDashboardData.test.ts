@@ -1,4 +1,5 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
+import { QueryWrapper } from './query-test-wrapper';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const authState = vi.hoisted(() => ({
@@ -36,7 +37,7 @@ describe('useDashboardData', () => {
   });
 
   it('loads dashboard data, activities and notifications in parallel', async () => {
-    const { result } = renderHook(() => useDashboardData());
+    const { result } = renderHook(() => useDashboardData(), { wrapper: QueryWrapper });
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
@@ -47,7 +48,7 @@ describe('useDashboardData', () => {
   });
 
   it('passes the authenticated userId to the notifications fetch', async () => {
-    const { result } = renderHook(() => useDashboardData());
+    const { result } = renderHook(() => useDashboardData(), { wrapper: QueryWrapper });
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
@@ -57,7 +58,7 @@ describe('useDashboardData', () => {
   it('passes an empty string when no user is signed in', async () => {
     authState.current = { user: null };
 
-    const { result } = renderHook(() => useDashboardData());
+    const { result } = renderHook(() => useDashboardData(), { wrapper: QueryWrapper });
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(dashboardServiceMock.getDashboardNotifications).toHaveBeenCalledWith('');
@@ -66,13 +67,13 @@ describe('useDashboardData', () => {
   it('surfaces the error message when a fetch fails', async () => {
     dashboardServiceMock.getRescueDashboardData.mockRejectedValue(new Error('server down'));
 
-    const { result } = renderHook(() => useDashboardData());
+    const { result } = renderHook(() => useDashboardData(), { wrapper: QueryWrapper });
 
     await waitFor(() => expect(result.current.error).toBe('server down'));
   });
 
   it('refetches on demand', async () => {
-    const { result } = renderHook(() => useDashboardData());
+    const { result } = renderHook(() => useDashboardData(), { wrapper: QueryWrapper });
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     dashboardServiceMock.getRescueDashboardData.mockResolvedValue({ totalPets: 9 });
@@ -81,6 +82,6 @@ describe('useDashboardData', () => {
       await result.current.refetch();
     });
 
-    expect(result.current.dashboardData).toEqual({ totalPets: 9 });
+    await waitFor(() => expect(result.current.dashboardData).toEqual({ totalPets: 9 }));
   });
 });

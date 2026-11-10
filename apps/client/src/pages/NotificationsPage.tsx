@@ -3,7 +3,15 @@ import { Navigate } from 'react-router';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useNotifications } from '@/contexts/NotificationsContext';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
-import { Button, Card, EmptyState, QueryBoundary, Skeleton } from '@adopt-dont-shop/lib.components';
+import {
+  Button,
+  Card,
+  EmptyState,
+  PageHeader,
+  QueryBoundary,
+  Skeleton,
+} from '@adopt-dont-shop/lib.components';
+import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import type { Notification } from '@adopt-dont-shop/lib.notifications';
 import * as styles from './NotificationsPage.css';
 
@@ -74,7 +82,7 @@ export const NotificationsPage: React.FC = () => {
     } else if (diffInHours < 24) {
       return `${Math.floor(diffInHours)} hours ago`;
     } else {
-      return date.toLocaleDateString();
+      return formatDisplayDate(date);
     }
   };
 
@@ -84,14 +92,16 @@ export const NotificationsPage: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <h1>Notifications</h1>
-        {unreadCount > 0 && (
-          <Button variant='outline' onClick={handleMarkAllAsRead}>
-            Mark All Read ({unreadCount})
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title='Notifications'
+        actions={
+          unreadCount > 0 ? (
+            <Button variant='outline' onClick={handleMarkAllAsRead}>
+              Mark All Read ({unreadCount})
+            </Button>
+          ) : undefined
+        }
+      />
 
       <QueryBoundary
         isLoading={isLoading}

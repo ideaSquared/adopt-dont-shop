@@ -16,22 +16,6 @@ export const spacer = style({
   flex: 1,
 });
 
-export const approveButton = style({
-  background: vars.colors.success,
-  color: vars.text.inverse,
-  padding: '0.25rem 0.75rem',
-});
-
-export const rejectButton = style({
-  background: vars.colors.danger,
-  color: vars.text.inverse,
-  padding: '0.25rem 0.75rem',
-});
-
-export const neutralButton = style({
-  padding: '0.25rem 0.75rem',
-});
-
 export const fullWidthRow = style({
   width: '100%',
 });

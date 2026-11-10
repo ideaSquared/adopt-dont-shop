@@ -1,27 +1,10 @@
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 import { globalStyle, style } from '@vanilla-extract/css';
-import { recipe } from '@vanilla-extract/recipes';
 
 export const container = style({
   maxWidth: '1200px',
   margin: '0 auto',
   padding: '2rem',
-});
-
-export const header = style({
-  display: 'flex',
-  justifyContent: 'between',
-  alignItems: 'center',
-  marginBottom: '2rem',
-});
-
-export const title = style({
-  fontFamily: vars.typography.family.display,
-  fontSize: '2rem',
-  fontWeight: vars.typography.weight.bold,
-  color: vars.text.primary,
-  letterSpacing: '-0.025em',
-  margin: '0',
 });
 
 export const applicationGrid = style({
@@ -85,24 +68,6 @@ export const cardTopRow = style({
   gap: '0.5rem',
 });
 
-export const messagesButton = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '0.375rem',
-  background: 'transparent',
-  border: `1px solid ${vars.border.color.default}`,
-  borderRadius: vars.border.radius.base,
-  padding: '0.25rem 0.625rem',
-  cursor: 'pointer',
-  fontSize: '0.75rem',
-  fontWeight: vars.typography.weight.medium,
-  color: vars.text.secondary,
-  ':hover': {
-    color: vars.text.primary,
-    borderColor: vars.border.color.strong,
-  },
-});
-
 export const petDetailsH3 = style({
   margin: '0 0 0.25rem 0',
   fontFamily: vars.typography.family.display,
@@ -119,39 +84,6 @@ export const petDetailsP = style({
   margin: '0',
   color: vars.text.tertiary,
   fontSize: '0.875rem',
-});
-
-export const statusBadge = recipe({
-  base: {
-    display: 'inline-block',
-    padding: '0.25rem 0.75rem',
-    borderRadius: vars.border.radius.pill,
-    fontSize: '0.75rem',
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    color: 'white',
-  },
-  variants: {
-    status: {
-      submitted: { background: vars.colors.info },
-      under_review: { background: vars.colors.warning },
-      approved: { background: vars.colors.success },
-      rejected: { background: vars.colors.danger },
-      withdrawn: { background: vars.text.muted },
-      default: { background: vars.text.muted },
-    },
-  },
-});
-
-export const stageBadge = style({
-  display: 'inline-block',
-  marginLeft: '0.5rem',
-  padding: '0.25rem 0.75rem',
-  borderRadius: vars.border.radius.pill,
-  fontSize: '0.75rem',
-  fontWeight: '600',
-  background: vars.colors.warning,
-  color: 'white',
 });
 
 export const applicationDetails = style({

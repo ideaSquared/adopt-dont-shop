@@ -1,14 +1,33 @@
 import React, { useState } from 'react';
 import { useAuth, usePermissions } from '@adopt-dont-shop/lib.auth';
 import type { Permission } from '@adopt-dont-shop/lib.permissions';
-import { Logo, NavSidebar, type NavSidebarGroup } from '@adopt-dont-shop/lib.components';
+import {
+  Avatar,
+  Button,
+  Logo,
+  NavSidebar,
+  type NavSidebarGroup,
+} from '@adopt-dont-shop/lib.components';
+import {
+  ChartColumnIncreasing,
+  ClipboardList,
+  FileText,
+  House,
+  LayoutDashboard,
+  Menu,
+  MessageSquare,
+  PawPrint,
+  Settings,
+  User,
+  Users,
+} from 'lucide-react';
 import { useChat } from '@/contexts/ChatContext';
 import * as styles from './Navigation.css';
 
 type NavItem = {
   path: string;
   label: string;
-  icon: string;
+  icon: React.ReactNode;
   badge?: number;
   /**
    * If set, the item is shown only when the signed-in user holds at least
@@ -37,10 +56,10 @@ const Navigation: React.FC = () => {
       id: 'operations',
       label: 'Operations',
       items: [
-        { path: '/', label: 'Dashboard', icon: '📊' },
-        { path: '/pets', label: 'Pets', icon: '🐕' },
-        { path: '/applications', label: 'Applications', icon: '📋' },
-        { path: '/foster', label: 'Foster', icon: '🏠' },
+        { path: '/', label: 'Dashboard', icon: <LayoutDashboard size="1em" /> },
+        { path: '/pets', label: 'Pets', icon: <PawPrint size="1em" /> },
+        { path: '/applications', label: 'Applications', icon: <ClipboardList size="1em" /> },
+        { path: '/foster', label: 'Foster', icon: <House size="1em" /> },
       ],
     },
     {
@@ -50,7 +69,7 @@ const Navigation: React.FC = () => {
         {
           path: '/communication',
           label: 'Messages',
-          icon: '💬',
+          icon: <MessageSquare size="1em" />,
           badge: unreadMessageCount,
         },
       ],
@@ -59,17 +78,17 @@ const Navigation: React.FC = () => {
       id: 'admin',
       label: 'Admin',
       items: [
-        { path: '/staff', label: 'Staff', icon: '👥' },
+        { path: '/staff', label: 'Staff', icon: <Users size="1em" /> },
         {
           path: '/analytics',
           label: 'Analytics',
-          icon: '📈',
+          icon: <ChartColumnIncreasing size="1em" />,
           // Volunteers don't have reports.read.rescue and so don't see this.
           requiresAnyOf: ['reports.read.rescue' as Permission],
         },
-        { path: '/reports', label: 'Reports', icon: '📑' },
-        { path: '/settings', label: 'Settings', icon: '⚙️' },
-        { path: '/user-settings', label: 'My Settings', icon: '👤' },
+        { path: '/reports', label: 'Reports', icon: <FileText size="1em" /> },
+        { path: '/settings', label: 'Settings', icon: <Settings size="1em" /> },
+        { path: '/user-settings', label: 'My Settings', icon: <User size="1em" /> },
       ],
     },
   ];
@@ -131,27 +150,18 @@ const Navigation: React.FC = () => {
     }
   };
 
-  const getUserInitials = (firstName?: string, lastName?: string) => {
-    if (!firstName && !lastName) {
-      return '👤';
-    }
-    const first = firstName?.[0] || '';
-    const last = lastName?.[0] || '';
-    return (first + last).toUpperCase() || '👤';
-  };
-
   return (
     <>
       <div className={styles.mobileBar}>
-        <button
-          type="button"
+        <Button
+          variant="ghost"
           className={styles.mobileMenuButton}
           aria-label="Open navigation menu"
           aria-expanded={isMobileOpen}
           onClick={() => setIsMobileOpen(true)}
         >
-          ☰
-        </button>
+          <Menu size="1.5em" aria-hidden="true" />
+        </Button>
         <Logo size={28} showWordmark darkBg />
       </div>
 
@@ -161,9 +171,11 @@ const Navigation: React.FC = () => {
         footer={
           <>
             <div className={styles.userInfo}>
-              <div className={styles.userAvatar}>
-                {getUserInitials(user?.firstName, user?.lastName)}
-              </div>
+              <Avatar
+                name={[user?.firstName, user?.lastName].filter(Boolean).join(' ')}
+                size="md"
+                className={styles.userAvatar}
+              />
               <div className={styles.userDetails}>
                 <span className={styles.userName}>
                   {user?.firstName} {user?.lastName}
@@ -171,9 +183,16 @@ const Navigation: React.FC = () => {
                 <span className={styles.userRole}>{formatUserRole(user?.userType)}</span>
               </div>
             </div>
-            <button className={styles.logoutButton} onClick={handleLogout} disabled={isLoading}>
+            <Button
+              variant="outline"
+              size="sm"
+              isFullWidth
+              className={styles.logoutButton}
+              onClick={handleLogout}
+              disabled={isLoading}
+            >
               {isLoading ? 'Signing Out...' : 'Sign Out'}
-            </button>
+            </Button>
           </>
         }
         mobileOpen={isMobileOpen}

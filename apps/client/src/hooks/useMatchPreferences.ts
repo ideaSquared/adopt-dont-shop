@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import type { AdopterMatchProfile } from '@adopt-dont-shop/lib.matching';
 import { matchingService } from '@/services';
@@ -31,40 +31,20 @@ const hasAnyPreference = (profile: Partial<AdopterMatchProfile> | null | undefin
  * Signed-out users always get `{ hasPreferences: false, isLoading: false }`
  * so callers can no-op without extra guards.
  */
+export const MATCH_PROFILE_QUERY_KEY = ['match-profile'] as const;
+
 export const useMatchPreferences = (): UseMatchPreferencesReturn => {
   const { isAuthenticated } = useAuth();
-  const [hasPreferences, setHasPreferences] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const profileQuery = useQuery({
+    queryKey: MATCH_PROFILE_QUERY_KEY,
+    queryFn: () => matchingService.getMatchProfile(),
+    enabled: isAuthenticated,
+    retry: false,
+  });
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setHasPreferences(false);
-      setIsLoading(false);
-      return;
-    }
-    let cancelled = false;
-    const load = async () => {
-      try {
-        setIsLoading(true);
-        const profile = await matchingService.getMatchProfile();
-        if (!cancelled) {
-          setHasPreferences(hasAnyPreference(profile));
-        }
-      } catch {
-        if (!cancelled) {
-          setHasPreferences(false);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated]);
-
-  return { hasPreferences, isLoading };
+  // A failed read counts as "no preferences": callers only use this to pick a destination.
+  return {
+    hasPreferences: isAuthenticated && hasAnyPreference(profileQuery.data),
+    isLoading: isAuthenticated && profileQuery.isLoading,
+  };
 };

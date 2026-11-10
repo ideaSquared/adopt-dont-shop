@@ -1,15 +1,45 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
-import { ConfirmDialog, Tabs, useConfirm } from '@adopt-dont-shop/lib.components';
 import {
-  securityService,
-  type IpRule,
-  type IpRuleType,
-  type LoginHistoryEntry,
-  type Session,
-  type SuspiciousActivityEntry,
+  Button,
+  Card,
+  ConfirmDialog,
+  DataTable,
+  type DataTableColumn,
+  ErrorState,
+  FormField,
+  Heading,
+  Input,
+  PageHeader,
+  SelectInput,
+  Stack,
+  StatusBadge,
+  Tabs,
+  Text,
+  toast,
+  useConfirm,
+} from '@adopt-dont-shop/lib.components';
+import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
+import type {
+  IpRule,
+  IpRuleType,
+  LoginHistoryEntry,
+  Session,
+  SuspiciousActivityEntry,
 } from '../services/securityService';
+import {
+  useCreateIpRule,
+  useDeleteIpRule,
+  useForceLockAccount,
+  useIpRules,
+  useLoginHistory,
+  useRevokeAllUserSessions,
+  useRevokeSession,
+  useSecuritySessions,
+  useSuspiciousActivity,
+  useUnlockAccount,
+} from './SecurityCenter.queries';
 import * as styles from './SecurityCenter.css';
 
 type TabKey = 'mfa' | 'sessions' | 'ip-rules' | 'login-history' | 'recovery' | 'suspicious';
@@ -30,6 +60,34 @@ const isTabKey = (value: string | undefined): value is TabKey =>
   value === 'login-history' ||
   value === 'suspicious' ||
   value === 'recovery';
+
+const errorMessage = (error: unknown, fallback: string): string =>
+  error instanceof Error ? error.message : fallback;
+
+const formatDateTime = (value: string): string => formatDisplayDate(value, { includeTime: true });
+
+// DataTable rows are untyped records; narrow them back to the row type in render.
+const asRows = <T,>(rows: T[]): Record<string, unknown>[] =>
+  // DataTable's `rows` prop is Record<string, unknown>[]; the cast is a pure widening.
+  rows as unknown as Record<string, unknown>[];
+
+type SectionProps = {
+  title: string;
+  children: React.ReactNode;
+  description?: React.ReactNode;
+};
+
+const Section: React.FC<SectionProps> = ({ title, description, children }) => (
+  <Card>
+    <Stack spacing='md'>
+      <Heading level='h2' size='lg' noMargin>
+        {title}
+      </Heading>
+      {description ? <Text color='muted'>{description}</Text> : null}
+      {children}
+    </Stack>
+  </Card>
+);
 
 const SecurityCenter: React.FC = () => {
   const { tab: tabParam } = useParams<{ tab?: string }>();
@@ -72,14 +130,11 @@ const SecurityCenter: React.FC = () => {
   };
 
   return (
-    <div className={styles.pageContainer}>
-      <div className={styles.pageHeader}>
-        <h1>Security Center</h1>
-        <p>
-          Manage advanced security controls for the admin platform: two-factor enrolment, IP
-          restrictions, active sessions, account recovery, and security activity monitoring.
-        </p>
-      </div>
+    <Stack spacing='lg' className={styles.pageContainer}>
+      <PageHeader
+        title='Security Center'
+        description='Manage advanced security controls for the admin platform: two-factor enrolment, IP restrictions, active sessions, account recovery, and security activity monitoring.'
+      />
 
       <Tabs
         aria-label='Security center tabs'
@@ -93,21 +148,19 @@ const SecurityCenter: React.FC = () => {
           content: tab === t.key ? renderTab(t.key) : null,
         }))}
       />
-    </div>
+    </Stack>
   );
 };
 
 // ----- MFA -----
 
 const MfaTab: React.FC = () => (
-  <div className={styles.section}>
-    <h2>Two-Factor Authentication</h2>
-    <p>
-      Add an extra layer of security to your admin account by requiring a verification code on
-      sign-in.
-    </p>
+  <Section
+    title='Two-Factor Authentication'
+    description='Add an extra layer of security to your admin account by requiring a verification code on sign-in.'
+  >
     <TwoFactorSettings />
-  </div>
+  </Section>
 );
 
 // ----- Sessions -----
@@ -117,37 +170,12 @@ type SessionsTabProps = { initialUserId?: string };
 const SessionsTab: React.FC<SessionsTabProps> = ({ initialUserId = '' }) => {
   const navigate = useNavigate();
   const [userIdFilter, setUserIdFilter] = useState(initialUserId);
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const sessionsQuery = useSecuritySessions(userIdFilter);
+  const revokeSession = useRevokeSession();
+  const revokeAllUserSessions = useRevokeAllUserSessions();
   const { confirm, confirmProps } = useConfirm();
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    securityService
-      .listSessions({ userId: userIdFilter || undefined, limit: 50 })
-      .then(res => {
-        if (!cancelled) {
-          setSessions(res.data);
-        }
-      })
-      .catch(e => {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : 'Failed to load sessions');
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [userIdFilter, refreshKey]);
+  const sessions: Session[] = sessionsQuery.data?.data ?? [];
 
   const handleRevoke = async (sessionId: string) => {
     const confirmed = await confirm({
@@ -162,10 +190,9 @@ const SessionsTab: React.FC<SessionsTabProps> = ({ initialUserId = '' }) => {
       return;
     }
     try {
-      await securityService.revokeSession(sessionId);
-      setRefreshKey(k => k + 1);
+      await revokeSession.mutateAsync(sessionId);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to revoke session');
+      toast.error(errorMessage(e, 'Failed to revoke session'));
     }
   };
 
@@ -184,114 +211,128 @@ const SessionsTab: React.FC<SessionsTabProps> = ({ initialUserId = '' }) => {
       return;
     }
     try {
-      await securityService.revokeAllUserSessions(userIdFilter);
-      setRefreshKey(k => k + 1);
+      await revokeAllUserSessions.mutateAsync(userIdFilter);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to revoke sessions');
+      toast.error(errorMessage(e, 'Failed to revoke sessions'));
     }
   };
 
-  return (
-    <div className={styles.section}>
-      <h2>Active Sessions</h2>
-      <p>
-        Each entry represents a refresh-token family — a logged-in browser or device. Revoke a row
-        to force that device to sign in again.
-      </p>
+  const columns: DataTableColumn[] = [
+    {
+      key: 'user',
+      label: 'User',
+      sortable: false,
+      render: (_value, row) => {
+        const s = row as unknown as Session;
+        return s.user ? (
+          <>
+            <div>{s.user.email}</div>
+            <div className={styles.userIdSubtext}>{s.userId}</div>
+          </>
+        ) : (
+          s.userId
+        );
+      },
+    },
+    {
+      key: 'createdAt',
+      label: 'Created',
+      sortable: false,
+      render: (_value, row) => formatDateTime((row as unknown as Session).createdAt),
+    },
+    {
+      key: 'expiresAt',
+      label: 'Expires',
+      sortable: false,
+      render: (_value, row) => formatDateTime((row as unknown as Session).expiresAt),
+    },
+    {
+      key: 'familyId',
+      label: 'Family',
+      sortable: false,
+      render: (_value, row) => {
+        const s = row as unknown as Session;
+        return <span title={s.familyId}>{s.familyId.slice(0, 8)}…</span>;
+      },
+    },
+    {
+      key: 'drilldown',
+      label: 'Drill-down',
+      sortable: false,
+      render: (_value, row) => {
+        const s = row as unknown as Session;
+        return (
+          <Stack direction='horizontal' spacing='xs'>
+            <Button variant='ghost' size='sm' onClick={() => navigate('/security/ip-rules')}>
+              IP rules
+            </Button>
+            <Button
+              variant='ghost'
+              size='sm'
+              onClick={() =>
+                navigate(`/security/login-history?userId=${encodeURIComponent(s.userId)}`)
+              }
+            >
+              Login history
+            </Button>
+          </Stack>
+        );
+      },
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      sortable: false,
+      render: (_value, row) => (
+        <Button
+          variant='danger'
+          size='sm'
+          onClick={() => handleRevoke((row as unknown as Session).sessionId)}
+        >
+          Revoke
+        </Button>
+      ),
+    },
+  ];
 
+  return (
+    <Section
+      title='Active Sessions'
+      description='Each entry represents a refresh-token family — a logged-in browser or device. Revoke a row to force that device to sign in again.'
+    >
       <div className={styles.inlineForm}>
-        <input
-          className={styles.input}
+        <Input
           placeholder='Filter by user ID'
+          aria-label='Filter by user ID'
           value={userIdFilter}
           onChange={e => setUserIdFilter(e.target.value)}
         />
-        <button
-          type='button'
-          className={styles.secondaryButton}
-          onClick={() => setRefreshKey(k => k + 1)}
-        >
+        <Button variant='outline' onClick={() => void sessionsQuery.refetch()}>
           Refresh
-        </button>
-        <button
-          type='button'
-          className={styles.dangerButton}
-          onClick={handleRevokeAllForUser}
-          disabled={!userIdFilter}
-        >
+        </Button>
+        <Button variant='danger' onClick={handleRevokeAllForUser} disabled={!userIdFilter}>
           Revoke all for user
-        </button>
+        </Button>
       </div>
 
-      {error && <div className={styles.errorBanner}>{error}</div>}
-
-      {loading ? (
-        <div className={styles.emptyState}>Loading…</div>
-      ) : sessions.length === 0 ? (
-        <div className={styles.emptyState}>No active sessions match this filter.</div>
+      {sessionsQuery.isError ? (
+        <ErrorState
+          size='sm'
+          message={errorMessage(sessionsQuery.error, 'Failed to load sessions')}
+          onRetry={() => void sessionsQuery.refetch()}
+        />
       ) : (
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>User</th>
-              <th>Created</th>
-              <th>Expires</th>
-              <th>Family</th>
-              <th>Drill-down</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {sessions.map(s => (
-              <tr key={s.sessionId}>
-                <td>
-                  {s.user ? (
-                    <>
-                      <div>{s.user.email}</div>
-                      <div className={styles.userIdSubtext}>{s.userId}</div>
-                    </>
-                  ) : (
-                    s.userId
-                  )}
-                </td>
-                <td>{new Date(s.createdAt).toLocaleString()}</td>
-                <td>{new Date(s.expiresAt).toLocaleString()}</td>
-                <td title={s.familyId}>{s.familyId.slice(0, 8)}…</td>
-                <td>
-                  <button
-                    type='button'
-                    className={styles.drillLink}
-                    onClick={() => navigate('/security/ip-rules')}
-                  >
-                    IP rules
-                  </button>
-                  <button
-                    type='button'
-                    className={styles.drillLink}
-                    onClick={() =>
-                      navigate(`/security/login-history?userId=${encodeURIComponent(s.userId)}`)
-                    }
-                  >
-                    Login history
-                  </button>
-                </td>
-                <td>
-                  <button
-                    type='button'
-                    className={styles.dangerButton}
-                    onClick={() => handleRevoke(s.sessionId)}
-                  >
-                    Revoke
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable
+          frameless
+          columns={columns}
+          rows={asRows(sessions)}
+          loading={sessionsQuery.isLoading}
+          emptyMessage='No active sessions match this filter.'
+        />
       )}
 
       <ConfirmDialog {...confirmProps} />
-    </div>
+    </Section>
   );
 };
 
@@ -299,69 +340,45 @@ const SessionsTab: React.FC<SessionsTabProps> = ({ initialUserId = '' }) => {
 
 type IpRulesTabProps = { initialIp?: string };
 
+const IP_RULE_TYPE_OPTIONS = [
+  { value: 'block', label: 'Block' },
+  { value: 'allow', label: 'Allow' },
+];
+
+const isIpRuleType = (value: string | string[]): value is IpRuleType =>
+  value === 'block' || value === 'allow';
+
 const IpRulesTab: React.FC<IpRulesTabProps> = ({ initialIp = '' }) => {
-  const [rules, setRules] = useState<IpRule[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const rulesQuery = useIpRules();
+  const createIpRule = useCreateIpRule();
+  const deleteIpRule = useDeleteIpRule();
   const [ipFilter, setIpFilter] = useState(initialIp);
 
   const [type, setType] = useState<IpRuleType>('block');
   const [cidr, setCidr] = useState('');
   const [label, setLabel] = useState('');
-  const [submitting, setSubmitting] = useState(false);
   const { confirm, confirmProps } = useConfirm();
 
   const visibleRules = useMemo(() => {
+    const rules: IpRule[] = rulesQuery.data ?? [];
     const needle = ipFilter.trim().toLowerCase();
     if (!needle) {
       return rules;
     }
     return rules.filter(r => r.cidr.toLowerCase().includes(needle));
-  }, [rules, ipFilter]);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    securityService
-      .listIpRules()
-      .then(data => {
-        if (!cancelled) {
-          setRules(data);
-        }
-      })
-      .catch(e => {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : 'Failed to load IP rules');
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [refreshKey]);
+  }, [rulesQuery.data, ipFilter]);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!cidr.trim()) {
       return;
     }
-    setSubmitting(true);
-    setError(null);
     try {
-      await securityService.createIpRule({ type, cidr: cidr.trim(), label: label.trim() || null });
+      await createIpRule.mutateAsync({ type, cidr: cidr.trim(), label: label.trim() || null });
       setCidr('');
       setLabel('');
-      setRefreshKey(k => k + 1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create IP rule');
-    } finally {
-      setSubmitting(false);
+      toast.error(errorMessage(err, 'Failed to create IP rule'));
     }
   };
 
@@ -378,253 +395,255 @@ const IpRulesTab: React.FC<IpRulesTabProps> = ({ initialIp = '' }) => {
       return;
     }
     try {
-      await securityService.deleteIpRule(ipRuleId);
-      setRefreshKey(k => k + 1);
+      await deleteIpRule.mutateAsync(ipRuleId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete IP rule');
+      toast.error(errorMessage(err, 'Failed to delete IP rule'));
     }
   };
 
+  const columns: DataTableColumn[] = [
+    {
+      key: 'type',
+      label: 'Type',
+      sortable: false,
+      render: (_value, row) => {
+        const r = row as unknown as IpRule;
+        return <StatusBadge variant={r.type === 'block' ? 'error' : 'success'} label={r.type} />;
+      },
+    },
+    {
+      key: 'cidr',
+      label: 'CIDR',
+      sortable: false,
+      render: (_value, row) => <code>{(row as unknown as IpRule).cidr}</code>,
+    },
+    {
+      key: 'label',
+      label: 'Label',
+      sortable: false,
+      render: (_value, row) => (row as unknown as IpRule).label || '—',
+    },
+    {
+      key: 'expiresAt',
+      label: 'Expires',
+      sortable: false,
+      render: (_value, row) => {
+        const r = row as unknown as IpRule;
+        return r.expiresAt ? formatDateTime(r.expiresAt) : 'Never';
+      },
+    },
+    {
+      key: 'createdAt',
+      label: 'Created',
+      sortable: false,
+      render: (_value, row) => formatDateTime((row as unknown as IpRule).createdAt),
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      sortable: false,
+      render: (_value, row) => (
+        <Button
+          variant='danger'
+          size='sm'
+          onClick={() => handleDelete((row as unknown as IpRule).ipRuleId)}
+        >
+          Delete
+        </Button>
+      ),
+    },
+  ];
+
   return (
-    <div className={styles.section}>
-      <h2>IP Restrictions</h2>
-      <p>
-        Block rules deny logins from matching addresses. If any allow rules exist, requests must
-        match at least one to pass. Supports IPv4 single-address or CIDR (e.g.{' '}
-        <code>10.0.0.0/8</code>) and IPv6 single-address.
-      </p>
-
-      {error && <div className={styles.errorBanner}>{error}</div>}
-
+    <Section
+      title='IP Restrictions'
+      description={
+        <>
+          Block rules deny logins from matching addresses. If any allow rules exist, requests must
+          match at least one to pass. Supports IPv4 single-address or CIDR (e.g.{' '}
+          <code>10.0.0.0/8</code>) and IPv6 single-address.
+        </>
+      }
+    >
       <div className={styles.inlineForm}>
-        <input
-          className={styles.input}
+        <Input
           placeholder='Filter rules by address'
           aria-label='Filter IP rules'
           value={ipFilter}
           onChange={e => setIpFilter(e.target.value)}
         />
         {ipFilter && (
-          <button type='button' className={styles.secondaryButton} onClick={() => setIpFilter('')}>
+          <Button variant='outline' onClick={() => setIpFilter('')}>
             Clear filter
-          </button>
+          </Button>
         )}
       </div>
 
       <form className={styles.inlineForm} onSubmit={handleAdd}>
-        <select
-          aria-label='Rule type'
-          className={styles.select}
+        <SelectInput
+          label='Rule type'
+          options={IP_RULE_TYPE_OPTIONS}
           value={type}
-          onChange={e => setType(e.target.value as IpRuleType)}
-        >
-          <option value='block'>Block</option>
-          <option value='allow'>Allow</option>
-        </select>
-        <input
-          className={styles.input}
+          onChange={next => isIpRuleType(next) && setType(next)}
+        />
+        <Input
           placeholder='IP or CIDR (e.g. 10.0.0.0/8)'
+          aria-label='IP or CIDR'
           value={cidr}
           onChange={e => setCidr(e.target.value)}
           required
           aria-required={true}
         />
-        <input
-          className={styles.input}
+        <Input
           placeholder='Label (optional)'
+          aria-label='Label'
           value={label}
           onChange={e => setLabel(e.target.value)}
         />
-        <button type='submit' className={styles.primaryButton} disabled={submitting}>
+        <Button type='submit' variant='primary' disabled={createIpRule.isPending}>
           Add rule
-        </button>
+        </Button>
       </form>
 
-      {loading ? (
-        <div className={styles.emptyState}>Loading…</div>
-      ) : visibleRules.length === 0 ? (
-        <div className={styles.emptyState}>
-          {ipFilter ? `No IP rules match "${ipFilter}".` : 'No IP rules configured.'}
-        </div>
+      {rulesQuery.isError ? (
+        <ErrorState
+          size='sm'
+          message={errorMessage(rulesQuery.error, 'Failed to load IP rules')}
+          onRetry={() => void rulesQuery.refetch()}
+        />
       ) : (
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Type</th>
-              <th>CIDR</th>
-              <th>Label</th>
-              <th>Expires</th>
-              <th>Created</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {visibleRules.map(r => (
-              <tr key={r.ipRuleId}>
-                <td>
-                  <span
-                    className={r.type === 'block' ? styles.statusFailure : styles.statusSuccess}
-                  >
-                    {r.type}
-                  </span>
-                </td>
-                <td>
-                  <code>{r.cidr}</code>
-                </td>
-                <td>{r.label || '—'}</td>
-                <td>{r.expiresAt ? new Date(r.expiresAt).toLocaleString() : 'Never'}</td>
-                <td>{new Date(r.createdAt).toLocaleString()}</td>
-                <td>
-                  <button
-                    type='button'
-                    className={styles.dangerButton}
-                    onClick={() => handleDelete(r.ipRuleId)}
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable
+          frameless
+          columns={columns}
+          rows={asRows(visibleRules)}
+          loading={rulesQuery.isLoading}
+          emptyMessage={ipFilter ? `No IP rules match "${ipFilter}".` : 'No IP rules configured.'}
+        />
       )}
 
       <ConfirmDialog {...confirmProps} />
-    </div>
+    </Section>
   );
 };
 
 // ----- Login history -----
 
 type LoginHistoryTabProps = { initialUserId?: string };
+type LoginStatusFilter = 'all' | 'success' | 'failure';
+
+const LOGIN_STATUS_OPTIONS = [
+  { value: 'all', label: 'All statuses' },
+  { value: 'success', label: 'Successes only' },
+  { value: 'failure', label: 'Failures only' },
+];
+
+const isLoginStatusFilter = (value: string | string[]): value is LoginStatusFilter =>
+  value === 'all' || value === 'success' || value === 'failure';
+
+const loginStatusVariant = (
+  status: LoginHistoryEntry['status']
+): 'success' | 'error' | 'neutral' =>
+  status === 'success' ? 'success' : status === 'failure' ? 'error' : 'neutral';
 
 const LoginHistoryTab: React.FC<LoginHistoryTabProps> = ({ initialUserId = '' }) => {
   const navigate = useNavigate();
   const [userIdFilter, setUserIdFilter] = useState(initialUserId);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'success' | 'failure'>('all');
-  const [entries, setEntries] = useState<LoginHistoryEntry[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<LoginStatusFilter>('all');
+  const historyQuery = useLoginHistory(userIdFilter, statusFilter);
+  const entries: LoginHistoryEntry[] = historyQuery.data?.data ?? [];
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    securityService
-      .getLoginHistory({
-        userId: userIdFilter || undefined,
-        status: statusFilter === 'all' ? undefined : statusFilter,
-        limit: 100,
-      })
-      .then(res => {
-        if (!cancelled) {
-          setEntries(res.data);
+  const columns: DataTableColumn[] = [
+    {
+      key: 'timestamp',
+      label: 'When',
+      sortable: false,
+      render: (_value, row) => formatDateTime((row as unknown as LoginHistoryEntry).timestamp),
+    },
+    { key: 'action', label: 'Action', sortable: false },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: false,
+      render: (_value, row) => {
+        const entry = row as unknown as LoginHistoryEntry;
+        return (
+          <StatusBadge
+            variant={loginStatusVariant(entry.status)}
+            label={entry.status ?? 'unknown'}
+          />
+        );
+      },
+    },
+    {
+      key: 'user',
+      label: 'User',
+      sortable: false,
+      render: (_value, row) => {
+        const entry = row as unknown as LoginHistoryEntry;
+        return entry.userEmail || entry.userId || '—';
+      },
+    },
+    {
+      key: 'ipAddress',
+      label: 'IP',
+      sortable: false,
+      render: (_value, row) => {
+        const { ipAddress } = row as unknown as LoginHistoryEntry;
+        if (!ipAddress) {
+          return '—';
         }
-      })
-      .catch(e => {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : 'Failed to load login history');
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [userIdFilter, statusFilter]);
+        return (
+          <>
+            {ipAddress}{' '}
+            <Button
+              variant='ghost'
+              size='sm'
+              onClick={() => navigate(`/security/ip-rules?ip=${encodeURIComponent(ipAddress)}`)}
+            >
+              IP rules
+            </Button>
+          </>
+        );
+      },
+    },
+  ];
 
   return (
-    <div className={styles.section}>
-      <h2>Login History</h2>
-      <p>
-        Successful and failed authentication events for the last 30 days, captured from the audit
-        log.
-      </p>
-
+    <Section
+      title='Login History'
+      description='Successful and failed authentication events for the last 30 days, captured from the audit log.'
+    >
       <div className={styles.inlineForm}>
-        <input
-          className={styles.input}
+        <Input
           placeholder='Filter by user ID'
+          aria-label='Filter by user ID'
           value={userIdFilter}
           onChange={e => setUserIdFilter(e.target.value)}
         />
-        <select
-          className={styles.select}
+        <SelectInput
+          label='Filter by status'
+          options={LOGIN_STATUS_OPTIONS}
           value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value as 'all' | 'success' | 'failure')}
-          aria-label='Filter by status'
-        >
-          <option value='all'>All statuses</option>
-          <option value='success'>Successes only</option>
-          <option value='failure'>Failures only</option>
-        </select>
+          onChange={next => isLoginStatusFilter(next) && setStatusFilter(next)}
+        />
       </div>
 
-      {error && <div className={styles.errorBanner}>{error}</div>}
-
-      {loading ? (
-        <div className={styles.emptyState}>Loading…</div>
-      ) : entries.length === 0 ? (
-        <div className={styles.emptyState}>No login events match these filters.</div>
+      {historyQuery.isError ? (
+        <ErrorState
+          size='sm'
+          message={errorMessage(historyQuery.error, 'Failed to load login history')}
+          onRetry={() => void historyQuery.refetch()}
+        />
       ) : (
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>When</th>
-              <th>Action</th>
-              <th>Status</th>
-              <th>User</th>
-              <th>IP</th>
-            </tr>
-          </thead>
-          <tbody>
-            {entries.map(entry => (
-              <tr key={entry.id}>
-                <td>{new Date(entry.timestamp).toLocaleString()}</td>
-                <td>{entry.action}</td>
-                <td>
-                  <span
-                    className={
-                      entry.status === 'success'
-                        ? styles.statusSuccess
-                        : entry.status === 'failure'
-                          ? styles.statusFailure
-                          : styles.statusNeutral
-                    }
-                  >
-                    {entry.status ?? 'unknown'}
-                  </span>
-                </td>
-                <td>{entry.userEmail || entry.userId || '—'}</td>
-                <td>
-                  {entry.ipAddress ? (
-                    <>
-                      {entry.ipAddress}{' '}
-                      <button
-                        type='button'
-                        className={styles.drillLink}
-                        onClick={() =>
-                          navigate(
-                            `/security/ip-rules?ip=${encodeURIComponent(entry.ipAddress ?? '')}`
-                          )
-                        }
-                      >
-                        IP rules
-                      </button>
-                    </>
-                  ) : (
-                    '—'
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable
+          frameless
+          columns={columns}
+          rows={asRows(entries)}
+          loading={historyQuery.isLoading}
+          emptyMessage='No login events match these filters.'
+        />
       )}
-    </div>
+    </Section>
   );
 };
 
@@ -634,126 +653,111 @@ const SuspiciousTab: React.FC = () => {
   const navigate = useNavigate();
   const [threshold, setThreshold] = useState(5);
   const [windowHours, setWindowHours] = useState(24);
-  const [entries, setEntries] = useState<SuspiciousActivityEntry[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const activityQuery = useSuspiciousActivity(threshold, windowHours);
+  const entries: SuspiciousActivityEntry[] = activityQuery.data ?? [];
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    securityService
-      .getSuspiciousActivity({ failureThreshold: threshold, windowHours })
-      .then(data => {
-        if (!cancelled) {
-          setEntries(data);
-        }
-      })
-      .catch(e => {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : 'Failed to load suspicious activity');
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [threshold, windowHours]);
+  const columns: DataTableColumn[] = [
+    {
+      key: 'user',
+      label: 'User',
+      sortable: false,
+      render: (_value, row) => {
+        const entry = row as unknown as SuspiciousActivityEntry;
+        return entry.userEmail || entry.userId || '(unidentified)';
+      },
+    },
+    { key: 'failureCount', label: 'Failed attempts', sortable: false },
+    {
+      key: 'lastAttempt',
+      label: 'Last attempt',
+      sortable: false,
+      render: (_value, row) =>
+        formatDateTime((row as unknown as SuspiciousActivityEntry).lastAttempt),
+    },
+    {
+      key: 'lastIp',
+      label: 'Last IP',
+      sortable: false,
+      render: (_value, row) => (row as unknown as SuspiciousActivityEntry).lastIp || '—',
+    },
+    {
+      key: 'drilldown',
+      label: 'Drill-down',
+      sortable: false,
+      render: (_value, row) => {
+        const entry = row as unknown as SuspiciousActivityEntry;
+        return (
+          <Stack direction='horizontal' spacing='xs'>
+            <Button
+              variant='ghost'
+              size='sm'
+              onClick={() =>
+                navigate(`/security/sessions?userId=${encodeURIComponent(entry.userId ?? '')}`)
+              }
+              disabled={!entry.userId}
+              title={entry.userId ? 'View this user’s active sessions' : 'No user ID'}
+            >
+              Sessions
+            </Button>
+            <Button
+              variant='ghost'
+              size='sm'
+              onClick={() =>
+                navigate(`/security/login-history?userId=${encodeURIComponent(entry.userId ?? '')}`)
+              }
+              disabled={!entry.userId}
+              title={entry.userId ? 'View this user’s login history' : 'No user ID'}
+            >
+              Login history
+            </Button>
+          </Stack>
+        );
+      },
+    },
+  ];
 
   return (
-    <div className={styles.section}>
-      <h2>Suspicious Activity</h2>
-      <p>
-        Accounts (or unidentified actors, by IP) with at least N failed logins in the selected
-        window. The default threshold mirrors the auth-service lockout rule (5 failures triggers a
-        30-minute lockout) so anything flagged here is at imminent risk of being locked out.
-      </p>
-
+    <Section
+      title='Suspicious Activity'
+      description='Accounts (or unidentified actors, by IP) with at least N failed logins in the selected window. The default threshold mirrors the auth-service lockout rule (5 failures triggers a 30-minute lockout) so anything flagged here is at imminent risk of being locked out.'
+    >
       <div className={styles.inlineForm}>
-        <label>
-          Threshold:{' '}
-          <input
+        <FormField label='Threshold' htmlFor='suspicious-threshold'>
+          <Input
+            id='suspicious-threshold'
             type='number'
             min={1}
-            className={styles.input}
             value={threshold}
             onChange={e => setThreshold(Math.max(1, parseInt(e.target.value, 10) || 1))}
           />
-        </label>
-        <label>
-          Window (hours):{' '}
-          <input
+        </FormField>
+        <FormField label='Window (hours)' htmlFor='suspicious-window'>
+          <Input
+            id='suspicious-window'
             type='number'
             min={1}
-            className={styles.input}
             value={windowHours}
             onChange={e => setWindowHours(Math.max(1, parseInt(e.target.value, 10) || 1))}
           />
-        </label>
+        </FormField>
       </div>
 
-      {error && <div className={styles.errorBanner}>{error}</div>}
-
-      {loading ? (
-        <div className={styles.emptyState}>Loading…</div>
-      ) : entries.length === 0 ? (
-        <div className={styles.emptyState}>No suspicious activity in this window.</div>
+      {activityQuery.isError ? (
+        <ErrorState
+          size='sm'
+          message={errorMessage(activityQuery.error, 'Failed to load suspicious activity')}
+          onRetry={() => void activityQuery.refetch()}
+        />
       ) : (
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>User</th>
-              <th>Failed attempts</th>
-              <th>Last attempt</th>
-              <th>Last IP</th>
-              <th>Drill-down</th>
-            </tr>
-          </thead>
-          <tbody>
-            {entries.map((entry, idx) => (
-              <tr key={`${entry.userId ?? entry.userEmail ?? entry.lastIp ?? idx}-${idx}`}>
-                <td>{entry.userEmail || entry.userId || '(unidentified)'}</td>
-                <td>{entry.failureCount}</td>
-                <td>{new Date(entry.lastAttempt).toLocaleString()}</td>
-                <td>{entry.lastIp || '—'}</td>
-                <td>
-                  <button
-                    type='button'
-                    className={styles.drillLink}
-                    onClick={() =>
-                      navigate(
-                        `/security/sessions?userId=${encodeURIComponent(entry.userId ?? '')}`
-                      )
-                    }
-                    disabled={!entry.userId}
-                    title={entry.userId ? 'View this user’s active sessions' : 'No user ID'}
-                  >
-                    Sessions
-                  </button>
-                  <button
-                    type='button'
-                    className={styles.drillLink}
-                    onClick={() =>
-                      navigate(
-                        `/security/login-history?userId=${encodeURIComponent(entry.userId ?? '')}`
-                      )
-                    }
-                    disabled={!entry.userId}
-                    title={entry.userId ? 'View this user’s login history' : 'No user ID'}
-                  >
-                    Login history
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable
+          frameless
+          columns={columns}
+          rows={asRows(entries)}
+          loading={activityQuery.isLoading}
+          emptyMessage='No suspicious activity in this window.'
+        />
       )}
-    </div>
+    </Section>
   );
 };
 
@@ -762,28 +766,23 @@ const SuspiciousTab: React.FC = () => {
 const RecoveryTab: React.FC = () => {
   const [userId, setUserId] = useState('');
   const [reason, setReason] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const unlockAccount = useUnlockAccount();
+  const forceLockAccount = useForceLockAccount();
   const { confirm, confirmProps } = useConfirm();
 
+  const busy = unlockAccount.isPending || forceLockAccount.isPending;
   const isUserIdValid = useMemo(() => userId.trim().length > 0, [userId]);
 
   const handleUnlock = async () => {
-    setBusy(true);
-    setMessage(null);
-    setError(null);
     try {
-      const result = await securityService.unlockAccount(userId.trim());
-      setMessage(
+      const result = await unlockAccount.mutateAsync(userId.trim());
+      toast.success(
         result.wasLocked
           ? `Account ${userId.trim()} unlocked.`
           : `Account ${userId.trim()} was not locked; counter reset anyway.`
       );
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to unlock account');
-    } finally {
-      setBusy(false);
+      toast.error(errorMessage(e, 'Failed to unlock account'));
     }
   };
 
@@ -798,64 +797,45 @@ const RecoveryTab: React.FC = () => {
     if (!confirmed) {
       return;
     }
-    setBusy(true);
-    setMessage(null);
-    setError(null);
     try {
-      await securityService.forceLockAccount(userId.trim(), reason.trim() || undefined);
-      setMessage(`Account ${userId.trim()} locked for 24h. All sessions revoked.`);
+      await forceLockAccount.mutateAsync({
+        userId: userId.trim(),
+        reason: reason.trim() || undefined,
+      });
+      toast.success(`Account ${userId.trim()} locked for 24h. All sessions revoked.`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to lock account');
-    } finally {
-      setBusy(false);
+      toast.error(errorMessage(e, 'Failed to lock account'));
     }
   };
 
   return (
-    <div className={styles.section}>
-      <h2>Account Recovery & Takeover Prevention</h2>
-      <p>
-        If an account is suspected compromised, force-lock it (terminates all sessions and blocks
-        sign-in for 24 hours) until the user has rotated their credentials. Use unlock to clear an
-        automatic lockout once the user proves identity.
-      </p>
-
-      {error && <div className={styles.errorBanner}>{error}</div>}
-      {message && <div className={styles.successBanner}>{message}</div>}
-
+    <Section
+      title='Account Recovery & Takeover Prevention'
+      description='If an account is suspected compromised, force-lock it (terminates all sessions and blocks sign-in for 24 hours) until the user has rotated their credentials. Use unlock to clear an automatic lockout once the user proves identity.'
+    >
       <div className={styles.inlineForm}>
-        <input
-          className={styles.input}
+        <Input
           placeholder='User ID'
+          aria-label='User ID'
           value={userId}
           onChange={e => setUserId(e.target.value)}
         />
-        <input
-          className={styles.input}
+        <Input
           placeholder='Reason (optional, for force-lock)'
+          aria-label='Reason (optional, for force-lock)'
           value={reason}
           onChange={e => setReason(e.target.value)}
         />
-        <button
-          type='button'
-          className={styles.primaryButton}
-          onClick={handleUnlock}
-          disabled={!isUserIdValid || busy}
-        >
+        <Button variant='primary' onClick={handleUnlock} disabled={!isUserIdValid || busy}>
           Unlock account
-        </button>
-        <button
-          type='button'
-          className={styles.dangerButton}
-          onClick={handleForceLock}
-          disabled={!isUserIdValid || busy}
-        >
+        </Button>
+        <Button variant='danger' onClick={handleForceLock} disabled={!isUserIdValid || busy}>
           Force-lock & revoke
-        </button>
+        </Button>
       </div>
 
       <ConfirmDialog {...confirmProps} />
-    </div>
+    </Section>
   );
 };
 

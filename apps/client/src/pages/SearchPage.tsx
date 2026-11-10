@@ -4,19 +4,20 @@ import { useNearbySearch } from '@/hooks/useNearbySearch';
 import { useSearchFilters } from '@/hooks/useSearchFilters';
 import { useStatsig } from '@/hooks/useStatsig';
 import { useFeatureGate } from '@adopt-dont-shop/lib.feature-flags';
-import { petService, PaginatedResponse, Pet } from '@/services';
 import {
   Button,
   Container,
   EmptyState,
   ErrorState,
+  PageHeader,
   QueryBoundary,
   SelectInput,
 } from '@adopt-dont-shop/lib.components';
 import { PetCardSkeletonGrid } from '@/components/skeletons';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 import * as styles from './SearchPage.css';
+import { useSearchPets } from './useSearchPets';
 import { SORT_OPTIONS } from './searchOptions';
 import { SearchFilters } from './SearchFilters';
 import { DiscoverySearchToggle } from '@/components/discovery/DiscoverySearchToggle';
@@ -24,10 +25,6 @@ import { DiscoverySearchToggle } from '@/components/discovery/DiscoverySearchTog
 export const SearchPage: React.FC = () => {
   'use memo';
   const [searchParams, setSearchParams] = useSearchParams();
-  const [pets, setPets] = useState<Pet[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState<PaginatedResponse<Pet>['pagination'] | null>(null);
   const { logEvent } = useStatsig();
   const { trackPageView, trackEvent } = useAnalytics();
   const { value: advancedFiltersEnabled } = useFeatureGate('advanced_search_filters');
@@ -71,127 +68,24 @@ export const SearchPage: React.FC = () => {
     });
   }, [trackPageView, trackEvent, logEvent, advancedFiltersEnabled]);
 
-  // Track the current in-flight request so stale responses are discarded when
-  // filters change rapidly. Each loadPets invocation gets a unique token; only
-  // the token matching the latest invocation is allowed to commit state.
-  const searchTokenRef = useRef(0);
-
-  const loadPets = useCallback(async () => {
-    const token = ++searchTokenRef.current;
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const { filters, searchQuery } = filterState;
-      const searchFilters = { ...filters };
-
-      if (searchQuery.trim()) {
-        searchFilters.search = searchQuery.trim();
-      }
-
-      if (nearby.hasLocation) {
-        searchFilters.latitude = nearby.latitude;
-        searchFilters.longitude = nearby.longitude;
-      }
-
-      trackEvent({
-        category: 'search',
-        action: 'pet_search_executed',
-        label: filterState.searchQuery ? 'query_search' : 'filter_search',
-        sessionId: 'search-session',
-        timestamp: new Date(),
-        properties: {
-          search_query: filterState.searchQuery || 'none',
-          type_filter: filters.type || 'none',
-          breed_filter: filters.breed || 'none',
-          size_filter: filters.size || 'none',
-          gender_filter: filters.gender || 'none',
-          location_filter: filters.location || 'none',
-          age_group_filter: filters.ageGroup || 'none',
-          status_filter: filters.status || 'none',
-          sort_by: filters.sortBy || 'created_at',
-          sort_order: filters.sortOrder || 'desc',
-          page: filters.page || 1,
-          has_filters: Object.values(filters).some(v => v && v !== '' && v !== 1),
-        },
-      });
-
-      logEvent('pet_search_executed', 1, {
-        search_query: filterState.searchQuery || 'none',
-        type_filter: filters.type || 'none',
-        breed_filter: filters.breed || 'none',
-        size_filter: filters.size || 'none',
-        gender_filter: filters.gender || 'none',
-        location_filter: filters.location || 'none',
-        age_group_filter: filters.ageGroup || 'none',
-        status_filter: filters.status || 'none',
-        sort_by: filters.sortBy || 'created_at',
-        sort_order: filters.sortOrder || 'desc',
-        page: (filters.page || 1).toString(),
-      });
-
-      const response = await petService.searchPets(searchFilters);
-
-      // Discard stale *success* responses: if a newer request has already
-      // started, don't overwrite the UI with outdated results.
-      if (token !== searchTokenRef.current) {
-        return;
-      }
-
-      setPets(response.data || []);
-      setPagination(response.pagination || null);
-
-      trackEvent({
-        category: 'search',
-        action: 'pet_search_results',
-        label: 'search_completed',
-        value: (response.data || []).length,
-        sessionId: 'search-session',
-        timestamp: new Date(),
-        properties: {
-          total_results: response.pagination?.total || 0,
-          results_on_page: (response.data || []).length,
-          has_filters: Object.values(filters).some(v => v && v !== '' && v !== 1),
-          search_query: filterState.searchQuery || 'none',
-        },
-      });
-
-      logEvent('pet_search_results', (response.data || []).length, {
-        total_results: response.pagination?.total?.toString() || '0',
-        results_on_page: (response.data || []).length.toString(),
-        has_filters: Object.values(filters).some(v => v && v !== '' && v !== 1) ? 'true' : 'false',
-        search_query: filterState.searchQuery || 'none',
-      });
-    } catch (err) {
-      // Errors always propagate regardless of staleness — the user must never
-      // be left in a silent broken state. Stale *successful* responses are
-      // discarded above so outdated results don't overwrite a newer fetch.
-      console.error('Search error details:', err);
-      setError('Something went wrong loading results. Please check your connection and try again.');
-      setPets([]);
-      setPagination(null);
-
-      logEvent('pet_search_error', 1, {
-        error_message: err instanceof Error ? err.message : 'Unknown error',
-        search_query: filterState.searchQuery || 'none',
-        filters_applied: JSON.stringify(filterState.filters),
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [
-    filterState.filters,
-    filterState.searchQuery,
-    nearby.hasLocation,
-    nearby.latitude,
-    nearby.longitude,
+  const searchQuery = useSearchPets({
+    filters: filterState.filters,
+    searchQuery: filterState.searchQuery,
+    coordinates: nearby.hasLocation
+      ? { latitude: nearby.latitude, longitude: nearby.longitude }
+      : null,
     logEvent,
     trackEvent,
-  ]);
-
-  useEffect(() => {
-    loadPets();
-  }, [loadPets]);
+  });
+  const pets = searchQuery.data?.pets ?? [];
+  const pagination = searchQuery.data?.pagination ?? null;
+  const isLoading = searchQuery.isFetching;
+  const error = searchQuery.isError
+    ? 'Something went wrong loading results. Please check your connection and try again.'
+    : null;
+  const loadPets = () => {
+    void searchQuery.refetch();
+  };
 
   const handleClearAll = () => {
     filterState.clearFilters();
@@ -214,14 +108,11 @@ export const SearchPage: React.FC = () => {
 
   return (
     <Container className={styles.searchContainer}>
-      <div className={styles.searchHeader}>
-        <h1>Find Your Next Pet</h1>
-        <p>
-          Browse adoptable pets from verified rescues. Use the filters below to find exactly what
-          you&apos;re looking for. Prefer to browse one at a time? Switch to Discover.
-        </p>
-        <DiscoverySearchToggle active='search' className={styles.browseToggle} />
-      </div>
+      <PageHeader
+        title='Find Your Next Pet'
+        description="Browse adoptable pets from verified rescues. Use the filters below to find exactly what you're looking for. Prefer to browse one at a time? Switch to Discover."
+        actions={<DiscoverySearchToggle active='search' />}
+      />
 
       <SearchFilters
         filters={filterState.filters}

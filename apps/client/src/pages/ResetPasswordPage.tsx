@@ -1,7 +1,7 @@
 import { useStatsig } from '@/hooks/useStatsig';
 import { authService } from '@/services';
-import { NewPasswordSchema, useOneTimeUrlToken } from '@adopt-dont-shop/lib.auth';
-import { Alert, Button, Card, Input } from '@adopt-dont-shop/lib.components';
+import { AuthLayout, NewPasswordSchema, useOneTimeUrlToken } from '@adopt-dont-shop/lib.auth';
+import { Alert, Button, Input } from '@adopt-dont-shop/lib.components';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -131,97 +131,89 @@ export const ResetPasswordPage: React.FC = () => {
 
   if (isSuccess) {
     return (
-      <div className={styles.container}>
-        <Card className={styles.resetPasswordCard}>
-          <div className={styles.successContainer}>
-            <h2>Password updated</h2>
-            <p>We updated your password.</p>
-            <p>You can now sign in with your new password.</p>
-            <p className='redirect-message'>
-              Redirecting to login in {redirectCountdown} seconds...
-            </p>
+      <AuthLayout title='Password updated'>
+        <div className={styles.successContainer}>
+          <p>We updated your password.</p>
+          <p>You can now sign in with your new password.</p>
+          <p className='redirect-message'>Redirecting to login in {redirectCountdown} seconds...</p>
 
-            <Button
-              type='button'
-              size='lg'
-              variant='primary'
-              onClick={() => navigate('/login')}
-              isFullWidth
-              className={styles.fullWidthTopGap}
-            >
-              Go to Login Now
-            </Button>
-          </div>
-        </Card>
-      </div>
+          <Button
+            type='button'
+            size='lg'
+            variant='primary'
+            onClick={() => navigate('/login')}
+            isFullWidth
+            className={styles.fullWidthTopGap}
+          >
+            Go to Login Now
+          </Button>
+        </div>
+      </AuthLayout>
     );
   }
 
   return (
-    <div className={styles.container}>
-      <Card className={styles.resetPasswordCard}>
-        <div className={styles.header}>
-          <h1>Reset Your Password</h1>
-          <p>Enter your new password below to complete the reset process.</p>
-        </div>
-
-        {error && (
-          <Alert className={styles.styledAlert} variant='error'>
-            {error}
-          </Alert>
-        )}
-
-        <form className={styles.form} onSubmit={handleSubmit(onSubmit)}>
-          <div className={styles.formGroup}>
-            <Input
-              label='New Password'
-              type='password'
-              placeholder='Enter new password'
-              error={errors.password?.message}
-              autoFocus
-              disabled={!token}
-              autoComplete='new-password'
-              {...register('password')}
-            />
-            <div className={styles.passwordRequirements}>
-              <h4>Password Requirements:</h4>
-              <ul>
-                <li>At least 8 characters long</li>
-                <li>At least one uppercase letter (A-Z)</li>
-                <li>At least one lowercase letter (a-z)</li>
-                <li>At least one number (0-9)</li>
-                <li>At least one special character (such as ! @ # or -)</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className={styles.formGroup}>
-            <Input
-              label='Confirm New Password'
-              type='password'
-              placeholder='Confirm new password'
-              error={errors.confirmPassword?.message}
-              disabled={!token}
-              autoComplete='new-password'
-              {...register('confirmPassword')}
-            />
-          </div>
-
-          <Button
-            type='submit'
-            size='lg'
-            variant='primary'
-            disabled={isLoading || !tokenValidated}
-            isFullWidth
-          >
-            {isLoading ? 'Resetting Password...' : 'Reset Password'}
-          </Button>
-        </form>
-
+    <AuthLayout
+      title='Reset Your Password'
+      subtitle='Enter your new password below to complete the reset process.'
+      footer={
         <Link className={styles.backToLoginLink} to='/login'>
           Back to Login
         </Link>
-      </Card>
-    </div>
+      }
+    >
+      {error && (
+        <Alert className={styles.styledAlert} variant='error'>
+          {error}
+        </Alert>
+      )}
+
+      <form className={styles.form} onSubmit={handleSubmit(onSubmit)}>
+        <div className={styles.formGroup}>
+          <Input
+            label='New Password'
+            type='password'
+            placeholder='Enter new password'
+            error={errors.password?.message}
+            autoFocus
+            disabled={!token}
+            autoComplete='new-password'
+            {...register('password')}
+          />
+          <div className={styles.passwordRequirements}>
+            <h4>Password Requirements:</h4>
+            <ul>
+              <li>At least 8 characters long</li>
+              <li>At least one uppercase letter (A-Z)</li>
+              <li>At least one lowercase letter (a-z)</li>
+              <li>At least one number (0-9)</li>
+              <li>At least one special character (such as ! @ # or -)</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className={styles.formGroup}>
+          <Input
+            label='Confirm New Password'
+            type='password'
+            placeholder='Confirm new password'
+            error={errors.confirmPassword?.message}
+            disabled={!token}
+            autoComplete='new-password'
+            {...register('confirmPassword')}
+          />
+        </div>
+
+        <Button
+          type='submit'
+          size='lg'
+          variant='primary'
+          disabled={isLoading || !tokenValidated}
+          isFullWidth
+        >
+          {isLoading ? 'Resetting Password...' : 'Reset Password'}
+        </Button>
+      </form>
+    </AuthLayout>
   );
 };

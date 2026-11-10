@@ -1,25 +1,34 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import clsx from 'clsx';
+import React, { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { Heading, Text, Button, Skeleton, toast } from '@adopt-dont-shop/lib.components';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  DataTable,
+  type DataTableColumn,
+  ErrorState,
+  Heading,
+  PageHeader,
+  Stack,
+  Tabs,
+  Text,
+  toast,
+} from '@adopt-dont-shop/lib.components';
 import type {
   FieldAccessLevel,
-  FieldAccessMap,
-  FieldPermissionRecord,
   FieldPermissionResource,
   UserRole,
 } from '@adopt-dont-shop/lib.permissions';
 import { apiService } from '../services/libraryServices';
-import { Info, RefreshCw, Save, Shield } from 'lucide-react';
+import { Info, RefreshCw, Save } from 'lucide-react';
 import {
-  PageContainer,
-  PageHeader,
-  HeaderLeft,
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from '../components/ui';
+  useFieldPermissionDefaults,
+  useFieldPermissionOverrides,
+} from '../hooks/useFieldPermissions';
 import * as styles from './FieldPermissions.css';
 
 const RESOURCES: ReadonlyArray<FieldPermissionResource> = [
@@ -45,43 +54,45 @@ const getAccessSelectClass = (level: FieldAccessLevel): string => {
 
 const FieldPermissions: React.FC = () => {
   const { isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
   const [selectedResource, setSelectedResource] = useState<FieldPermissionResource>('users');
   const [selectedRole, setSelectedRole] = useState<UserRole>('admin');
-  const [defaults, setDefaults] = useState<FieldAccessMap>({});
-  const [overrides, setOverrides] = useState<FieldPermissionRecord[]>([]);
   const [pendingChanges, setPendingChanges] = useState<Record<string, FieldAccessLevel>>({});
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [defaultsData, overridesData] = await Promise.all([
-        apiService.get<{ data: FieldAccessMap }>(
-          `/api/v1/field-permissions/defaults/${selectedResource}/${selectedRole}`
-        ),
-        apiService.get<{ data: FieldPermissionRecord[] }>(
-          `/api/v1/field-permissions/${selectedResource}/${selectedRole}`
-        ),
-      ]);
+  const defaultsQuery = useFieldPermissionDefaults(selectedResource, selectedRole, isAuthenticated);
+  const overridesQuery = useFieldPermissionOverrides(
+    selectedResource,
+    selectedRole,
+    isAuthenticated
+  );
+  const defaults = defaultsQuery.data ?? {};
+  const overrides = overridesQuery.data ?? [];
+  const loading = defaultsQuery.isLoading || overridesQuery.isLoading;
+  const loadFailed = defaultsQuery.isError || overridesQuery.isError;
+  const error = saveError ?? (loadFailed ? 'Failed to load field permissions' : null);
 
-      setDefaults(defaultsData.data || {});
-      setOverrides(overridesData.data || []);
-      setPendingChanges({});
-    } catch (err) {
-      setError('Failed to load field permissions');
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedResource, selectedRole]);
+  const resetView = () => {
+    setPendingChanges({});
+    setSaveError(null);
+  };
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchData();
-    }
-  }, [fetchData, isAuthenticated]);
+  const refresh = async () => {
+    resetView();
+    await queryClient.invalidateQueries({
+      queryKey: ['field-permissions', selectedResource, selectedRole],
+    });
+  };
+
+  const selectResource = (resource: FieldPermissionResource) => {
+    resetView();
+    setSelectedResource(resource);
+  };
+
+  const selectRole = (role: UserRole) => {
+    resetView();
+    setSelectedRole(role);
+  };
 
   const getEffectiveLevel = (fieldName: string): FieldAccessLevel => {
     if (pendingChanges[fieldName] !== undefined) {
@@ -115,219 +126,218 @@ const FieldPermissions: React.FC = () => {
     });
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    setError(null);
+  // Resolves to the user-facing failure message, or null when everything saved.
+  const saveMutation = useMutation({
+    mutationFn: async (): Promise<string | null> => {
+      const bulkOverrides: Array<{
+        resource: FieldPermissionResource;
+        field_name: string;
+        role: UserRole;
+        access_level: FieldAccessLevel;
+      }> = [];
+      const deletions: string[] = [];
 
-    const bulkOverrides: Array<{
-      resource: FieldPermissionResource;
-      field_name: string;
-      role: UserRole;
-      access_level: FieldAccessLevel;
-    }> = [];
-    const deletions: string[] = [];
+      for (const [fieldName, accessLevel] of Object.entries(pendingChanges) as Array<
+        [string, FieldAccessLevel]
+      >) {
+        const defaultLevel = defaults[fieldName] ?? 'none';
+        const hasExistingOverride = overrides.some(o => o.field_name === fieldName);
 
-    for (const [fieldName, accessLevel] of Object.entries(pendingChanges) as Array<
-      [string, FieldAccessLevel]
-    >) {
-      const defaultLevel = defaults[fieldName] ?? 'none';
-      const hasExistingOverride = overrides.some(o => o.field_name === fieldName);
-
-      if (accessLevel === defaultLevel) {
-        if (hasExistingOverride) {
-          deletions.push(fieldName);
+        if (accessLevel === defaultLevel) {
+          if (hasExistingOverride) {
+            deletions.push(fieldName);
+          }
+          continue;
         }
-        continue;
+
+        bulkOverrides.push({
+          resource: selectedResource,
+          field_name: fieldName,
+          role: selectedRole,
+          access_level: accessLevel,
+        });
       }
 
-      bulkOverrides.push({
-        resource: selectedResource,
-        field_name: fieldName,
-        role: selectedRole,
-        access_level: accessLevel,
-      });
-    }
+      try {
+        if (bulkOverrides.length > 0) {
+          await apiService.post('/api/v1/field-permissions/bulk', { overrides: bulkOverrides });
+        }
 
-    let saveError: string | null = null;
-
-    try {
-      if (bulkOverrides.length > 0) {
-        await apiService.post('/api/v1/field-permissions/bulk', { overrides: bulkOverrides });
-      }
-
-      if (deletions.length > 0) {
-        const results = await Promise.allSettled(
-          deletions.map(fieldName =>
-            apiService.delete(
-              `/api/v1/field-permissions/${selectedResource}/${selectedRole}/${fieldName}`
+        if (deletions.length > 0) {
+          const results = await Promise.allSettled(
+            deletions.map(fieldName =>
+              apiService.delete(
+                `/api/v1/field-permissions/${selectedResource}/${selectedRole}/${fieldName}`
+              )
             )
-          )
-        );
-        const failed = deletions.filter((_, i) => results[i].status === 'rejected');
-        if (failed.length > 0) {
-          const count = failed.length;
-          const fields = failed.join(', ');
-          saveError = `Failed to revert ${count} field(s) to default: ${fields}`;
+          );
+          const failed = deletions.filter((_, i) => results[i].status === 'rejected');
+          if (failed.length > 0) {
+            return `Failed to revert ${failed.length} field(s) to default: ${failed.join(', ')}`;
+          }
         }
+        return null;
+      } catch {
+        return 'Failed to save field permissions';
       }
-    } catch (err) {
-      saveError = 'Failed to save field permissions';
-    } finally {
-      await fetchData();
-      if (saveError !== null) {
-        setError(saveError);
-        toast.error(saveError);
-      } else {
-        toast.success('Field permissions saved');
-      }
-      setSaving(false);
+    },
+  });
+  const saving = saveMutation.isPending;
+
+  const handleSave = async () => {
+    setSaveError(null);
+    const failure = await saveMutation.mutateAsync();
+    await refresh();
+    if (failure !== null) {
+      setSaveError(failure);
+      toast.error(failure);
+      return;
     }
+    toast.success('Field permissions saved');
   };
 
   const fieldNames = Object.keys(defaults).sort();
   const pendingCount = Object.keys(pendingChanges).length;
 
-  return (
-    <PageContainer>
-      <PageHeader>
-        <HeaderLeft>
-          <Shield size={24} />
-          <Heading level='h1'>Field Permissions</Heading>
-        </HeaderLeft>
-        <div className={styles.headerActions}>
-          <Button variant='secondary' onClick={fetchData} disabled={loading}>
-            <RefreshCw size={16} />
-            Refresh
-          </Button>
-          {pendingCount > 0 && (
-            <Button variant='primary' onClick={handleSave} disabled={saving}>
-              <Save size={16} />
-              {saving ? 'Saving...' : `Save ${pendingCount} Change${pendingCount > 1 ? 's' : ''}`}
-            </Button>
-          )}
-        </div>
-      </PageHeader>
-
-      <div className={styles.infoBanner}>
-        <Info size={16} />
-        <div>
-          <Text>
-            Field permissions control which data fields are visible or editable for each role.
-            Changes here create overrides on top of the default configuration. Fields set to{' '}
-            <strong>none</strong> are completely hidden, <strong>read</strong> fields are visible
-            but not editable, and <strong>write</strong> fields can be both viewed and modified.
-          </Text>
-        </div>
-      </div>
-
-      <div className={styles.tabRow}>
-        {RESOURCES.map(resource => (
-          <button
-            key={resource}
-            className={clsx(styles.tab, selectedResource === resource && styles.tabActive)}
-            onClick={() => setSelectedResource(resource)}
+  const columns: DataTableColumn[] = [
+    {
+      key: 'field',
+      label: 'Field',
+      sortable: false,
+      render: (_value, row) => <code className={styles.fieldName}>{String(row.field)}</code>,
+    },
+    {
+      key: 'default',
+      label: 'Default',
+      sortable: false,
+      render: (_value, row) => {
+        const defaultLevel = defaults[String(row.field)] || 'none';
+        return (
+          <select className={getAccessSelectClass(defaultLevel)} disabled>
+            <option>{defaultLevel}</option>
+          </select>
+        );
+      },
+    },
+    {
+      key: 'effective',
+      label: 'Effective Access',
+      sortable: false,
+      render: (_value, row) => {
+        const fieldName = String(row.field);
+        const effectiveLevel = getEffectiveLevel(fieldName);
+        return (
+          <select
+            className={getAccessSelectClass(effectiveLevel)}
+            value={effectiveLevel}
+            onChange={e => handleChange(fieldName, e.target.value as FieldAccessLevel)}
           >
-            {resource}
-          </button>
-        ))}
-      </div>
+            <option value='none'>none</option>
+            <option value='read'>read</option>
+            <option value='write'>write</option>
+          </select>
+        );
+      },
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: false,
+      render: (_value, row) => {
+        const fieldName = String(row.field);
+        return (
+          <>
+            {isOverridden(fieldName) && <Badge variant='info'>Override</Badge>}
+            {pendingChanges[fieldName] !== undefined && <Badge variant='warning'>Unsaved</Badge>}
+          </>
+        );
+      },
+    },
+  ];
+
+  const accessCard = (
+    <Card>
+      <CardHeader>
+        <Heading level='h3' size='lg'>
+          {selectedResource} - {selectedRole.replace('_', ' ')} access
+        </Heading>
+      </CardHeader>
+      <CardContent>
+        {!loading && fieldNames.length === 0 ? (
+          <Text>No fields configured for this resource and role.</Text>
+        ) : (
+          <DataTable
+            frameless
+            columns={columns}
+            rows={fieldNames.map(field => ({ id: field, field }))}
+            loading={loading}
+            pageSize={500}
+          />
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <Stack spacing='lg'>
+      <PageHeader
+        title='Field Permissions'
+        actions={
+          <>
+            <Button variant='secondary' onClick={refresh} disabled={loading}>
+              <RefreshCw size='1em' />
+              Refresh
+            </Button>
+            {pendingCount > 0 && (
+              <Button variant='primary' onClick={handleSave} disabled={saving}>
+                <Save size='1em' />
+                {saving ? 'Saving...' : `Save ${pendingCount} Change${pendingCount > 1 ? 's' : ''}`}
+              </Button>
+            )}
+          </>
+        }
+      />
+
+      <Alert variant='info' icon={<Info size='1em' />}>
+        Field permissions control which data fields are visible or editable for each role. Changes
+        here create overrides on top of the default configuration. Fields set to{' '}
+        <strong>none</strong> are completely hidden, <strong>read</strong> fields are visible but
+        not editable, and <strong>write</strong> fields can be both viewed and modified.
+      </Alert>
+
+      <Tabs
+        aria-label='Resource'
+        value={selectedResource}
+        onChange={id => selectResource(RESOURCES.find(resource => resource === id) ?? 'users')}
+        tabs={RESOURCES.map(resource => ({
+          id: resource,
+          label: resource,
+          content: resource === selectedResource ? accessCard : null,
+        }))}
+      />
 
       <div className={styles.roleSelector}>
         {ROLES.map(role => (
-          <button
+          <Button
             key={role}
-            className={clsx(styles.roleChip, selectedRole === role && styles.roleChipActive)}
-            onClick={() => setSelectedRole(role)}
+            variant={selectedRole === role ? 'primary' : 'outline'}
+            size='sm'
+            aria-pressed={selectedRole === role}
+            onClick={() => selectRole(role)}
           >
             {role.replace('_', ' ')}
-          </button>
+          </Button>
         ))}
       </div>
 
-      {error && <div className={clsx(styles.statusBar, styles.statusBarError)}>{error}</div>}
+      {error && <ErrorState size='sm' title={error} />}
 
       {pendingCount > 0 && (
-        <div className={clsx(styles.statusBar, styles.statusBarWarning)}>
+        <Alert variant='warning'>
           {pendingCount} unsaved change{pendingCount > 1 ? 's' : ''}
-        </div>
+        </Alert>
       )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {selectedResource} - {selectedRole.replace('_', ' ')} access
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div aria-label='Loading field permissions' className={styles.skeletonList}>
-              {Array.from({ length: 6 }, (_, i) => (
-                <div key={i} className={styles.skeletonRow}>
-                  <Skeleton height='0.875rem' width={i % 2 === 0 ? '70%' : '50%'} />
-                  <Skeleton height='1.5rem' width='80%' radius='6px' />
-                  <Skeleton height='1.5rem' width='80%' radius='6px' />
-                  <Skeleton height='1rem' width='60%' />
-                </div>
-              ))}
-            </div>
-          ) : fieldNames.length === 0 ? (
-            <Text>No fields configured for this resource and role.</Text>
-          ) : (
-            <table className={styles.fieldTable}>
-              <thead>
-                <tr>
-                  <th className={styles.tableHeader}>Field</th>
-                  <th className={styles.tableHeader}>Default</th>
-                  <th className={styles.tableHeader}>Effective Access</th>
-                  <th className={styles.tableHeader}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {fieldNames.map(fieldName => {
-                  const defaultLevel = defaults[fieldName] || 'none';
-                  const effectiveLevel = getEffectiveLevel(fieldName);
-                  const modified = pendingChanges[fieldName] !== undefined;
-                  const overridden = isOverridden(fieldName);
-
-                  return (
-                    <tr
-                      key={fieldName}
-                      className={modified ? styles.tableRowModified : styles.tableRow}
-                    >
-                      <td className={styles.tableCell}>
-                        <code className={styles.fieldName}>{fieldName}</code>
-                      </td>
-                      <td className={styles.tableCell}>
-                        <select className={getAccessSelectClass(defaultLevel)} disabled>
-                          <option>{defaultLevel}</option>
-                        </select>
-                      </td>
-                      <td className={styles.tableCell}>
-                        <select
-                          className={getAccessSelectClass(effectiveLevel)}
-                          value={effectiveLevel}
-                          onChange={e =>
-                            handleChange(fieldName, e.target.value as FieldAccessLevel)
-                          }
-                        >
-                          <option value='none'>none</option>
-                          <option value='read'>read</option>
-                          <option value='write'>write</option>
-                        </select>
-                      </td>
-                      <td className={styles.tableCell}>
-                        {overridden && <span className={styles.overrideBadge}>Override</span>}
-                        {modified && <span className={styles.overrideBadge}>Unsaved</span>}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </CardContent>
-      </Card>
-    </PageContainer>
+    </Stack>
   );
 };
 
