@@ -631,7 +631,7 @@ describe('auth account-lifecycle routes', () => {
         headers: { 'user-agent': 'vitest' },
         payload: {
           email: 'a@example.com',
-          password: 'longenoughpw',
+          password: 'Longenough1!',
           firstName: 'A',
           lastName: 'B',
           termsAccepted: true,
@@ -662,7 +662,7 @@ describe('auth account-lifecycle routes', () => {
         url: '/api/v1/auth/register',
         payload: {
           email: 'a@example.com',
-          password: 'longenoughpw',
+          password: 'Longenough1!',
           firstName: 'A',
           lastName: 'B',
           termsAccepted: true,
@@ -698,7 +698,7 @@ describe('auth account-lifecycle routes', () => {
         url: '/api/v1/auth/register',
         payload: {
           email: 'a@example.com',
-          password: 'longenoughpw',
+          password: 'Longenough1!',
           firstName: 'A',
           lastName: 'B',
           termsAccepted: true,
@@ -735,7 +735,7 @@ describe('auth account-lifecycle routes', () => {
         url: '/api/v1/auth/register',
         payload: {
           email: 'a@example.com',
-          password: 'longenoughpw',
+          password: 'Longenough1!',
           first_name: 'A',
           last_name: 'B',
           terms_accepted: true,
@@ -792,11 +792,11 @@ describe('auth account-lifecycle routes', () => {
       await app.inject({
         method: 'POST',
         url: '/api/v1/auth/reset-password',
-        payload: { resetToken: 't', newPassword: 'longenoughpw' },
+        payload: { resetToken: 't', newPassword: 'Longenough1!' },
       });
       expect(m.resetPasswordMock.mock.calls[0][0]).toMatchObject({
         resetToken: 't',
-        newPassword: 'longenoughpw',
+        newPassword: 'Longenough1!',
       });
     } finally {
       await app.close();
@@ -813,11 +813,11 @@ describe('auth account-lifecycle routes', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/auth/redeem-invitation',
-        payload: { invitationToken: 'tok', newPassword: 'longenoughpw' },
+        payload: { invitationToken: 'tok', newPassword: 'Longenough1!' },
       });
       expect(m.redeemInvitationMock.mock.calls[0][0]).toMatchObject({
         invitationToken: 'tok',
-        newPassword: 'longenoughpw',
+        newPassword: 'Longenough1!',
       });
       expect(res.statusCode).toBe(200);
       expect(res.json()).toMatchObject({
@@ -839,7 +839,7 @@ describe('auth account-lifecycle routes', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/auth/redeem-invitation',
-        payload: { invitationToken: 'bad', newPassword: 'longenoughpw' },
+        payload: { invitationToken: 'bad', newPassword: 'Longenough1!' },
       });
       expect(res.statusCode).toBe(400);
     } finally {
@@ -855,11 +855,11 @@ describe('auth account-lifecycle routes', () => {
       await app.inject({
         method: 'POST',
         url: '/api/v1/auth/change-password',
-        payload: { currentPassword: 'old', newPassword: 'longenoughpw' },
+        payload: { currentPassword: 'old', newPassword: 'Longenough1!' },
       });
       expect(m.changePasswordMock.mock.calls[0][0]).toMatchObject({
         currentPassword: 'old',
-        newPassword: 'longenoughpw',
+        newPassword: 'Longenough1!',
       });
     } finally {
       await app.close();
@@ -909,11 +909,11 @@ describe('auth account-lifecycle input validation (ADS-853)', () => {
       await app.inject({
         method: 'POST',
         url: '/api/v1/auth/register',
-        payload: { email: 'a@example.com', password: 'longenoughpw' },
+        payload: { email: 'a@example.com', password: 'Longenough1!' },
       });
       expect(m.registerMock.mock.calls[0][0]).toMatchObject({
         email: 'a@example.com',
-        password: 'longenoughpw',
+        password: 'Longenough1!',
         firstName: '',
         lastName: '',
         termsAccepted: false,
@@ -932,7 +932,7 @@ describe('auth account-lifecycle input validation (ADS-853)', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/auth/register',
-        payload: { email: 123, password: 'longenoughpw' },
+        payload: { email: 123, password: 'Longenough1!' },
       });
       expect(res.statusCode).toBe(400);
       expect(m.registerMock).not.toHaveBeenCalled();
@@ -964,7 +964,7 @@ describe('auth account-lifecycle input validation (ADS-853)', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/auth/register',
-        payload: { password: 'longenoughpw' },
+        payload: { password: 'Longenough1!' },
       });
       expect(res.statusCode).toBe(400);
       expect(m.registerMock).not.toHaveBeenCalled();
@@ -980,7 +980,7 @@ describe('auth account-lifecycle input validation (ADS-853)', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/auth/register',
-        payload: { email: 'not-an-email', password: 'longenoughpw' },
+        payload: { email: 'not-an-email', password: 'Longenough1!' },
       });
       expect(res.statusCode).toBe(400);
       expect(m.registerMock).not.toHaveBeenCalled();
@@ -1014,7 +1014,7 @@ describe('auth account-lifecycle input validation (ADS-853)', () => {
         url: '/api/v1/auth/register',
         payload: {
           email: 'a@example.com',
-          password: 'longenoughpw',
+          password: 'Longenough1!',
           firstName: 'x'.repeat(500),
         },
       });
@@ -1131,7 +1131,7 @@ describe('auth account-lifecycle input validation (ADS-853)', () => {
         url: '/api/v1/auth/register',
         payload: {
           email: 'a@example.com',
-          password: 'longenoughpw',
+          password: 'Longenough1!',
           first_name: 'SnakeFirst',
           lastName: 'CamelLast',
         },
@@ -1285,7 +1285,7 @@ describe('auth account-lifecycle input validation (ADS-879)', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/auth/reset-password',
-        payload: { newPassword: 'longenoughpw' },
+        payload: { newPassword: 'Longenough1!' },
       });
       expect(res.statusCode).toBe(400);
       expect(m.resetPasswordMock).not.toHaveBeenCalled();
@@ -1310,6 +1310,29 @@ describe('auth account-lifecycle input validation (ADS-879)', () => {
     }
   });
 
+  // A new password must meet the shared strong-password rule (upper, lower,
+  // digit, symbol), not just a minimum length, so the API cannot be used to
+  // set a password the apps' forms would refuse.
+  it.each([
+    ['/api/v1/auth/reset-password', { resetToken: 'tok' }, 'resetPasswordMock'],
+    ['/api/v1/auth/redeem-invitation', { invitationToken: 'tok' }, 'redeemInvitationMock'],
+    ['/api/v1/auth/change-password', { currentPassword: 'old' }, 'changePasswordMock'],
+  ] as const)('POST %s rejects a long but weak newPassword with 400', async (url, base, mock) => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url,
+        payload: { ...base, newPassword: 'longbutweakpassword' },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m[mock]).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
   it('POST /auth/reset-password accepts snake_case aliases', async () => {
     const m = makeClient();
     const app = await makeApp(m.client);
@@ -1318,11 +1341,11 @@ describe('auth account-lifecycle input validation (ADS-879)', () => {
       await app.inject({
         method: 'POST',
         url: '/api/v1/auth/reset-password',
-        payload: { reset_token: 'tok', new_password: 'longenoughpw' },
+        payload: { reset_token: 'tok', new_password: 'Longenough1!' },
       });
       expect(m.resetPasswordMock.mock.calls[0][0]).toMatchObject({
         resetToken: 'tok',
-        newPassword: 'longenoughpw',
+        newPassword: 'Longenough1!',
       });
     } finally {
       await app.close();
@@ -1336,7 +1359,7 @@ describe('auth account-lifecycle input validation (ADS-879)', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/auth/redeem-invitation',
-        payload: { newPassword: 'longenoughpw' },
+        payload: { newPassword: 'Longenough1!' },
       });
       expect(res.statusCode).toBe(400);
       expect(res.json()).toMatchObject({ error: 'Invalid request body' });
@@ -1370,11 +1393,11 @@ describe('auth account-lifecycle input validation (ADS-879)', () => {
       await app.inject({
         method: 'POST',
         url: '/api/v1/auth/redeem-invitation',
-        payload: { invitation_token: 'tok', new_password: 'longenoughpw' },
+        payload: { invitation_token: 'tok', new_password: 'Longenough1!' },
       });
       expect(m.redeemInvitationMock.mock.calls[0][0]).toMatchObject({
         invitationToken: 'tok',
-        newPassword: 'longenoughpw',
+        newPassword: 'Longenough1!',
       });
     } finally {
       await app.close();
@@ -1388,7 +1411,7 @@ describe('auth account-lifecycle input validation (ADS-879)', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/auth/change-password',
-        payload: { newPassword: 'longenoughpw' },
+        payload: { newPassword: 'Longenough1!' },
       });
       expect(res.statusCode).toBe(400);
       expect(m.changePasswordMock).not.toHaveBeenCalled();
@@ -1421,11 +1444,11 @@ describe('auth account-lifecycle input validation (ADS-879)', () => {
       await app.inject({
         method: 'POST',
         url: '/api/v1/auth/change-password',
-        payload: { current_password: 'old', new_password: 'longenoughpw' },
+        payload: { current_password: 'old', new_password: 'Longenough1!' },
       });
       expect(m.changePasswordMock.mock.calls[0][0]).toMatchObject({
         currentPassword: 'old',
-        newPassword: 'longenoughpw',
+        newPassword: 'Longenough1!',
       });
     } finally {
       await app.close();
