@@ -300,6 +300,35 @@ describe('adminUpdateUser', () => {
     expect(mocks.natsMock.publish).toHaveBeenCalledTimes(2);
   });
 
+  it("announces an admin's name change so services holding a copy of it stay current", async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
+    mocks.clientScript.push({ rows: [BEFORE_ACTIVE_ADOPTER] }); // before-state
+    mocks.clientScript.push({ rows: [userRow({ first_name: 'Sam' })] });
+
+    await adminUpdateUser(mocks.deps, ADMIN, { userId: 'usr-1', firstName: 'Sam' });
+
+    const subjects = mocks.natsMock.publish.mock.calls.map(c => c[0]);
+    expect(subjects).toContain('auth.userProfileChanged');
+    const call = mocks.natsMock.publish.mock.calls.find(c => c[0] === 'auth.userProfileChanged')!;
+    const data = call[1] as Uint8Array | string;
+    const text = typeof data === 'string' ? data : new TextDecoder().decode(data);
+    expect(JSON.parse(text).payload).toMatchObject({ userId: 'usr-1', firstName: 'Sam' });
+  });
+
+  it('does not announce a profile change for a status-only admin update', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] });
+    mocks.clientScript.push({ rows: [BEFORE_ACTIVE_ADOPTER] });
+    mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });
+
+    await adminUpdateUser(mocks.deps, ADMIN, {
+      userId: 'usr-1',
+      status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+    });
+
+    const subjects = mocks.natsMock.publish.mock.calls.map(c => c[0]);
+    expect(subjects).not.toContain('auth.userProfileChanged');
+  });
+
   it('no-op update returns the current row without writing', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRow()] }); // adminGetUser fallback
     const res = await adminUpdateUser(mocks.deps, ADMIN, { userId: 'usr-1' });

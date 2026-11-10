@@ -47,6 +47,7 @@ import type {
 import { roleToDb } from './enum-map.js';
 import { createAuthMetrics } from './auth-metrics.js';
 import { HandlerError, rowToProtoUser, type HandlerDeps, type UserRow } from './handlers.js';
+import { publishProfileChanged } from './profile-events.js';
 
 const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1h
@@ -732,17 +733,25 @@ export async function updateAccount(
 
   sets.push('updated_at = now()');
   params.push(principal.userId);
-  const res = await deps.pool.query<UserRow>(
-    `
-    UPDATE auth.users
-    SET ${sets.join(', ')}
-    WHERE user_id = $${n} AND deleted_at IS NULL
-    RETURNING *
-    `,
-    params
-  );
-  if (res.rows.length === 0) {
-    throw new HandlerError('NOT_FOUND', 'user not found');
-  }
-  return { user: rowToProtoUser(res.rows[0]) };
+  const nameChanged = req.firstName !== undefined || req.lastName !== undefined;
+  const updated = await withTransaction(deps, async ({ client, publish }) => {
+    const res = await client.query<UserRow>(
+      `
+      UPDATE auth.users
+      SET ${sets.join(', ')}
+      WHERE user_id = $${n} AND deleted_at IS NULL
+      RETURNING *
+      `,
+      params
+    );
+    const row = res.rows[0];
+    if (row === undefined) {
+      throw new HandlerError('NOT_FOUND', 'user not found');
+    }
+    if (nameChanged) {
+      publishProfileChanged(publish, row);
+    }
+    return row;
+  });
+  return { user: rowToProtoUser(updated) };
 }

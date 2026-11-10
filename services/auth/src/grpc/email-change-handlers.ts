@@ -34,6 +34,7 @@ import type {
 import { hashToken, mintToken } from './account-handlers.js';
 import { HandlerError, type HandlerDeps } from './handlers.js';
 import { checkStepUpCredentials, type StepUpUserRow } from './verify-credentials.js';
+import { publishProfileChanged, type ProfileRow } from './profile-events.js';
 
 const EMAIL_CHANGE_TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24h, like the verification link
 const MAX_EMAIL_LENGTH = 254;
@@ -265,7 +266,7 @@ async function swapToPendingEmail(deps: HandlerDeps, tokenHash: string): Promise
 
     // Outstanding verification and reset links went to the old address; they
     // must not keep working once it no longer identifies the account.
-    await client.query(
+    const swapped = await client.query<ProfileRow>(
       `UPDATE auth.users
           SET email = pending_email,
               email_verified = true,
@@ -275,7 +276,8 @@ async function swapToPendingEmail(deps: HandlerDeps, tokenHash: string): Promise
               reset_token_expiration = NULL,
               tokens_valid_from = now(),
               ${CLEAR_PENDING_CHANGE}
-        WHERE user_id = $1`,
+        WHERE user_id = $1
+        RETURNING user_id, first_name, last_name, email, updated_at`,
       [user.user_id]
     );
     // Moving the account identity ends every session, as a password change
@@ -292,6 +294,10 @@ async function swapToPendingEmail(deps: HandlerDeps, tokenHash: string): Promise
       id: `auth.emailChanged.${user.user_id}.${randomUUID()}`,
       payload: { userId: user.user_id, oldEmail: user.email, newEmail: user.pending_email },
     });
+    const profile = swapped.rows[0];
+    if (profile !== undefined) {
+      publishProfileChanged(publish, profile);
+    }
     publishEmailChangeActionTaken(publish, {
       userId: user.user_id,
       action: 'email_change.confirm',

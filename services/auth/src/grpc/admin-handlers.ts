@@ -65,6 +65,7 @@ import {
 } from '@adopt-dont-shop/proto';
 
 import { roleToDb, statusFromDb, statusToDb } from './enum-map.js';
+import { publishProfileChanged } from './profile-events.js';
 import {
   HandlerError,
   loadPrincipal,
@@ -491,6 +492,9 @@ export async function adminUpdateUser(
       throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
     }
     updated = res.rows[0];
+    if (req.firstName !== undefined || req.lastName !== undefined) {
+      publishProfileChanged(publish, res.rows[0]);
+    }
 
     publish({
       type: 'auth.userUpdatedByAdmin',
