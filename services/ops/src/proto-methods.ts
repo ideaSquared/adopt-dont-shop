@@ -6,6 +6,7 @@ import {
   AuthV1,
   ChatV1,
   CmsV1,
+  DemoV1,
   MatchingV1,
   ModerationV1,
   NotificationsV1,
@@ -61,6 +62,8 @@ const NAMESPACES: Readonly<Record<string, Namespace>> = {
   chat: ChatV1,
   audit: AuditV1,
   matching: MatchingV1,
+  // Served in-process by service.ops (see registry `local`), never over gRPC.
+  demo: DemoV1,
 };
 
 const isCodec = (value: unknown): value is MessageCodec =>

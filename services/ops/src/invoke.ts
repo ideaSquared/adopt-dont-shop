@@ -6,7 +6,7 @@ import type { Logger } from 'winston';
 
 import type { Principal } from '@adopt-dont-shop/authz';
 import type { DomainEvent } from '@adopt-dont-shop/events';
-import type { RescueId, UserId } from '@adopt-dont-shop/lib.types';
+import type { Permission, RescueId, UserId } from '@adopt-dont-shop/lib.types';
 import type {
   InvokePlan,
   InvokeRequest,
@@ -29,7 +29,12 @@ import { fromGrpcError, OpsError } from './errors.js';
 import { piiRevealedEvent, writeExecutedEvent } from './events.js';
 import { findApplicableUnlock, maskOrReveal, type MaskedResponse } from './masking.js';
 import type { GrpcCaller, MethodResolver, ResolvedMethod } from './proto-methods.js';
-import { getRegistryEntry, type JsonObject, type RegistryEntry } from './registry.js';
+import {
+  getRegistryEntry,
+  type CallDownstream,
+  type JsonObject,
+  type RegistryEntry,
+} from './registry.js';
 import type { OpsStore } from './store.js';
 
 export const PLAN_TTL_MS = 10 * 60 * 1000;
@@ -76,19 +81,38 @@ const omitKey = (obj: JsonObject, key: string): JsonObject =>
 
 const asJsonObject = (value: unknown): JsonObject => (isObject(value) ? value : {});
 
-// Services receive a principal with no roles and only the registry's permissions.
+// Services receive a principal with no roles and only the given permissions.
 // The brand casts below are the one place plain strings become UserId/RescueId.
-const mintPrincipal = (
+const principalFor = (
   operatorId: string,
-  entry: RegistryEntry,
-  request: JsonObject
-): Principal => {
-  const { rescueId } = entry.scope?.(request) ?? {};
+  permissions: readonly Permission[],
+  rescueId: string | undefined
+): Principal => ({
+  userId: operatorId as UserId,
+  roles: [],
+  permissions: [...permissions],
+  ...(rescueId === undefined ? {} : { rescueId: rescueId as RescueId }),
+});
+
+const mintPrincipal = (operatorId: string, entry: RegistryEntry, request: JsonObject): Principal =>
+  principalFor(operatorId, entry.permissions, entry.scope?.(request).rescueId);
+
+// Show the entry's revealOnExecute fields from the raw response, unmasked.
+const revealGenerated = (
+  masked: MaskedResponse,
+  json: unknown,
+  fields: readonly string[]
+): MaskedResponse => {
+  if (fields.length === 0 || !isObject(json) || !isObject(masked.response)) {
+    return masked;
+  }
+  const shown = fields.filter(f => Object.hasOwn(json, f));
+  const hidden = masked.hidden.filter(path => !shown.includes(path));
   return {
-    userId: operatorId as UserId,
-    roles: [],
-    permissions: [...entry.permissions],
-    ...(rescueId === undefined ? {} : { rescueId: rescueId as RescueId }),
+    ...masked,
+    response: { ...masked.response, ...Object.fromEntries(shown.map(f => [f, json[f]])) },
+    hidden,
+    unlockable: hidden.length === 0 ? null : masked.unlockable,
   };
 };
 
@@ -130,9 +154,21 @@ export const createInvokeService = (deps: InvokeDeps) => {
     operatorId: string;
     requestId: string;
     rollbackDryRun: boolean;
+  }): Promise<unknown> =>
+    callAs({
+      ...params,
+      principal: mintPrincipal(params.operatorId, params.entry, params.request),
+    });
+
+  const callAs = async (params: {
+    method: ResolvedMethod;
+    principal: Principal;
+    request: JsonObject;
+    requestId: string;
+    rollbackDryRun: boolean;
   }): Promise<unknown> => {
-    const { method, entry, request, operatorId, requestId, rollbackDryRun } = params;
-    const metadata: Metadata = principalToMetadata(mintPrincipal(operatorId, entry, request), {
+    const { method, principal, request, requestId, rollbackDryRun } = params;
+    const metadata: Metadata = principalToMetadata(principal, {
       signingKey: deps.signingKey,
     });
     metadata.set(REQUEST_ID_HEADER_NAME, requestId);
@@ -160,6 +196,28 @@ export const createInvokeService = (deps: InvokeDeps) => {
     }
     return method.output.toJSON(result.response);
   };
+
+  // For in-process commands: each step is a real call with its own principal.
+  const downstreamFor =
+    (operatorId: string, requestId: string): CallDownstream =>
+    async (rpc, request, step) => {
+      const method = deps.resolveMethod(rpc);
+      if (method === undefined) {
+        throw new OpsError(
+          'INTERNAL',
+          `${rpc} is not in the proto schema`,
+          'Regenerate the proto schema and redeploy service.ops.'
+        );
+      }
+      const json = await callAs({
+        method,
+        principal: principalFor(operatorId, step.permissions, step.rescueId),
+        request,
+        requestId,
+        rollbackDryRun: false,
+      });
+      return asJsonObject(json);
+    };
 
   const maskFor = (
     messageName: string,
@@ -201,6 +259,13 @@ export const createInvokeService = (deps: InvokeDeps) => {
       kind: entry.kind,
       mode: entry.kind === 'read' ? 'run' : mode,
     };
+    if (entry.envs !== undefined && !entry.envs.includes(deps.env)) {
+      throw new OpsError(
+        'NOT_ENABLED',
+        `${body.rpc} is not enabled in ${deps.env}`,
+        `It runs in: ${entry.envs.join(', ')}.`
+      );
+    }
 
     const method = deps.resolveMethod(body.rpc);
     if (method === undefined) {
@@ -212,6 +277,7 @@ export const createInvokeService = (deps: InvokeDeps) => {
     }
 
     const normalised = normaliseRequest(method, body.request);
+    entry.validate?.(normalised);
     const native = entry.kind === 'write' && entry.dryRun === 'native';
     // The native dry-run flag is service.ops's to set, so it is not part of what a
     // plan binds: preview (flag on) and execute (flag off) hash identically.
@@ -316,15 +382,26 @@ export const createInvokeService = (deps: InvokeDeps) => {
     trace.current = { ...trace.current, planId: plan.planId };
 
     const executeRequest = native ? { ...hashable, [NATIVE_DRY_RUN_FIELD]: false } : normalised;
-    const json = await callDownstream({
-      method,
-      entry,
-      request: executeRequest,
-      operatorId,
-      requestId,
-      rollbackDryRun: false,
-    });
-    const masked = maskFor(method.outputType, json, entry, normalised, unlocks);
+    const json =
+      entry.local === undefined
+        ? await callDownstream({
+            method,
+            entry,
+            request: executeRequest,
+            operatorId,
+            requestId,
+            rollbackDryRun: false,
+          })
+        : method.output.toJSON(
+            method.output.fromJSON(
+              await entry.local(normalised, downstreamFor(operatorId, requestId))
+            )
+          );
+    const masked = revealGenerated(
+      maskFor(method.outputType, json, entry, normalised, unlocks),
+      json,
+      entry.revealOnExecute ?? []
+    );
     return {
       response: finish(masked, { kind: 'result', response: masked.response }),
       events: [

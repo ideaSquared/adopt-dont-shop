@@ -207,6 +207,10 @@ Any id returned marks a row whose predecessor was removed or replaced. That chec
 
 A broken chain is a security incident: stop, preserve the table (`pg_dump -t ops.access_log`), and open [`secret-rotation-emergency.md`](./secret-rotation-emergency.md).
 
+## Clean up demo rescues
+
+`pnpm ops demo create-rescue` (dev and staging only) leaves real rows behind: a verified rescue, its pets and an active `demo-…@example.com` owner. Remove each with `pnpm ops demo delete-rescue <rescueId> -e staging` when testing is done. To find leftovers, list rescues in the admin app and look for the `Demo Rescue` name prefix or a `demo-…@example.com` email. `delete-rescue` refuses any rescue with a staff member who is not a `demo-…@example.com` account, so it cannot remove a real rescue by mistake.
+
 ## If `service-ops` is down
 
 `service-ops` is a developer tool. Nothing in the product depends on it, so an outage is not a user-facing incident, but a failed health check does fail a deploy (the health gate includes `service-ops:4100`), so you need to fix it to ship.

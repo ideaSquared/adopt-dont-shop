@@ -55,6 +55,13 @@ ads-ops CLI (laptop) --HTTP/JSON--> service-ops (in the env's stack) --gRPC--> s
    tool may call, its kind (read or write), its permissions, its dry-run mode and its PII lookup
    fields. An RPC that is not listed is refused with `NOT_ENABLED`. Adding an RPC is a code change
    with a test, never a runtime setting.
+
+   _Amended 2026-11-10:_ an entry may instead be handled in-process (`local`), chaining other
+   RPCs with a separate least-privilege principal per step. The first are `demo.CreateRescue` and
+   `demo.DeleteRescue` (contract in `proto/adopt_dont_shop/demo/v1/demo.proto`, served by no
+   process), which create and remove throwaway test rescues. An entry can also be limited to some
+   environments (`envs`); both demo commands are refused in prod and hidden from its catalog.
+
 4. **Reads run immediately; writes preview by default.** A write returns a plan, not a result.
    Executing needs the `planId` of a preview of the identical environment, RPC and request by the
    same operator, unexpired (10 minutes) and unused. A production execute also requires

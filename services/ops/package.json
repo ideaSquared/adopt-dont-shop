@@ -42,6 +42,7 @@
     "@adopt-dont-shop/db": "workspace:*",
     "@adopt-dont-shop/events": "workspace:*",
     "@adopt-dont-shop/lib.types": "workspace:*",
+    "@adopt-dont-shop/lib.validation": "workspace:*",
     "@adopt-dont-shop/observability": "workspace:*",
     "@adopt-dont-shop/ops-contract": "workspace:*",
     "@adopt-dont-shop/proto": "workspace:*",
