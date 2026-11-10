@@ -7,6 +7,10 @@ const DESKTOP = 'screen and (min-width: 1024px)';
 export const page = style({
   paddingTop: vars.spacing['5'],
   paddingBottom: vars.spacing['7'],
+  selectors: {
+    // Focused programmatically after navigating between documents; not a control.
+    '&:focus': { outline: 'none' },
+  },
 });
 
 export const meta = style({
@@ -124,6 +128,10 @@ export const article = style({
   color: vars.text.primary,
   fontSize: vars.typography.size.base,
   lineHeight: vars.typography.lineHeight.relaxed,
+  selectors: {
+    // With no section index the article is alone in the grid; don't park it in the sidebar column.
+    '&:only-child': { gridColumn: '1 / -1' },
+  },
 });
 
 // The legal text arrives as sanitized HTML from markdown, so its elements are

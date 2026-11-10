@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { renderWithProviders, screen } from '../test-utils';
 
 const { useLegalDocumentMock } = vi.hoisted(() => ({ useLegalDocumentMock: vi.fn() }));
@@ -11,6 +11,10 @@ vi.mock('@adopt-dont-shop/lib.legal', async importOriginal => ({
 import { CookiesPage } from './CookiesPage';
 
 describe('CookiesPage', () => {
+  beforeEach(() => {
+    window.scrollTo = vi.fn();
+  });
+
   it('shows a loading state while the cookies document is fetching', () => {
     useLegalDocumentMock.mockReturnValue({ isLoading: true, isError: false, data: undefined });
 

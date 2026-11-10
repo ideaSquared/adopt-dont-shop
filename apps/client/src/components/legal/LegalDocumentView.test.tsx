@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { parseLegalDocument } from '@adopt-dont-shop/lib.legal';
 import { renderWithProviders, screen } from '../../test-utils';
@@ -16,6 +16,10 @@ const document = parseLegalDocument(
 );
 
 describe('LegalDocumentView', () => {
+  beforeEach(() => {
+    window.scrollTo = vi.fn();
+  });
+
   it('shows the title with when it was last updated and its version', () => {
     renderWithProviders(<LegalDocumentView slug='privacy' document={document} />);
 
@@ -64,5 +68,20 @@ describe('LegalDocumentView', () => {
     );
 
     expect(screen.queryByRole('navigation', { name: 'On this page' })).not.toBeInTheDocument();
+  });
+
+  it('starts at the top of the page, focused, when a document opens', () => {
+    window.history.pushState({}, '', '/privacy');
+    renderWithProviders(<LegalDocumentView slug='privacy' document={document} />);
+
+    expect(window.scrollTo).toHaveBeenCalledWith(0, 0);
+    expect(screen.getByRole('heading', { level: 1 }).closest('[tabindex="-1"]')).toHaveFocus();
+  });
+
+  it('leaves scrolling to the browser when the link targets a section', () => {
+    window.history.pushState({}, '', '/privacy#section-2-what-we-collect');
+    renderWithProviders(<LegalDocumentView slug='privacy' document={document} />);
+
+    expect(window.scrollTo).not.toHaveBeenCalled();
   });
 });

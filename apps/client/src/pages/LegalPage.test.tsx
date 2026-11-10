@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { renderWithProviders, screen } from '../test-utils';
 
 const { useLegalDocumentMock } = vi.hoisted(() => ({ useLegalDocumentMock: vi.fn() }));
@@ -17,6 +17,10 @@ vi.mock('@/services/cmsService', () => ({
 import { LegalPage } from './LegalPage';
 
 describe('LegalPage', () => {
+  beforeEach(() => {
+    window.scrollTo = vi.fn();
+  });
+
   it('shows a loading state while the legal document is fetching', () => {
     useLegalDocumentMock.mockReturnValue({ isLoading: true, isError: false, data: undefined });
     getStaticPageMock.mockReturnValue(new Promise(() => {}));

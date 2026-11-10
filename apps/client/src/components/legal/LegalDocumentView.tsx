@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router';
+import { NavLink, useLocation, useNavigate } from 'react-router';
 import { Container, PageHeader } from '@adopt-dont-shop/lib.components';
 import type { ParsedLegalDocument } from '@adopt-dont-shop/lib.legal';
 import { SafeHtml } from '@/components/SafeHtml';
@@ -29,7 +29,20 @@ type LegalDocumentViewProps = {
  */
 export const LegalDocumentView: React.FC<LegalDocumentViewProps> = ({ slug, document }) => {
   const navigate = useNavigate();
+  const { hash } = useLocation();
+  const pageRef = React.useRef<HTMLDivElement>(null);
   const [isTocOpen, setIsTocOpen] = React.useState(startsOpenOnDesktop);
+
+  // Switching documents is a client-side navigation, which keeps the old scroll
+  // position and focus. Start the new document at the top with focus on it,
+  // unless the link targets a section (the browser handles those itself).
+  React.useEffect(() => {
+    if (hash) {
+      return;
+    }
+    window.scrollTo(0, 0);
+    pageRef.current?.focus({ preventScroll: true });
+  }, [slug, hash]);
 
   // The body is injected HTML, so in-page links to the sibling documents
   // would otherwise reload the app; route them client-side instead.
@@ -47,7 +60,7 @@ export const LegalDocumentView: React.FC<LegalDocumentViewProps> = ({ slug, docu
 
   return (
     <Container size='xl'>
-      <div className={styles.page}>
+      <div ref={pageRef} tabIndex={-1} className={styles.page}>
         <PageHeader
           title={LEGAL_DOCUMENT_TITLES[slug]}
           description={

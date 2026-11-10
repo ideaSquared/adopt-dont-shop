@@ -35,15 +35,20 @@ const slugify = (text: string): string =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
+// Checked against the ids already emitted (not the source slugs), so a heading
+// literally titled "Overview 2" cannot collide with the suffix given to a repeat.
+const firstFreeId = (base: string, taken: ReadonlySet<string>): string => {
+  const withSuffix = (n: number): string =>
+    taken.has(`${base}-${n}`) ? withSuffix(n + 1) : `${base}-${n}`;
+  return taken.has(base) ? withSuffix(2) : base;
+};
+
 const toSections = (headings: ReadonlyArray<Tokens.Heading>): ReadonlyArray<LegalSection> =>
-  headings.map((heading, index) => {
+  headings.reduce<ReadonlyArray<LegalSection>>((sections, heading) => {
     const title = plainText(heading.text);
-    const slug = slugify(title);
-    const isDuplicate = headings
-      .slice(0, index)
-      .some(other => slugify(plainText(other.text)) === slug);
-    return { id: `section-${slug}${isDuplicate ? `-${index + 1}` : ''}`, title };
-  });
+    const taken = new Set(sections.map(section => section.id));
+    return [...sections, { id: firstFreeId(`section-${slugify(title)}`, taken), title }];
+  }, []);
 
 const anchorHeadings = (html: string, sections: ReadonlyArray<LegalSection>): string => {
   const nextSection = sections[Symbol.iterator]();
@@ -53,8 +58,14 @@ const anchorHeadings = (html: string, sections: ReadonlyArray<LegalSection>): st
   });
 };
 
+// The wrapper scrolls sideways on narrow screens; a tab stop and a name let
+// keyboard users reach columns that overflow (not every browser focuses
+// scroll containers on its own).
+const TABLE_WRAPPER_OPEN =
+  '<div data-legal-table role="region" aria-label="Scrollable table" tabindex="0"><table>';
+
 const wrapTables = (html: string): string =>
-  html.replace(/<table>/g, '<div data-legal-table><table>').replace(/<\/table>/g, '</table></div>');
+  html.replace(/<table>/g, TABLE_WRAPPER_OPEN).replace(/<\/table>/g, '</table></div>');
 
 /**
  * Turns a versioned legal markdown document (served by the gateway from

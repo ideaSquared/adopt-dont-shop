@@ -65,10 +65,22 @@ describe('parseLegalDocument', () => {
     expect(html).not.toContain('terms.md');
   });
 
-  it('wraps tables so they can scroll sideways on small screens', () => {
+  it('wraps tables in a focusable, named region so they can scroll sideways', () => {
     const { html } = parseLegalDocument(DOCUMENT);
 
-    expect(html).toMatch(/<div data-legal-table="">\s*<table>/);
+    expect(html).toMatch(/<div data-legal-table="" [^>]*tabindex="0"[^>]*>\s*<table>/);
+    expect(html).toContain('role="region"');
+    expect(html).toContain('aria-label="Scrollable table"');
+  });
+
+  it('gives every section a unique anchor even when headings repeat', () => {
+    const { sections } = parseLegalDocument(
+      '## Overview\n\ntext\n\n## Overview\n\ntext\n\n## Overview 2\n\ntext'
+    );
+
+    const ids = sections.map(section => section.id);
+    expect(new Set(ids).size).toBe(3);
+    expect(ids[0]).toBe('section-overview');
   });
 
   it('sanitizes embedded scripts', () => {
