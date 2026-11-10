@@ -90,6 +90,29 @@ the contract focuses on the JSON payload shape.
 | `service.gateway`       | `service.applications` | `GetApplication` (happy path + NOT_FOUND error)      |
 | `service.notifications` | `service.gateway`      | `gdpr.erasureRequested` NATS event                   |
 
+### NATS event contracts (follow-up)
+
+Consumers of cross-service events have since gained contracts too, after
+several consumers shipped reading fields their producer never sent:
+
+| Consumer                | Provider               | Subjects                                                                                       |
+| ----------------------- | ---------------------- | ---------------------------------------------------------------------------------------------- |
+| `service.notifications` | `service.applications` | `applications.{submitted,approved,rejected,homeVisitScheduled,homeVisitCompleted,adopted}`     |
+| `service.notifications` | `service.auth`         | `auth.userLoggedIn`, `auth.roleAssigned`                                                       |
+| `service.notifications` | `service.pets`         | `pets.statusChanged`, `pets.deleted`                                                           |
+| `service.notifications` | `service.rescue`       | `rescue.verified`, `rescue.rejected`, `rescue.staffInvited`, `rescue.staffInvitationCancelled` |
+| `service.notifications` | `service.chat`         | `chat.messageCreated`                                                                          |
+
+Two rules for these, stricter than the GDPR pair above:
+
+- The consumer pins only the fields its subscriber reads, with matchers, and
+  feeds the message through the subscriber's own code (the `build*Create`
+  translator) where that code is exported.
+- The provider's message function runs the real handler that publishes the
+  event (stubbed pool, `makeNatsDouble()`) and returns the payload it actually
+  published, so dropping or renaming a field in `publish()` fails verification.
+  A hand-written example payload would only prove the example.
+
 ### File layout
 
 ```
