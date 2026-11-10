@@ -148,7 +148,28 @@ export async function appendEvents(
 // triggering `approved` / `adopted` event's `at` (== occurred_at, see
 // appendEvents), stamped there by apply.ts. Any other status (including
 // rejected/withdrawn, which never qualify for attribution) leaves it null.
+// The applicant's own name / email from their answers (personalInfo), kept on the read model so
+// the staff list can search them in SQL (migration 016). Answers are free-form JSON, so read the
+// two fields defensively; blank values store as null.
+const answerText = (value: unknown): string | null =>
+  typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
+
+function applicantSearchFields(answers: Record<string, unknown>): {
+  name: string | null;
+  email: string | null;
+} {
+  const info = answers.personalInfo;
+  if (typeof info !== 'object' || info === null) {
+    return { name: null, email: null };
+  }
+  // Narrowed to a non-null object above; its fields are still unknown and checked individually.
+  const { firstName, lastName, email } = info as Record<string, unknown>;
+  const name = [answerText(firstName), answerText(lastName)].filter(Boolean).join(' ');
+  return { name: name === '' ? null : name, email: answerText(email) };
+}
+
 export async function projectReadModel(client: PoolClient, state: ApplicationState): Promise<void> {
+  const applicant = applicantSearchFields(state.answers);
   const actionedAt =
     state.status === 'approved'
       ? state.decidedAt
@@ -159,14 +180,16 @@ export async function projectReadModel(client: PoolClient, state: ApplicationSta
   await client.query(
     `INSERT INTO applications (
        application_id, user_id, pet_id, rescue_id, status,
-       documents, version, actioned_at, created_at, updated_at
+       documents, version, actioned_at, applicant_name, applicant_email, created_at, updated_at
      )
-     VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, NOW(), NOW())
+     VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, NOW(), NOW())
      ON CONFLICT (application_id) DO UPDATE SET
        status = EXCLUDED.status,
        documents = EXCLUDED.documents,
        version = EXCLUDED.version,
        actioned_at = EXCLUDED.actioned_at,
+       applicant_name = EXCLUDED.applicant_name,
+       applicant_email = EXCLUDED.applicant_email,
        updated_at = NOW()`,
     [
       state.applicationId,
@@ -177,6 +200,8 @@ export async function projectReadModel(client: PoolClient, state: ApplicationSta
       JSON.stringify({ answers: state.answers, references: state.references }),
       state.version,
       actionedAt,
+      applicant.name,
+      applicant.email,
     ]
   );
 }

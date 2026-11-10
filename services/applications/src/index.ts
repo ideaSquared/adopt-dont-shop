@@ -14,8 +14,14 @@ import {
 } from '@adopt-dont-shop/service-bootstrap';
 
 import { loadConfig } from './config.js';
+import { createPetsClient } from './grpc/pets-client.js';
 import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
 import { purgeExpiredApplicationDrafts } from './jobs/application-draft-retention.js';
+import { backfillApplicationPetSnapshots } from './jobs/application-pet-snapshot.js';
+
+// Pet type / breed search snapshot backfill (migration 016): hourly, in small batches.
+const PET_SNAPSHOT_BACKFILL_INTERVAL_MS = 60 * 60 * 1000;
+const PET_SNAPSHOT_BACKFILL_BATCH_SIZE = 100;
 import { createServer } from './server.js';
 
 const main = async (): Promise<void> => {
@@ -51,7 +57,9 @@ const main = async (): Promise<void> => {
     const { startOutboxRelay } = await import('@adopt-dont-shop/events');
     const outboxRelay = startOutboxRelay({ pool, nats, logger });
 
-    grpc = await startGrpcServer({ config, pool, nats, logger });
+    // Shared by the gRPC handlers and the pet snapshot backfill; the gRPC server closes it.
+    const petsClient = createPetsClient({ address: config.petsGrpcUrl });
+    grpc = await startGrpcServer({ config, pool, nats, logger, petsClient });
     grpcReady = true;
     // GDPR erasure subscriber — drops the user's data in this schema.
     // Reports back via gdpr.erasureCompleted with service='applications'.
@@ -83,6 +91,19 @@ const main = async (): Promise<void> => {
               batchSize: config.applicationDraftPurge.batchSize,
             });
             logger.info('application-draft-retention-purge complete', { deletedCount });
+          },
+        },
+        {
+          name: 'application-pet-snapshot-backfill',
+          intervalMs: PET_SNAPSHOT_BACKFILL_INTERVAL_MS,
+          runOnStart: true,
+          run: async () => {
+            const { updatedCount } = await backfillApplicationPetSnapshots(
+              { pool: dbPool },
+              petsClient,
+              { batchSize: PET_SNAPSHOT_BACKFILL_BATCH_SIZE }
+            );
+            logger.info('application-pet-snapshot-backfill complete', { updatedCount });
           },
         },
       ],

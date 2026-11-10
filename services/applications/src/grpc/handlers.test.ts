@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   ApplicationsV1,
+  PetsV1,
   type SaveDraftAnswersRequest,
   type SubmitDraftRequest,
 } from '@adopt-dont-shop/proto';
@@ -305,6 +306,24 @@ describe('makeStartDraft', () => {
 
     const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
     expect(publish.mock.calls[0][0]).toMatchObject({ type: 'applications.draftCreated' });
+  });
+
+  it("records the pet's type and breed on the new application for staff search", async () => {
+    const getPet = vi.fn().mockResolvedValue({
+      pet: {
+        petId: 'pet-1',
+        rescueId: 'rsc-1',
+        type: PetsV1.PetType.PET_TYPE_DOG,
+        extraJson: JSON.stringify({ breed: 'Labrador Retriever' }),
+      },
+    });
+    const { deps, query } = makeDeps([]);
+    const startDraft = makeStartDraft(makePetsClient(getPet));
+
+    const res = await startDraft(deps, makePrincipal(), { adopterId: 'usr-1', petId: 'pet-1' });
+
+    const stamp = query.mock.calls.find(([sql]) => /SET pet_type = \$1/.test(sql as string));
+    expect(stamp?.[1]).toEqual(['dog', 'Labrador Retriever', res.application.applicationId]);
   });
 
   it('maps a pets NOT_FOUND (grpc code 5) onto INVALID_ARGUMENT', async () => {

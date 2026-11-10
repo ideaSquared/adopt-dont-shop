@@ -700,13 +700,13 @@ describe('RescueApplicationService.getApplications applicant identity', () => {
   });
 });
 
-// The gateway list route honours page, limit, status, rescue, adopter and petId. Pet type and
-// applicant search are applied to the returned rows; breed and priority are not on the list.
-describe('RescueApplicationService.getApplications narrows by filters the gateway ignores', () => {
+// The gateway filters search, pet type / breed, priority and dates server-side, so the page the
+// server returns is shown as-is, with the server's pagination.
+describe('RescueApplicationService.getApplications shows the server-filtered page', () => {
   const service = new RescueApplicationService();
-  const raw = (id: string, petId: string, overrides: Record<string, unknown> = {}) => ({
+  const raw = (id: string, overrides: Record<string, unknown> = {}) => ({
     id,
-    petId,
+    petId: `pet-${id}`,
     userId: 'usr-1',
     rescueId: 'rsc-1',
     status: 'submitted',
@@ -719,54 +719,21 @@ describe('RescueApplicationService.getApplications narrows by filters the gatewa
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('returns every row the server sent, with its pagination, for a filtered request', async () => {
     apiServiceMock.get.mockResolvedValue({
-      data: [
-        raw('app-1', 'pet-1', { userName: 'Jane Doe', petType: 'Dog' }),
-        raw('app-2', 'pet-2', { userName: 'Sam Smith', petType: 'Cat' }),
-      ],
-    });
-  });
-
-  it('returns only matching applications when filtered by pet type', async () => {
-    const { applications } = await service.getApplications({ petType: 'dog' });
-
-    expect(applications.map(a => a.id)).toEqual(['app-1']);
-  });
-
-  it('returns only matching applications when searching by applicant name', async () => {
-    const { applications } = await service.getApplications({ searchQuery: 'sam' });
-
-    expect(applications.map(a => a.id)).toEqual(['app-2']);
-  });
-
-  it("keeps the server's pagination when a filter narrows the page", async () => {
-    apiServiceMock.get.mockResolvedValue({
-      data: [
-        raw('app-1', 'pet-1', { userName: 'Jane Doe', petType: 'Dog' }),
-        raw('app-2', 'pet-2', { userName: 'Sam Smith', petType: 'Cat' }),
-      ],
+      data: [raw('app-1', { petType: 'cat' }), raw('app-2', { petType: 'cat' })],
       pagination: { page: 1, limit: 2, total: 50, totalPages: 25 },
     });
 
-    const { applications, total, totalPages } = await service.getApplications({ petType: 'dog' });
-
-    expect(applications.map(a => a.id)).toEqual(['app-1']);
-    expect(total).toBe(50);
-    expect(totalPages).toBe(25);
-  });
-
-  it('does not filter on breed or priority, which the list does not carry', async () => {
-    const { applications } = await service.getApplications({
-      petBreed: 'labrador',
-      priority: ['high'],
+    const { applications, total, totalPages } = await service.getApplications({
+      petType: 'dog',
+      searchQuery: 'sam',
     });
 
-    expect(applications).toHaveLength(2);
-  });
-
-  it('returns every application when no filter is set', async () => {
-    const { applications } = await service.getApplications({});
-
-    expect(applications).toHaveLength(2);
+    expect(applications.map(a => a.id)).toEqual(['app-1', 'app-2']);
+    expect(total).toBe(50);
+    expect(totalPages).toBe(25);
   });
 });

@@ -35,6 +35,7 @@ import {
 import { fold } from '../domain/index.js';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
+import { escapeLikePattern } from './escape-like.js';
 import { requireDraftAwareReadScope } from './command-runner.js';
 import { decodeCursor, encodeCursor, InvalidCursorError } from './cursor.js';
 import { statusToDb } from './enum-map.js';
@@ -101,6 +102,18 @@ export async function getApplication(
 
 // --- List ------------------------------------------------------------
 
+const PRIORITIES = new Set(['low', 'normal', 'high', 'urgent']);
+
+const present = (value: string | undefined): value is string =>
+  value !== undefined && value.trim() !== '';
+
+function parseInstant(value: string, field: string): string {
+  if (Number.isNaN(Date.parse(value))) {
+    throw new HandlerError('INVALID_ARGUMENT', `${field} must be an ISO-8601 date`);
+  }
+  return value;
+}
+
 export async function listApplications(
   deps: HandlerDeps,
   principal: Principal,
@@ -151,10 +164,43 @@ export async function listApplications(
     params.push(statusToDb(req.statusFilter));
   }
 
-  // Narrows within the scope above; it can never widen what the caller sees.
+  // The filters below narrow within the scope above; they can never widen what the caller sees.
+  // Pet type / breed and applicant name / email are snapshot columns (migration 016).
   if (req.petIdFilter !== undefined && req.petIdFilter !== '') {
     where.push(`pet_id = $${p++}`);
     params.push(req.petIdFilter);
+  }
+  if (present(req.search)) {
+    where.push(`(applicant_name ILIKE $${p} OR applicant_email ILIKE $${p + 1})`);
+    const pattern = `%${escapeLikePattern(req.search.trim())}%`;
+    params.push(pattern, pattern);
+    p += 2;
+  }
+  if (present(req.petTypeFilter)) {
+    where.push(`pet_type = $${p++}`);
+    params.push(req.petTypeFilter.trim().toLowerCase());
+  }
+  if (present(req.petBreedFilter)) {
+    where.push(`pet_breed ILIKE $${p++}`);
+    params.push(`%${escapeLikePattern(req.petBreedFilter.trim())}%`);
+  }
+  if (present(req.priorityFilter)) {
+    if (!PRIORITIES.has(req.priorityFilter)) {
+      throw new HandlerError(
+        'INVALID_ARGUMENT',
+        `priority_filter must be one of ${[...PRIORITIES].join(', ')}`
+      );
+    }
+    where.push(`priority = $${p++}`);
+    params.push(req.priorityFilter);
+  }
+  if (present(req.submittedFrom)) {
+    where.push(`submitted_at >= $${p++}`);
+    params.push(parseInstant(req.submittedFrom, 'submitted_from'));
+  }
+  if (present(req.submittedTo)) {
+    where.push(`submitted_at <= $${p++}`);
+    params.push(parseInstant(req.submittedTo, 'submitted_to'));
   }
 
   // Offset mode: staff / admin datatables pass `page` and need a real total

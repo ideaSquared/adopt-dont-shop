@@ -256,27 +256,6 @@ const toApplicationStats = (raw: RawApplicationStats): ApplicationStats => ({
   scheduledVisits: 0,
 });
 
-const includesText = (haystack: string | undefined, needle: string): boolean =>
-  (haystack ?? '').toLowerCase().includes(needle.toLowerCase());
-
-/**
- * The gateway list route honours page, limit, status, rescue, adopter and petId. Pet type and
- * applicant search are applied to the rows it returns, otherwise they silently do nothing. Breed
- * and priority are not on the list rows (they read as defaults), so filtering on them would hide
- * real matches. This narrows the current page only; pagination stays the server's.
- */
-const narrowByUnsupportedFilters = (
-  applications: ApplicationListItem[],
-  filter?: ApplicationFilter
-): ApplicationListItem[] =>
-  applications.filter(
-    app =>
-      (!filter?.petType || includesText(app.petType, filter.petType)) &&
-      (!filter?.searchQuery ||
-        includesText(app.applicantName, filter.searchQuery) ||
-        includesText(app.applicantEmail, filter.searchQuery))
-  );
-
 /**
  * Application Service for Rescue App
  * Uses the configured API service with authentication
@@ -311,11 +290,9 @@ export class RescueApplicationService {
       if (filter?.petId) {
         params.append('petId', filter.petId);
       }
-      // ADS-575: petType / petBreed are now backend-supported filters
-      // (case-insensitive match against the eager-loaded Pet record).
-      // referencesStatus / homeVisitStatus are still unwired — the
-      // ApplicationList comment block documents why and tracks the
-      // follow-up.
+      // search, petType, petBreed, priority and the submitted date range are filtered
+      // server-side (applications service snapshot columns). referencesStatus /
+      // homeVisitStatus are still unwired — the ApplicationList comment block documents why.
       if (filter?.petType) {
         params.append('petType', filter.petType);
       }
@@ -371,9 +348,8 @@ export class RescueApplicationService {
       const paging = envelope.pagination;
       const total = paging?.total ?? envelope.total ?? envelope.count ?? applicationsArray.length;
       const pageSize = paging?.limit ?? envelope.limit ?? 25;
-      const listed = applicationsArray.map(this.transformApplicationForList);
       return {
-        applications: narrowByUnsupportedFilters(listed, filter),
+        applications: applicationsArray.map(this.transformApplicationForList),
         total,
         page: paging?.page ?? envelope.page ?? envelope.currentPage ?? 1,
         totalPages: paging?.totalPages ?? envelope.totalPages ?? Math.ceil(total / pageSize),

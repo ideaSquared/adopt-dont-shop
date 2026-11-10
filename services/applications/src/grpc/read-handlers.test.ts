@@ -214,6 +214,67 @@ describe('listApplications', () => {
     expect(countParams).toEqual(expect.arrayContaining(['rsc-9', 'pet-7']));
   });
 
+  describe('staff search and filters', () => {
+    const staff = () =>
+      makePrincipal({ userId: 'staff-1', roles: ['rescue_staff'], rescueId: 'rsc-9' });
+    const listWith = async (filters: Record<string, string>) => {
+      const { deps, query } = makeDeps();
+      query.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [{ total: '0' }] });
+      await listApplications(deps, staff(), {
+        limit: 20,
+        page: 1,
+        statusFilter: S.APPLICATION_STATUS_UNSPECIFIED,
+        ...filters,
+      });
+      const [pageSql, pageParams] = query.mock.calls[0] as [string, unknown[]];
+      const [countSql, countParams] = query.mock.calls[1] as [string, unknown[]];
+      return { pageSql, pageParams, countSql, countParams };
+    };
+
+    it("searches the applicant's name and email as a literal substring", async () => {
+      const { pageSql, pageParams, countSql } = await listWith({ search: 'jane_%' });
+      expect(pageSql).toMatch(/applicant_name ILIKE \$\d+ OR applicant_email ILIKE \$\d+/);
+      expect(countSql).toMatch(/applicant_name ILIKE/);
+      expect(pageParams).toContain('%jane\\_\\%%');
+      expect(pageParams).toContain('rsc-9');
+    });
+
+    it('filters by pet type case-insensitively and breed as a substring', async () => {
+      const { pageSql, pageParams } = await listWith({
+        petTypeFilter: 'Dog',
+        petBreedFilter: 'retriever',
+      });
+      expect(pageSql).toMatch(/pet_type = \$\d+/);
+      expect(pageSql).toMatch(/pet_breed ILIKE \$\d+/);
+      expect(pageParams).toEqual(expect.arrayContaining(['dog', '%retriever%']));
+    });
+
+    it('filters by priority and submitted date range', async () => {
+      const { pageSql, pageParams } = await listWith({
+        priorityFilter: 'high',
+        submittedFrom: '2026-01-01T00:00:00.000Z',
+        submittedTo: '2026-02-01T00:00:00.000Z',
+      });
+      expect(pageSql).toMatch(/priority = \$\d+/);
+      expect(pageSql).toMatch(/submitted_at >= \$\d+/);
+      expect(pageSql).toMatch(/submitted_at <= \$\d+/);
+      expect(pageParams).toEqual(
+        expect.arrayContaining(['high', '2026-01-01T00:00:00.000Z', '2026-02-01T00:00:00.000Z'])
+      );
+    });
+
+    it('rejects an unknown priority and an unparseable date', async () => {
+      const { deps } = makeDeps();
+      const base = { limit: 20, page: 1, statusFilter: S.APPLICATION_STATUS_UNSPECIFIED };
+      await expect(
+        listApplications(deps, staff(), { ...base, priorityFilter: 'medium' })
+      ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+      await expect(
+        listApplications(deps, staff(), { ...base, submittedFrom: 'last tuesday' })
+      ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    });
+  });
+
   it('applies a status filter as the DB enum string', async () => {
     const { deps, query } = makeDeps();
     query.mockResolvedValueOnce({ rows: [] });

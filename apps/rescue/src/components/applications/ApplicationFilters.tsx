@@ -28,8 +28,9 @@ const SELECT_FILTERS: SelectFilter[] = [
     label: 'Priority',
     options: [
       { value: '', label: 'All Priorities' },
+      { value: 'urgent', label: 'Urgent' },
       { value: 'high', label: 'High' },
-      { value: 'medium', label: 'Medium' },
+      { value: 'normal', label: 'Normal' },
       { value: 'low', label: 'Low' },
     ],
   },
