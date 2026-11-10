@@ -94,7 +94,13 @@ test.describe('admin support ticket triage', () => {
     await openResponsesTab(page);
     await page.getByPlaceholder('Type your response here...').fill(text);
     if (internal) {
-      await page.getByLabel(/Internal note/).check();
+      // CheckboxInput hides the native input (zero size) behind a styled box, so
+      // Playwright never sees it as visible: click its label as a user would.
+      await page
+        .locator('label')
+        .filter({ hasText: /Internal note/ })
+        .click();
+      await expect(page.getByLabel(/Internal note/)).toBeChecked();
     }
     const stored = page.waitForResponse(
       res => res.url().includes('/responses') && res.request().method() === 'POST'

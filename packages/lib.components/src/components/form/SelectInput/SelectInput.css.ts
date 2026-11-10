@@ -181,7 +181,8 @@ export const content = style({
   boxShadow: vars.shadows.lg,
   maxHeight: '300px',
   overflow: 'hidden',
-  zIndex: 50,
+  // Rendered in a portal: must sit above a Modal (zIndex.modal) when opened inside one.
+  zIndex: vars.zIndex.popover,
   minWidth: 'var(--radix-select-trigger-width)',
   width: 'var(--radix-select-trigger-width)',
   willChange: 'transform, opacity',

@@ -68,6 +68,7 @@ const GenericFilters = <T extends FilterRecord>({
             )}
             {type === 'select' && options && (
               <SelectInput
+                label={label}
                 value={typeof value === 'string' || typeof value === 'number' ? String(value) : ''}
                 onChange={handleSelectChange(name)}
                 options={options}

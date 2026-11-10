@@ -6,6 +6,7 @@ import { dismissCookieBannerPatiently } from '../../helpers/cookie-banner-patien
 import { uniqueText } from '../../helpers/factories';
 import { expectOk, postWithCsrf } from '../../helpers/seeds';
 import { URLS } from '../../playwright.config';
+import { chooseSelectOption } from '../../helpers/radix-select';
 
 /**
  * An admin sanctions a reported user from the moderation queue by
@@ -50,7 +51,7 @@ test.describe('applying a sanction from the moderation queue', () => {
     await page.getByRole('button', { name: 'Sanction', exact: true }).click();
 
     const dialog = page.getByRole('dialog');
-    await dialog.getByLabel(/^Sanction Type/).selectOption('user_suspended');
+    await chooseSelectOption(page, dialog.getByLabel(/^Sanction Type/), 'Suspend User');
     await dialog.getByLabel(/^Shared Reason/).fill('E2E: confirmed spam');
     const confirmPhrase = dialog.getByLabel(/^Type CONFIRM/);
     if (await confirmPhrase.isVisible()) {

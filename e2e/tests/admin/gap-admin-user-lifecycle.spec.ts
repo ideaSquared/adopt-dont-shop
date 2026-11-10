@@ -7,6 +7,7 @@ import { dismissCookieBannerPatiently } from '../../helpers/cookie-banner-patien
 import { patchWithCsrf } from '../../helpers/seeds';
 import { ROLES } from '../../fixtures/roles';
 import { URLS } from '../../playwright.config';
+import { auditRowsForUser } from '../../helpers/audit';
 
 /**
  * User lifecycle driven from the admin Users page: reactivating a suspended
@@ -29,7 +30,7 @@ const findUserId = async (adminApi: AdminApi, email: string): Promise<string> =>
 const openUserActions = async (page: Page, account: Account): Promise<void> => {
   await page.goto('/users');
   await dismissCookieBannerPatiently(page);
-  await page.getByRole('textbox', { name: /search by name or email/i }).fill(account.email);
+  await page.getByPlaceholder(/search by name or email/i).fill(account.email);
   // Header row + the one match: the debounced search has settled.
   await expect(page.getByRole('row')).toHaveCount(2, { timeout: 15_000 });
   await page
@@ -138,7 +139,7 @@ test.describe('audit trail of a suspension (ADM-150)', () => {
     await page.getByRole('option', { name: 'User', exact: true }).click();
     await page.getByRole('searchbox', { name: 'Search', exact: true }).fill(ROLES.admin.email);
 
-    const entry = page.getByRole('row').filter({ hasText: `ID: ${userId}` });
+    const entry = auditRowsForUser(page, userId);
     await expect(entry).toHaveCount(1, { timeout: 15_000 });
     await expect(entry).toContainText(ROLES.admin.email);
     await expect(entry).toContainText(/suspend/i);

@@ -47,12 +47,20 @@ const fieldForWorker = (): RescueField => {
 const fieldRow = (page: Page, field: string) =>
   page.getByRole('row').filter({ has: page.getByText(field, { exact: true }) });
 
-const selectAndWait = async (page: Page, name: string, loaded: RegExp): Promise<void> => {
+// Resources are tabs; roles are toggle buttons.
+const selectAndWait = async (
+  page: Page,
+  control: { role: 'tab' | 'button'; name: string },
+  loaded: RegExp
+): Promise<void> => {
   await Promise.all([
     page.waitForResponse(res => loaded.test(res.url())),
-    page.getByRole('button', { name, exact: true }).click(),
+    page.getByRole(control.role, { name: control.name, exact: true }).click(),
   ]);
 };
+
+const RESCUES_TAB = { role: 'tab', name: 'rescues' } as const;
+const ADOPTER_ROLE = { role: 'button', name: 'adopter' } as const;
 
 // Both selections refetch; let the table settle on the chosen resource and role before
 // moving on, so a slower earlier response cannot overwrite the adopter view.
@@ -65,9 +73,9 @@ const openAdopterRescueFields = async (page: Page, field: string): Promise<void>
   const firstLoad = page.waitForResponse(res => /defaults\/users\/admin/.test(res.url()));
   await page.goto('/field-permissions');
   await firstLoad;
-  await selectAndWait(page, 'rescues', /defaults\/rescues\/admin/);
+  await selectAndWait(page, RESCUES_TAB, /defaults\/rescues\/admin/);
   await expect(page.getByText('rescues - admin access')).toBeVisible({ timeout: 15_000 });
-  await selectAndWait(page, 'adopter', /defaults\/rescues\/adopter/);
+  await selectAndWait(page, ADOPTER_ROLE, /defaults\/rescues\/adopter/);
   await expectAdopterRescueTable(page);
   await expect(fieldRow(page, field)).toBeVisible({ timeout: 15_000 });
 };
@@ -97,9 +105,9 @@ test.describe('field permission overrides', () => {
       await saveOneChange(page);
 
       await page.reload();
-      await selectAndWait(page, 'rescues', /defaults\/rescues\/admin/);
+      await selectAndWait(page, RESCUES_TAB, /defaults\/rescues\/admin/);
       await expect(page.getByText('rescues - admin access')).toBeVisible({ timeout: 15_000 });
-      await selectAndWait(page, 'adopter', /defaults\/rescues\/adopter/);
+      await selectAndWait(page, ADOPTER_ROLE, /defaults\/rescues\/adopter/);
       await expectAdopterRescueTable(page);
       await expect(fieldRow(page, field).getByText('Override')).toBeVisible({ timeout: 15_000 });
       await expect(effective).toHaveValue('none');
