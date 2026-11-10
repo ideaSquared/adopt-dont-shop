@@ -11,7 +11,6 @@ import {
   PETS_DELETE,
   PETS_MANAGE_ANY,
   PETS_VIEW,
-  RESCUE_SETTINGS_VIEW,
 } from '@adopt-dont-shop/lib.types';
 import { NewPasswordSchema } from '@adopt-dont-shop/lib.validation';
 
@@ -264,29 +263,29 @@ export const deleteDemoRescue = async (
 ): Promise<JsonObject> => {
   const { rescueId } = parseRequest(DeleteRequestSchema, request);
 
-  const found = await call('rescue.Get', { rescueId }, { permissions: [RESCUE_SETTINGS_VIEW] });
-  if (!DEMO_EMAIL_PATTERN.test(str(objectAt(found, 'rescue').email) ?? '')) {
-    throw new OpsError(
-      'INVALID_ARGUMENT',
-      `Rescue ${rescueId} is not a demo rescue`,
-      'delete-rescue only removes rescues made by `pnpm ops demo create-rescue`.'
-    );
-  }
-
-  // Demo staff are found before the rescue is deleted (staff lookups need it).
+  // A demo rescue is one whose staff are all demo accounts. The rescue's own
+  // email can't be checked: rescue.Get zeroes every field for an operator
+  // principal, which carries no roles. Staff are read before the rescue is
+  // deleted, since staff lookups need it.
   const staff = await call(
     'rescue.ListStaffMembers',
     { rescueId },
     { permissions: [ADMIN_SECURITY_MANAGE] }
   );
   const staffUserIds = arrayAt(staff, 'staffMembers').flatMap(m => str(m.userId) ?? []);
-  const demoUserIds = await staffUserIds.reduce<Promise<string[]>>(async (soFar, userId) => {
-    const ids = await soFar;
+  const staffEmails = await staffUserIds.reduce<Promise<string[]>>(async (soFar, userId) => {
+    const emails = await soFar;
     const user = await call('auth.AdminGetUser', { userId }, { permissions: [ADMIN_USERS_READ] });
-    return DEMO_EMAIL_PATTERN.test(str(objectAt(user, 'user').email) ?? '')
-      ? [...ids, userId]
-      : ids;
+    return [...emails, str(objectAt(user, 'user').email) ?? ''];
   }, Promise.resolve([]));
+  if (staffEmails.length === 0 || !staffEmails.every(email => DEMO_EMAIL_PATTERN.test(email))) {
+    throw new OpsError(
+      'INVALID_ARGUMENT',
+      `Rescue ${rescueId} is not a demo rescue`,
+      'delete-rescue only removes rescues made by `pnpm ops demo create-rescue`, whose staff are all demo accounts.'
+    );
+  }
+  const demoUserIds = staffUserIds;
 
   // Pets live in their own schema and do not see the rescue's soft delete, so
   // each is soft-deleted to take it off public listings.

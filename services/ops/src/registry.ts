@@ -252,7 +252,6 @@ export const REGISTRY: Readonly<Record<string, RegistryEntry>> = {
   'demo.DeleteRescue': {
     kind: 'write',
     permissions: [
-      RESCUE_SETTINGS_VIEW,
       ADMIN_SECURITY_MANAGE,
       ADMIN_USERS_READ,
       PETS_VIEW,

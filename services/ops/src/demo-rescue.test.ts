@@ -202,15 +202,13 @@ describe('demo create-rescue', () => {
 describe('demo delete-rescue', () => {
   const DEMO_EMAIL = 'demo-abcdef1234@example.com';
 
+  // No rescue.Get: for an operator principal (no roles) the rescue service
+  // zeroes every field, so the rescue's own email cannot identify a demo rescue.
   const deleteScript =
-    (rescueEmail: string, userEmails: Record<string, string>) =>
+    (userEmails: Record<string, string>) =>
     (call: GrpcCall): unknown => {
       const request = JSON.parse(JSON.stringify(call.request)) as Record<string, unknown>;
       switch (call.method.rpc) {
-        case 'rescue.Get':
-          return RescueV1.GetRescueResponse.fromPartial({
-            rescue: { rescueId: RESCUE_ID, email: rescueEmail },
-          });
         case 'pets.List':
           return request.cursor === undefined
             ? PetsV1.ListPetsResponse.fromPartial({
@@ -237,18 +235,29 @@ describe('demo delete-rescue', () => {
       }
     };
 
-  it('refuses a rescue it did not create and changes nothing', async () => {
-    const h = await setup({ grpc: deleteScript('hello@realrescue.org', {}) });
+  it('refuses a rescue with any staff member who is not a demo account, and changes nothing', async () => {
+    const h = await setup({
+      grpc: deleteScript({ [OWNER_ID]: DEMO_EMAIL, [OTHER_USER_ID]: 'jo@real.org' }),
+    });
     const res = await h.previewThenExecute('demo.DeleteRescue', { rescueId: RESCUE_ID });
     expect(errorOf(res).code).toBe('INVALID_ARGUMENT');
     expect(errorOf(res).message).toContain('not a demo rescue');
-    expect(h.grpc.calls.map(c => c.rpc)).toEqual(['rescue.Get']);
+    expect(h.grpc.calls.map(c => c.rpc)).toEqual([
+      'rescue.ListStaffMembers',
+      'auth.AdminGetUser',
+      'auth.AdminGetUser',
+    ]);
   });
 
-  it('deletes every pet and the rescue, then deactivates only demo staff accounts', async () => {
-    const h = await setup({
-      grpc: deleteScript(DEMO_EMAIL, { [OWNER_ID]: DEMO_EMAIL, [OTHER_USER_ID]: 'jo@real.org' }),
-    });
+  it('refuses a rescue with no staff, and changes nothing', async () => {
+    const h = await setup({ grpc: deleteScript({}) });
+    const res = await h.previewThenExecute('demo.DeleteRescue', { rescueId: RESCUE_ID });
+    expect(errorOf(res).message).toContain('not a demo rescue');
+    expect(h.grpc.calls.map(c => c.rpc)).toEqual(['rescue.ListStaffMembers']);
+  });
+
+  it('deletes every pet and the rescue, then deactivates its demo staff accounts', async () => {
+    const h = await setup({ grpc: deleteScript({ [OWNER_ID]: DEMO_EMAIL }) });
     const body = bodyOf(await h.previewThenExecute('demo.DeleteRescue', { rescueId: RESCUE_ID }));
     expect(body.kind === 'result' && body.response).toEqual({
       rescueId: RESCUE_ID,
@@ -256,9 +265,7 @@ describe('demo delete-rescue', () => {
       deactivatedUserIds: [OWNER_ID],
     });
     expect(h.grpc.calls.map(c => c.rpc)).toEqual([
-      'rescue.Get',
       'rescue.ListStaffMembers',
-      'auth.AdminGetUser',
       'auth.AdminGetUser',
       'pets.List',
       'pets.List',
@@ -276,7 +283,7 @@ describe('demo delete-rescue', () => {
   });
 
   it('is refused in prod', async () => {
-    const h = await setup({ env: 'prod', grpc: deleteScript(DEMO_EMAIL, {}) });
+    const h = await setup({ env: 'prod', grpc: deleteScript({}) });
     const res = await h.invoke({ rpc: 'demo.DeleteRescue', request: { rescueId: RESCUE_ID } });
     expect(errorOf(res).code).toBe('NOT_ENABLED');
     expect(h.grpc.calls).toHaveLength(0);

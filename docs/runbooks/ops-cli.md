@@ -209,7 +209,7 @@ A broken chain is a security incident: stop, preserve the table (`pg_dump -t ops
 
 ## Clean up demo rescues
 
-`pnpm ops demo create-rescue` (dev and staging only) leaves real rows behind: a verified rescue, its pets and an active `demo-…@example.com` owner. Remove each with `pnpm ops demo delete-rescue <rescueId> -e staging` when testing is done. To find leftovers, list rescues in the admin app and look for the `Demo Rescue` name prefix or a `demo-…@example.com` email. `delete-rescue` refuses anything else, so it cannot remove a real rescue by mistake.
+`pnpm ops demo create-rescue` (dev and staging only) leaves real rows behind: a verified rescue, its pets and an active `demo-…@example.com` owner. Remove each with `pnpm ops demo delete-rescue <rescueId> -e staging` when testing is done. To find leftovers, list rescues in the admin app and look for the `Demo Rescue` name prefix or a `demo-…@example.com` email. `delete-rescue` refuses any rescue with a staff member who is not a `demo-…@example.com` account, so it cannot remove a real rescue by mistake.
 
 ## If `service-ops` is down
 

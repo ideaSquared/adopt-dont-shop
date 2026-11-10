@@ -129,11 +129,12 @@ an existing RPC with its own principal holding only that handler's permissions.
   (`admin.security.manage`), `pets.Create` (`pets.create` + `pets.manage:any`, rescue-scoped).
   The generated owner email and password are shown in the execute result only (`revealOnExecute`);
   they are not in the plan, the access log or any event. A failed step names what was created.
-- **DeleteRescue:** refuses a rescue whose email is not a generated `demo-…@example.com`. Then
-  `rescue.ListStaffMembers` (`admin.security.manage`), `auth.AdminGetUser` (`admin.users.read`),
-  `pets.List` (`pets.read`) and `pets.Delete` (`pets.delete` + `pets.manage:any`) for every pet,
-  `rescue.Delete` (`admin.security.manage`), and `auth.DeactivateUser`
-  (`admin.users.deactivate`) for staff with demo emails only.
+- **DeleteRescue:** `rescue.ListStaffMembers` (`admin.security.manage`) and `auth.AdminGetUser`
+  (`admin.users.read`) for each staff member; it refuses unless the rescue has staff and every one
+  has a generated `demo-…@example.com` email. (The rescue's own email can't be used: `rescue.Get`
+  zeroes every field for a principal with no roles.) Then `pets.List` (`pets.read`) and
+  `pets.Delete` (`pets.delete` + `pets.manage:any`) for every pet, `rescue.Delete`
+  (`admin.security.manage`), and `auth.DeactivateUser` (`admin.users.deactivate`) for its staff.
 
 ## Schema (`ops`)
 
