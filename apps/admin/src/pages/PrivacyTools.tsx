@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import clsx from 'clsx';
 import {
+  Alert,
   Heading,
   Text,
+  FormField,
   Input,
   Button,
   ConfirmDialog,
+  PageHeader,
   useConfirm,
   toast,
 } from '@adopt-dont-shop/lib.components';
@@ -91,15 +93,12 @@ const PrivacyTools: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <div>
-        <Heading level='h1'>Privacy Tools</Heading>
-        <Text>
-          GDPR / CCPA admin tooling: trigger data exports or deletion requests on behalf of users.
-        </Text>
-      </div>
+      <PageHeader
+        title='Privacy Tools'
+        description='GDPR / CCPA admin tooling: trigger data exports or deletion requests on behalf of users.'
+      />
 
-      <div className={styles.fieldGroup}>
-        <label htmlFor='privacy-user-id'>User ID</label>
+      <FormField label='User ID' htmlFor='privacy-user-id'>
         <Input
           id='privacy-user-id'
           type='text'
@@ -107,7 +106,7 @@ const PrivacyTools: React.FC = () => {
           onChange={e => setUserId(e.target.value)}
           placeholder='UUID of the target user'
         />
-      </div>
+      </FormField>
 
       <section className={styles.section}>
         <Heading level='h2'>Data Export (GDPR Art. 20)</Heading>
@@ -125,14 +124,15 @@ const PrivacyTools: React.FC = () => {
           grace period.
         </Text>
         <div className={styles.fieldGroupSpaced}>
-          <label htmlFor='privacy-reason'>Reason (optional, internal audit log)</label>
-          <Input
-            id='privacy-reason'
-            type='text'
-            value={reason}
-            onChange={e => setReason(e.target.value)}
-            placeholder='Subject access request received via support'
-          />
+          <FormField label='Reason (optional, internal audit log)' htmlFor='privacy-reason'>
+            <Input
+              id='privacy-reason'
+              type='text'
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              placeholder='Subject access request received via support'
+            />
+          </FormField>
         </div>
         <Button
           variant='outline'
@@ -146,14 +146,7 @@ const PrivacyTools: React.FC = () => {
       </section>
 
       {message && (
-        <div
-          className={clsx(
-            styles.message,
-            message.kind === 'success' ? styles.messageSuccess : styles.messageError
-          )}
-        >
-          {message.text}
-        </div>
+        <Alert variant={message.kind === 'success' ? 'success' : 'error'}>{message.text}</Alert>
       )}
 
       <ConfirmDialog {...confirmProps} />

@@ -8,11 +8,6 @@ export const container = style({
   maxWidth: '48rem',
 });
 
-export const fieldGroup = style({
-  display: 'grid',
-  gap: '0.5rem',
-});
-
 export const fieldGroupSpaced = style({
   display: 'grid',
   gap: '0.5rem',
@@ -30,19 +25,4 @@ export const buttonIcon = style({
 
 export const deleteButton = style({
   marginTop: '0.5rem',
-});
-
-export const message = style({
-  padding: '0.75rem',
-  borderRadius: '0.375rem',
-});
-
-export const messageSuccess = style({
-  background: vars.background.success,
-  color: vars.text.success,
-});
-
-export const messageError = style({
-  background: vars.background.danger,
-  color: vars.text.danger,
 });
