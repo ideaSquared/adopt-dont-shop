@@ -356,7 +356,14 @@ export interface QueryRequest {
     | string
     | undefined;
   /** Filter by aggregate type (the "entity" the action targeted). */
-  aggregateType?: string | undefined;
+  aggregateType?:
+    | string
+    | undefined;
+  /**
+   * Free-text search: case-insensitive substring match on the actor email
+   * snapshot, action and aggregate type, or an exact actor user id.
+   */
+  search?: string | undefined;
 }
 
 export interface QueryResponse {
@@ -1299,6 +1306,7 @@ function createBaseQueryRequest(): QueryRequest {
     page: undefined,
     action: undefined,
     aggregateType: undefined,
+    search: undefined,
   };
 }
 
@@ -1336,6 +1344,9 @@ export const QueryRequest: MessageFns<QueryRequest> = {
     }
     if (message.aggregateType !== undefined) {
       writer.uint32(90).string(message.aggregateType);
+    }
+    if (message.search !== undefined) {
+      writer.uint32(98).string(message.search);
     }
     return writer;
   },
@@ -1435,6 +1446,14 @@ export const QueryRequest: MessageFns<QueryRequest> = {
           message.aggregateType = reader.string();
           continue;
         }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.search = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1473,6 +1492,7 @@ export const QueryRequest: MessageFns<QueryRequest> = {
         : isSet(object.aggregate_type)
         ? globalThis.String(object.aggregate_type)
         : undefined,
+      search: isSet(object.search) ? globalThis.String(object.search) : undefined,
     };
   },
 
@@ -1511,6 +1531,9 @@ export const QueryRequest: MessageFns<QueryRequest> = {
     if (message.aggregateType !== undefined) {
       obj.aggregateType = message.aggregateType;
     }
+    if (message.search !== undefined) {
+      obj.search = message.search;
+    }
     return obj;
   },
 
@@ -1530,6 +1553,7 @@ export const QueryRequest: MessageFns<QueryRequest> = {
     message.page = object.page ?? undefined;
     message.action = object.action ?? undefined;
     message.aggregateType = object.aggregateType ?? undefined;
+    message.search = object.search ?? undefined;
     return message;
   },
 };

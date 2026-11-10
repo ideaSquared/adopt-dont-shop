@@ -7,7 +7,7 @@
  * - Error state shown when the API fails
  * - Admin sees rows for real audit events (action, user, IP, status)
  * - Admin can filter by action / resource / status (query re-runs)
- * - Admin can client-side search the loaded logs
+ * - Admin can search the logs (server-side, across every page)
  * - Admin can open and close the log detail modal
  */
 
@@ -118,12 +118,16 @@ describe('Audit page', () => {
     );
   });
 
-  it('filters loaded logs by the client-side search box', async () => {
-    mockGetAuditLogs.mockResolvedValue(
-      paginated([
-        makeLog({ id: 1, userName: 'Jane Admin' }),
-        makeLog({ id: 2, userName: 'Bob Mod' }),
-      ])
+  it('searches on the server and shows the matching logs it returns', async () => {
+    mockGetAuditLogs.mockImplementation((filters: { search?: string }) =>
+      Promise.resolve(
+        filters.search === 'Bob'
+          ? paginated([makeLog({ id: 2, userName: 'Bob Mod' })])
+          : paginated([
+              makeLog({ id: 1, userName: 'Jane Admin' }),
+              makeLog({ id: 2, userName: 'Bob Mod' }),
+            ])
+      )
     );
 
     renderWithProviders(<Audit />);
@@ -134,6 +138,9 @@ describe('Audit page', () => {
 
     await waitFor(() => expect(screen.queryByText('Jane Admin')).not.toBeInTheDocument());
     expect(screen.getByText('Bob Mod')).toBeInTheDocument();
+    expect(mockGetAuditLogs).toHaveBeenCalledWith(
+      expect.objectContaining({ search: 'Bob', page: 1 })
+    );
   });
 
   it('opens and closes the detail modal for a log with details', async () => {

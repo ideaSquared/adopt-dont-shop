@@ -196,6 +196,9 @@ message QueryRequest {
   optional string action = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Filter by aggregate type (the "entity" the action targeted).
   optional string aggregate_type = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  // Free-text search: case-insensitive substring match on the actor email
+  // snapshot, action and aggregate type, or an exact actor user id.
+  optional string search = 12 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message QueryResponse {

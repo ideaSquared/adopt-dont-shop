@@ -327,6 +327,17 @@ describe('GET /api/v1/admin/audit-logs', () => {
     expect(body.pagination.hasPrev).toBe(false);
   });
 
+  it('forwards the search term to the page-mode Query so it filters across every page', async () => {
+    queryMock.mockResolvedValue({ events: [], total: 0 });
+    const httpRes = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/audit-logs?search=alice%40example.com&page=2',
+      headers: ADMIN_HEADERS,
+    });
+    expect(httpRes.statusCode).toBe(200);
+    expect(queryMock.mock.calls[0][0]).toMatchObject({ page: 2, search: 'alice@example.com' });
+  });
+
   it('rejects a non-integer page with 400', async () => {
     const httpRes = await app.inject({
       method: 'GET',

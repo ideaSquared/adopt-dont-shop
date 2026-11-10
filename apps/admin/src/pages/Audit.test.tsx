@@ -77,14 +77,33 @@ describe('Audit filters', () => {
     );
   });
 
-  it('filters the rendered rows client-side as the search term is typed', async () => {
+  it('sends the search term to the server, from page 1, instead of filtering the loaded page', async () => {
     renderWithProviders(<Audit />);
     await screen.findByText('Bob');
 
     fireEvent.change(screen.getByLabelText('Search'), { target: { value: 'alice' } });
 
-    expect(screen.getByText('Alice')).toBeInTheDocument();
-    expect(screen.queryByText('Bob')).not.toBeInTheDocument();
+    // The page already loaded is not narrowed locally.
+    expect(screen.getByText('Bob')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(getAuditLogsMock).toHaveBeenCalledWith(
+        expect.objectContaining({ search: 'alice', page: 1 })
+      )
+    );
+  });
+
+  it('waits for the user to stop typing before querying with the search term', async () => {
+    renderWithProviders(<Audit />);
+    await screen.findByText('Bob');
+    getAuditLogsMock.mockClear();
+
+    fireEvent.change(screen.getByLabelText('Search'), { target: { value: 'ali' } });
+    fireEvent.change(screen.getByLabelText('Search'), { target: { value: 'alice' } });
+
+    await waitFor(() =>
+      expect(getAuditLogsMock).toHaveBeenCalledWith(expect.objectContaining({ search: 'alice' }))
+    );
+    expect(getAuditLogsMock).not.toHaveBeenCalledWith(expect.objectContaining({ search: 'ali' }));
   });
 });
 

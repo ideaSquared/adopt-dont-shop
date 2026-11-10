@@ -44,6 +44,10 @@ export class AuditLogsService {
       params.append('status', filters.status);
     }
 
+    if (filters.search) {
+      params.append('search', filters.search);
+    }
+
     if (filters.page) {
       params.append('page', filters.page.toString());
     }
