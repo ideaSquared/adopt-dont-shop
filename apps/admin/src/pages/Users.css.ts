@@ -15,7 +15,7 @@ export const userDetails = style({
 });
 
 export const userName = style({
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
 });
 

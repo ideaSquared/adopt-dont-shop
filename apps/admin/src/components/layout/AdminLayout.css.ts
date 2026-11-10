@@ -24,12 +24,12 @@ export const mainColumn = style({
 export const contentWrapper = style({
   flex: 1,
   width: '100%',
-  padding: '2rem',
+  padding: vars.spacing['5'],
   maxWidth: '1920px',
   margin: '0 auto',
   '@media': {
     '(max-width: 768px)': {
-      padding: '1rem',
+      padding: vars.spacing['3'],
     },
   },
 });

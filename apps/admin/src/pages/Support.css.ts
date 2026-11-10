@@ -5,18 +5,18 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 export const statsBar = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-  gap: '1rem',
-  marginBottom: '1rem',
+  gap: vars.spacing['3'],
+  marginBottom: vars.spacing['3'],
 });
 
 export const ticketInfo = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.25rem',
+  gap: vars.spacing['1'],
 });
 
 export const ticketSubject = style({
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
 });
 
@@ -28,6 +28,6 @@ export const ticketMeta = style({
 export const replyCount = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   color: vars.text.tertiary,
 });

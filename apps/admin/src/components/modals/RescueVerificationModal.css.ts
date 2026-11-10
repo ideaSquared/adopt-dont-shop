@@ -1,16 +1,17 @@
 import { style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const infoBox = style({
   background: '#f3f4f6',
   border: '1px solid #e5e7eb',
-  borderRadius: '8px',
-  padding: '1rem',
+  borderRadius: vars.border.radius.base,
+  padding: vars.spacing['3'],
   marginBottom: '1.25rem',
 });
 
 export const infoLabel = style({
-  fontSize: '0.75rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.xs,
+  fontWeight: vars.typography.weight.semibold,
   color: '#6b7280',
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
@@ -20,5 +21,5 @@ export const infoLabel = style({
 export const infoValue = style({
   fontSize: '0.9375rem',
   color: '#111827',
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
 });

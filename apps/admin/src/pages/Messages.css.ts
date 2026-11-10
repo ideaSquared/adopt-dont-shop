@@ -5,8 +5,8 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 export const statsGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-  gap: '1rem',
-  marginBottom: '1rem',
+  gap: vars.spacing['3'],
+  marginBottom: vars.spacing['3'],
 });
 
 export const messagePreview = style({
@@ -19,14 +19,14 @@ export const messagePreview = style({
 export const messageParticipants = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
-  fontSize: '0.875rem',
+  gap: vars.spacing['2'],
+  fontSize: vars.typography.size.sm,
   color: vars.text.primary,
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
 });
 
 globalStyle(`${messageParticipants} svg`, {
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: vars.text.muted,
 });
 
@@ -41,30 +41,30 @@ export const messageSubject = style({
 export const messageMeta = style({
   display: 'flex',
   gap: '0.75rem',
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: vars.text.muted,
 });
 
 export const participantInfo = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.25rem',
+  gap: vars.spacing['1'],
 });
 
 export const participantName = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: vars.text.primary,
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
 });
 
 export const participantRole = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: vars.text.tertiary,
 });
 
 export const actionButtons = style({
   display: 'flex',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const statusDotActive = style({
@@ -114,10 +114,10 @@ export const noMessagesPlaceholder = style({
 export const participantsList = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const participantMore = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: '#9ca3af',
 });

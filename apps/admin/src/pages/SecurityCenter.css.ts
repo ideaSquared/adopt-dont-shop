@@ -10,11 +10,11 @@ export const pageContainer = style({
 export const inlineForm = style({
   display: 'flex',
   flexWrap: 'wrap',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   alignItems: 'flex-end',
 });
 
 export const userIdSubtext = style({
   color: vars.text.tertiary,
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
 });

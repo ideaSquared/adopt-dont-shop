@@ -1,32 +1,33 @@
 import { style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const form = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '1.5rem',
+  gap: vars.spacing['4'],
 });
 
 export const recipientInfo = style({
-  padding: '1rem',
+  padding: vars.spacing['3'],
   background: '#f9fafb',
   border: '1px solid #e5e7eb',
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.25rem',
+  gap: vars.spacing['1'],
 });
 
 export const recipientLabel = style({
-  fontSize: '0.75rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.xs,
+  fontWeight: vars.typography.weight.semibold,
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
   color: '#6b7280',
 });
 
 export const recipientName = style({
-  fontSize: '0.875rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.semibold,
   color: '#111827',
 });
 
@@ -39,14 +40,14 @@ export const buttonGroup = style({
   display: 'flex',
   gap: '0.75rem',
   justifyContent: 'flex-end',
-  paddingTop: '1rem',
+  paddingTop: vars.spacing['3'],
   borderTop: '1px solid #e5e7eb',
 });
 
 export const formRow = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(2, 1fr)',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   '@media': {
     'screen and (max-width: 640px)': {
       gridTemplateColumns: '1fr',
@@ -58,7 +59,7 @@ export const infoBox = style({
   padding: '0.75rem 1rem',
   background: '#dbeafe',
   border: '1px solid #93c5fd',
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
   color: '#1e40af',
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });

@@ -1,13 +1,14 @@
 import { style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const wrapper = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
-  gap: '1rem',
-  padding: '0.5rem 0 1rem 0',
+  gap: vars.spacing['3'],
+  padding: `${vars.spacing['2']} 0 ${vars.spacing['3']} 0`,
   borderBottom: '1px solid #e5e7eb',
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const breadcrumb = style({
@@ -23,7 +24,7 @@ export const breadcrumb = style({
 export const segmentLink = style({
   color: '#4b5563',
   textDecoration: 'none',
-  borderRadius: '4px',
+  borderRadius: vars.border.radius.sm,
   padding: '0.125rem 0.25rem',
   ':hover': {
     color: '#111827',
@@ -37,7 +38,7 @@ export const segmentLink = style({
 
 export const segmentCurrent = style({
   color: '#111827',
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
 });
 
 export const separator = style({
@@ -48,6 +49,6 @@ export const separator = style({
 export const navButtons = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '0.25rem',
+  gap: vars.spacing['1'],
   flexShrink: 0,
 });

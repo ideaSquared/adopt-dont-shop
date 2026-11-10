@@ -1,22 +1,23 @@
 import { style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const detailSection = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '1.5rem',
+  gap: vars.spacing['4'],
   maxHeight: '70vh',
   overflowY: 'auto',
 });
 
 export const ticketTitle = style({
   margin: 0,
-  fontSize: '1.25rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.xl,
+  fontWeight: vars.typography.weight.semibold,
   color: '#111827',
 });
 
 export const ticketId = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
   fontFamily: '"Courier New", monospace',
 });
@@ -24,14 +25,14 @@ export const ticketId = style({
 export const badgeRow = style({
   display: 'flex',
   flexWrap: 'wrap',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   alignItems: 'center',
 });
 
 export const detailGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(2, 1fr)',
-  gap: '1.5rem',
+  gap: vars.spacing['4'],
   '@media': {
     'screen and (max-width: 640px)': {
       gridTemplateColumns: '1fr',
@@ -42,24 +43,24 @@ export const detailGrid = style({
 export const detailItem = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const detailLabel = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
-  fontSize: '0.75rem',
-  fontWeight: '600',
+  gap: vars.spacing['2'],
+  fontSize: vars.typography.size.xs,
+  fontWeight: vars.typography.weight.semibold,
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
   color: '#6b7280',
 });
 
 export const detailValue = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#111827',
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
 });
 
 export const emptyValue = style({
@@ -68,15 +69,15 @@ export const emptyValue = style({
 });
 
 export const descriptionSection = style({
-  padding: '1rem',
+  padding: vars.spacing['3'],
   background: '#f9fafb',
   border: '1px solid #e5e7eb',
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
 });
 
 export const descriptionLabel = style({
-  fontSize: '0.75rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.xs,
+  fontWeight: vars.typography.weight.semibold,
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
   color: '#6b7280',
@@ -84,7 +85,7 @@ export const descriptionLabel = style({
 });
 
 export const descriptionText = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#111827',
   lineHeight: 1.6,
   whiteSpace: 'pre-wrap',
@@ -93,23 +94,23 @@ export const descriptionText = style({
 export const responsesSection = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const responsesHeader = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
-  fontSize: '0.875rem',
-  fontWeight: '600',
+  gap: vars.spacing['2'],
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.semibold,
   color: '#111827',
 });
 
 export const responseCard = style({
-  padding: '1rem',
+  padding: vars.spacing['3'],
   background: '#ffffff',
   border: '1px solid #e5e7eb',
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
   display: 'flex',
   flexDirection: 'column',
   gap: '0.75rem',
@@ -129,22 +130,22 @@ export const responseHeader = style({
 export const responseMeta = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.25rem',
+  gap: vars.spacing['1'],
 });
 
 export const responderInfo = style({
-  fontSize: '0.875rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.semibold,
   color: '#111827',
 });
 
 export const responseTime = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: '#6b7280',
 });
 
 export const responseContent = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#374151',
   lineHeight: 1.6,
   whiteSpace: 'pre-wrap',
@@ -153,8 +154,8 @@ export const responseContent = style({
 export const replyForm = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '1rem',
-  paddingTop: '1rem',
+  gap: vars.spacing['3'],
+  paddingTop: vars.spacing['3'],
   borderTop: '1px solid #e5e7eb',
 });
 
@@ -165,7 +166,7 @@ export const buttonGroup = style({
 });
 
 export const emptyState = style({
-  padding: '2rem',
+  padding: vars.spacing['5'],
   textAlign: 'center',
   color: '#9ca3af',
   fontStyle: 'italic',
@@ -177,9 +178,9 @@ export const detailValueSecondary = style({
 });
 
 export const detailValueMeta = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: '#6b7280',
-  marginTop: '0.25rem',
+  marginTop: vars.spacing['1'],
 });
 
 export const internalNotesSection = style({
@@ -192,7 +193,7 @@ export const internalNotesLabel = style({
 });
 
 export const internalBadgeSpacing = style({
-  marginLeft: '0.5rem',
+  marginLeft: vars.spacing['2'],
 });
 
 export const userLink = style({
@@ -243,16 +244,16 @@ export const activityDescription = style({
 });
 
 export const activityMeta = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: '#6b7280',
   margin: '0.125rem 0 0 0',
 });
 
 export const activityEmpty = style({
-  padding: '2rem 1rem',
+  padding: `${vars.spacing['5']} ${vars.spacing['3']}`,
   textAlign: 'center',
   color: '#6b7280',
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });
 
 // ── EntityInspector embed ─────────────────────────────────────────

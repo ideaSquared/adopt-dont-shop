@@ -23,7 +23,7 @@ export const iconWrap = recipe({
 });
 
 globalStyle(`${iconWrap.classNames.base} svg`, {
-  fontSize: '1.25rem',
+  fontSize: vars.typography.size.xl,
 });
 
 export const descriptionRow = style({
@@ -46,10 +46,10 @@ export const countBadge = style({
   gap: '0.375rem',
   background: '#f3f4f6',
   border: '1px solid #e5e7eb',
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
   padding: '0.5rem 0.875rem',
-  fontSize: '0.875rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.semibold,
   color: '#374151',
   marginBottom: '1.25rem',
 });
@@ -60,10 +60,10 @@ export const formGroup = style({
 
 export const resultBanner = recipe({
   base: {
-    borderRadius: '8px',
+    borderRadius: vars.border.radius.base,
     padding: '0.875rem 1rem',
-    fontSize: '0.875rem',
-    marginBottom: '1rem',
+    fontSize: vars.typography.size.sm,
+    marginBottom: vars.spacing['3'],
   },
   variants: {
     hasFailures: {
@@ -91,7 +91,7 @@ export const failedIdsSection = style({
 
 export const failedIdsList = style({
   listStyle: 'none',
-  margin: '0.5rem 0 0',
+  margin: `${vars.spacing['2']} 0 0`,
   padding: '0.5rem 0.75rem',
   background: '#f9fafb',
   border: '1px solid #e5e7eb',

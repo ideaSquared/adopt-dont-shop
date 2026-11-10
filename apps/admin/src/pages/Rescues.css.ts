@@ -5,11 +5,11 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 export const rescueInfo = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.25rem',
+  gap: vars.spacing['1'],
 });
 
 export const rescueName = style({
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
 });
 
@@ -22,10 +22,10 @@ export const rescueDetail = style({
 });
 
 globalStyle(`${rescueDetail} svg`, {
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });
 
 export const actionButtons = style({
   display: 'flex',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });

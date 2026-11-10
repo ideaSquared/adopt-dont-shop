@@ -8,8 +8,8 @@ export const dashboardContainer = style({});
 export const metricsGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-  gap: '1.5rem',
-  marginBottom: '2rem',
+  gap: vars.spacing['4'],
+  marginBottom: vars.spacing['5'],
 });
 
 export const metricLink = style({
@@ -22,7 +22,7 @@ export const attentionPanel = style({
   background: vars.background.surface,
   border: `1px solid ${vars.border.color.default}`,
   borderRadius: vars.border.radius.xl,
-  padding: '1.5rem',
+  padding: vars.spacing['4'],
   display: 'flex',
   flexDirection: 'column',
   gap: '1.25rem',
@@ -31,7 +31,7 @@ export const attentionPanel = style({
 export const attentionSection = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const attentionSectionHeader = style({
@@ -42,20 +42,20 @@ export const attentionSectionHeader = style({
 
 export const attentionSectionTitle = style({
   margin: 0,
-  fontSize: '1rem',
-  fontWeight: 600,
+  fontSize: vars.typography.size.base,
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
 });
 
 export const attentionLink = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: vars.colors.primary,
   textDecoration: 'none',
 });
 
 export const attentionEmpty = style({
   margin: 0,
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: vars.text.tertiary,
 });
 
@@ -65,17 +65,17 @@ export const attentionList = style({
   margin: 0,
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const attentionItem = style({
   display: 'flex',
   flexDirection: 'column',
   gap: '0.125rem',
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });
 
 export const attentionMeta = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: vars.text.tertiary,
 });

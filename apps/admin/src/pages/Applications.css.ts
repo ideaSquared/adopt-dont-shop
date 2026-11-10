@@ -9,7 +9,7 @@ export const applicantInfo = style({
 });
 
 export const applicantName = style({
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
 });
 

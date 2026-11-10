@@ -14,7 +14,7 @@ export const cardTitle = style({
 export const configGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))',
-  gap: '1.5rem',
+  gap: vars.spacing['4'],
   // The 500px minimum overflows phones; drop to a single full-width column.
   '@media': {
     [media.down('md')]: {
@@ -26,20 +26,20 @@ export const configGrid = style({
 export const sectionCard = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '1.5rem',
+  gap: vars.spacing['4'],
 });
 
 export const infoBanner = style({
   display: 'flex',
   alignItems: 'flex-start',
   gap: '0.75rem',
-  padding: '1rem',
+  padding: vars.spacing['3'],
   background: vars.colors.infoBgSubtle,
   border: `1px solid ${vars.colors.infoBorderSubtle}`,
-  borderRadius: '8px',
-  fontSize: '0.875rem',
+  borderRadius: vars.border.radius.base,
+  fontSize: vars.typography.size.sm,
   color: vars.colors.infoTextEmphasis,
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 globalStyle(`${infoBanner} svg`, {
@@ -49,7 +49,7 @@ globalStyle(`${infoBanner} svg`, {
 
 globalStyle(`${infoBanner} a`, {
   color: vars.colors.infoHover,
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
   textDecoration: 'none',
 });
 
@@ -60,23 +60,23 @@ globalStyle(`${infoBanner} a:hover`, {
 export const settingItem = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.5rem',
-  padding: '1rem',
+  gap: vars.spacing['2'],
+  padding: vars.spacing['3'],
   border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
 });
 
 export const settingLabel = style({
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });
 
 export const settingValue = style({
   fontFamily: 'monospace',
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: vars.text.tertiary,
-  padding: '0.5rem',
+  padding: vars.spacing['2'],
   background: vars.background.body,
   borderRadius: '6px',
 });
@@ -87,18 +87,18 @@ export const statsigLink = style({
   gap: '0.375rem',
   color: vars.colors.infoHover,
   textDecoration: 'none',
-  fontSize: '0.875rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.semibold,
   ':hover': {
     textDecoration: 'underline',
   },
 });
 
 export const inlineIcon = style({
-  marginRight: '0.5rem',
+  marginRight: vars.spacing['2'],
 });
 
 export const sectionIcon = style({
   display: 'inline',
-  marginRight: '0.5rem',
+  marginRight: vars.spacing['2'],
 });

@@ -11,9 +11,9 @@ export const loadingContainer = style({
 });
 
 export const loadingText = style({
-  marginTop: '1rem',
+  marginTop: vars.spacing['3'],
   color: vars.text.tertiary,
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });
 
 export const unauthorizedContainer = style({
@@ -23,7 +23,7 @@ export const unauthorizedContainer = style({
   justifyContent: 'center',
   minHeight: '100vh',
   background: vars.background.muted,
-  padding: '2rem',
+  padding: vars.spacing['5'],
   textAlign: 'center',
 });
 
@@ -33,12 +33,12 @@ export const unauthorizedCard = style({
 
 export const unauthorizedIcon = style({
   fontSize: '4rem',
-  marginBottom: '1.5rem',
+  marginBottom: vars.spacing['4'],
   color: vars.text.tertiary,
 });
 
 export const unauthorizedMessage = style({
   display: 'block',
-  margin: '0 0 2rem 0',
+  margin: `0 0 ${vars.spacing['5']} 0`,
   lineHeight: '1.6',
 });

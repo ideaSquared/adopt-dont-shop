@@ -20,7 +20,7 @@ const SINGLE_COLUMN = 'screen and (max-width: 1024px)';
 
 export const splitLayout = style({
   display: 'flex',
-  gap: '1.5rem',
+  gap: vars.spacing['4'],
   minHeight: 0,
   flex: 1,
   alignItems: 'stretch',
@@ -31,7 +31,7 @@ export const listPane = style({
   minWidth: 0,
   display: 'flex',
   flexDirection: 'column',
-  gap: '1.5rem',
+  gap: vars.spacing['4'],
   transition: 'flex 0.2s ease',
 });
 
@@ -69,13 +69,13 @@ export const backToList = style({
       gap: '0.375rem',
       background: 'transparent',
       border: `1px solid ${vars.border.color.default}`,
-      borderRadius: '8px',
+      borderRadius: vars.border.radius.base,
       padding: '0.5rem 0.875rem',
-      marginBottom: '0.5rem',
+      marginBottom: vars.spacing['2'],
       cursor: 'pointer',
       color: vars.text.secondary,
-      fontSize: '0.875rem',
-      fontWeight: '500',
+      fontSize: vars.typography.size.sm,
+      fontWeight: vars.typography.weight.medium,
       // WCAG 2.5.5 AA touch target on small screens.
       minHeight: '44px',
     },

@@ -4,7 +4,7 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 export const toolbar = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   background: vars.background.info,
   border: `1px solid ${vars.border.color.info}`,
   borderRadius: vars.border.radius.lg,
@@ -15,15 +15,15 @@ export const toolbar = style({
 export const selectionInfo = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
-  fontSize: '0.875rem',
-  fontWeight: '600',
+  gap: vars.spacing['2'],
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.info,
   whiteSpace: 'nowrap',
 });
 
 globalStyle(`${selectionInfo} svg`, {
-  fontSize: '1.125rem',
+  fontSize: vars.typography.size.lg,
 });
 
 export const divider = style({
@@ -35,7 +35,7 @@ export const divider = style({
 export const actionGroup = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   flexWrap: 'wrap',
   flex: 1,
 });

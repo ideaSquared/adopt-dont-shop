@@ -4,20 +4,20 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const registerPrompt = style({
   textAlign: 'center',
-  marginTop: '1.5rem',
-  paddingTop: '1.5rem',
+  marginTop: vars.spacing['4'],
+  paddingTop: vars.spacing['4'],
   borderTop: `1px solid ${vars.border.color.default}`,
 });
 
 globalStyle(`${registerPrompt} p`, {
   color: vars.text.tertiary,
-  marginBottom: '0.5rem',
+  marginBottom: vars.spacing['2'],
 });
 
 globalStyle(`${registerPrompt} a`, {
   color: vars.colors.primary,
   textDecoration: 'none',
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
 });
 
 globalStyle(`${registerPrompt} a:hover`, {
@@ -26,14 +26,14 @@ globalStyle(`${registerPrompt} a:hover`, {
 
 export const manageCookies = style({
   textAlign: 'center',
-  marginTop: '1rem',
+  marginTop: vars.spacing['3'],
 });
 
 export const helperText = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: vars.text.tertiary,
   lineHeight: 1.4,
-  marginTop: '0.5rem',
+  marginTop: vars.spacing['2'],
 });
 
 globalStyle(`${helperText} strong`, {

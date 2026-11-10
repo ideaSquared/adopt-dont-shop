@@ -5,7 +5,7 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 export const roleSelector = style({
   display: 'flex',
   flexWrap: 'wrap',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const fieldName = style({
@@ -13,7 +13,7 @@ export const fieldName = style({
   fontSize: '0.8rem',
   padding: '0.125rem 0.375rem',
   background: vars.background.muted,
-  borderRadius: '4px',
+  borderRadius: vars.border.radius.sm,
 });
 
 const accessSelect = style({
@@ -21,7 +21,7 @@ const accessSelect = style({
   borderRadius: '6px',
   border: `1px solid ${vars.border.color.muted}`,
   fontSize: '0.8rem',
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
   cursor: 'pointer',
 });
 

@@ -9,7 +9,7 @@ export const petInfo = style({
 });
 
 export const petName = style({
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
 });
 
@@ -18,7 +18,7 @@ export const petDetail = style({
   color: vars.text.tertiary,
   display: 'flex',
   alignItems: 'center',
-  gap: '0.25rem',
+  gap: vars.spacing['1'],
 });
 
 export const dimDash = style({

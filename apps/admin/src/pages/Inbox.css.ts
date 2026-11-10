@@ -18,18 +18,18 @@ export const severityLow = style([severityDot, { background: vars.colors.infoHov
 export const severityLabel = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
-  fontSize: '0.875rem',
+  gap: vars.spacing['2'],
+  fontSize: vars.typography.size.sm,
   color: vars.text.secondary,
 });
 
 // Item content
 export const itemTitle = style({
-  fontWeight: 600,
-  marginBottom: '0.25rem',
+  fontWeight: vars.typography.weight.semibold,
+  marginBottom: vars.spacing['1'],
 });
 
-export const itemTitleUnassigned = style([itemTitle, { fontWeight: 700 }]);
+export const itemTitleUnassigned = style([itemTitle, { fontWeight: vars.typography.weight.bold }]);
 
 export const itemSummary = style({
   fontSize: '0.8125rem',
@@ -41,9 +41,9 @@ export const itemSummary = style({
 });
 
 export const itemMeta = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: vars.text.muted,
-  marginTop: '0.25rem',
+  marginTop: vars.spacing['1'],
 });
 
 export const relatedUserEmailLink = style({
@@ -55,6 +55,6 @@ export const relatedUserEmailLink = style({
 });
 
 export const timestamp = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: vars.text.tertiary,
 });

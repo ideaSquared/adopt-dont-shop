@@ -5,7 +5,7 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 export const statsBar = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const priorityIndicatorCritical = style({
@@ -51,33 +51,33 @@ export const priorityIndicatorDefault = style({
 export const priorityLabel = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
-  fontSize: '0.875rem',
+  gap: vars.spacing['2'],
+  fontSize: vars.typography.size.sm,
   color: vars.text.secondary,
 });
 
 export const actionButtons = style({
   display: 'flex',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const reportTitle = style({
-  fontWeight: 600,
-  marginBottom: '0.25rem',
+  fontWeight: vars.typography.weight.semibold,
+  marginBottom: vars.spacing['1'],
 });
 
 export const reportSummary = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: vars.text.tertiary,
-  marginBottom: '0.25rem',
+  marginBottom: vars.spacing['1'],
 });
 
 export const reportTagRow = style({
-  marginTop: '0.5rem',
+  marginTop: vars.spacing['2'],
 });
 
 export const reportedAt = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: vars.text.tertiary,
 });
 

@@ -18,14 +18,14 @@ export const headerContainer = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
-  padding: '0 2rem',
+  padding: `0 ${vars.spacing['5']}`,
   position: 'sticky',
   top: 0,
   zIndex: 90,
-  gap: '1rem',
+  gap: vars.spacing['3'],
   '@media': {
     [MOBILE]: {
-      padding: '0 1rem',
+      padding: `0 ${vars.spacing['3']}`,
     },
   },
 });
@@ -44,17 +44,17 @@ export const mobileMenu = style({
 export const headerActions = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const userButton = style({
   display: 'flex',
   alignItems: 'center',
   gap: '0.75rem',
-  padding: '0.5rem 1rem',
+  padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
   background: 'transparent',
   border: '1px solid #d1d5db',
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
   cursor: 'pointer',
   transition: 'all 0.2s ease',
   ':hover': {
@@ -77,13 +77,13 @@ export const userInfo = style({
 });
 
 export const userName = style({
-  fontWeight: '600',
-  fontSize: '0.875rem',
+  fontWeight: vars.typography.weight.semibold,
+  fontSize: vars.typography.size.sm,
   color: '#111827',
 });
 
 export const userRole = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: '#6b7280',
   textTransform: 'capitalize',
 });
