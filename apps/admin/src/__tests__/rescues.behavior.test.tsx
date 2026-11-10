@@ -208,7 +208,7 @@ describe('Rescue Management page', () => {
     it('shows the Export button', async () => {
       renderWithProviders(<Rescues />);
       await waitFor(() => {
-        expect(screen.getByTestId('export-button')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Export' })).toBeInTheDocument();
       });
     });
 
