@@ -184,6 +184,9 @@ describe('demo create-application', () => {
       rescueIdFilter: RESCUE_ID,
       statusFilter: PetsV1.PetStatus.PET_STATUS_AVAILABLE,
     });
+    // Read as an unscoped caller, like the adopter's StartDraft will: a
+    // rescue-scoped reader also sees archived pets, which StartDraft rejects.
+    expect(headersOf(h, 'pets.List')['x-rescue-id']).toBeUndefined();
     expect(requestOf(h, 'auth.AdminUpdateUser')).toMatchObject({
       userId: ADOPTER_ID,
       status: AuthV1.UserStatus.USER_STATUS_ACTIVE,

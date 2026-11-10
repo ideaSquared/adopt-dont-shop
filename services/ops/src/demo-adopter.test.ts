@@ -153,6 +153,20 @@ describe('demo create-adopter', () => {
     expect(h.grpc.calls.map(c => c.rpc)).not.toContain('auth.AdminUpdateUser');
   });
 
+  it('names the new account when looking it up after sign-up fails', async () => {
+    const h = await setup({
+      grpc: createScript({
+        'auth.SearchUsers': () => {
+          throw Object.assign(new Error('auth unavailable'), { code: 14 });
+        },
+      }),
+    });
+    const res = await h.previewThenExecute('demo.CreateAdopter', {});
+    const registered = requestOf(h.grpc.calls.find(c => c.rpc === 'auth.Register'));
+    expect(errorOf(res).hint).toContain(String(registered.email));
+    expect(h.grpc.calls.map(c => c.rpc)).not.toContain('auth.AdminUpdateUser');
+  });
+
   it('rejects a blank first name before planning', async () => {
     const h = await setup({ grpc: createScript() });
     const res = await h.invoke({ rpc: 'demo.CreateAdopter', request: { firstName: '  ' } });

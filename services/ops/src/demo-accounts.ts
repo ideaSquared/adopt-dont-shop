@@ -78,7 +78,18 @@ export const createDemoAdopter = async (
     { permissions: [] }
   );
 
-  const userId = await findUserIdByEmail(call, email);
+  // The account exists from here on, so every failure names it.
+  const userId = await findUserIdByEmail(call, email).catch((err: unknown) => {
+    const base =
+      err instanceof OpsError
+        ? err
+        : new OpsError('INTERNAL', 'Unexpected failure', 'Check the service.ops logs.');
+    throw new OpsError(
+      base.code,
+      base.message,
+      `An account for ${email} was probably created. Find it with \`pnpm ops auth search-users --search ${email}\` (after \`pnpm ops unlock any\`) and remove it with \`pnpm ops demo delete-adopter <userId>\`.`
+    );
+  });
   if (userId === undefined) {
     throw new OpsError(
       'INTERNAL',

@@ -179,7 +179,10 @@ const pickPet = async (
   rescueId: string,
   petId: string | undefined
 ): Promise<string> => {
-  const step: DownstreamStep = { permissions: [PETS_VIEW], rescueId };
+  // Unscoped on purpose: a rescue-scoped reader also sees archived pets, which
+  // the adopter's StartDraft (an unscoped read) then rejects. The list filters
+  // by rescue and the explicit-pet branch checks ownership below.
+  const step: DownstreamStep = { permissions: [PETS_VIEW] };
   if (petId === undefined) {
     const listed = await call(
       'pets.List',
