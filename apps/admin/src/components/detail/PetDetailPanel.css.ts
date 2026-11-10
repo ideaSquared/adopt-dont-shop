@@ -4,19 +4,6 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 // ── Header ────────────────────────────────────────────────────────
 
-export const avatar = style({
-  width: '48px',
-  height: '48px',
-  borderRadius: '50%',
-  background: vars.colors.gradientPrimary,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  color: vars.background.surface,
-  fontSize: '1.25rem',
-  flexShrink: 0,
-});
-
 export const headerInfo = style({
   flex: 1,
   minWidth: 0,
@@ -135,47 +122,3 @@ export const activityEmpty = style({
 });
 
 // ── Badge styles ──────────────────────────────────────────────────
-
-export const badgeSuccess = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '0.125rem 0.5rem',
-  borderRadius: '9999px',
-  fontSize: '0.6875rem',
-  fontWeight: '600',
-  background: vars.colors.successBgSubtle,
-  color: vars.colors.successTextEmphasis,
-});
-
-export const badgeWarning = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '0.125rem 0.5rem',
-  borderRadius: '9999px',
-  fontSize: '0.6875rem',
-  fontWeight: '600',
-  background: vars.colors.warningBgSubtle,
-  color: vars.colors.warningTextEmphasis,
-});
-
-export const badgeInfo = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '0.125rem 0.5rem',
-  borderRadius: '9999px',
-  fontSize: '0.6875rem',
-  fontWeight: '600',
-  background: vars.colors.infoBgSubtle,
-  color: vars.colors.infoTextEmphasis,
-});
-
-export const badgeNeutral = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '0.125rem 0.5rem',
-  borderRadius: '9999px',
-  fontSize: '0.6875rem',
-  fontWeight: '600',
-  background: vars.background.muted,
-  color: vars.text.secondary,
-});

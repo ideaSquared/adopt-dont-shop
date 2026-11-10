@@ -82,3 +82,41 @@ describe('ActionSelectionModal suspension duration', () => {
     expect(screen.getByText(/no expiry date/i)).toBeInTheDocument();
   });
 });
+
+describe('ActionSelectionModal dialog behaviour', () => {
+  it('is a labelled dialog that closes on Escape', () => {
+    const onClose = vi.fn();
+    render(<ActionSelectionModal isOpen onClose={onClose} onSubmit={vi.fn()} reportTitle='Spam' />);
+
+    fireEvent.keyDown(screen.getByRole('dialog', { name: 'Take Moderation Action' }), {
+      key: 'Escape',
+    });
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders nothing when closed', () => {
+    render(
+      <ActionSelectionModal
+        isOpen={false}
+        onClose={vi.fn()}
+        onSubmit={vi.fn()}
+        reportTitle='Spam'
+      />
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('shows the error passed in', () => {
+    render(
+      <ActionSelectionModal
+        isOpen
+        onClose={vi.fn()}
+        onSubmit={vi.fn()}
+        reportTitle='Spam'
+        error='Nope'
+      />
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent('Nope');
+  });
+});

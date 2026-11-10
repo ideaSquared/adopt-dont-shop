@@ -28,18 +28,6 @@ export const badgeRow = style({
   alignItems: 'center',
 });
 
-export const badge = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '0.25rem',
-  padding: '0.25rem 0.75rem',
-  borderRadius: '9999px',
-  fontSize: '0.75rem',
-  fontWeight: '600',
-  background: '#f3f4f6',
-  color: '#374151',
-});
-
 export const detailGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(2, 1fr)',
@@ -170,39 +158,6 @@ export const replyForm = style({
   borderTop: '1px solid #e5e7eb',
 });
 
-export const textArea = style({
-  padding: '0.75rem 1rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '8px',
-  fontSize: '0.875rem',
-  color: '#111827',
-  background: '#ffffff',
-  fontFamily: 'inherit',
-  resize: 'vertical',
-  minHeight: '100px',
-  transition: 'all 0.2s ease',
-  ':hover': {
-    borderColor: '#9ca3af',
-  },
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#667eea',
-    boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',
-  },
-  '::placeholder': {
-    color: '#9ca3af',
-  },
-});
-
-export const checkboxLabel = style({
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.5rem',
-  fontSize: '0.875rem',
-  color: '#374151',
-  cursor: 'pointer',
-});
-
 export const buttonGroup = style({
   display: 'flex',
   gap: '0.75rem',
@@ -214,18 +169,6 @@ export const emptyState = style({
   textAlign: 'center',
   color: '#9ca3af',
   fontStyle: 'italic',
-});
-
-export const internalBadge = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '0.25rem',
-  padding: '0.25rem 0.75rem',
-  borderRadius: '9999px',
-  fontSize: '0.625rem',
-  fontWeight: '600',
-  background: '#92400e',
-  color: '#ffffff',
 });
 
 export const detailValueSecondary = style({

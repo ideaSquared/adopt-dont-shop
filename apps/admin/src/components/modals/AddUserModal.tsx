@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
-import { Modal, Button, Input } from '@adopt-dont-shop/lib.components';
+import {
+  Alert,
+  Button,
+  CheckboxInput,
+  FormField,
+  Input,
+  Modal,
+  SelectInput,
+} from '@adopt-dont-shop/lib.components';
 import type { AdminCreateRole, CreateUserRequest } from '@/services/userManagementService';
 import * as styles from './EditUserModal.css';
 
@@ -8,6 +16,9 @@ type AddUserModalProps = {
   onClose: () => void;
   onCreate: (payload: CreateUserRequest) => Promise<void>;
 };
+
+const toCreateRole = (value: string | string[]): AdminCreateRole =>
+  ROLE_OPTIONS.find(option => option.value === value)?.value ?? 'adopter';
 
 const ROLE_OPTIONS: Array<{ value: AdminCreateRole; label: string }> = [
   { value: 'adopter', label: 'Adopter' },
@@ -68,13 +79,10 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onC
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title='Add User'>
       <form className={styles.form} onSubmit={handleSubmit}>
-        {error && <div className={styles.errorMessage}>{error}</div>}
+        {error && <Alert variant='error'>{error}</Alert>}
 
         <div className={styles.formRow}>
-          <div className={styles.formGroup}>
-            <label className={styles.label} htmlFor='add-first-name'>
-              First Name
-            </label>
+          <FormField label='First Name' htmlFor='add-first-name' required>
             <Input
               id='add-first-name'
               type='text'
@@ -83,12 +91,9 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onC
               required
               aria-required={true}
             />
-          </div>
+          </FormField>
 
-          <div className={styles.formGroup}>
-            <label className={styles.label} htmlFor='add-last-name'>
-              Last Name
-            </label>
+          <FormField label='Last Name' htmlFor='add-last-name' required>
             <Input
               id='add-last-name'
               type='text'
@@ -97,13 +102,10 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onC
               required
               aria-required={true}
             />
-          </div>
+          </FormField>
         </div>
 
-        <div className={styles.formGroup}>
-          <label className={styles.label} htmlFor='add-email'>
-            Email
-          </label>
+        <FormField label='Email' htmlFor='add-email' required>
           <Input
             id='add-email'
             type='email'
@@ -112,37 +114,24 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onC
             required
             aria-required={true}
           />
-        </div>
+        </FormField>
 
         <div className={styles.formRow}>
-          <div className={styles.formGroup}>
-            <label className={styles.label} htmlFor='add-role'>
-              Role
-            </label>
-            <select
-              className={styles.select}
-              id='add-role'
-              value={formData.role}
-              onChange={e => setFormData({ ...formData, role: e.target.value as AdminCreateRole })}
-            >
-              {ROLE_OPTIONS.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <SelectInput
+            label='Role'
+            data-testid='add-role'
+            value={formData.role}
+            onChange={value => setFormData({ ...formData, role: toCreateRole(value) })}
+            options={ROLE_OPTIONS}
+            fullWidth
+          />
 
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              <input
-                type='checkbox'
-                checked={formData.send_invitation ?? true}
-                onChange={e => setFormData({ ...formData, send_invitation: e.target.checked })}
-              />{' '}
-              Send invitation email
-            </label>
-          </div>
+          <CheckboxInput
+            id='add-send-invitation'
+            label='Send invitation email'
+            checked={formData.send_invitation ?? true}
+            onChange={e => setFormData({ ...formData, send_invitation: e.target.checked })}
+          />
         </div>
 
         <div className={styles.buttonGroup}>

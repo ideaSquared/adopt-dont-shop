@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { Modal, Button, Input } from '@adopt-dont-shop/lib.components';
+import {
+  Alert,
+  Button,
+  FormField,
+  Input,
+  Modal,
+  SelectInput,
+  TextArea,
+  toast,
+} from '@adopt-dont-shop/lib.components';
 import type { AdminUser } from '@/types';
 import * as styles from './CreateSupportTicketModal.css';
 
@@ -18,6 +27,27 @@ type CreateSupportTicketModalProps = {
   }) => Promise<void>;
 };
 
+const CATEGORY_OPTIONS = [
+  { value: 'general_question', label: 'General Question' },
+  { value: 'technical_issue', label: 'Technical Issue' },
+  { value: 'account_problem', label: 'Account Problem' },
+  { value: 'adoption_inquiry', label: 'Adoption Inquiry' },
+  { value: 'payment_issue', label: 'Payment Issue' },
+  { value: 'feature_request', label: 'Feature Request' },
+  { value: 'report_bug', label: 'Report Bug' },
+  { value: 'compliance_concern', label: 'Compliance Concern' },
+  { value: 'data_request', label: 'Data Request' },
+  { value: 'other', label: 'Other' },
+];
+
+const PRIORITY_OPTIONS = [
+  { value: 'low', label: 'Low' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'high', label: 'High' },
+  { value: 'urgent', label: 'Urgent' },
+  { value: 'critical', label: 'Critical' },
+];
+
 export const CreateSupportTicketModal: React.FC<CreateSupportTicketModalProps> = ({
   isOpen,
   onClose,
@@ -30,7 +60,6 @@ export const CreateSupportTicketModal: React.FC<CreateSupportTicketModalProps> =
   const [priority, setPriority] = useState('normal');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +69,6 @@ export const CreateSupportTicketModal: React.FC<CreateSupportTicketModalProps> =
 
     setIsSubmitting(true);
     setError(null);
-    setSuccess(false);
 
     try {
       await onCreate({
@@ -53,17 +81,12 @@ export const CreateSupportTicketModal: React.FC<CreateSupportTicketModalProps> =
         priority,
       });
 
-      setSuccess(true);
+      toast.success('Support ticket created successfully!');
       setSubject('');
       setDescription('');
       setCategory('general_question');
       setPriority('normal');
-
-      // Close modal after brief success message
-      setTimeout(() => {
-        setSuccess(false);
-        onClose();
-      }, 2000);
+      onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create support ticket');
     } finally {
@@ -78,7 +101,6 @@ export const CreateSupportTicketModal: React.FC<CreateSupportTicketModalProps> =
       setCategory('general_question');
       setPriority('normal');
       setError(null);
-      setSuccess(false);
       onClose();
     }
   };
@@ -111,15 +133,9 @@ export const CreateSupportTicketModal: React.FC<CreateSupportTicketModalProps> =
           <div className={styles.recipientEmail}>{user.email}</div>
         </div>
 
-        {error && <div className={styles.errorMessage}>{error}</div>}
-        {success && (
-          <div className={styles.successMessage}>Support ticket created successfully!</div>
-        )}
+        {error && <Alert variant='error'>{error}</Alert>}
 
-        <div className={styles.formGroup}>
-          <label className={styles.label} htmlFor='ticket-subject'>
-            Subject
-          </label>
+        <FormField label='Subject' htmlFor='ticket-subject' required>
           <Input
             key='subject-input'
             id='ticket-subject'
@@ -131,70 +147,43 @@ export const CreateSupportTicketModal: React.FC<CreateSupportTicketModalProps> =
             aria-required={true}
             disabled={isSubmitting}
           />
-        </div>
+        </FormField>
 
-        <div className={styles.formGroup}>
-          <label className={styles.label} htmlFor='ticket-description'>
-            Description
-          </label>
-          <textarea
-            className={styles.textArea}
+        <FormField label='Description' htmlFor='ticket-description' required>
+          <TextArea
             key='description-textarea'
             id='ticket-description'
             value={description}
             onChange={e => setDescription(e.target.value)}
             placeholder='Describe the issue or request...'
             required
-            aria-required={true}
             disabled={isSubmitting}
             minLength={10}
             maxLength={10000}
+            fullWidth
           />
-        </div>
+        </FormField>
 
         <div className={styles.formRow}>
-          <div className={styles.formGroup}>
-            <label className={styles.label} htmlFor='category'>
-              Category
-            </label>
-            <select
-              className={styles.select}
-              id='category'
-              value={category}
-              onChange={e => setCategory(e.target.value)}
-              disabled={isSubmitting}
-            >
-              <option value='general_question'>General Question</option>
-              <option value='technical_issue'>Technical Issue</option>
-              <option value='account_problem'>Account Problem</option>
-              <option value='adoption_inquiry'>Adoption Inquiry</option>
-              <option value='payment_issue'>Payment Issue</option>
-              <option value='feature_request'>Feature Request</option>
-              <option value='report_bug'>Report Bug</option>
-              <option value='compliance_concern'>Compliance Concern</option>
-              <option value='data_request'>Data Request</option>
-              <option value='other'>Other</option>
-            </select>
-          </div>
+          <SelectInput
+            label='Category'
+            data-testid='category'
+            value={category}
+            onChange={value => setCategory(String(value))}
+            options={CATEGORY_OPTIONS}
+            disabled={isSubmitting}
+            fullWidth
+          />
 
-          <div className={styles.formGroup}>
-            <label className={styles.label} htmlFor='priority'>
-              Priority
-            </label>
-            <select
-              className={styles.select}
-              id='priority'
-              value={priority}
-              onChange={e => setPriority(e.target.value)}
-              disabled={isSubmitting}
-            >
-              <option value='low'>Low</option>
-              <option value='normal'>Normal</option>
-              <option value='high'>High</option>
-              <option value='urgent'>Urgent</option>
-              <option value='critical'>Critical</option>
-            </select>
-          </div>
+          <SelectInput
+            label='Priority'
+            data-testid='priority'
+            value={priority}
+            onChange={value => setPriority(String(value))}
+            options={PRIORITY_OPTIONS}
+            disabled={isSubmitting}
+            fullWidth
+          />
         </div>
 
         <div className={styles.buttonGroup}>

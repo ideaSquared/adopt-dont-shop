@@ -9,36 +9,6 @@ export const formGroup = style({
   },
 });
 
-export const label = style({
-  display: 'block',
-  fontSize: '0.875rem',
-  fontWeight: '600',
-  color: '#374151',
-  marginBottom: '0.5rem',
-});
-
-export const textArea = style({
-  width: '100%',
-  minHeight: '200px',
-  padding: '0.75rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '8px',
-  fontSize: '0.9375rem',
-  fontFamily: 'inherit',
-  color: '#111827',
-  background: '#ffffff',
-  resize: 'vertical',
-  transition: 'all 0.2s ease',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#667eea',
-    boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',
-  },
-  '::placeholder': {
-    color: '#9ca3af',
-  },
-});
-
 export const infoBox = style({
   background: '#f9fafb',
   border: '1px solid #e5e7eb',
@@ -66,37 +36,6 @@ export const helpText = style({
   fontSize: '0.8125rem',
   color: '#6b7280',
   marginTop: '0.375rem',
-});
-
-export const errorMessage = style({
-  background: '#fee2e2',
-  border: '1px solid #fecaca',
-  borderRadius: '8px',
-  padding: '0.875rem',
-  color: '#991b1b',
-  fontSize: '0.875rem',
-  marginBottom: '1rem',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.5rem',
-});
-
-export const successMessage = style({
-  background: '#d1fae5',
-  border: '1px solid #a7f3d0',
-  borderRadius: '8px',
-  padding: '0.875rem',
-  color: '#065f46',
-  fontSize: '0.875rem',
-  marginBottom: '1rem',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.5rem',
-});
-
-export const requiredIndicator = style({
-  color: '#ef4444',
-  marginLeft: '0.25rem',
 });
 
 export const templateGrid = style({
@@ -213,4 +152,12 @@ export const modalHeaderSubtitle = style({
   fontSize: '0.875rem',
   opacity: 0.8,
   marginTop: '0.125rem',
+});
+
+export const label = style({
+  display: 'block',
+  fontSize: '0.875rem',
+  fontWeight: '600',
+  color: '#374151',
+  marginBottom: '0.5rem',
 });

@@ -1,7 +1,7 @@
-import React, { useId, useRef, useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import * as styles from './BulkConfirmationModal.css';
-import { Button } from '@adopt-dont-shop/lib.components';
-import { ChevronDown, ChevronRight, CircleCheck, Info, TriangleAlert, X } from 'lucide-react';
+import { Button, FormField, Modal, TextArea } from '@adopt-dont-shop/lib.components';
+import { ChevronDown, ChevronRight, CircleCheck, Info, TriangleAlert } from 'lucide-react';
 
 export type BulkConfirmationVariant = 'danger' | 'warning' | 'info';
 
@@ -50,22 +50,6 @@ export const BulkConfirmationModal: React.FC<BulkConfirmationModalProps> = ({
 }) => {
   const [reason, setReason] = useState('');
   const [failedIdsExpanded, setFailedIdsExpanded] = useState(false);
-  const titleId = useId();
-  const modalRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-    const focusable = modalRef.current?.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-    );
-    focusable?.[0]?.focus();
-  }, [isOpen]);
-
-  if (!isOpen) {
-    return null;
-  }
 
   const handleConfirm = async () => {
     if (requireReason && !reason.trim()) {
@@ -75,144 +59,119 @@ export const BulkConfirmationModal: React.FC<BulkConfirmationModalProps> = ({
     setReason('');
   };
 
-  const handleOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget && !isLoading) {
+  const handleClose = () => {
+    if (!isLoading) {
       onClose();
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape' && !isLoading) {
-      onClose();
-    }
-  };
+  const confirmButtonVariant = variant === 'danger' ? 'danger' : 'primary';
+  const failedCount = failedIds?.length ?? 0;
+  const hasFailedIds = failedCount > 0;
 
-  const confirmButtonVariant =
-    variant === 'danger' ? 'danger' : variant === 'warning' ? 'primary' : 'primary';
+  const footer = resultSummary ? (
+    <>
+      {resultSummary.failed > 0 && onRetryFailed && hasFailedIds && (
+        <Button variant='outline' onClick={onRetryFailed} disabled={isLoading}>
+          {isLoading ? 'Retrying...' : 'Retry failed only'}
+        </Button>
+      )}
+      {resultSummary.failed > 0 && onRetry && (
+        <Button variant='outline' onClick={onRetry} disabled={isLoading}>
+          {isLoading ? 'Retrying...' : 'Try again'}
+        </Button>
+      )}
+      <Button variant='primary' onClick={onClose}>
+        Done
+      </Button>
+    </>
+  ) : (
+    <>
+      <Button variant='outline' onClick={onClose} disabled={isLoading}>
+        Cancel
+      </Button>
+      <Button
+        variant={confirmButtonVariant}
+        onClick={handleConfirm}
+        disabled={isLoading || (requireReason && !reason.trim())}
+      >
+        {isLoading ? 'Processing...' : confirmLabel}
+      </Button>
+    </>
+  );
 
   return (
-    <div className={styles.overlay} onClick={handleOverlayClick}>
-      <div
-        ref={modalRef}
-        className={styles.modal}
-        role='dialog'
-        aria-modal='true'
-        aria-labelledby={titleId}
-        onKeyDown={handleKeyDown}
-      >
-        <div className={styles.modalHeader({ variant })}>
-          <div className={styles.iconWrap({ variant })}>{variantIcon[variant]}</div>
-          <div className={styles.headerText}>
-            <h3 id={titleId} className={styles.modalTitle}>
-              {title}
-            </h3>
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={title}
+      size='sm'
+      closeOnOverlayClick={!isLoading}
+      closeOnEscape={!isLoading}
+      footer={footer}
+    >
+      {resultSummary ? (
+        <>
+          <div className={styles.resultBanner({ hasFailures: resultSummary.failed > 0 })}>
+            <CircleCheck size='1em' className={styles.resultIcon} />
+            {resultSummary.succeeded} succeeded
+            {resultSummary.failed > 0 && `, ${resultSummary.failed} failed`}
           </div>
-          <button
-            className={styles.closeBtn}
-            onClick={onClose}
-            disabled={isLoading}
-            aria-label='Close'
-          >
-            <X size='1em' />
-          </button>
-        </div>
-
-        <div className={styles.modalBody}>
-          {resultSummary ? (
-            <>
-              <div className={styles.resultBanner({ hasFailures: resultSummary.failed > 0 })}>
-                <CircleCheck size='1em' className={styles.resultIcon} />
-                {resultSummary.succeeded} succeeded
-                {resultSummary.failed > 0 && `, ${resultSummary.failed} failed`}
-              </div>
-              {resultSummary.failed > 0 && (
-                <p className={styles.failureGuidance}>
-                  Some items couldn&apos;t be updated. Close this dialog and check the table for
-                  per-row status, or try the action again.
-                </p>
-              )}
-              {failedIds && failedIds.length > 0 && (
-                <div className={styles.failedIdsSection}>
-                  <button
-                    type='button'
-                    className={styles.failedIdsToggle}
-                    onClick={() => setFailedIdsExpanded(prev => !prev)}
-                    aria-expanded={failedIdsExpanded}
-                  >
-                    {failedIdsExpanded ? <ChevronDown size='1em' /> : <ChevronRight size='1em' />}
-                    {failedIds.length} failed item{failedIds.length !== 1 ? 's' : ''}
-                  </button>
-                  {failedIdsExpanded && (
-                    <ul className={styles.failedIdsList}>
-                      {failedIds.map(id => (
-                        <li key={id} className={styles.failedIdItem}>
-                          {id}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <p className={styles.description}>{description}</p>
-              <div className={styles.countBadge}>
-                {selectedCount} item{selectedCount !== 1 ? 's' : ''} selected
-              </div>
-
-              {requireReason && (
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>
-                    {reasonLabel}
-                    <span className={styles.requiredMark}>*</span>
-                  </label>
-                  <textarea
-                    className={styles.textArea}
-                    value={reason}
-                    onChange={e => setReason(e.target.value)}
-                    placeholder={reasonPlaceholder}
-                    disabled={isLoading}
-                  />
-                </div>
-              )}
-            </>
+          {resultSummary.failed > 0 && (
+            <p className={styles.failureGuidance}>
+              Some items couldn&apos;t be updated. Close this dialog and check the table for per-row
+              status, or try the action again.
+            </p>
           )}
-        </div>
-
-        <div className={styles.modalFooter}>
-          {resultSummary ? (
-            <>
-              {resultSummary.failed > 0 && onRetryFailed && failedIds && failedIds.length > 0 && (
-                <Button variant='outline' onClick={onRetryFailed} disabled={isLoading}>
-                  {isLoading ? 'Retrying...' : 'Retry failed only'}
-                </Button>
-              )}
-              {resultSummary.failed > 0 && onRetry && (
-                <Button variant='outline' onClick={onRetry} disabled={isLoading}>
-                  {isLoading ? 'Retrying...' : 'Try again'}
-                </Button>
-              )}
-              <Button variant='primary' onClick={onClose}>
-                Done
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button variant='outline' onClick={onClose} disabled={isLoading}>
-                Cancel
-              </Button>
+          {failedIds && hasFailedIds && (
+            <div className={styles.failedIdsSection}>
               <Button
-                variant={confirmButtonVariant}
-                onClick={handleConfirm}
-                disabled={isLoading || (requireReason && !reason.trim())}
+                variant='ghost'
+                size='sm'
+                onClick={() => setFailedIdsExpanded(prev => !prev)}
+                aria-expanded={failedIdsExpanded}
               >
-                {isLoading ? 'Processing...' : confirmLabel}
+                {failedIdsExpanded ? <ChevronDown size='1em' /> : <ChevronRight size='1em' />}
+                {failedCount} failed item{failedCount !== 1 ? 's' : ''}
               </Button>
-            </>
+              {failedIdsExpanded && (
+                <ul className={styles.failedIdsList}>
+                  {failedIds.map(id => (
+                    <li key={id} className={styles.failedIdItem}>
+                      {id}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           )}
-        </div>
-      </div>
-    </div>
+        </>
+      ) : (
+        <>
+          <div className={styles.descriptionRow}>
+            <div className={styles.iconWrap({ variant })}>{variantIcon[variant]}</div>
+            <p className={styles.description}>{description}</p>
+          </div>
+          <div className={styles.countBadge}>
+            {selectedCount} item{selectedCount !== 1 ? 's' : ''} selected
+          </div>
+
+          {requireReason && (
+            <div className={styles.formGroup}>
+              <FormField label={reasonLabel} htmlFor='bulk-confirmation-reason' required>
+                <TextArea
+                  id='bulk-confirmation-reason'
+                  value={reason}
+                  onChange={e => setReason(e.target.value)}
+                  placeholder={reasonPlaceholder}
+                  disabled={isLoading}
+                  fullWidth
+                />
+              </FormField>
+            </div>
+          )}
+        </>
+      )}
+    </Modal>
   );
 };

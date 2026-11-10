@@ -1,49 +1,24 @@
-import React, { useState } from 'react';
+import React from 'react';
 import * as styles from '../ChatDetailModal.css';
-import { Button, toast } from '@adopt-dont-shop/lib.components';
+import {
+  Avatar,
+  Button,
+  ConfirmDialog,
+  Spinner,
+  toast,
+  useConfirm,
+} from '@adopt-dont-shop/lib.components';
 import { useAdminChatMessages, useAdminChatMutations } from '@adopt-dont-shop/lib.chat';
-import { MessageSquare, Trash2, TriangleAlert } from 'lucide-react';
+import { MessageSquare, Trash2 } from 'lucide-react';
+import { formatChatTimestamp } from './format-chat-timestamp';
 
 type MessagesTabProps = {
   chatId: string;
   onMessageDeleted?: () => void;
 };
 
-const formatTimestamp = (timestamp: string) => {
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) {
-    return 'Just now';
-  }
-  if (diffMins < 60) {
-    return `${diffMins}m ago`;
-  }
-  if (diffHours < 24) {
-    return `${diffHours}h ago`;
-  }
-  if (diffDays < 7) {
-    return `${diffDays}d ago`;
-  }
-  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-};
-
-const getInitials = (name: string) =>
-  name
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-
 export const MessagesTab: React.FC<MessagesTabProps> = ({ chatId, onMessageDeleted }) => {
-  const [deleteReason, setDeleteReason] = useState('');
-  const [showDeleteReasonPrompt, setShowDeleteReasonPrompt] = useState(false);
-  const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
+  const { confirm, confirmProps } = useConfirm();
 
   const {
     data: messagesData,
@@ -56,21 +31,9 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({ chatId, onMessageDelet
 
   const messages = messagesData?.data?.messages || [];
 
-  const handleDeleteMessageClick = (messageId: string) => {
-    setMessageToDelete(messageId);
-    setShowDeleteReasonPrompt(true);
-  };
-
-  const handleDeleteMessage = async () => {
-    if (!messageToDelete) {
-      return;
-    }
-
+  const performDelete = async (messageId: string) => {
     try {
-      await deleteMessage.mutateAsync({ chatId, messageId: messageToDelete });
-      setShowDeleteReasonPrompt(false);
-      setMessageToDelete(null);
-      setDeleteReason('');
+      await deleteMessage.mutateAsync({ chatId, messageId });
       await refetchMessages();
       onMessageDeleted?.();
     } catch (error) {
@@ -79,21 +42,31 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({ chatId, onMessageDelet
         action: {
           label: 'Retry',
           onClick: () => {
-            void handleDeleteMessage();
+            void performDelete(messageId);
           },
         },
       });
     }
   };
 
-  const handleCancelDelete = () => {
-    setShowDeleteReasonPrompt(false);
-    setMessageToDelete(null);
-    setDeleteReason('');
+  const handleDeleteMessage = async (messageId: string) => {
+    const confirmed = await confirm({
+      title: 'Delete message?',
+      message: 'Are you sure you want to delete this message? This action cannot be undone.',
+      confirmText: 'Delete Message',
+      variant: 'danger',
+    });
+    if (confirmed) {
+      await performDelete(messageId);
+    }
   };
 
   if (messagesLoading) {
-    return <div className={styles.loadingState}>Loading messages...</div>;
+    return (
+      <div className={styles.loadingState}>
+        <Spinner size='sm' label='Loading messages' />
+      </div>
+    );
   }
 
   if (messages.length === 0 && !messagesLoading) {
@@ -115,28 +88,30 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({ chatId, onMessageDelet
             const isDeleted = message.content === '[Message deleted]';
             return (
               <div key={message.id} className={styles.messageBubble({ isOwn: false })}>
-                <div className={styles.messageAvatar}>
-                  {getInitials(message.senderName || 'Unknown')}
-                </div>
+                <Avatar name={message.senderName || 'Unknown'} size='sm' />
                 <div className={styles.messageContent}>
                   <div className={styles.messageHeader}>
                     <span className={styles.messageSender}>
                       {message.senderName || 'Unknown User'}
                     </span>
-                    <span className={styles.messageTime}>{formatTimestamp(message.timestamp)}</span>
+                    <span className={styles.messageTime}>
+                      {formatChatTimestamp(message.timestamp)}
+                    </span>
                   </div>
                   <div className={styles.messageBody({ deleted: isDeleted })}>
                     {message.content}
                   </div>
                   {!isDeleted && (
                     <div className={styles.messageActions}>
-                      <button
-                        className={styles.actionButton}
-                        onClick={() => handleDeleteMessageClick(message.id)}
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        onClick={() => handleDeleteMessage(message.id)}
                         title='Delete message'
+                        aria-label='Delete message'
                       >
                         <Trash2 size='1em' />
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -154,38 +129,7 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({ chatId, onMessageDelet
         )}
       </div>
 
-      {showDeleteReasonPrompt && (
-        <div className={styles.deletePrompt} onClick={handleCancelDelete}>
-          <div className={styles.deletePromptContent} onClick={e => e.stopPropagation()}>
-            <div className={styles.deletePromptTitle}>
-              <TriangleAlert size='1em' />
-              Delete Message
-            </div>
-            <p className={styles.deletePromptText}>
-              Are you sure you want to delete this message? This action cannot be undone. You can
-              optionally provide a reason for the deletion.
-            </p>
-            <textarea
-              className={styles.textArea}
-              placeholder='Reason for deletion (optional)...'
-              value={deleteReason}
-              onChange={e => setDeleteReason(e.target.value)}
-            />
-            <div className={styles.deletePromptActions}>
-              <Button variant='secondary' onClick={handleCancelDelete}>
-                Cancel
-              </Button>
-              <Button
-                variant='danger'
-                onClick={handleDeleteMessage}
-                disabled={deleteMessage.isLoading}
-              >
-                {deleteMessage.isLoading ? 'Deleting...' : 'Delete Message'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog {...confirmProps} />
     </>
   );
 };

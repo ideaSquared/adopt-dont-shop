@@ -38,7 +38,7 @@ describe('MessagesTab', () => {
     } as ReturnType<typeof useAdminChatMessages>);
 
     render(<MessagesTab chatId='chat-1' />);
-    expect(screen.getByText('Loading messages...')).toBeInTheDocument();
+    expect(screen.getByLabelText('loading')).toBeInTheDocument();
   });
 
   it('renders empty state when there are no messages', () => {
@@ -82,59 +82,6 @@ describe('MessagesTab', () => {
     expect(screen.getByText('Hi!')).toBeInTheDocument();
     expect(screen.getByText('Alice')).toBeInTheDocument();
     expect(screen.getByText('Bob')).toBeInTheDocument();
-  });
-
-  it('shows delete-reason prompt when delete button is clicked', () => {
-    mockUseAdminChatMessages.mockReturnValue({
-      data: {
-        data: {
-          messages: [
-            {
-              id: 'msg-1',
-              content: 'Offensive content',
-              senderName: 'Alice',
-              timestamp: new Date().toISOString(),
-            },
-          ],
-          pagination: { page: 1, limit: 50, hasNext: false, hasPrev: false, nextCursor: null },
-        },
-      },
-      isLoading: false,
-      refetch: mockRefetch,
-    } as ReturnType<typeof useAdminChatMessages>);
-
-    render(<MessagesTab chatId='chat-1' />);
-    fireEvent.click(screen.getByTitle('Delete message'));
-    expect(screen.getByPlaceholderText('Reason for deletion (optional)...')).toBeInTheDocument();
-  });
-
-  it('clears the delete prompt on cancel', () => {
-    mockUseAdminChatMessages.mockReturnValue({
-      data: {
-        data: {
-          messages: [
-            {
-              id: 'msg-1',
-              content: 'Some message',
-              senderName: 'Alice',
-              timestamp: new Date().toISOString(),
-            },
-          ],
-          pagination: { page: 1, limit: 50, hasNext: false, hasPrev: false, nextCursor: null },
-        },
-      },
-      isLoading: false,
-      refetch: mockRefetch,
-    } as ReturnType<typeof useAdminChatMessages>);
-
-    render(<MessagesTab chatId='chat-1' />);
-    fireEvent.click(screen.getByTitle('Delete message'));
-    expect(screen.getByPlaceholderText('Reason for deletion (optional)...')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(
-      screen.queryByPlaceholderText('Reason for deletion (optional)...')
-    ).not.toBeInTheDocument();
   });
 
   it('shows Load More when more pages exist and pages via loadMore, not a page counter', () => {
@@ -215,10 +162,7 @@ describe('MessagesTab', () => {
     } as ReturnType<typeof useAdminChatMessages>);
 
     render(<MessagesTab chatId='chat-1' onMessageDeleted={onMessageDeleted} />);
-    fireEvent.click(screen.getByTitle('Delete message'));
-
-    const deleteButtons = screen.getAllByRole('button', { name: /delete message/i });
-    fireEvent.click(deleteButtons[deleteButtons.length - 1]);
+    fireEvent.click(screen.getByRole('button', { name: 'Delete message' }));
 
     await waitFor(() => {
       expect(mockMutateAsync).toHaveBeenCalledWith({ chatId: 'chat-1', messageId: 'msg-1' });

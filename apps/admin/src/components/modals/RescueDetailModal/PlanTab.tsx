@@ -1,9 +1,26 @@
 import React, { useState } from 'react';
-import clsx from 'clsx';
+import { useMutation } from '@tanstack/react-query';
 import * as styles from '../RescueDetailModal.css';
-import { Button } from '@adopt-dont-shop/lib.components';
+import {
+  Alert,
+  Button,
+  FormField,
+  Input,
+  SelectInput,
+  StatusBadge,
+  toast,
+} from '@adopt-dont-shop/lib.components';
 import type { AdminRescue, RescuePlan } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
+
+const PLAN_OPTIONS: ReadonlyArray<{ value: RescuePlan; label: string }> = [
+  { value: 'free', label: 'Free' },
+  { value: 'growth', label: 'Growth' },
+  { value: 'professional', label: 'Professional' },
+];
+
+const toRescuePlan = (value: string | string[], fallback: RescuePlan): RescuePlan =>
+  PLAN_OPTIONS.find(option => option.value === value)?.value ?? fallback;
 
 type PlanTabProps = {
   rescueId: string;
@@ -20,30 +37,28 @@ export const PlanTab: React.FC<PlanTabProps> = ({
 }) => {
   const [selectedPlan, setSelectedPlan] = useState<RescuePlan>(rescue.plan ?? 'free');
   const [planExpiresAt, setPlanExpiresAt] = useState<string>(rescue.planExpiresAt ?? '');
-  const [savingPlan, setSavingPlan] = useState(false);
-  const [planError, setPlanError] = useState<string | null>(null);
-  const [planSuccess, setPlanSuccess] = useState(false);
 
-  const handleUpdatePlan = async () => {
-    try {
-      setSavingPlan(true);
-      setPlanError(null);
-      setPlanSuccess(false);
-
-      const updated = await rescueService.updatePlan(rescueId, {
+  const updatePlan = useMutation({
+    mutationFn: () =>
+      rescueService.updatePlan(rescueId, {
         plan: selectedPlan,
         planExpiresAt: planExpiresAt || null,
-      });
-
+      }),
+    onSuccess: updated => {
       onRescueUpdated(updated);
-      setPlanSuccess(true);
+      toast.success('Plan updated successfully.');
       onUpdate?.();
-    } catch (err) {
-      setPlanError(err instanceof Error ? err.message : 'Failed to update plan');
-    } finally {
-      setSavingPlan(false);
-    }
-  };
+    },
+  });
+
+  const savingPlan = updatePlan.isPending;
+  const planError = updatePlan.error
+    ? updatePlan.error instanceof Error
+      ? updatePlan.error.message
+      : 'Failed to update plan'
+    : null;
+
+  const handleUpdatePlan = () => updatePlan.mutate();
 
   return (
     <div className={styles.section}>
@@ -53,17 +68,16 @@ export const PlanTab: React.FC<PlanTabProps> = ({
         <div className={styles.infoItem}>
           <div className={styles.infoLabel}>Current Plan</div>
           <div className={styles.infoValue}>
-            <span
-              className={
+            <StatusBadge
+              variant={
                 rescue.plan === 'professional'
-                  ? styles.badgeSuccess
+                  ? 'success'
                   : rescue.plan === 'growth'
-                    ? styles.badgeWarning
-                    : styles.badgeDanger
+                    ? 'warning'
+                    : 'error'
               }
-            >
-              {rescue.plan ?? 'free'}
-            </span>
+              label={rescue.plan ?? 'free'}
+            />
           </div>
         </div>
         {rescue.planLimits && (
@@ -94,50 +108,36 @@ export const PlanTab: React.FC<PlanTabProps> = ({
         )}
       </div>
 
-      <div className={clsx(styles.inviteForm, styles.inviteFormSpacing)}>
+      <div className={`${styles.inviteForm} ${styles.inviteFormSpacing}`}>
         <h4 className={styles.planSectionTitle}>Change Plan</h4>
 
-        {planError && (
-          <div className={clsx(styles.errorMessage, styles.errorMessageSpacing)}>{planError}</div>
-        )}
-        {planSuccess && <div className={styles.successMessage}>Plan updated successfully.</div>}
+        {planError && <Alert variant='error'>{planError}</Alert>}
 
         <div className={styles.formRow}>
-          <div className={styles.formGroup}>
-            <label className={styles.label} htmlFor='plan-select'>
-              Plan Tier
-            </label>
-            <select
-              id='plan-select'
-              className={styles.input}
-              value={selectedPlan}
-              onChange={e => {
-                setSelectedPlan(e.target.value as RescuePlan);
-                setPlanSuccess(false);
-              }}
-              disabled={savingPlan}
-            >
-              <option value='free'>Free</option>
-              <option value='growth'>Growth</option>
-              <option value='professional'>Professional</option>
-            </select>
-          </div>
-          <div className={styles.formGroup}>
-            <label className={styles.label} htmlFor='plan-expires-at'>
-              Plan Expires At (optional)
-            </label>
-            <input
+          <SelectInput
+            label='Plan Tier'
+            data-testid='plan-select'
+            value={selectedPlan}
+            onChange={value => {
+              setSelectedPlan(toRescuePlan(value, selectedPlan));
+              updatePlan.reset();
+            }}
+            options={[...PLAN_OPTIONS]}
+            disabled={savingPlan}
+            fullWidth
+          />
+          <FormField label='Plan Expires At (optional)' htmlFor='plan-expires-at'>
+            <Input
               id='plan-expires-at'
-              className={styles.input}
               type='datetime-local'
               value={planExpiresAt ? planExpiresAt.slice(0, 16) : ''}
               onChange={e => {
                 setPlanExpiresAt(e.target.value ? `${e.target.value}:00.000Z` : '');
-                setPlanSuccess(false);
+                updatePlan.reset();
               }}
               disabled={savingPlan}
             />
-          </div>
+          </FormField>
         </div>
 
         <div className={styles.formActions}>

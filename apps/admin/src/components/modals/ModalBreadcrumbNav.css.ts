@@ -51,31 +51,3 @@ export const navButtons = style({
   gap: '0.25rem',
   flexShrink: 0,
 });
-
-export const navButton = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '2rem',
-  height: '2rem',
-  padding: 0,
-  background: '#ffffff',
-  border: '1px solid #d1d5db',
-  borderRadius: '6px',
-  color: '#374151',
-  cursor: 'pointer',
-  transition: 'all 0.15s ease',
-  ':hover': {
-    background: '#f3f4f6',
-    borderColor: '#9ca3af',
-  },
-  ':focus-visible': {
-    outline: '2px solid #667eea',
-    outlineOffset: '2px',
-  },
-  ':disabled': {
-    cursor: 'not-allowed',
-    opacity: 0.5,
-    background: '#f9fafb',
-  },
-});

@@ -1,34 +1,12 @@
 import React from 'react';
 import * as styles from '../RescueDetailModal.css';
 import { MapPin } from 'lucide-react';
-import { rescueStatusLabel, type RescueStatus } from '@adopt-dont-shop/lib.types';
+import { StatusBadge } from '@adopt-dont-shop/lib.components';
 import type { AdminRescue } from '@/types/rescue';
+import { formatRescueDate } from './format-rescue-date';
 
 type OverviewTabProps = {
   rescue: AdminRescue;
-};
-
-const formatDate = (dateString?: string): string => {
-  if (!dateString) {
-    return 'N/A';
-  }
-  return new Date(dateString).toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-};
-
-const getStatusBadge = (status: RescueStatus) => {
-  const label = rescueStatusLabel(status);
-  switch (status) {
-    case 'verified':
-      return <span className={styles.badgeSuccess}>{label}</span>;
-    case 'pending':
-      return <span className={styles.badgeWarning}>{label}</span>;
-    default:
-      return <span className={styles.badgeDanger}>{label}</span>;
-  }
 };
 
 export const OverviewTab: React.FC<OverviewTabProps> = ({ rescue }) => (
@@ -42,7 +20,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ rescue }) => (
         </div>
         <div className={styles.infoItem}>
           <div className={styles.infoLabel}>Status</div>
-          <div className={styles.infoValue}>{getStatusBadge(rescue.status)}</div>
+          <div className={styles.infoValue}>
+            <StatusBadge kind='rescue' status={rescue.status} />
+          </div>
         </div>
         <div className={styles.infoItem}>
           <div className={styles.infoLabel}>Companies House Number</div>
@@ -72,7 +52,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ rescue }) => (
         )}
         <div className={styles.infoItem}>
           <div className={styles.infoLabel}>Registered</div>
-          <div className={styles.infoValue}>{formatDate(rescue.createdAt)}</div>
+          <div className={styles.infoValue}>{formatRescueDate(rescue.createdAt)}</div>
         </div>
       </div>
     </div>

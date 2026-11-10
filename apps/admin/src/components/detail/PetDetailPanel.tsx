@@ -1,6 +1,12 @@
 import React from 'react';
-import { EntityInspector, type EntityInspectorTab, Spinner } from '@adopt-dont-shop/lib.components';
-import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
+import {
+  Avatar,
+  EntityInspector,
+  type EntityInspectorTab,
+  Spinner,
+  StatusBadge,
+} from '@adopt-dont-shop/lib.components';
+import { formatDateTime, formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import { Archive, Calendar, Clock, House, Package, Star, Tag } from 'lucide-react';
 import type { AdminPet } from '@/services/petService';
 import { useEntityActivity } from '../../hooks';
@@ -18,21 +24,18 @@ const formatDate = (value?: string) => {
   return formatDisplayDate(value, { includeTime: true });
 };
 
-const getStatusBadge = (status: string, archived: boolean): React.ReactElement => {
-  if (archived) {
-    return <span className={styles.badgeNeutral}>Archived</span>;
-  }
-  switch (status) {
-    case 'available':
-      return <span className={styles.badgeSuccess}>Available</span>;
-    case 'adopted':
-      return <span className={styles.badgeInfo}>Adopted</span>;
-    case 'foster':
-      return <span className={styles.badgeWarning}>Foster</span>;
-    default:
-      return <span className={styles.badgeNeutral}>Unavailable</span>;
-  }
+const STATUS_LABELS: Readonly<Record<string, string>> = {
+  available: 'Available',
+  adopted: 'Adopted',
+  foster: 'Foster',
 };
+
+const getStatusBadge = (status: string, archived: boolean): React.ReactElement =>
+  archived ? (
+    <StatusBadge variant='neutral' label='Archived' />
+  ) : (
+    <StatusBadge kind='pet' status={status} label={STATUS_LABELS[status] ?? 'Unavailable'} />
+  );
 
 // ── Overview Tab ──────────────────────────────────────────────────
 
@@ -106,8 +109,7 @@ const ActivityTab: React.FC<{ petId: string }> = ({ petId }) => {
           <div className={styles.activityContent}>
             <p className={styles.activityDescription}>{activity.description}</p>
             <p className={styles.activityMeta}>
-              {activity.activityType} &middot;{' '}
-              {new Date(activity.createdAt).toLocaleString('en-GB')}
+              {activity.activityType} &middot; {formatDateTime(activity.createdAt)}
             </p>
           </div>
         </div>
@@ -133,9 +135,7 @@ export const PetDetailPanel: React.FC<PetDetailPanelProps> = ({ pet, onClose }) 
       tabs={tabs}
       header={
         <>
-          <div className={styles.avatar}>
-            <Package size='1em' />
-          </div>
+          <Avatar fallbackIcon={<Package size='1em' />} size='lg' shape='square' />
           <div className={styles.headerInfo}>
             <h3 className={styles.headerName}>{pet.name}</h3>
             <p className={styles.headerSubtitle}>

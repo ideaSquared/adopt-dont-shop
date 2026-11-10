@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
-import { Button, Input, Modal } from '@adopt-dont-shop/lib.components';
-import { CircleAlert, FileText, Mail } from 'lucide-react';
+import { useMutation } from '@tanstack/react-query';
+import {
+  Alert,
+  Button,
+  FormField,
+  Input,
+  Modal,
+  TextArea,
+  toast,
+} from '@adopt-dont-shop/lib.components';
+import { FileText, Mail } from 'lucide-react';
 import clsx from 'clsx';
 import type { AdminRescue, RescueEmailPayload } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
@@ -54,63 +63,68 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const sendEmail = useMutation({
+    mutationFn: (payload: RescueEmailPayload) => rescueService.sendEmail(rescue.rescueId, payload),
+    onSuccess: () => {
+      toast.success('Email sent successfully!');
+      onSuccess();
+      onClose();
+    },
+  });
+
+  const loading = sendEmail.isPending;
+  const error =
+    validationError ??
+    (sendEmail.error
+      ? sendEmail.error instanceof Error
+        ? sendEmail.error.message
+        : 'Failed to send email'
+      : null);
 
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplate(templateId);
     setSubject('');
     setBody('');
-    setError(null);
+    setValidationError(null);
+    sendEmail.reset();
   };
 
   const handleCustomSelect = () => {
     setSelectedTemplate('custom');
     setSubject('');
     setBody('');
-    setError(null);
+    setValidationError(null);
+    sendEmail.reset();
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (selectedTemplate === 'custom') {
       if (!subject.trim() || !body.trim()) {
-        setError('Subject and body are required for custom emails');
+        setValidationError('Subject and body are required for custom emails');
         return;
       }
     } else if (!selectedTemplate) {
-      setError('Please select a template or choose custom email');
+      setValidationError('Please select a template or choose custom email');
       return;
     }
 
-    try {
-      setLoading(true);
-      setError(null);
+    setValidationError(null);
+    sendEmail.reset();
 
-      const payload: RescueEmailPayload =
-        selectedTemplate === 'custom'
-          ? {
-              subject: subject.trim(),
-              body: body.trim(),
-            }
-          : {
-              templateId: EMAIL_TEMPLATES.find(t => t.id === selectedTemplate)?.templateId,
-            };
-
-      await rescueService.sendEmail(rescue.rescueId, payload);
-
-      setSuccess(true);
-      setTimeout(() => {
-        onSuccess();
-        onClose();
-      }, 2000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send email');
-    } finally {
-      setLoading(false);
-    }
+    sendEmail.mutate(
+      selectedTemplate === 'custom'
+        ? {
+            subject: subject.trim(),
+            body: body.trim(),
+          }
+        : {
+            templateId: EMAIL_TEMPLATES.find(t => t.id === selectedTemplate)?.templateId,
+          }
+    );
   };
 
   const selectedTemplateData = EMAIL_TEMPLATES.find(t => t.id === selectedTemplate);
@@ -127,19 +141,17 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
 
   const modalFooter = (
     <div className={styles.footerButtons}>
-      <Button type='button' variant='outline' onClick={onClose} disabled={loading || success}>
-        {success ? 'Close' : 'Cancel'}
+      <Button type='button' variant='outline' onClick={onClose} disabled={loading}>
+        Cancel
       </Button>
-      {!success && (
-        <Button
-          type='button'
-          variant='primary'
-          onClick={handleSubmit}
-          disabled={loading || !selectedTemplate}
-        >
-          {loading ? 'Sending...' : 'Send Email'}
-        </Button>
-      )}
+      <Button
+        type='button'
+        variant='primary'
+        onClick={handleSubmit}
+        disabled={loading || !selectedTemplate}
+      >
+        {loading ? 'Sending...' : 'Send Email'}
+      </Button>
     </div>
   );
 
@@ -153,19 +165,7 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
       closeOnOverlayClick={!loading}
     >
       <form onSubmit={handleSubmit}>
-        {error && (
-          <div className={styles.errorMessage}>
-            <CircleAlert size='1em' />
-            {error}
-          </div>
-        )}
-
-        {success && (
-          <div className={styles.successMessage}>
-            <Mail size='1em' />
-            Email sent successfully!
-          </div>
-        )}
+        {error && <Alert variant='error'>{error}</Alert>}
 
         <div className={styles.infoBox}>
           <div className={styles.infoLabel}>Recipient</div>
@@ -184,7 +184,7 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
                   selectedTemplate === template.id && styles.templateCardSelected
                 )}
                 onClick={() => handleTemplateSelect(template.id)}
-                disabled={loading || success}
+                disabled={loading}
               >
                 <div
                   className={clsx(
@@ -205,7 +205,7 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
                 selectedTemplate === 'custom' && styles.templateCardSelected
               )}
               onClick={handleCustomSelect}
-              disabled={loading || success}
+              disabled={loading}
             >
               <div
                 className={clsx(
@@ -237,38 +237,36 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
         {selectedTemplate === 'custom' && (
           <>
             <div className={styles.formGroup}>
-              <label className={styles.label} htmlFor='email-subject'>
-                Subject
-                <span className={styles.requiredIndicator}>*</span>
-              </label>
-              <Input
-                id='email-subject'
-                type='text'
-                value={subject}
-                onChange={e => setSubject(e.target.value)}
-                placeholder='Email subject...'
-                required
-                aria-required={true}
-                disabled={loading || success}
-              />
+              <FormField label='Subject' htmlFor='email-subject' required>
+                <Input
+                  id='email-subject'
+                  type='text'
+                  value={subject}
+                  onChange={e => setSubject(e.target.value)}
+                  placeholder='Email subject...'
+                  required
+                  disabled={loading}
+                />
+              </FormField>
             </div>
 
             <div className={styles.formGroup}>
-              <label className={styles.label} htmlFor='email-message'>
-                Message
-                <span className={styles.requiredIndicator}>*</span>
-              </label>
-              <textarea
-                id='email-message'
-                className={styles.textArea}
-                value={body}
-                onChange={e => setBody(e.target.value)}
-                placeholder='Type your message here...'
+              <FormField
+                label='Message'
+                htmlFor='email-message'
                 required
-                aria-required={true}
-                disabled={loading || success}
-              />
-              <div className={styles.helpText}>Plain text message for custom emails</div>
+                description='Plain text message for custom emails'
+              >
+                <TextArea
+                  id='email-message'
+                  value={body}
+                  onChange={e => setBody(e.target.value)}
+                  placeholder='Type your message here...'
+                  required
+                  disabled={loading}
+                  fullWidth
+                />
+              </FormField>
             </div>
           </>
         )}

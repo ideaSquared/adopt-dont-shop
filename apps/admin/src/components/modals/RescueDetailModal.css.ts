@@ -4,25 +4,6 @@ export const headerContent = style({
   flex: 1,
 });
 
-export const closeButton = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  // WCAG 2.5.5 AA: 44x44 minimum touch target.
-  minWidth: '44px',
-  minHeight: '44px',
-  border: 'none',
-  borderRadius: '8px',
-  background: '#f3f4f6',
-  color: '#6b7280',
-  cursor: 'pointer',
-  transition: 'all 0.2s ease',
-  ':hover': {
-    background: '#e5e7eb',
-    color: '#111827',
-  },
-});
-
 export const section = style({
   marginBottom: '2rem',
   selectors: {
@@ -64,39 +45,6 @@ export const infoValue = style({
   fontSize: '0.9375rem',
   color: '#111827',
   wordBreak: 'break-word',
-});
-
-export const badgeSuccess = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '0.375rem 0.875rem',
-  borderRadius: '9999px',
-  fontSize: '0.8125rem',
-  fontWeight: '600',
-  background: '#d1fae5',
-  color: '#065f46',
-});
-
-export const badgeWarning = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '0.375rem 0.875rem',
-  borderRadius: '9999px',
-  fontSize: '0.8125rem',
-  fontWeight: '600',
-  background: '#fef3c7',
-  color: '#92400e',
-});
-
-export const badgeDanger = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '0.375rem 0.875rem',
-  borderRadius: '9999px',
-  fontSize: '0.8125rem',
-  fontWeight: '600',
-  background: '#fee2e2',
-  color: '#991b1b',
 });
 
 export const statsGrid = style({
@@ -198,29 +146,6 @@ export const staffActions = style({
   gap: '0.5rem',
 });
 
-export const iconButton = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '32px',
-  height: '32px',
-  border: '1px solid #e5e7eb',
-  borderRadius: '6px',
-  background: '#ffffff',
-  color: '#6b7280',
-  cursor: 'pointer',
-  transition: 'all 0.2s ease',
-  ':hover': {
-    background: '#f9fafb',
-    color: '#111827',
-    borderColor: '#d1d5db',
-  },
-  ':disabled': {
-    opacity: 0.5,
-    cursor: 'not-allowed',
-  },
-});
-
 export const inviteForm = style({
   display: 'flex',
   flexDirection: 'column',
@@ -239,33 +164,6 @@ export const formRow = style({
     'screen and (max-width: 640px)': {
       flexDirection: 'column',
     },
-  },
-});
-
-export const formGroup = style({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.375rem',
-  flex: 1,
-});
-
-export const label = style({
-  fontSize: '0.8125rem',
-  fontWeight: '500',
-  color: '#374151',
-});
-
-export const input = style({
-  padding: '0.625rem 0.875rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '6px',
-  fontSize: '0.875rem',
-  color: '#111827',
-  background: '#ffffff',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#667eea',
-    boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',
   },
 });
 
@@ -290,56 +188,9 @@ export const invitationCard = style({
   marginBottom: '0.75rem',
 });
 
-export const invitationBadgePending = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '0.375rem',
-  padding: '0.25rem 0.625rem',
-  borderRadius: '9999px',
-  fontSize: '0.75rem',
-  fontWeight: '600',
-  background: '#fef3c7',
-  color: '#92400e',
-});
-
-export const invitationBadgeDefault = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '0.375rem',
-  padding: '0.25rem 0.625rem',
-  borderRadius: '9999px',
-  fontSize: '0.75rem',
-  fontWeight: '600',
-  background: '#e5e7eb',
-  color: '#374151',
-});
-
 export const skeletonRow = style({
   display: 'flex',
   gap: '0.5rem',
-});
-
-export const tableWrapper = style({
-  overflowX: 'auto',
-});
-
-export const dataTable = style({
-  width: '100%',
-  borderCollapse: 'collapse',
-  fontSize: '0.875rem',
-});
-
-export const tableHeadRow = style({
-  textAlign: 'left',
-  borderBottom: '1px solid #e5e7eb',
-});
-
-export const tableCell = style({
-  padding: '0.5rem',
-});
-
-export const tableBodyRow = style({
-  borderBottom: '1px solid #f3f4f6',
 });
 
 export const manageLinkRow = style({
@@ -354,10 +205,6 @@ export const planSectionTitle = style({
   margin: '0 0 1rem',
   fontSize: '0.9375rem',
   color: '#111827',
-});
-
-export const errorMessageSpacing = style({
-  marginBottom: '1rem',
 });
 
 export const staffSectionHeader = style({
@@ -434,16 +281,6 @@ export const skeletonName = style({
   marginBottom: '0.5rem',
 });
 
-export const successMessage = style({
-  padding: '0.75rem',
-  marginBottom: '1rem',
-  background: '#f0fdf4',
-  border: '1px solid #bbf7d0',
-  borderRadius: '0.375rem',
-  color: '#166534',
-  fontSize: '0.875rem',
-});
-
 // ── Actions tab (split-pane detail panel) ─────────────────────────
 
 export const actionsSection = style({
@@ -469,4 +306,23 @@ export const actionGroupLabel = style({
 
 export const actionButtonIcon = style({
   marginRight: '0.5rem',
+});
+
+export const closeButton = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  // WCAG 2.5.5 AA: 44x44 minimum touch target.
+  minWidth: '44px',
+  minHeight: '44px',
+  border: 'none',
+  borderRadius: '8px',
+  background: '#f3f4f6',
+  color: '#6b7280',
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+  ':hover': {
+    background: '#e5e7eb',
+    color: '#111827',
+  },
 });
