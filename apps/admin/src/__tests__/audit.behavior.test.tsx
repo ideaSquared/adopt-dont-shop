@@ -144,10 +144,12 @@ describe('Audit page', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'View Details' }));
 
-    expect(screen.getByText('Audit Log Details')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Audit Log Details' })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Close modal' }));
 
-    await waitFor(() => expect(screen.queryByText('Audit Log Details')).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Audit Log Details' })).not.toBeInTheDocument()
+    );
   });
 });

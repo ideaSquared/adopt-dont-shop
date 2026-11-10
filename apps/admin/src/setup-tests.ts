@@ -600,7 +600,8 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     return React.createElement(React.Fragment, null, table, pager);
   },
   // Mirrors the real Modal's accessible output: nothing when closed; otherwise a
-  // labelled dialog with its title, a "Close modal" button, the body and footer.
+  // dialog named by its title (as an aria-label, so the title text is not repeated
+  // in the DOM), a "Close modal" button, the body and footer.
   Modal: ({
     isOpen,
     onClose,
@@ -625,7 +626,7 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
       ? React.createElement(
           'div',
           { role: 'dialog', 'aria-modal': 'true', 'aria-label': title, 'data-testid': testId },
-          header ?? (title ? React.createElement('h2', null, title) : null),
+          header ?? null,
           children,
           showCloseButton
             ? React.createElement(
