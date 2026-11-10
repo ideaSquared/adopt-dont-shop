@@ -211,6 +211,8 @@ A broken chain is a security incident: stop, preserve the table (`pg_dump -t ops
 
 `pnpm ops demo create-rescue` (dev and staging only) leaves real rows behind: a verified rescue, its pets and an active `demo-…@example.com` owner. Remove each with `pnpm ops demo delete-rescue <rescueId> -e staging` when testing is done. To find leftovers, list rescues in the admin app and look for the `Demo Rescue` name prefix or a `demo-…@example.com` email. `delete-rescue` refuses anything else, so it cannot remove a real rescue by mistake.
 
+To fill an existing staging rescue with sample pets, use `pnpm ops demo create-pets <rescueId> -e staging --count 5`. Those pets carry a `demo` tag; `pnpm ops demo delete-pets <rescueId> -e staging` deletes only the tagged ones and never the rescue's real pets.
+
 ## If `service-ops` is down
 
 `service-ops` is a developer tool. Nothing in the product depends on it, so an outage is not a user-facing incident, but a failed health check does fail a deploy (the health gate includes `service-ops:4100`), so you need to fix it to ship.

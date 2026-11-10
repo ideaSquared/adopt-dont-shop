@@ -26,6 +26,12 @@ import {
   validateCreateRequest,
   validateDeleteRequest,
 } from './demo-rescue.js';
+import {
+  createDemoPets,
+  deleteDemoPets,
+  validateCreatePetsRequest,
+  validateDeletePetsRequest,
+} from './demo-pets.js';
 
 // The explicit allow-list of RPCs service.ops will invoke. Keys are
 // '<service>.<Method>' where <service> is the proto package segment
@@ -266,6 +272,30 @@ export const REGISTRY: Readonly<Record<string, RegistryEntry>> = {
     local: deleteDemoRescue,
     summary: 'Remove a demo rescue: its pets, the rescue, and its demo owner login.',
     warnings: ['Refuses rescues not made by `demo create-rescue`.'],
+  },
+  'demo.CreatePets': {
+    kind: 'write',
+    permissions: [PETS_CREATE, PETS_MANAGE_ANY],
+    dryRun: 'preview-only',
+    envs: ['dev', 'staging'],
+    validate: validateCreatePetsRequest,
+    local: createDemoPets,
+    summary: 'Add sample available pets, tagged "demo", to an existing verified rescue.',
+    warnings: [
+      'Creates real pets in the rescue. Remove them with `pnpm ops demo delete-pets <rescueId>`.',
+    ],
+  },
+  'demo.DeletePets': {
+    kind: 'write',
+    permissions: [PETS_VIEW, PETS_DELETE, PETS_MANAGE_ANY],
+    dryRun: 'preview-only',
+    envs: ['dev', 'staging'],
+    validate: validateDeletePetsRequest,
+    local: deleteDemoPets,
+    summary: 'Delete the pets in a rescue that carry the "demo" tag.',
+    warnings: [
+      'Only pets made by `demo create-pets` are deleted; unmarked pets are never touched.',
+    ],
   },
 };
 

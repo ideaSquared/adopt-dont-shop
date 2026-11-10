@@ -18,6 +18,13 @@ service DemoService {
   // Remove a rescue made by CreateRescue: soft-delete its pets and the
   // rescue, then deactivate its owner. Refuses rescues it did not create.
   rpc DeleteRescue(DeleteRescueRequest) returns (DeleteRescueResponse);
+
+  // Add sample available pets, tagged "demo", to an existing verified rescue.
+  rpc CreatePets(CreatePetsRequest) returns (CreatePetsResponse);
+
+  // Soft-delete the pets in a rescue that carry the "demo" tag. Never touches
+  // unmarked pets or the rescue itself.
+  rpc DeletePets(DeletePetsRequest) returns (DeletePetsResponse);
 }
 
 message CreateRescueRequest {
@@ -49,4 +56,26 @@ message DeleteRescueResponse {
   string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   repeated string deleted_pet_ids = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   repeated string deactivated_user_ids = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+}
+
+message CreatePetsRequest {
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  // Sample pets to add, 1 to 25. Defaults to 5.
+  optional uint32 count = 2;
+}
+
+message CreatePetsResponse {
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  repeated string pet_ids = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  // What to do next, including the delete-pets command.
+  string next_steps = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+}
+
+message DeletePetsRequest {
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+}
+
+message DeletePetsResponse {
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  repeated string deleted_pet_ids = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
