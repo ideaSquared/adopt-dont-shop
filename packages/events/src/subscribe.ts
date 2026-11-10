@@ -248,7 +248,7 @@ export function subscribe<T = unknown>(
       }
       const decoder = new TextDecoder();
       for await (const msg of messages) {
-        await dispatch<T>(nc, msg, decoder, opts, handler);
+        await dispatch<T>(nc, msg, decoder, opts, handler, log);
       }
     },
     err => {
@@ -274,7 +274,8 @@ async function dispatch<T>(
   msg: JsMsg,
   decoder: TextDecoder,
   opts: SubscribeOptions,
-  handler: MessageHandler<T>
+  handler: MessageHandler<T>,
+  logger: OutboxLogger
 ): Promise<void> {
   const raw = decoder.decode(msg.data);
   let envelope: EventEnvelope<T>;
@@ -298,7 +299,7 @@ async function dispatch<T>(
     // retry budget. Handlers are idempotent on the event id, so a redelivery
     // of an event that half-succeeded is a clean skip on the next attempt.
     opts.onError?.(err, { subject: msg.subject, raw });
-    await handleFailure(nc, msg, raw, err);
+    await handleFailure(nc, msg, raw, err, logger);
   }
 }
 
@@ -315,9 +316,22 @@ export function nakBackoffMs(attempt: number): number {
 // message is dead-lettered rather than retried forever.
 export const MAX_DELIVER = 7;
 
+// A dead-letter publish is retried a few times in-process before giving up.
+export const DLQ_PUBLISH_ATTEMPTS = 3;
+const DLQ_RETRY_BASE_DELAY_MS = 250;
+
 // A handler failure either backs off for redelivery, or — once the retry
 // budget is exhausted — parks the message in the dead-letter stream and
 // term()s it so the consumer stops looping. Exported for unit testing.
+//
+// A failing dead-letter publish (NATS blip, DLQ stream unavailable) must never
+// escape: it would end the drain loop (one bad message tearing down the
+// consumer) and, after the restart, the message is already at max_deliver and
+// so neither redelivered nor in the DLQ. So the publish is retried briefly,
+// and if it still fails the message is NOT term()'d: it is nak()'d, which
+// keeps it un-terminated, and the failure is logged loudly. At max_deliver the
+// broker will not redeliver it, but it stays in the DOMAIN_EVENTS stream
+// (7-day retention) and the logged error carries the subject for manual replay.
 export async function handleFailure(
   nc: NatsConnection,
   msg: Pick<JsMsg, 'subject' | 'nak' | 'term'> & {
@@ -325,16 +339,56 @@ export async function handleFailure(
     redelivered?: boolean;
   },
   raw: string,
-  err: unknown
+  err: unknown,
+  logger: OutboxLogger = stderrLogger
 ): Promise<void> {
   const attempt = msg.info?.redeliveryCount ?? (msg.redelivered ? 2 : 1);
-  if (attempt >= MAX_DELIVER) {
-    await deadLetter(nc, msg.subject, raw, err);
-    msg.term();
+  if (attempt < MAX_DELIVER) {
+    msg.nak(nakBackoffMs(attempt));
     return;
   }
-  msg.nak(nakBackoffMs(attempt));
+  try {
+    await deadLetterWithRetry(nc, msg.subject, raw, err);
+  } catch (dlqErr) {
+    logger.error?.('dead-letter publish failed; message left un-terminated', {
+      subject: msg.subject,
+      attempts: DLQ_PUBLISH_ATTEMPTS,
+      ...describeError(dlqErr),
+    });
+    msg.nak(nakBackoffMs(attempt));
+    return;
+  }
+  msg.term();
 }
+
+async function deadLetterWithRetry(
+  nc: NatsConnection,
+  originalSubject: string,
+  raw: string,
+  err: unknown
+): Promise<void> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      await deadLetter(nc, originalSubject, raw, err);
+      return;
+    } catch (dlqErr) {
+      if (attempt >= DLQ_PUBLISH_ATTEMPTS) {
+        throw dlqErr;
+      }
+      await sleep(DLQ_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1));
+    }
+  }
+}
+
+// nats.js rejects header values containing CR/LF (headers.js validHeaderValue),
+// and error messages such as a ZodError's are multi-line, so collapse
+// whitespace and cap the length.
+const DLQ_ERROR_HEADER_MAX = 512;
+const dlqErrorHeader = (err: unknown): string =>
+  (err instanceof Error ? err.message : String(err))
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, DLQ_ERROR_HEADER_MAX);
 
 // Publish a failed message to the dead-letter stream on
 // `dlq.<original-subject>`, preserving the raw payload and stamping the
@@ -347,7 +401,7 @@ export async function deadLetter(
 ): Promise<void> {
   const h = headers();
   h.set('dlq-original-subject', originalSubject);
-  h.set('dlq-error', err instanceof Error ? err.message : String(err));
+  h.set('dlq-error', dlqErrorHeader(err));
   await nc
     .jetstream()
     .publish(`${DLQ_SUBJECT_PREFIX}${originalSubject}`, new TextEncoder().encode(raw), {

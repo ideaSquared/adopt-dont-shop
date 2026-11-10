@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   deadLetter,
+  DLQ_PUBLISH_ATTEMPTS,
   defaultSetupFailure,
   handleFailure,
   MAX_DELIVER,
@@ -334,6 +335,62 @@ describe('handleFailure / deadLetter', () => {
     expect(publish).toHaveBeenCalledTimes(1);
     // Published to dlq.<original-subject>.
     expect(publish.mock.calls[0][0]).toBe(`${DLQ_SUBJECT_PREFIX}pets.created`);
+  });
+
+  it('does not throw or term() when the dead-letter publish keeps failing; nak()s and logs instead', async () => {
+    vi.useFakeTimers();
+    try {
+      const publish = vi.fn().mockRejectedValue(new Error('nats down'));
+      const nc = { jetstream: vi.fn(() => ({ publish })) } as unknown as NatsConnection;
+      const msg = fakeMsg(MAX_DELIVER);
+      const logger = { warn: vi.fn(), error: vi.fn() };
+      const done = handleFailure(nc, msg, '{"id":"e1"}', new Error('bad'), logger);
+      await vi.runAllTimersAsync();
+      await expect(done).resolves.toBeUndefined();
+      expect(publish).toHaveBeenCalledTimes(DLQ_PUBLISH_ATTEMPTS);
+      expect(msg.term).not.toHaveBeenCalled();
+      expect(msg.nak).toHaveBeenCalledTimes(1);
+      expect(logger.error).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('retries a transient dead-letter publish failure and then term()s', async () => {
+    vi.useFakeTimers();
+    try {
+      const publish = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('blip'))
+        .mockResolvedValue({ seq: 1 });
+      const nc = { jetstream: vi.fn(() => ({ publish })) } as unknown as NatsConnection;
+      const msg = fakeMsg(MAX_DELIVER);
+      const done = handleFailure(nc, msg, '{"id":"e1"}', new Error('bad'));
+      await vi.runAllTimersAsync();
+      await done;
+      expect(publish).toHaveBeenCalledTimes(2);
+      expect(msg.term).toHaveBeenCalledTimes(1);
+      expect(msg.nak).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('dead-letters a failure whose message spans multiple lines (headers reject CR/LF)', async () => {
+    const { nc, publish } = makeNc();
+    const multiline = new Error('[\r\n  {\n    "path": ["name"]\r\n  }\n]');
+    await deadLetter(nc, 'pets.created', '{"id":"e1"}', multiline);
+    const opts = publish.mock.calls[0][2] as { headers: { get: (k: string) => string } };
+    const value = opts.headers.get('dlq-error');
+    expect(value).not.toMatch(/[\r\n]/);
+    expect(value).toContain('"path"');
+  });
+
+  it('truncates a very long error message in the dlq-error header', async () => {
+    const { nc, publish } = makeNc();
+    await deadLetter(nc, 'pets.created', '{}', new Error('x'.repeat(5000)));
+    const opts = publish.mock.calls[0][2] as { headers: { get: (k: string) => string } };
+    expect(opts.headers.get('dlq-error').length).toBeLessThanOrEqual(512);
   });
 
   it('deadLetter preserves the raw payload and stamps triage headers', async () => {

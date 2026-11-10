@@ -80,7 +80,9 @@ names.
 Retry budget: a parseable but persistently-failing message is `nak()`'d with
 exponential backoff (`min(30s, 1s · 2^(attempt-1))`) up to `MAX_DELIVER = 7`,
 then parked in the dead-letter stream `DOMAIN_EVENTS_DLQ` (subjects `dlq.>`,
-14-day retention) and `term()`'d. The main stream keeps a 7-day `max_age` and a
+14-day retention) and `term()`'d. The dead-letter publish is retried 3 times;
+if it still fails the message is not `term()`'d, the failure is logged at error
+and the consume loop carries on (the message stays in the main stream). The main stream keeps a 7-day `max_age` and a
 2-minute `Nats-Msg-Id` duplicate window — far shorter than retention, so
 redelivery-safety rests on **consumer idempotency** (`claimEvent` /
 `processed_events`), not on the broker dedup. See
