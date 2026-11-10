@@ -265,12 +265,14 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     React.createElement('div', props, children),
   FormField: ({
     label,
+    htmlFor,
     error,
     description,
     children,
     ...props
   }: {
     label?: string;
+    htmlFor?: string;
     error?: string;
     description?: string;
     children: React.ReactNode;
@@ -279,7 +281,7 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     React.createElement(
       'div',
       props,
-      label ? React.createElement('label', null, label) : null,
+      label ? React.createElement('label', { htmlFor }, label) : null,
       children,
       error ? React.createElement('span', { role: 'alert' }, error) : null,
       description ? React.createElement('span', null, description) : null
@@ -595,8 +597,226 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     );
     return React.createElement(React.Fragment, null, table, pager);
   },
-  Modal: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
-    React.createElement('div', props, children),
+  // Mirrors the real Modal's accessible output: nothing when closed, a labelled
+  // aria-modal dialog with a Close button, Escape-to-close, and header/footer slots.
+  Modal: ({
+    isOpen = true,
+    onClose,
+    title,
+    children,
+    header,
+    footer,
+    showCloseButton = true,
+    closeOnEscape = true,
+    className,
+    'data-testid': testId,
+  }: {
+    isOpen?: boolean;
+    onClose?: () => void;
+    title?: string;
+    children?: React.ReactNode;
+    header?: React.ReactNode;
+    footer?: React.ReactNode;
+    showCloseButton?: boolean;
+    closeOnEscape?: boolean;
+    className?: string;
+    'data-testid'?: string;
+    [k: string]: unknown;
+  }) => {
+    const titleId = React.useId();
+    if (!isOpen) {
+      return null;
+    }
+    return React.createElement(
+      'div',
+      {
+        role: 'dialog',
+        'aria-modal': 'true',
+        'aria-labelledby': title ? titleId : undefined,
+        'data-testid': testId,
+        className,
+        onKeyDown: (e: React.KeyboardEvent) => {
+          if (e.key === 'Escape' && closeOnEscape) {
+            onClose?.();
+          }
+        },
+      },
+      title || header ? (header ?? React.createElement('h2', { id: titleId }, title)) : null,
+      children,
+      showCloseButton
+        ? React.createElement(
+            'button',
+            { type: 'button', onClick: onClose, 'aria-label': 'Close modal' },
+            '✕'
+          )
+        : null,
+      footer ?? null
+    );
+  },
+  Alert: ({
+    children,
+    title,
+    variant: _variant,
+    size: _size,
+    closable: _closable,
+    onClose: _onClose,
+    showIcon: _showIcon,
+    icon: _icon,
+    ...props
+  }: {
+    children?: React.ReactNode;
+    title?: string;
+    [k: string]: unknown;
+  }) =>
+    React.createElement(
+      'div',
+      { role: 'alert', ...props },
+      title ? React.createElement('div', null, title) : null,
+      children
+    ),
+  TextArea: ({
+    label,
+    id,
+    error,
+    helperText,
+    required,
+    fullWidth: _fullWidth,
+    state: _state,
+    variant: _variant,
+    size: _size,
+    ...props
+  }: React.ComponentPropsWithoutRef<'textarea'> & {
+    label?: string;
+    error?: string;
+    helperText?: string;
+    fullWidth?: boolean;
+    state?: string;
+    variant?: string;
+    size?: string;
+  }) =>
+    React.createElement(
+      'div',
+      null,
+      label ? React.createElement('label', { htmlFor: id }, label) : null,
+      React.createElement('textarea', {
+        id,
+        required,
+        'aria-required': required ? true : undefined,
+        ...props,
+      }),
+      error
+        ? React.createElement('span', { role: 'alert' }, error)
+        : helperText
+          ? React.createElement('span', null, helperText)
+          : null
+    ),
+  SelectInput: ({
+    label,
+    id,
+    value,
+    onChange,
+    options = [],
+    helperText,
+    error,
+    required,
+    disabled,
+    'data-testid': testId,
+    fullWidth: _fullWidth,
+    state: _state,
+    placeholder: _placeholder,
+    ...props
+  }: {
+    label?: string;
+    id?: string;
+    value?: string;
+    onChange?: (v: string) => void;
+    options?: Array<{ value: string; label: string }>;
+    helperText?: string;
+    error?: string;
+    required?: boolean;
+    disabled?: boolean;
+    'data-testid'?: string;
+    fullWidth?: boolean;
+    state?: string;
+    placeholder?: string;
+  }) => {
+    const inputId = id ?? testId ?? (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+    return React.createElement(
+      'div',
+      null,
+      label && React.createElement('label', { htmlFor: inputId }, label, required ? ' *' : null),
+      React.createElement(
+        'select',
+        {
+          id: inputId,
+          value,
+          disabled,
+          'data-testid': testId,
+          onChange: (e: React.ChangeEvent<HTMLSelectElement>) => onChange?.(e.target.value),
+          ...props,
+        },
+        options.map(o => React.createElement('option', { key: o.value, value: o.value }, o.label))
+      ),
+      error
+        ? React.createElement('span', { role: 'alert' }, error)
+        : helperText
+          ? React.createElement('span', null, helperText)
+          : null
+    );
+  },
+  CheckboxInput: ({
+    label,
+    checked,
+    defaultChecked,
+    description,
+    disabled,
+    id,
+    onChange,
+    required,
+    error,
+    helperText,
+    'data-testid': testId,
+    ...props
+  }: {
+    label?: string;
+    checked?: boolean;
+    defaultChecked?: boolean;
+    description?: string;
+    disabled?: boolean;
+    id?: string;
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    required?: boolean;
+    error?: string;
+    helperText?: string;
+    'data-testid'?: string;
+    [key: string]: unknown;
+  }) => {
+    const inputId =
+      id ?? (label ? `checkbox-${label.toLowerCase().replace(/\s+/g, '-')}` : undefined);
+    return React.createElement(
+      'div',
+      null,
+      React.createElement('input', {
+        type: 'checkbox',
+        id: inputId,
+        checked,
+        defaultChecked,
+        disabled,
+        required,
+        'aria-required': required ? true : undefined,
+        'data-testid': testId,
+        onChange,
+        ...props,
+      }),
+      label && React.createElement('label', { htmlFor: inputId }, label),
+      description ? React.createElement('p', null, description) : null,
+      error
+        ? React.createElement('span', { role: 'alert' }, error)
+        : helperText
+          ? React.createElement('span', null, helperText)
+          : null
+    );
+  },
   // Shared app-shell components: pass-through boundary, minimal 404.
   ErrorBoundary: ({ children }: { children?: React.ReactNode }) => children,
   NotFoundPage: () => React.createElement('h1', null, '404'),

@@ -189,3 +189,26 @@ describe('BulkConfirmationModal — failedIds display', () => {
     expect(onRetryFailed).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('BulkConfirmationModal — reason and loading behaviour', () => {
+  it('keeps Confirm disabled until a required reason is entered, then passes it on', () => {
+    const onConfirm = vi.fn();
+    render(<BulkConfirmationModal {...defaultProps} onConfirm={onConfirm} requireReason />);
+
+    const confirm = screen.getByRole('button', { name: 'Suspend' });
+    expect(confirm).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText(/reason/i), { target: { value: '  spam  ' } });
+    expect(confirm).toBeEnabled();
+
+    fireEvent.click(confirm);
+    expect(onConfirm).toHaveBeenCalledWith('spam');
+  });
+
+  it('does not close on Escape while the action is running', () => {
+    const onClose = vi.fn();
+    render(<BulkConfirmationModal {...defaultProps} onClose={onClose} isLoading />);
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+    expect(onClose).not.toHaveBeenCalled();
+  });
+});
