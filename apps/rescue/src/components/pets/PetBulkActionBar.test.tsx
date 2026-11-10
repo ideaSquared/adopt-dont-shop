@@ -37,7 +37,7 @@ describe('PetBulkActionBar (ADS-646)', () => {
     expect(screen.getByText(/3/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /apply status/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /archive/i })).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: /bulk status/i })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /set status to/i })).toBeInTheDocument();
   });
 
   it('dispatches the selected status when Apply status is clicked', async () => {
@@ -48,7 +48,7 @@ describe('PetBulkActionBar (ADS-646)', () => {
       <PetBulkActionBar selectedCount={2} onClearSelection={vi.fn()} onBulkAction={onBulkAction} />
     );
 
-    await user.selectOptions(screen.getByRole('combobox', { name: /bulk status/i }), 'adopted');
+    await user.selectOptions(screen.getByRole('combobox', { name: /set status to/i }), 'adopted');
     await user.click(screen.getByRole('button', { name: /apply status/i }));
 
     expect(onBulkAction).toHaveBeenCalledWith({ type: 'status', status: 'adopted' });

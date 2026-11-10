@@ -1,6 +1,7 @@
 import React from 'react';
 import clsx from 'clsx';
-import { Card, Button, Text } from '@adopt-dont-shop/lib.components';
+import { Card, Button, SkeletonCard, Text } from '@adopt-dont-shop/lib.components';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Pet, PetStatus } from '@adopt-dont-shop/lib.pets';
 import PetCard from './PetCard.tsx';
 import * as styles from './PetGrid.css';
@@ -46,9 +47,7 @@ const PetGrid: React.FC<PetGridProps> = ({
     return (
       <div className={styles.loadingGrid}>
         {Array.from({ length: 6 }).map((_, index) => (
-          <Card key={`skeleton-${index}`} className={styles.loadingCard}>
-            <Text>Loading...</Text>
-          </Card>
+          <SkeletonCard key={`skeleton-${index}`} lines={3} />
         ))}
       </div>
     );
@@ -127,28 +126,31 @@ const PetGrid: React.FC<PetGridProps> = ({
     }
 
     return (
-      <div className={styles.paginationContainer}>
+      <nav className={styles.paginationContainer} aria-label="Pet list pagination">
         <Button
           variant="outline"
           disabled={!hasPrev}
           onClick={() => onPageChange(currentPage - 1)}
           className={styles.pageButton}
+          aria-label="Previous page"
         >
-          ←
+          <ChevronLeft size="1em" aria-hidden="true" />
         </Button>
 
         {pages.map((page, index) => (
           <React.Fragment key={`page-${index}`}>
-            {page === '...' ? (
+            {typeof page === 'string' ? (
               <Text>...</Text>
             ) : (
               <Button
                 variant="outline"
-                onClick={() => onPageChange(page as number)}
+                onClick={() => onPageChange(page)}
                 className={clsx(
                   styles.pageButton,
                   page === currentPage && styles.pageButtonCurrent
                 )}
+                aria-label={`Page ${page}`}
+                aria-current={page === currentPage ? 'page' : undefined}
               >
                 {page}
               </Button>
@@ -161,14 +163,15 @@ const PetGrid: React.FC<PetGridProps> = ({
           disabled={!hasNext}
           onClick={() => onPageChange(currentPage + 1)}
           className={styles.pageButton}
+          aria-label="Next page"
         >
-          →
+          <ChevronRight size="1em" aria-hidden="true" />
         </Button>
 
         <Text className={styles.pageCounter}>
           Page {currentPage} of {totalPages}
         </Text>
-      </div>
+      </nav>
     );
   };
 
