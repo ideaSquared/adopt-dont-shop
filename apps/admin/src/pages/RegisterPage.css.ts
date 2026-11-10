@@ -4,20 +4,20 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const loginPrompt = style({
   textAlign: 'center',
-  marginTop: '1.5rem',
-  paddingTop: '1.5rem',
+  marginTop: vars.spacing['4'],
+  paddingTop: vars.spacing['4'],
   borderTop: `1px solid ${vars.border.color.default}`,
 });
 
 globalStyle(`${loginPrompt} p`, {
   color: vars.text.tertiary,
-  marginBottom: '0.5rem',
+  marginBottom: vars.spacing['2'],
 });
 
 globalStyle(`${loginPrompt} a`, {
   color: vars.colors.primary,
   textDecoration: 'none',
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
 });
 
 globalStyle(`${loginPrompt} a:hover`, {
@@ -25,7 +25,7 @@ globalStyle(`${loginPrompt} a:hover`, {
 });
 
 export const helperText = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: vars.text.tertiary,
   lineHeight: 1.4,
 });

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
 
 import { ThemeProvider } from '@adopt-dont-shop/lib.components';
@@ -52,15 +53,17 @@ vi.mock('@/components/onboarding/SwipeOnboarding', () => ({
 
 const renderShell = () =>
   render(
-    <ThemeProvider>
-      <MemoryRouter initialEntries={['/']}>
-        <Routes>
-          <Route element={<AppShell />}>
-            <Route path='/' element={<div>Home</div>} />
-          </Route>
-        </Routes>
-      </MemoryRouter>
-    </ThemeProvider>
+    <QueryClientProvider client={new QueryClient()}>
+      <ThemeProvider>
+        <MemoryRouter initialEntries={['/']}>
+          <Routes>
+            <Route element={<AppShell />}>
+              <Route path='/' element={<div>Home</div>} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 
 describe('AppShell', () => {

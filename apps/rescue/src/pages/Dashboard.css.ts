@@ -9,35 +9,18 @@ export const dashboardContainer = style({
   padding: 0,
 });
 
-export const dashboardHeader = style({
-  marginBottom: '2rem',
-});
-
-globalStyle(`${dashboardHeader} h1`, {
-  fontSize: '2.5rem',
-  fontWeight: 700,
-  color: vars.text.primary,
-  margin: '0 0 0.5rem 0',
-});
-
-globalStyle(`${dashboardHeader} p`, {
-  fontSize: '1.1rem',
-  color: vars.text.tertiary,
-  margin: 0,
-});
-
 export const welcomeMessage = style({
   background: `linear-gradient(135deg, ${vars.colors.infoBgSubtle} 0%, ${vars.colors.infoBgSubtle} 100%)`,
   border: `1px solid ${vars.colors.infoBorderSubtle}`,
-  borderRadius: '12px',
-  padding: '1.5rem',
-  marginBottom: '2rem',
+  borderRadius: vars.border.radius.lg,
+  padding: vars.spacing['4'],
+  marginBottom: vars.spacing['5'],
 });
 
 globalStyle(`${welcomeMessage} h2`, {
-  margin: '0 0 0.5rem 0',
+  margin: `0 0 ${vars.spacing['2']} 0`,
   color: vars.colors.infoTextEmphasis,
-  fontSize: '1.25rem',
+  fontSize: vars.typography.size.xl,
 });
 
 globalStyle(`${welcomeMessage} p`, {
@@ -48,12 +31,12 @@ globalStyle(`${welcomeMessage} p`, {
 export const onboardingBanner = style({
   display: 'flex',
   alignItems: 'flex-start',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   background: `linear-gradient(135deg, ${vars.colors.successBgSubtle} 0%, ${vars.colors.infoBgSubtle} 100%)`,
   border: `1px solid ${vars.colors.successBorderSubtle}`,
-  borderRadius: '12px',
-  padding: '1.5rem',
-  marginBottom: '2rem',
+  borderRadius: vars.border.radius.lg,
+  padding: vars.spacing['4'],
+  marginBottom: vars.spacing['5'],
 });
 
 export const onboardingContent = style({
@@ -61,32 +44,32 @@ export const onboardingContent = style({
 });
 
 export const onboardingTitle = style({
-  margin: '0 0 0.5rem 0',
+  margin: `0 0 ${vars.spacing['2']} 0`,
   fontSize: '1.1rem',
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
 });
 
 export const onboardingText = style({
-  margin: '0 0 1rem 0',
+  margin: `0 0 ${vars.spacing['3']} 0`,
   color: vars.text.secondary,
   fontSize: '0.95rem',
 });
 
 export const onboardingActions = style({
   display: 'flex',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   flexWrap: 'wrap',
 });
 
 export const onboardingLink = style({
-  padding: '0.5rem 1rem',
+  padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
   background: vars.colors.info,
   color: 'white',
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
   textDecoration: 'none',
-  fontWeight: 500,
-  fontSize: '0.875rem',
+  fontWeight: vars.typography.weight.medium,
+  fontSize: vars.typography.size.sm,
   transition: 'background 0.2s ease',
   selectors: {
     '&:hover': {
@@ -98,12 +81,12 @@ export const onboardingLink = style({
 export const onboardingDismiss = style({
   background: 'none',
   border: 'none',
-  fontSize: '1.25rem',
+  fontSize: vars.typography.size.xl,
   color: vars.text.tertiary,
   cursor: 'pointer',
-  padding: '0.25rem',
+  padding: vars.spacing['1'],
   lineHeight: 1,
-  borderRadius: '4px',
+  borderRadius: vars.border.radius.sm,
   transition: 'color 0.2s ease',
   ':hover': {
     color: vars.text.primary,
@@ -113,16 +96,16 @@ export const onboardingDismiss = style({
 export const metricsGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-  gap: '1.5rem',
-  marginBottom: '2rem',
+  gap: vars.spacing['4'],
+  marginBottom: vars.spacing['5'],
   width: '100%',
 });
 
 export const analyticsGrid = style({
   display: 'grid',
   gridTemplateColumns: '2fr 1fr 1fr',
-  gap: '1.5rem',
-  marginBottom: '2rem',
+  gap: vars.spacing['4'],
+  marginBottom: vars.spacing['5'],
   width: '100%',
   '@media': {
     'screen and (max-width: 1024px)': {
@@ -132,90 +115,24 @@ export const analyticsGrid = style({
 });
 
 export const errorCard = style({
-  padding: '1.5rem',
+  padding: vars.spacing['4'],
   textAlign: 'center',
-});
-
-export const errorMessage = style({
-  color: '#ef4444',
-  marginBottom: '1rem',
 });
 
 export const errorHint = style({
   color: '#6b7280',
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const errorActions = style({
   display: 'flex',
   justifyContent: 'center',
-  gap: '1rem',
-  marginTop: '1rem',
-});
-
-export const refreshButton = style({
-  backgroundColor: '#3b82f6',
-  color: 'white',
-  padding: '0.5rem 1rem',
-  border: 'none',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  fontSize: '0.875rem',
-  fontWeight: 500,
-});
-
-export const clearAuthButton = style({
-  backgroundColor: '#ef4444',
-  color: 'white',
-  padding: '0.5rem 1rem',
-  border: 'none',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  fontSize: '0.875rem',
-  fontWeight: 500,
-});
-
-export const metricCardBody = style({
-  padding: '1.5rem',
-});
-
-export const metricCardHeader = style({
-  display: 'flex',
-  alignItems: 'center',
-  marginBottom: '1rem',
-});
-
-export const metricEmoji = style({
-  fontSize: '1.5rem',
-  marginRight: '0.75rem',
-});
-
-export const metricLabel = style({
-  fontSize: '0.875rem',
-  fontWeight: 500,
-  color: '#6b7280',
-  textTransform: 'uppercase',
-  letterSpacing: '0.025em',
-});
-
-export const metricValue = style({
-  fontSize: '2.25rem',
-  fontWeight: 700,
-  marginBottom: '0.5rem',
-});
-
-export const metricDeltaUp = style({
-  fontSize: '0.875rem',
-  color: '#10b981',
-});
-
-export const metricDeltaDown = style({
-  fontSize: '0.875rem',
-  color: '#ef4444',
+  gap: vars.spacing['3'],
+  marginTop: vars.spacing['3'],
 });
 
 export const cardSectionHeader = style({
-  padding: '1.5rem 1.5rem 1rem 1.5rem',
+  padding: `${vars.spacing['4']} ${vars.spacing['4']} ${vars.spacing['3']} ${vars.spacing['4']}`,
   borderBottom: '1px solid #e5e7eb',
 });
 
@@ -224,15 +141,15 @@ export const cardSectionHeading = style({
 });
 
 export const cardSectionBody = style({
-  padding: '1.5rem',
+  padding: vars.spacing['4'],
 });
 
 export const chartArea = style({
   display: 'flex',
   alignItems: 'end',
   height: '180px',
-  gap: '0.5rem',
-  marginBottom: '1rem',
+  gap: vars.spacing['2'],
+  marginBottom: vars.spacing['3'],
 });
 
 export const chartColumn = style({
@@ -245,7 +162,7 @@ export const chartColumn = style({
 
 export const chartBar = style({
   background: 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)',
-  borderRadius: '4px 4px 0 0',
+  borderRadius: `${vars.border.radius.sm} ${vars.border.radius.sm} 0 0`,
   width: '100%',
   minHeight: '4px',
   transition: 'all 0.3s ease',
@@ -253,33 +170,33 @@ export const chartBar = style({
 });
 
 export const chartMonthLabel = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: '#6b7280',
-  marginTop: '0.5rem',
-  fontWeight: 500,
+  marginTop: vars.spacing['2'],
+  fontWeight: vars.typography.weight.medium,
 });
 
 export const chartValueLabel = style({
-  fontSize: '0.875rem',
-  fontWeight: 600,
-  marginTop: '0.25rem',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.semibold,
+  marginTop: vars.spacing['1'],
 });
 
 export const chartSummary = style({
-  paddingTop: '1rem',
+  paddingTop: vars.spacing['3'],
   borderTop: '1px solid #e5e7eb',
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });
 
 export const chartSummaryRow = style({
-  margin: '0.25rem 0',
+  margin: `${vars.spacing['1']} 0`,
   color: '#4b5563',
 });
 
 export const statusList = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const statusRow = style({
@@ -301,52 +218,52 @@ export const statusDot = style({
 });
 
 export const statusName = style({
-  fontWeight: 500,
+  fontWeight: vars.typography.weight.medium,
 });
 
 export const statusValueChip = style({
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
   backgroundColor: '#f3f4f6',
   padding: '0.25rem 0.75rem',
-  borderRadius: '12px',
-  fontSize: '0.875rem',
+  borderRadius: vars.border.radius.lg,
+  fontSize: vars.typography.size.sm,
 });
 
 export const activityList = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const activityItem = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.25rem',
-  paddingBottom: '1rem',
+  gap: vars.spacing['1'],
+  paddingBottom: vars.spacing['3'],
   borderBottom: '1px solid #e5e7eb',
 });
 
 export const activityItemLast = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.25rem',
+  gap: vars.spacing['1'],
   paddingBottom: '0',
   borderBottom: 'none',
 });
 
 export const activityTimestamp = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: '#6b7280',
-  fontWeight: 500,
+  fontWeight: vars.typography.weight.medium,
 });
 
 export const activityMessage = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   lineHeight: 1.4,
 });
 
 export const emptyActivityMessage = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
   textAlign: 'center',
 });
@@ -359,22 +276,22 @@ export const notificationsHeading = style({
   margin: 0,
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const unreadBadge = style({
   backgroundColor: '#ef4444',
   color: 'white',
-  fontSize: '0.75rem',
-  fontWeight: 600,
-  padding: '0.25rem 0.5rem',
+  fontSize: vars.typography.size.xs,
+  fontWeight: vars.typography.weight.semibold,
+  padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
   borderRadius: '10px',
   minWidth: '1.25rem',
   textAlign: 'center',
 });
 
 export const notificationsBody = style({
-  padding: '1rem',
+  padding: vars.spacing['3'],
 });
 
 export const notificationRowBase = style({
@@ -382,8 +299,8 @@ export const notificationRowBase = style({
   alignItems: 'flex-start',
   gap: '0.75rem',
   padding: '0.75rem',
-  borderRadius: '8px',
-  marginBottom: '0.5rem',
+  borderRadius: vars.border.radius.base,
+  marginBottom: vars.spacing['2'],
   position: 'relative',
 });
 
@@ -396,7 +313,7 @@ export const notificationRowUnread = style({
 });
 
 export const notificationIcon = style({
-  fontSize: '1.25rem',
+  fontSize: vars.typography.size.xl,
   marginTop: '0.125rem',
 });
 
@@ -405,21 +322,21 @@ export const notificationContent = style({
 });
 
 export const notificationTitle = style({
-  fontWeight: 600,
-  fontSize: '0.875rem',
-  marginBottom: '0.25rem',
+  fontWeight: vars.typography.weight.semibold,
+  fontSize: vars.typography.size.sm,
+  marginBottom: vars.spacing['1'],
 });
 
 export const notificationBody = style({
   color: '#4b5563',
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   lineHeight: 1.4,
-  marginBottom: '0.25rem',
+  marginBottom: vars.spacing['1'],
 });
 
 export const notificationTimestamp = style({
   color: '#6b7280',
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
 });
 
 export const unreadDot = style({
@@ -435,23 +352,11 @@ export const unreadDot = style({
 export const emptyNotifications = style({
   color: '#6b7280',
   textAlign: 'center',
-  padding: '2rem',
+  padding: vars.spacing['5'],
 });
 
 export const notificationsFooter = style({
-  padding: '1rem 1.5rem',
+  padding: `${vars.spacing['3']} ${vars.spacing['4']}`,
   borderTop: '1px solid #e5e7eb',
   textAlign: 'center',
-});
-
-export const viewAllButton = style({
-  background: 'none',
-  border: '1px solid #d1d5db',
-  color: '#374151',
-  padding: '0.5rem 1rem',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  fontSize: '0.875rem',
-  fontWeight: 500,
-  transition: 'all 0.2s ease',
 });

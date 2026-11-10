@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Button, Heading, Text } from '@adopt-dont-shop/lib.components';
-import { CircleAlert, CircleCheck, CircleX } from 'lucide-react';
+import { useMutation } from '@tanstack/react-query';
+import { Alert, Button, FormField, Modal, Text, TextArea } from '@adopt-dont-shop/lib.components';
 import type { AdminRescue, RescueVerificationPayload } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
 import * as styles from './RescueVerificationModal.css';
@@ -14,6 +14,8 @@ type RescueVerificationModalProps = {
   onSuccess: () => void;
 };
 
+const FORM_ID = 'rescue-verification-form';
+
 export const RescueVerificationModal: React.FC<RescueVerificationModalProps> = ({
   rescue,
   action,
@@ -22,148 +24,134 @@ export const RescueVerificationModal: React.FC<RescueVerificationModalProps> = (
 }) => {
   const [rejectionReason, setRejectionReason] = useState('');
   const [notes, setNotes] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const isApproval = action === 'approve';
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const submission = useMutation({
+    mutationFn: (payload: RescueVerificationPayload) =>
+      isApproval
+        ? rescueService.verify(rescue.rescueId, payload)
+        : rescueService.reject(rescue.rescueId, payload),
+    onSuccess: () => {
+      onSuccess();
+      onClose();
+    },
+  });
+
+  const loading = submission.isPending;
+  const mutationError = submission.error
+    ? submission.error instanceof Error
+      ? submission.error.message
+      : `Failed to ${action} rescue`
+    : null;
+  const error = validationError ?? mutationError;
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!isApproval && !rejectionReason.trim()) {
-      setError('Rejection reason is required');
+      setValidationError('Rejection reason is required');
       return;
     }
 
-    try {
-      setLoading(true);
-      setError(null);
+    setValidationError(null);
+    submission.reset();
 
-      const payload: RescueVerificationPayload = {
-        status: isApproval ? 'verified' : 'rejected',
-        notes: notes.trim() || undefined,
-      };
-
-      if (!isApproval) {
-        payload.rejectionReason = rejectionReason.trim();
-      }
-
-      if (isApproval) {
-        await rescueService.verify(rescue.rescueId, payload);
-      } else {
-        await rescueService.reject(rescue.rescueId, payload);
-      }
-
-      onSuccess();
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : `Failed to ${action} rescue`);
-    } finally {
-      setLoading(false);
-    }
+    submission.mutate({
+      status: isApproval ? 'verified' : 'rejected',
+      notes: notes.trim() || undefined,
+      ...(isApproval ? {} : { rejectionReason: rejectionReason.trim() }),
+    });
   };
 
-  const handleOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget && !loading) {
+  const handleClose = () => {
+    if (!loading) {
       onClose();
     }
   };
+
+  const actionLabel = isApproval ? 'Approve Rescue' : 'Reject Rescue';
 
   return (
-    <div
-      className={styles.overlay}
-      onClick={handleOverlayClick}
-      onKeyDown={e => e.key === 'Escape' && onClose()}
-      role='presentation'
+    <Modal
+      isOpen
+      onClose={handleClose}
+      title={actionLabel}
+      size='md'
+      closeOnOverlayClick={!loading}
+      closeOnEscape={!loading}
+      footer={
+        <>
+          <Button type='button' variant='outline' onClick={onClose} disabled={loading}>
+            Cancel
+          </Button>
+          <Button
+            type='submit'
+            form={FORM_ID}
+            variant={isApproval ? 'primary' : 'danger'}
+            disabled={loading}
+          >
+            {loading ? 'Processing...' : actionLabel}
+          </Button>
+        </>
+      }
     >
-      <div className={styles.modalContainer}>
-        <form onSubmit={handleSubmit}>
-          <div className={isApproval ? styles.modalHeaderApprove : styles.modalHeaderReject}>
-            <div className={isApproval ? styles.iconWrapperApprove : styles.iconWrapperReject}>
-              {isApproval ? <CircleCheck size='1em' /> : <CircleX size='1em' />}
-            </div>
-            <div className={styles.headerContent}>
-              <Heading level='h3' className={styles.headerHeading}>
-                {isApproval ? 'Approve Rescue' : 'Reject Rescue'}
-              </Heading>
-              <Text className={styles.headerText}>
-                {isApproval
-                  ? 'Verify this rescue organization for the platform'
-                  : 'Decline this rescue organization application'}
-              </Text>
-            </div>
+      <form id={FORM_ID} onSubmit={handleSubmit}>
+        <Text>
+          {isApproval
+            ? 'Verify this rescue organization for the platform'
+            : 'Decline this rescue organization application'}
+        </Text>
+
+        {error && <Alert variant='error'>{error}</Alert>}
+
+        <div className={styles.infoBox}>
+          <div className={styles.infoLabel}>Rescue Organization</div>
+          <div className={styles.infoValue}>{rescue.name}</div>
+        </div>
+
+        <div className={styles.infoBox}>
+          <div className={styles.infoLabel}>Email</div>
+          <div className={styles.infoValue}>{rescue.email}</div>
+        </div>
+
+        <div className={styles.infoBox}>
+          <div className={styles.infoLabel}>Location</div>
+          <div className={styles.infoValue}>
+            {rescue.city}
+            {rescue.county ? `, ${rescue.county}` : ''}
           </div>
+        </div>
 
-          <div className={styles.modalBody}>
-            {error && (
-              <div className={styles.errorMessage}>
-                <CircleAlert size='1em' />
-                {error}
-              </div>
-            )}
+        {!isApproval && (
+          <FormField label='Rejection Reason' htmlFor='rejection-reason' required>
+            <TextArea
+              id='rejection-reason'
+              value={rejectionReason}
+              onChange={e => setRejectionReason(e.target.value)}
+              placeholder='Explain why this rescue is being rejected...'
+              required
+              disabled={loading}
+              fullWidth
+            />
+          </FormField>
+        )}
 
-            <div className={styles.infoBox}>
-              <div className={styles.infoLabel}>Rescue Organization</div>
-              <div className={styles.infoValue}>{rescue.name}</div>
-            </div>
-
-            <div className={styles.infoBox}>
-              <div className={styles.infoLabel}>Email</div>
-              <div className={styles.infoValue}>{rescue.email}</div>
-            </div>
-
-            <div className={styles.infoBox}>
-              <div className={styles.infoLabel}>Location</div>
-              <div className={styles.infoValue}>
-                {rescue.city}
-                {rescue.county ? `, ${rescue.county}` : ''}
-              </div>
-            </div>
-
-            {!isApproval && (
-              <div className={styles.formGroup}>
-                <label className={styles.label} htmlFor='rejection-reason'>
-                  Rejection Reason
-                  <span className={styles.requiredIndicator}>*</span>
-                </label>
-                <textarea
-                  id='rejection-reason'
-                  className={styles.textArea}
-                  value={rejectionReason}
-                  onChange={e => setRejectionReason(e.target.value)}
-                  placeholder='Explain why this rescue is being rejected...'
-                  required={!isApproval}
-                  aria-required={!isApproval || undefined}
-                  disabled={loading}
-                />
-              </div>
-            )}
-
-            <div className={styles.formGroup}>
-              <label className={styles.label}>
-                Internal Notes
-                {!isApproval && ' (Optional)'}
-              </label>
-              <textarea
-                className={styles.textArea}
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                placeholder='Add any internal notes about this decision...'
-                disabled={loading}
-              />
-            </div>
-          </div>
-
-          <div className={styles.modalFooter}>
-            <Button type='button' variant='outline' onClick={onClose} disabled={loading}>
-              Cancel
-            </Button>
-            <Button type='submit' variant={isApproval ? 'primary' : 'danger'} disabled={loading}>
-              {loading ? 'Processing...' : isApproval ? 'Approve Rescue' : 'Reject Rescue'}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <FormField
+          label={isApproval ? 'Internal Notes' : 'Internal Notes (Optional)'}
+          htmlFor='rescue-verification-notes'
+        >
+          <TextArea
+            id='rescue-verification-notes'
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            placeholder='Add any internal notes about this decision...'
+            disabled={loading}
+            fullWidth
+          />
+        </FormField>
+      </form>
+    </Modal>
   );
 };

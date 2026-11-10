@@ -24,9 +24,12 @@ vi.mock('@adopt-dont-shop/lib.auth', () => ({
   useAuth: () => ({ isAuthenticated: mockIsAuthenticated }),
 }));
 
-vi.mock('@/utils/fileUtils', () => ({
-  resolveFileUrl: (url?: string) => url ?? '',
-}));
+vi.mock('@adopt-dont-shop/lib.utils', async () => {
+  const actual = await vi.importActual<typeof import('@adopt-dont-shop/lib.utils')>(
+    '@adopt-dont-shop/lib.utils'
+  );
+  return { ...actual, resolveFileUrl: (url?: string) => url ?? '' };
+});
 
 vi.mock('react-router', async () => {
   const actual = await vi.importActual<typeof import('react-router')>('react-router');

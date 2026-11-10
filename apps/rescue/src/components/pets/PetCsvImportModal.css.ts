@@ -1,9 +1,10 @@
 import { style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const stepContainer = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   minHeight: '300px',
 });
 
@@ -11,26 +12,26 @@ export const stepHeader = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   paddingBottom: '0.75rem',
   borderBottom: '1px solid #e5e7eb',
 });
 
 export const steps = style({
   display: 'flex',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   fontSize: '0.85rem',
   color: '#6b7280',
 });
 
 export const stepActive = style({
   color: '#2563eb',
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
 });
 
 export const dropZone = style({
   border: '2px dashed #d1d5db',
-  borderRadius: '0.5rem',
+  borderRadius: vars.border.radius.base,
   padding: '2.5rem',
   textAlign: 'center',
   cursor: 'pointer',
@@ -40,18 +41,18 @@ export const dropZone = style({
 export const mappingGrid = style({
   display: 'grid',
   gridTemplateColumns: '1fr 1fr',
-  gap: '0.5rem 1rem',
+  gap: `${vars.spacing['2']} ${vars.spacing['3']}`,
   alignItems: 'center',
 });
 
 export const fieldLabel = style({
-  fontWeight: 500,
-  fontSize: '0.875rem',
+  fontWeight: vars.typography.weight.medium,
+  fontSize: vars.typography.size.sm,
 });
 
 export const requiredMark = style({
   color: '#dc2626',
-  marginLeft: '0.25rem',
+  marginLeft: vars.spacing['1'],
 });
 
 export const select = style({
@@ -70,7 +71,7 @@ export const errorList = style({
 
 export const summary = style({
   display: 'flex',
-  gap: '1.5rem',
+  gap: vars.spacing['4'],
   padding: '0.75rem',
   background: '#f3f4f6',
   borderRadius: '0.375rem',
@@ -83,8 +84,8 @@ export const summaryItem = style({
 });
 
 export const summaryNumber = style({
-  fontSize: '1.25rem',
-  fontWeight: 700,
+  fontSize: vars.typography.size.xl,
+  fontWeight: vars.typography.weight.bold,
 });
 
 export const actionsRow = style({
@@ -125,7 +126,7 @@ export const scrollableTable = style({
 });
 
 export const importingMessage = style({
-  padding: '2rem',
+  padding: vars.spacing['5'],
   textAlign: 'center',
 });
 

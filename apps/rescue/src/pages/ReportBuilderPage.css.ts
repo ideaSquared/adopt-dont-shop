@@ -1,35 +1,18 @@
 import { style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const container = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '16px',
-  padding: '24px',
-});
-
-export const headerRow = style({
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
+  gap: vars.spacing['3'],
+  padding: vars.spacing['4'],
 });
 
 export const formGrid = style({
   display: 'grid',
   gridTemplateColumns: '1fr 1fr',
-  gap: '16px',
+  gap: vars.spacing['3'],
   padding: '12px',
   background: '#f9fafb',
-  borderRadius: '8px',
-});
-
-export const fieldLabel = style({
-  fontSize: '12px',
-  color: '#6b7280',
-});
-
-export const textInput = style({
-  width: '100%',
-  padding: '8px',
-  border: '1px solid #e5e7eb',
-  borderRadius: '6px',
+  borderRadius: vars.border.radius.base,
 });

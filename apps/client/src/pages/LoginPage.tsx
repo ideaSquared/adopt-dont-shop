@@ -1,7 +1,12 @@
-import { AuthLayout, LoginForm, SocialSignInButtons, useAuth } from '@adopt-dont-shop/lib.auth';
+import {
+  AuthLayout,
+  LoginForm,
+  SocialSignInButtons,
+  isSafeRedirectPath,
+  useAuth,
+} from '@adopt-dont-shop/lib.auth';
 import React, { useEffect } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router';
-import { isSafeRedirectPath } from '@/utils/safeRedirect';
 import * as styles from './LoginPage.css';
 
 export const LoginPage: React.FC = () => {

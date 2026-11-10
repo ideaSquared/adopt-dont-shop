@@ -2,10 +2,16 @@ import React, { useState } from 'react';
 import clsx from 'clsx';
 import { Link, useNavigate, useParams } from 'react-router';
 import {
+  Button,
   ConfirmDialog,
-  Heading,
+  ErrorState,
+  FormField,
+  Input,
+  PageHeader,
   ReportRenderer,
+  Spinner,
   Text,
+  toast,
   useConfirm,
 } from '@adopt-dont-shop/lib.components';
 import {
@@ -47,7 +53,7 @@ const ReportViewPage: React.FC = () => {
   if (reportQuery.isLoading || !reportQuery.data) {
     return (
       <div className={styles.container}>
-        <Text>Loading…</Text>
+        <Spinner label="Loading…" />
       </div>
     );
   }
@@ -70,72 +76,95 @@ const ReportViewPage: React.FC = () => {
     if (!confirmed) {
       return;
     }
-    await deleteMutation.mutateAsync(id);
-    navigate('/reports');
+    try {
+      await deleteMutation.mutateAsync(id);
+      toast.success('Report deleted');
+      navigate('/reports');
+    } catch {
+      toast.error('Failed to delete report');
+    }
   };
 
   const handleSchedule = async (): Promise<void> => {
     if (!recipientEmail) {
       return;
     }
-    await scheduleMutation.mutateAsync({
-      cron,
-      recipients: [{ email: recipientEmail }],
-      format: 'pdf',
-      isEnabled: true,
-    });
-    setScheduleOpen(false);
+    try {
+      await scheduleMutation.mutateAsync({
+        cron,
+        recipients: [{ email: recipientEmail }],
+        format: 'pdf',
+        isEnabled: true,
+      });
+      toast.success('Schedule saved');
+      setScheduleOpen(false);
+    } catch {
+      toast.error('Failed to save schedule');
+    }
   };
 
   const handleShare = async (): Promise<void> => {
     const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    const result = await tokenShareMutation.mutateAsync({ expiresAt: expires });
-    setShareUrl(`${window.location.origin}/reports/shared/${result.token}`);
+    try {
+      const result = await tokenShareMutation.mutateAsync({ expiresAt: expires });
+      setShareUrl(`${window.location.origin}/reports/shared/${result.token}`);
+      toast.success('Share link created');
+    } catch {
+      toast.error('Failed to create share link');
+    }
   };
 
   return (
     <div className={styles.container}>
-      <div className={styles.headerRow}>
-        <div>
-          <Heading level="h1">{reportQuery.data.name}</Heading>
-          {reportQuery.data.description ? <Text>{reportQuery.data.description}</Text> : null}
-        </div>
-        <div className={styles.headerActions}>
-          <Link to={`/reports/${id}/edit`}>
-            <button type="button">Edit</button>
-          </Link>
-          <button type="button" onClick={() => setScheduleOpen(o => !o)}>
-            Schedule
-          </button>
-          <button type="button" onClick={handleShare}>
-            Share link
-          </button>
-          <button type="button" onClick={handleDelete}>
-            Delete
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title={reportQuery.data.name}
+        description={reportQuery.data.description ?? undefined}
+        actions={
+          <div className={styles.headerActions}>
+            <Link to={`/reports/${id}/edit`}>
+              <Button variant="outline">Edit</Button>
+            </Link>
+            <Button variant="outline" onClick={() => setScheduleOpen(o => !o)}>
+              Schedule
+            </Button>
+            <Button variant="outline" onClick={handleShare}>
+              Share link
+            </Button>
+            <Button variant="outline" onClick={handleDelete}>
+              Delete
+            </Button>
+          </div>
+        }
+      />
 
       {scheduleOpen ? (
         <div className={clsx(styles.panel, styles.schedulePanel)}>
           <Text>Schedule (cron + recipient email)</Text>
           <div className={styles.scheduleRow}>
-            <input
-              type="text"
-              value={cron}
-              onChange={e => setCron(e.target.value)}
-              className={styles.cronInput}
-            />
-            <input
-              type="email"
-              value={recipientEmail}
-              onChange={e => setRecipientEmail(e.target.value)}
-              placeholder="recipient@example.com"
+            <FormField label="Cron schedule" htmlFor="schedule-cron" className={styles.cronInput}>
+              <Input
+                id="schedule-cron"
+                type="text"
+                value={cron}
+                onChange={e => setCron(e.target.value)}
+              />
+            </FormField>
+            <FormField
+              label="Recipient email"
+              htmlFor="schedule-recipient"
               className={styles.emailInput}
-            />
-            <button type="button" onClick={handleSchedule}>
+            >
+              <Input
+                id="schedule-recipient"
+                type="email"
+                value={recipientEmail}
+                onChange={e => setRecipientEmail(e.target.value)}
+                placeholder="recipient@example.com"
+              />
+            </FormField>
+            <Button variant="primary" onClick={handleSchedule}>
               Save schedule
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}
@@ -148,7 +177,9 @@ const ReportViewPage: React.FC = () => {
       ) : null}
 
       {executeQuery.isLoading ? (
-        <Text>Running report…</Text>
+        <Spinner label="Running report…" />
+      ) : executeQuery.isError ? (
+        <ErrorState message="Failed to execute the report." />
       ) : (
         <ReportRenderer
           config={reportQuery.data.config as never}

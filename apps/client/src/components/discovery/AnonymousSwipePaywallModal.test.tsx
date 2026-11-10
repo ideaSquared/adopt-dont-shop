@@ -22,10 +22,10 @@ describe('AnonymousSwipePaywallModal (ADS-625)', () => {
     expect(screen.getByText(/Sign up free in 10 seconds/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Sign up' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Log in' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Dismiss' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Close modal' })).toBeInTheDocument();
   });
 
-  it('announces itself with role=alertdialog and labelled-by association', () => {
+  it('announces itself as a dialog named after its title', () => {
     renderWithProviders(
       <AnonymousSwipePaywallModal
         petId='pet-1'
@@ -34,10 +34,21 @@ describe('AnonymousSwipePaywallModal (ADS-625)', () => {
         onDismiss={vi.fn()}
       />
     );
-    const dialog = screen.getByRole('alertdialog');
-    expect(dialog).toBeInTheDocument();
-    expect(dialog).toHaveAttribute('aria-labelledby', 'anon-paywall-title');
-    expect(dialog).toHaveAttribute('aria-describedby', 'anon-paywall-desc');
+    expect(screen.getByRole('dialog', { name: 'Keep swiping' })).toBeInTheDocument();
+  });
+
+  it('fires onDismiss when Escape is pressed', () => {
+    const onDismiss = vi.fn();
+    renderWithProviders(
+      <AnonymousSwipePaywallModal
+        petId='pet-1'
+        onSignUp={vi.fn()}
+        onLogIn={vi.fn()}
+        onDismiss={onDismiss}
+      />
+    );
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
   it('auto-focuses the Sign up button so keyboard users land on it', async () => {
@@ -92,7 +103,7 @@ describe('AnonymousSwipePaywallModal (ADS-625)', () => {
         onDismiss={onDismiss}
       />
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close modal' }));
     expect(onDismiss).toHaveBeenCalled();
   });
 });

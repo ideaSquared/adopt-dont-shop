@@ -11,6 +11,7 @@ import {
   warmCreamMuted,
   white,
 } from './colors';
+import { breakpoints } from './breakpoints';
 
 export type ThemeMode = 'light' | 'normal' | 'dark';
 
@@ -250,13 +251,7 @@ const baseTheme = {
     base: '300ms cubic-bezier(0.4, 0, 0.2, 1)',
     slow: '500ms cubic-bezier(0.4, 0, 0.2, 1)',
   },
-  breakpoints: {
-    sm: '640px',
-    md: '768px',
-    lg: '1024px',
-    xl: '1280px',
-    '2xl': '1536px',
-  },
+  breakpoints,
   zIndex: {
     base: 0,
     docked: 10,

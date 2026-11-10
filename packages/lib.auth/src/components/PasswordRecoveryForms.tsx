@@ -1,9 +1,17 @@
 import React, { useState } from 'react';
-import { ApiError } from '@adopt-dont-shop/lib.api';
+import {
+  ApiError,
+  AuthenticationError,
+  AuthorizationError,
+  ConflictError,
+  NotFoundError,
+  ValidationError,
+} from '@adopt-dont-shop/lib.api';
 import { Alert, Button, FormField, Input } from '@adopt-dont-shop/lib.components';
 import { z } from 'zod';
 
 import { authService } from '../services/auth-service';
+import { NEW_PASSWORD_HINT, NewPasswordSchema } from '../utils/new-password';
 import * as styles from './PasswordRecoveryForms.css';
 
 // Shared forgot/reset password forms for the rescue and admin apps (app.client
@@ -16,22 +24,26 @@ const EmailSchema = z.string().trim().pipe(z.email('Enter a valid email address.
 // for known and unknown emails and is safe to surface. Any other 4xx gets the
 // generic "check your email" answer, so the form can't be used to probe which
 // accounts exist; 5xx and network failures are real errors.
-type RequestOutcome =
+export type RequestOutcome =
   | { kind: 'sent'; email: string }
   | { kind: 'rate-limited'; retryAfterSeconds: number | undefined }
   | { kind: 'failed' };
 
-const classifyFailure = (email: string, err: unknown): RequestOutcome => {
+export const classifyFailure = (email: string, err: unknown): RequestOutcome => {
   if (err instanceof ApiError && err.status === 429) {
     return { kind: 'rate-limited', retryAfterSeconds: err.retryAfterSeconds };
   }
-  if (err instanceof ApiError && err.status < 500) {
-    return { kind: 'sent', email };
-  }
-  return { kind: 'failed' };
+  const isClientError =
+    (err instanceof ApiError && err.status < 500) ||
+    err instanceof ValidationError ||
+    err instanceof NotFoundError ||
+    err instanceof AuthenticationError ||
+    err instanceof AuthorizationError ||
+    err instanceof ConflictError;
+  return isClientError ? { kind: 'sent', email } : { kind: 'failed' };
 };
 
-const rateLimitMessage = (retryAfterSeconds: number | undefined): string => {
+export const rateLimitMessage = (retryAfterSeconds: number | undefined): string => {
   const wait =
     retryAfterSeconds === undefined
       ? 'a minute'
@@ -117,10 +129,10 @@ export const ForgotPasswordForm = ({ loginHref }: ForgotPasswordFormProps) => {
   );
 };
 
-// Mirrors the gateway's newPasswordField (8–128 characters).
+// The canonical strong-password policy, capped at the gateway's 128 characters.
 const ResetSchema = z
   .object({
-    password: z.string().min(8, 'Use at least 8 characters.').max(128),
+    password: NewPasswordSchema,
     confirmPassword: z.string(),
   })
   .refine((values) => values.password === values.confirmPassword, {
@@ -201,7 +213,7 @@ export const ResetPasswordForm = ({ token, loginHref }: ResetPasswordFormProps) 
         label="New password"
         htmlFor="reset-password-new"
         required
-        description="At least 8 characters."
+        description={NEW_PASSWORD_HINT}
         error={errors.password}
       >
         <Input

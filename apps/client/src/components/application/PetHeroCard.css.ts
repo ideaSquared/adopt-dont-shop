@@ -3,19 +3,19 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const card = style({
   display: 'flex',
-  gap: '1.5rem',
+  gap: vars.spacing['4'],
   alignItems: 'center',
-  padding: '1.5rem',
-  marginBottom: '2rem',
+  padding: vars.spacing['4'],
+  marginBottom: vars.spacing['5'],
   background: vars.background.body,
   border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '1rem',
+  borderRadius: vars.border.radius.xl,
   boxShadow: '0 4px 12px rgba(244, 63, 94, 0.06)',
   '@media': {
     '(max-width: 640px)': {
       flexDirection: 'column',
       alignItems: 'flex-start',
-      gap: '1rem',
+      gap: vars.spacing['3'],
     },
   },
 });
@@ -24,7 +24,7 @@ export const imageWrap = style({
   flexShrink: 0,
   width: '112px',
   height: '112px',
-  borderRadius: '0.75rem',
+  borderRadius: vars.border.radius.lg,
   overflow: 'hidden',
   background: vars.background.surface,
   '@media': {
@@ -47,7 +47,7 @@ export const placeholderIcon = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  fontSize: '3rem',
+  fontSize: vars.typography.size['5xl'],
 });
 
 export const content = style({
@@ -56,14 +56,14 @@ export const content = style({
 });
 
 export const eyebrow = style({
-  margin: '0 0 0.25rem 0',
+  margin: `0 0 ${vars.spacing['1']} 0`,
   fontSize: '0.8125rem',
   color: vars.text.secondary,
 });
 
 export const heading = style({
-  margin: '0 0 0.5rem 0',
-  fontSize: '1.5rem',
+  margin: `0 0 ${vars.spacing['2']} 0`,
+  fontSize: vars.typography.size['2xl'],
   color: vars.text.primary,
   lineHeight: 1.2,
 });

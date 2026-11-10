@@ -1,5 +1,7 @@
 import React from 'react';
+import { Badge, Button, Spinner } from '@adopt-dont-shop/lib.components';
 import { PendingInvitation } from '@adopt-dont-shop/lib.invitations';
+import { Calendar, Clock, Mail } from 'lucide-react';
 import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import * as styles from './PendingInvitations.css';
 
@@ -45,7 +47,7 @@ const PendingInvitations: React.FC<PendingInvitationsProps> = ({
           <p>Loading invitations...</p>
         </div>
         <div className={styles.loadingContainer}>
-          <div className={styles.loadingSpinner} />
+          <Spinner size="lg" label="Loading invitations" />
           <p>Loading...</p>
         </div>
       </div>
@@ -65,7 +67,9 @@ const PendingInvitations: React.FC<PendingInvitationsProps> = ({
 
       {invitations.length === 0 ? (
         <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>📧</div>
+          <div className={styles.emptyIcon}>
+            <Mail size="1em" aria-hidden="true" />
+          </div>
           <div className={styles.emptyText}>
             <p>
               <strong>No Pending Invitations</strong>
@@ -89,11 +93,11 @@ const PendingInvitations: React.FC<PendingInvitationsProps> = ({
 
                     <div className={styles.metaInfo}>
                       <div className={styles.metaItem}>
-                        <span>📅</span>
+                        <Calendar size="1em" aria-hidden="true" />
                         <span>Sent: {formatDate(invitation.created_at)}</span>
                       </div>
                       <div className={styles.metaItem}>
-                        <span>⏰</span>
+                        <Clock size="1em" aria-hidden="true" />
                         <span>
                           {daysRemaining === 0
                             ? 'Expires today'
@@ -101,26 +105,23 @@ const PendingInvitations: React.FC<PendingInvitationsProps> = ({
                         </span>
                       </div>
                       <div className={styles.metaItem}>
-                        <span
-                          className={styles.statusBadge({
-                            status: isExpiring ? 'expiring' : 'active',
-                          })}
-                        >
+                        <Badge variant={isExpiring ? 'warning' : 'success'} size="sm">
                           {isExpiring ? 'Expiring Soon' : 'Active'}
-                        </span>
+                        </Badge>
                       </div>
                     </div>
                   </div>
 
                   {canCancel && onCancel && (
                     <div className={styles.actions}>
-                      <button
-                        className={styles.actionButton({ variant: 'danger' })}
+                      <Button
+                        variant="danger"
+                        size="sm"
                         onClick={() => onCancel(invitation.invitation_id)}
                         title="Cancel invitation"
                       >
                         Cancel
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>

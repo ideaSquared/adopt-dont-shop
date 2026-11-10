@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { BellRing } from 'lucide-react';
+import { Button } from '@adopt-dont-shop/lib.components';
 import notificationService from '@/services/notificationService';
 import { useStatsig } from '@/hooks/useStatsig';
 import * as styles from './DiscoveryPage.css';
@@ -46,13 +47,13 @@ export const EndOfQueueEmptyState: React.FC = () => {
         {optedIn ? (
           <span className={styles.emptyQueueOptedIn}>We&apos;ll let you know</span>
         ) : (
-          <button
-            type='button'
+          <Button
+            variant='primary'
             className={styles.emptyQueueNotifyButton}
             onClick={handleNotifyOptIn}
           >
             Notify me when new matches arrive
-          </button>
+          </Button>
         )}
         <Link
           className={styles.emptyQueueBrowseLink}

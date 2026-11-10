@@ -1,7 +1,6 @@
-import { StatsigProvider, useClientAsyncInit } from '@statsig/react-bindings';
-import React, { useMemo } from 'react';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import './StatsigContext.css';
+import { StatsigWrapper as SharedStatsigWrapper } from '@adopt-dont-shop/lib.feature-flags';
+import React from 'react';
 
 type StatsigWrapperProps = {
   children: React.ReactNode;
@@ -9,37 +8,14 @@ type StatsigWrapperProps = {
 
 export const StatsigWrapper: React.FC<StatsigWrapperProps> = ({ children }) => {
   const { user } = useAuth();
-  const statsigClientKey = import.meta.env.VITE_STATSIG_CLIENT_KEY;
-
-  if (!statsigClientKey) {
-    console.error(
-      'VITE_STATSIG_CLIENT_KEY is not set. Feature flags will not work. Please add it to your .env file.'
-    );
-  }
-
-  const statsigUser = useMemo(
-    () => ({
-      // Email is intentionally omitted — Statsig is a third-party SaaS
-      // and the opaque userID is sufficient for flag bucketing.
-      userID: user?.userId || 'anonymous',
-      custom: {
-        app: 'rescue',
-        userType: user?.userType,
-        rescueId: user?.rescueId,
-        isAuthenticated: !!user,
-      },
-    }),
-    [user]
-  );
-
-  const { client } = useClientAsyncInit(statsigClientKey || 'client-invalid-key', statsigUser);
 
   return (
-    <StatsigProvider
-      client={client}
-      loadingComponent={<div className="statsig-loading-fallback">Loading...</div>}
+    <SharedStatsigWrapper
+      app="rescue"
+      clientKey={import.meta.env.VITE_STATSIG_CLIENT_KEY}
+      user={user}
     >
       {children}
-    </StatsigProvider>
+    </SharedStatsigWrapper>
   );
 };

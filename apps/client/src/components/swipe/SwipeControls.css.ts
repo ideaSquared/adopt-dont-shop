@@ -1,16 +1,17 @@
 import { style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const controlsContainer = style({
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   padding: '1.25rem 1rem',
   '@media': {
     '(max-width: 480px)': {
       gap: '0.75rem',
-      padding: '1rem 0.5rem',
+      padding: `${vars.spacing['3']} ${vars.spacing['2']}`,
     },
   },
 });
@@ -25,7 +26,7 @@ export const actionButton = recipe({
     cursor: 'pointer',
     transition: 'transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease',
     background: 'white',
-    fontSize: '1.5rem',
+    fontSize: vars.typography.size['2xl'],
     flexShrink: 0,
     ':disabled': {
       opacity: 0.4,

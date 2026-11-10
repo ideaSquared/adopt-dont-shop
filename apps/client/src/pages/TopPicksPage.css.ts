@@ -5,23 +5,7 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 export const container = style({
   maxWidth: '960px',
   margin: '0 auto',
-  padding: '2rem 1rem 4rem',
-});
-
-export const header = style({
-  marginBottom: '1.5rem',
-});
-
-globalStyle(`${header} h1`, {
-  fontSize: '1.75rem',
-  margin: '0 0 0.25rem',
-  color: vars.text.primary,
-});
-
-globalStyle(`${header} p`, {
-  margin: 0,
-  color: vars.text.tertiary,
-  fontSize: '0.95rem',
+  padding: `${vars.spacing['5']} ${vars.spacing['3']} ${vars.spacing['7']}`,
 });
 
 export const grid = style({
@@ -71,7 +55,7 @@ export const placeholder = style({
   alignItems: 'center',
   justifyContent: 'center',
   background: `linear-gradient(135deg, ${vars.colors.primaryBgSubtle}, ${vars.background.muted})`,
-  fontSize: '3rem',
+  fontSize: vars.typography.size['5xl'],
 });
 
 export const scoreBadge = style({
@@ -83,7 +67,7 @@ export const scoreBadge = style({
   padding: '0.35rem 0.75rem',
   borderRadius: '999px',
   fontSize: '0.8rem',
-  fontWeight: 700,
+  fontWeight: vars.typography.weight.bold,
   letterSpacing: '0.02em',
   boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
   display: 'inline-flex',
@@ -95,13 +79,13 @@ export const body = style({
   padding: '1rem 1.1rem 1.1rem',
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   flex: 1,
 });
 
 export const name = style({
-  fontSize: '1.25rem',
-  fontWeight: 700,
+  fontSize: vars.typography.size.xl,
+  fontWeight: vars.typography.weight.bold,
   margin: 0,
   color: vars.text.primary,
   textDecoration: 'none',
@@ -128,23 +112,23 @@ export const rescue = style({
 
 export const reasons = style({
   marginTop: 'auto',
-  paddingTop: '0.5rem',
+  paddingTop: vars.spacing['2'],
 });
 
 export const emptyWrap = style({
   maxWidth: '520px',
-  margin: '4rem auto',
+  margin: `${vars.spacing['7']} auto`,
   textAlign: 'center',
   padding: '2.5rem 2rem',
 });
 
 export const emptyIcon = style({
-  fontSize: '3rem',
+  fontSize: vars.typography.size['5xl'],
   marginBottom: '0.75rem',
 });
 
 globalStyle(`${emptyWrap} h2`, {
-  margin: '0 0 0.5rem',
+  margin: `0 0 ${vars.spacing['2']}`,
   color: vars.text.primary,
 });
 

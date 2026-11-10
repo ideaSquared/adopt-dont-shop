@@ -16,7 +16,7 @@ renders the provider tree. The common outer spine is:
 
 ```
 React.StrictMode
-  └─ ErrorBoundary                       app-owned, top-level crash guard
+  └─ ErrorBoundary                       lib.components, top-level crash guard (app passes onError)
      └─ QueryClientProvider              @tanstack/react-query
         └─ AuthProvider                  @adopt-dont-shop/lib.auth (allowedUserTypes, appType, onLogout)
            └─ StatsigWrapper             app-owned contexts/StatsigContext, wraps @statsig/react-bindings
@@ -74,9 +74,9 @@ three:
 - Page components are `lazy()`-imported for code splitting and rendered under a single top-level
   `<Suspense fallback={<PageLoader />}>`.
 - Risky routes (chat, discovery, applications, moderation) are wrapped in a route-level
-  `RouteBoundary` — an app-owned `ErrorBoundary` with a `boundary` name — so one route crashing
+  `RouteBoundary` — the shared `ErrorBoundary` with an app-supplied `onError` that tags the route — so one route crashing
   does not blank the whole app (ADS-482).
-- A `<Route path="*" element={<NotFoundPage />} />` catch-all closes the protected subtree
+- A `<Route path="*" element={<NotFoundPage homeLabel=... />} />` catch-all (shared `NotFoundPage` from lib.components) closes the protected subtree
   (ADS-480).
 - The legal UI — `CookieBanner` + `LegalReacceptanceModal` from `@adopt-dont-shop/lib.legal` — is
   mounted once per app (ADS-497). `app.client` wraps both in one `lazy()` boundary (`LegalUI`);

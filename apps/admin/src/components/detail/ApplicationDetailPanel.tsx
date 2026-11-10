@@ -8,7 +8,7 @@ import {
   type EntityInspectorTab,
 } from '@adopt-dont-shop/lib.components';
 import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
-import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
+import { formatDateTime, formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import type { AdminApplication } from '@/services/applicationService';
 import { useEntityActivity } from '../../hooks';
 import * as styles from './ApplicationDetailPanel.css';
@@ -143,8 +143,7 @@ const ActivityTab: React.FC<{ applicationId: string }> = ({ applicationId }) => 
           <div className={styles.activityContent}>
             <p className={styles.activityDescription}>{activity.description}</p>
             <p className={styles.activityMeta}>
-              {activity.activityType} &middot;{' '}
-              {new Date(activity.createdAt).toLocaleString('en-GB')}
+              {activity.activityType} &middot; {formatDateTime(activity.createdAt)}
             </p>
           </div>
         </div>

@@ -5,13 +5,13 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 export const form = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '1.5rem',
+  gap: vars.spacing['4'],
 });
 
 export const formRow = style({
   display: 'grid',
   gridTemplateColumns: '1fr 1fr',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   '@media': {
     '(max-width: 768px)': {
       gridTemplateColumns: '1fr',
@@ -22,14 +22,14 @@ export const formRow = style({
 export const formGroup = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const buttonGroup = style({
   display: 'flex',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   justifyContent: 'flex-end',
-  marginTop: '1rem',
+  marginTop: vars.spacing['3'],
   '@media': {
     '(max-width: 768px)': {
       flexDirection: 'column',
@@ -38,36 +38,36 @@ export const buttonGroup = style({
 });
 
 export const formTitle = style({
-  fontSize: '1.25rem',
+  fontSize: vars.typography.size.xl,
   color: vars.text.primary,
-  marginBottom: '1.5rem',
+  marginBottom: vars.spacing['4'],
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const unsavedBadge = style({
   background: '#fef3c7',
   color: '#92400e',
-  padding: '0.25rem 0.5rem',
-  borderRadius: '12px',
-  fontSize: '0.75rem',
-  fontWeight: 500,
+  padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
+  borderRadius: vars.border.radius.lg,
+  fontSize: vars.typography.size.xs,
+  fontWeight: vars.typography.weight.medium,
 });
 
 export const keyboardHint = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: vars.text.secondary,
   textAlign: 'center',
-  marginTop: '0.5rem',
+  marginTop: vars.spacing['2'],
   opacity: 0.7,
 });
 
 export const characterCount = recipe({
   base: {
-    fontSize: '0.75rem',
+    fontSize: vars.typography.size.xs,
     textAlign: 'right',
-    marginTop: '0.25rem',
+    marginTop: vars.spacing['1'],
   },
   variants: {
     isNearLimit: {
@@ -84,5 +84,5 @@ export const characterCount = recipe({
 
 export const submitError = style({
   color: 'red',
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });

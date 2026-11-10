@@ -1,21 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
 import {
+  Avatar,
+  Badge,
   DataTable,
   type DataTableColumn,
-  Heading,
-  Text,
+  type FilterConfig,
   Button,
-  Input,
-  useToast,
-  Toast,
-  ToastContainer,
+  PageHeader,
+  SearchToolbar,
+  Stack,
+  StatusBadge,
+  toast,
   useDebouncedValue,
   QueryBoundary,
   ErrorState,
-  type ToastMessage,
 } from '@adopt-dont-shop/lib.components';
-import { Search, UserPlus } from 'lucide-react';
+import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
+import { UserPlus } from 'lucide-react';
 import {
   useUsers,
   useSuspendUser,
@@ -40,16 +42,16 @@ import * as styles from './Users.css';
 
 type BulkActionType = 'activate' | 'deactivate' | 'delete';
 
-const getUserTypeBadgeClass = (userType: string): string => {
+const getUserTypeBadgeVariant = (userType: string): 'error' | 'warning' | 'info' | 'neutral' => {
   switch (userType) {
     case 'admin':
-      return styles.badgeDanger;
+      return 'error';
     case 'moderator':
-      return styles.badgeWarning;
+      return 'warning';
     case 'rescue_staff':
-      return styles.badgeInfo;
+      return 'info';
     default:
-      return styles.badgeNeutral;
+      return 'neutral';
   }
 };
 
@@ -68,14 +70,17 @@ const getUserTypeBadgeLabel = (userType: string): string => {
   }
 };
 
-const getStatusBadgeClass = (status: string, emailVerified: boolean): string => {
+const getStatusBadgeVariant = (
+  status: string,
+  emailVerified: boolean
+): 'error' | 'warning' | 'success' => {
   if (status === 'suspended') {
-    return styles.badgeDanger;
+    return 'error';
   }
   if (status === 'pending' || !emailVerified) {
-    return styles.badgeWarning;
+    return 'warning';
   }
-  return styles.badgeSuccess;
+  return 'success';
 };
 
 const getStatusBadgeLabel = (status: string, emailVerified: boolean): string => {
@@ -87,6 +92,32 @@ const getStatusBadgeLabel = (status: string, emailVerified: boolean): string => 
   }
   return 'Active';
 };
+
+const filterConfig: FilterConfig[] = [
+  {
+    name: 'userType',
+    label: 'User Type',
+    type: 'select',
+    options: [
+      { value: 'all', label: 'All Types' },
+      { value: 'admin', label: 'Admin' },
+      { value: 'moderator', label: 'Moderator' },
+      { value: 'rescue_staff', label: 'Rescue Staff' },
+      { value: 'adopter', label: 'Adopter' },
+    ],
+  },
+  {
+    name: 'status',
+    label: 'Status',
+    type: 'select',
+    options: [
+      { value: 'all', label: 'All Statuses' },
+      { value: 'active', label: 'Active' },
+      { value: 'pending', label: 'Pending' },
+      { value: 'suspended', label: 'Suspended' },
+    ],
+  },
+];
 
 const VALID_USER_STATUS_FILTERS: ReadonlySet<string> = new Set(['active', 'suspended', 'pending']);
 
@@ -139,7 +170,6 @@ const Users: React.FC = () => {
   const verifyUser = useVerifyUser();
   const deleteUser = useDeleteUser();
   const createUser = useCreateUser();
-  const { toasts, showToast, hideToast } = useToast();
 
   // Derive the selected user from the URL param: the loaded list's row when it
   // is there, otherwise fetched by id so links from elsewhere open users on
@@ -200,14 +230,13 @@ const Users: React.FC = () => {
   const handleSuspendUser = async (id: string, reason?: string) => {
     try {
       await suspendUser.mutateAsync({ userId: id, reason });
-      showToast('User suspended successfully', 'success');
+      toast.success('User suspended successfully');
     } catch (err) {
       const errorReason = err instanceof Error ? err.message : undefined;
-      showToast(
+      toast.error(
         errorReason
           ? `Failed to suspend user — ${errorReason}`
-          : 'Failed to suspend user — please try again',
-        'error'
+          : 'Failed to suspend user — please try again'
       );
     }
   };
@@ -215,14 +244,13 @@ const Users: React.FC = () => {
   const handleUnsuspendUser = async (id: string) => {
     try {
       await unsuspendUser.mutateAsync(id);
-      showToast('User unsuspended successfully', 'success');
+      toast.success('User unsuspended successfully');
     } catch (err) {
       const errorReason = err instanceof Error ? err.message : undefined;
-      showToast(
+      toast.error(
         errorReason
           ? `Failed to unsuspend user — ${errorReason}`
-          : 'Failed to unsuspend user — please try again',
-        'error'
+          : 'Failed to unsuspend user — please try again'
       );
     }
   };
@@ -230,7 +258,7 @@ const Users: React.FC = () => {
   const handleVerifyUser = async (id: string) => {
     try {
       await verifyUser.mutateAsync(id);
-      showToast('User verified successfully', 'success');
+      toast.success('User verified successfully');
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : 'Failed to verify user');
     }
@@ -239,7 +267,7 @@ const Users: React.FC = () => {
   const handleDeleteUser = async (id: string, reason?: string) => {
     try {
       await deleteUser.mutateAsync({ userId: id, reason });
-      showToast('User deleted', 'success');
+      toast.success('User deleted');
       handleCloseDetail();
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : 'Failed to delete user');
@@ -249,7 +277,7 @@ const Users: React.FC = () => {
   const handleResetPassword = async (id: string) => {
     try {
       await userManagementService.resetUserPassword(id);
-      showToast('Password reset triggered', 'success');
+      toast.success('Password reset triggered');
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : 'Failed to reset password');
     }
@@ -373,13 +401,12 @@ const Users: React.FC = () => {
     return `${firstInitial}${lastInitial}`.toUpperCase() || '??';
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
+  const handleFilterChange = (name: string, value: string | boolean): void => {
+    if (name === 'userType') {
+      setUserTypeFilter(String(value));
+    } else if (name === 'status') {
+      setStatusFilter(String(value));
+    }
   };
 
   // Columns use the shared DataTable's key/label/render shape. Server-side sort
@@ -396,9 +423,11 @@ const Users: React.FC = () => {
         const user = row as unknown as AdminUser;
         return (
           <div className={styles.userInfo}>
-            <div className={styles.userAvatar}>
-              {getUserInitials(user.firstName, user.lastName)}
-            </div>
+            <Avatar
+              size='md'
+              name={`${user.firstName ?? ''} ${user.lastName ?? ''}`.trim()}
+              initials={getUserInitials(user.firstName, user.lastName)}
+            />
             <div className={styles.userDetails}>
               <div className={styles.userName}>
                 {user.firstName} {user.lastName}
@@ -417,9 +446,9 @@ const Users: React.FC = () => {
       render: (_value, row) => {
         const user = row as unknown as AdminUser;
         return (
-          <span className={getUserTypeBadgeClass(user.userType)}>
+          <Badge variant={getUserTypeBadgeVariant(user.userType)}>
             {getUserTypeBadgeLabel(user.userType)}
-          </span>
+          </Badge>
         );
       },
     },
@@ -431,9 +460,10 @@ const Users: React.FC = () => {
       render: (_value, row) => {
         const user = row as unknown as AdminUser;
         return (
-          <span className={getStatusBadgeClass(user.status, user.emailVerified)}>
-            {getStatusBadgeLabel(user.status, user.emailVerified)}
-          </span>
+          <StatusBadge
+            variant={getStatusBadgeVariant(user.status, user.emailVerified)}
+            label={getStatusBadgeLabel(user.status, user.emailVerified)}
+          />
         );
       },
     },
@@ -449,7 +479,7 @@ const Users: React.FC = () => {
       label: 'Joined',
       width: '120px',
       sortable: false,
-      render: (_value, row) => formatDate((row as unknown as AdminUser).createdAt),
+      render: (_value, row) => formatDisplayDate((row as unknown as AdminUser).createdAt),
     },
     {
       key: 'lastLogin',
@@ -458,7 +488,7 @@ const Users: React.FC = () => {
       sortable: false,
       render: (_value, row) => {
         const user = row as unknown as AdminUser;
-        return user.lastLogin ? formatDate(user.lastLogin) : 'Never';
+        return user.lastLogin ? formatDisplayDate(user.lastLogin) : 'Never';
       },
     },
   ];
@@ -466,72 +496,38 @@ const Users: React.FC = () => {
   const detailOpen = selectedUser !== null;
 
   return (
-    <div className={styles.pageContainer}>
-      <div className={styles.pageHeader}>
-        <div className={styles.headerLeft}>
-          <Heading level='h1'>User Management</Heading>
-          <Text>Manage all platform users and permissions</Text>
-        </div>
-        <div className={styles.headerActions}>
-          <ExportButton onExport={handleExport} disabled={isLoading || users.length === 0} />
-          <Button variant='primary' size='md' onClick={() => setIsAddModalOpen(true)}>
-            <UserPlus size='1em' className={styles.addUserIcon} />
-            Add User
-          </Button>
-        </div>
-      </div>
+    <Stack spacing='lg'>
+      <PageHeader
+        title='User Management'
+        description='Manage all platform users and permissions'
+        actions={
+          <Stack direction='horizontal' spacing='sm' wrap>
+            <ExportButton onExport={handleExport} disabled={isLoading || users.length === 0} />
+            <Button
+              variant='primary'
+              size='md'
+              startIcon={<UserPlus size='1em' />}
+              onClick={() => setIsAddModalOpen(true)}
+            >
+              Add User
+            </Button>
+          </Stack>
+        }
+      />
 
       <EntityDetailLayout
         detailOpen={detailOpen}
         onBack={handleCloseDetail}
         list={
           <>
-            <div className={styles.filterBar}>
-              <div className={styles.searchInputWrapper}>
-                <Search size='1em' />
-                <Input
-                  type='text'
-                  placeholder='Search by name or email...'
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                />
-              </div>
-
-              <div className={styles.filterGroup}>
-                <label className={styles.filterLabel} htmlFor='users-type-filter'>
-                  User Type
-                </label>
-                <select
-                  id='users-type-filter'
-                  className={styles.select}
-                  value={userTypeFilter}
-                  onChange={e => setUserTypeFilter(e.target.value)}
-                >
-                  <option value='all'>All Types</option>
-                  <option value='admin'>Admin</option>
-                  <option value='moderator'>Moderator</option>
-                  <option value='rescue_staff'>Rescue Staff</option>
-                  <option value='adopter'>Adopter</option>
-                </select>
-              </div>
-
-              <div className={styles.filterGroup}>
-                <label className={styles.filterLabel} htmlFor='users-status-filter'>
-                  Status
-                </label>
-                <select
-                  id='users-status-filter'
-                  className={styles.select}
-                  value={statusFilter}
-                  onChange={e => setStatusFilter(e.target.value)}
-                >
-                  <option value='all'>All Statuses</option>
-                  <option value='active'>Active</option>
-                  <option value='pending'>Pending</option>
-                  <option value='suspended'>Suspended</option>
-                </select>
-              </div>
-            </div>
+            <SearchToolbar
+              searchValue={searchQuery}
+              onSearchChange={setSearchQuery}
+              searchPlaceholder='Search by name or email...'
+              filterConfig={filterConfig}
+              filters={{ userType: userTypeFilter, status: statusFilter }}
+              onFilterChange={handleFilterChange}
+            />
 
             <BulkActionToolbar
               selectedCount={selectedRows.size}
@@ -613,7 +609,7 @@ const Users: React.FC = () => {
         onClose={() => setIsAddModalOpen(false)}
         onCreate={async payload => {
           await createUser.mutateAsync(payload);
-          showToast('User created', 'success');
+          toast.success('User created');
         }}
       />
 
@@ -682,13 +678,7 @@ const Users: React.FC = () => {
         onRetryFailed={handleBulkRetryFailed}
         onRetry={handleBulkRetry}
       />
-
-      <ToastContainer position='top-right'>
-        {toasts.map((toast: ToastMessage) => (
-          <Toast key={toast.id} {...toast} onClose={hideToast} position='top-right' />
-        ))}
-      </ToastContainer>
-    </div>
+    </Stack>
   );
 };
 

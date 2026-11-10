@@ -1,62 +1,45 @@
-import { style, keyframes } from '@vanilla-extract/css';
+import { style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
-
-const spin = keyframes({
-  '0%': { transform: 'rotate(0deg)' },
-  '100%': { transform: 'rotate(360deg)' },
-});
-
-const pulse = keyframes({
-  '0%, 100%': { opacity: 1 },
-  '50%': { opacity: 0.7 },
-});
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const container = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const statsSection = style({
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const filtersSection = style({
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const header = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const headerLeft = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const headerRight = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const title = style({
-  fontSize: '1.125rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.lg,
+  fontWeight: vars.typography.weight.semibold,
   color: '#111827',
   margin: 0,
-});
-
-export const sortSelect = style({
-  fontSize: '0.875rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '0.375rem',
-  padding: '0.5rem',
-  background: 'white',
 });
 
 export const tableContainer = style({
@@ -64,40 +47,6 @@ export const tableContainer = style({
   boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
   borderRadius: '0.375rem',
   overflow: 'hidden',
-});
-
-export const loadingContainer = style({
-  padding: '2rem',
-  textAlign: 'center',
-});
-
-export const spinner = style({
-  display: 'inline-block',
-  width: '2rem',
-  height: '2rem',
-  border: '2px solid #e5e7eb',
-  borderTop: '2px solid #3b82f6',
-  borderRadius: '50%',
-  animation: `${spin} 1s linear infinite`,
-});
-
-export const loadingText = style({
-  marginTop: '0.5rem',
-  fontSize: '0.875rem',
-  color: '#6b7280',
-});
-
-export const tableWrapper = style({
-  overflowX: 'auto',
-});
-
-export const table = style({
-  minWidth: '100%',
-  borderCollapse: 'collapse',
-});
-
-export const tableHead = style({
-  background: '#f9fafb',
 });
 
 export const tableRow = style({
@@ -109,45 +58,19 @@ export const tableRow = style({
   },
 });
 
-export const tableHeader = style({
-  padding: '0.75rem 1.5rem',
-  textAlign: 'left',
-  fontSize: '0.75rem',
-  fontWeight: '500',
-  color: '#6b7280',
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-});
-
-export const tableBody = style({
-  background: 'white',
-  borderTop: '1px solid #e5e7eb',
-});
-
-export const tableCell = style({
-  padding: '1rem 1.5rem',
-  whiteSpace: 'nowrap',
-  borderBottom: '1px solid #e5e7eb',
-  selectors: {
-    '&:last-child': {
-      textAlign: 'right',
-    },
-  },
-});
-
 export const applicantInfo = style({
   display: 'flex',
   flexDirection: 'column',
 });
 
 export const applicantName = style({
-  fontSize: '0.875rem',
-  fontWeight: '500',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.medium,
   color: '#111827',
 });
 
 export const applicantEmail = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
 });
 
@@ -157,46 +80,19 @@ export const petInfo = style({
 });
 
 export const petName = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#111827',
 });
 
 export const petDetails = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
-});
-
-export const priorityBadge = recipe({
-  base: {
-    display: 'inline-flex',
-    padding: '0.25rem 0.5rem',
-    fontSize: '0.75rem',
-    fontWeight: '600',
-    borderRadius: '9999px',
-  },
-  variants: {
-    priority: {
-      urgent: {
-        background: '#fecaca',
-        color: '#dc2626',
-        border: '1px solid #dc2626',
-        animation: `${pulse} 2s infinite`,
-      },
-      high: { background: '#fed7d7', color: '#c53030' },
-      medium: { background: '#fef3c7', color: '#92400e' },
-      low: { background: '#dcfce7', color: '#166534' },
-      default: { background: '#f3f4f6', color: '#374151' },
-    },
-  },
-  defaultVariants: {
-    priority: 'default',
-  },
 });
 
 export const progressIndicators = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '0.25rem',
+  gap: vars.spacing['1'],
   minWidth: '200px',
 });
 
@@ -280,75 +176,24 @@ export const progressStep = recipe({
 });
 
 export const progressLabel = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: '#6b7280',
-  marginLeft: '0.5rem',
+  marginLeft: vars.spacing['2'],
   whiteSpace: 'nowrap',
 });
 
 export const actionsContainer = style({
   display: 'flex',
-  gap: '0.25rem',
+  gap: vars.spacing['1'],
   alignItems: 'center',
 });
 
-export const actionButton = recipe({
-  base: {
-    padding: '0.25rem 0.5rem',
-    fontSize: '0.75rem',
-    fontWeight: '500',
-    borderRadius: '0.375rem',
-    border: '1px solid',
-    cursor: 'pointer',
-    transition: 'all 0.15s ease',
-    whiteSpace: 'nowrap',
-    ':disabled': {
-      opacity: 0.5,
-      cursor: 'not-allowed',
-    },
-  },
-  variants: {
-    variant: {
-      primary: {
-        background: '#3b82f6',
-        color: 'white',
-        borderColor: '#3b82f6',
-        selectors: {
-          '&:hover': { background: '#2563eb', borderColor: '#2563eb' },
-        },
-      },
-      danger: {
-        background: '#ef4444',
-        color: 'white',
-        borderColor: '#ef4444',
-        selectors: {
-          '&:hover': { background: '#dc2626', borderColor: '#dc2626' },
-        },
-      },
-      secondary: {
-        background: 'white',
-        color: '#374151',
-        borderColor: '#d1d5db',
-        selectors: {
-          '&:hover': { background: '#f9fafb', borderColor: '#9ca3af' },
-        },
-      },
-    },
-  },
-  defaultVariants: {
-    variant: 'secondary',
-  },
-});
-
-const shimmer = keyframes({
-  '0%': { backgroundPosition: '-200% 0' },
-  '100%': { backgroundPosition: '200% 0' },
-});
-
-export const skeletonBlock = style({
-  height: '0.875rem',
-  borderRadius: '0.25rem',
-  background: 'linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%)',
-  backgroundSize: '200% 100%',
-  animation: `${shimmer} 1.5s ease-in-out infinite`,
+// Visually hidden, still announced by screen readers.
+export const srOnly = style({
+  position: 'absolute',
+  width: '1px',
+  height: '1px',
+  overflow: 'hidden',
+  clip: 'rect(0 0 0 0)',
+  whiteSpace: 'nowrap',
 });

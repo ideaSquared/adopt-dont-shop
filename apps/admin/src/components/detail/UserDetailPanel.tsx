@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import {
+  Alert,
+  Avatar,
   Button,
   EntityInspector,
   type EntityInspectorTab,
+  FormField,
   Input,
+  SelectInput,
   Spinner,
+  StatusBadge,
 } from '@adopt-dont-shop/lib.components';
-import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
+import { formatDateTime, formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import {
   Calendar,
   CircleCheck,
@@ -20,7 +25,6 @@ import {
   Trash2,
   User,
 } from 'lucide-react';
-import clsx from 'clsx';
 import type { AdminUser, UserType, UserStatus } from '@/types';
 import { useEntityActivity } from '../../hooks';
 import { ConfirmationModal } from '../modals/UserActionsMenu';
@@ -51,25 +55,48 @@ const getUserTypeBadge = (userType: string): React.ReactElement => {
   switch (userType) {
     case 'admin':
     case 'super_admin':
-      return <span className={styles.badgeDanger}>Admin</span>;
+      return <StatusBadge variant='error' label='Admin' />;
     case 'moderator':
-      return <span className={styles.badgeWarning}>Moderator</span>;
+      return <StatusBadge variant='warning' label='Moderator' />;
     case 'rescue_staff':
-      return <span className={styles.badgeInfo}>Rescue Staff</span>;
+      return <StatusBadge variant='info' label='Rescue Staff' />;
     default:
-      return <span className={styles.badgeNeutral}>Adopter</span>;
+      return <StatusBadge variant='neutral' label='Adopter' />;
   }
 };
 
 const getStatusBadge = (status: string, emailVerified: boolean): React.ReactElement => {
   if (status === 'suspended') {
-    return <span className={styles.badgeDanger}>Suspended</span>;
+    return <StatusBadge variant='error' label='Suspended' />;
   }
   if (status === 'pending' || !emailVerified) {
-    return <span className={styles.badgeWarning}>Pending</span>;
+    return <StatusBadge variant='warning' label='Pending' />;
   }
-  return <span className={styles.badgeSuccess}>Active</span>;
+  return <StatusBadge variant='success' label='Active' />;
 };
+
+const USER_TYPE_OPTIONS: ReadonlyArray<{ value: UserType; label: string }> = [
+  { value: 'adopter', label: 'Adopter' },
+  { value: 'rescue_staff', label: 'Rescue Staff' },
+  { value: 'support_agent', label: 'Support Agent' },
+  { value: 'moderator', label: 'Moderator' },
+  { value: 'admin', label: 'Admin' },
+  { value: 'super_admin', label: 'Super Admin' },
+];
+
+const USER_STATUS_OPTIONS: ReadonlyArray<{ value: UserStatus; label: string }> = [
+  { value: 'active', label: 'Active' },
+  { value: 'inactive', label: 'Inactive' },
+  { value: 'suspended', label: 'Suspended' },
+  { value: 'pending_verification', label: 'Pending Verification' },
+  { value: 'deactivated', label: 'Deactivated' },
+];
+
+const toUserType = (value: string | string[], fallback: UserType): UserType =>
+  USER_TYPE_OPTIONS.find(option => option.value === value)?.value ?? fallback;
+
+const toUserStatus = (value: string | string[], fallback: UserStatus): UserStatus =>
+  USER_STATUS_OPTIONS.find(option => option.value === value)?.value ?? fallback;
 
 // ── Overview Tab ──────────────────────────────────────────────────
 
@@ -220,13 +247,10 @@ const EditTab: React.FC<{
 
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
-      {error && <div className={styles.formError}>{error}</div>}
+      {error && <Alert variant='error'>{error}</Alert>}
 
       <div className={styles.formRow}>
-        <div className={styles.formGroup}>
-          <label className={styles.formLabel} htmlFor='edit-first-name'>
-            First Name
-          </label>
+        <FormField label='First Name' htmlFor='edit-first-name' required>
           <Input
             id='edit-first-name'
             type='text'
@@ -234,11 +258,8 @@ const EditTab: React.FC<{
             onChange={e => setFormData({ ...formData, firstName: e.target.value })}
             required
           />
-        </div>
-        <div className={styles.formGroup}>
-          <label className={styles.formLabel} htmlFor='edit-last-name'>
-            Last Name
-          </label>
+        </FormField>
+        <FormField label='Last Name' htmlFor='edit-last-name' required>
           <Input
             id='edit-last-name'
             type='text'
@@ -246,13 +267,10 @@ const EditTab: React.FC<{
             onChange={e => setFormData({ ...formData, lastName: e.target.value })}
             required
           />
-        </div>
+        </FormField>
       </div>
 
-      <div className={styles.formGroup}>
-        <label className={styles.formLabel} htmlFor='edit-email'>
-          Email
-        </label>
+      <FormField label='Email' htmlFor='edit-email' required>
         <Input
           id='edit-email'
           type='email'
@@ -260,60 +278,42 @@ const EditTab: React.FC<{
           onChange={e => setFormData({ ...formData, email: e.target.value })}
           required
         />
-      </div>
+      </FormField>
 
-      <div className={styles.formGroup}>
-        <label className={styles.formLabel} htmlFor='edit-phone'>
-          Phone Number
-        </label>
+      <FormField label='Phone Number' htmlFor='edit-phone'>
         <Input
           id='edit-phone'
           type='tel'
           value={formData.phoneNumber}
           onChange={e => setFormData({ ...formData, phoneNumber: e.target.value })}
         />
-      </div>
+      </FormField>
 
       <div className={styles.formRow}>
-        <div className={styles.formGroup}>
-          <label className={styles.formLabel} htmlFor='edit-role'>
-            Role
-          </label>
-          <select
-            className={styles.formSelect}
-            id='edit-role'
-            value={formData.userType}
-            onChange={e => setFormData({ ...formData, userType: e.target.value as UserType })}
-          >
-            <option value='adopter'>Adopter</option>
-            <option value='rescue_staff'>Rescue Staff</option>
-            <option value='support_agent'>Support Agent</option>
-            <option value='moderator'>Moderator</option>
-            <option value='admin'>Admin</option>
-            <option value='super_admin'>Super Admin</option>
-          </select>
-        </div>
-        <div className={styles.formGroup}>
-          <label className={styles.formLabel} htmlFor='edit-status'>
-            Status
-          </label>
-          <select
-            className={styles.formSelect}
-            id='edit-status'
-            value={formData.status}
-            onChange={e => setFormData({ ...formData, status: e.target.value as UserStatus })}
-          >
-            <option value='active'>Active</option>
-            <option value='inactive'>Inactive</option>
-            <option value='suspended'>Suspended</option>
-            <option value='pending_verification'>Pending Verification</option>
-            <option value='deactivated'>Deactivated</option>
-          </select>
-        </div>
+        <SelectInput
+          label='Role'
+          data-testid='edit-role'
+          value={formData.userType}
+          onChange={value =>
+            setFormData({ ...formData, userType: toUserType(value, formData.userType) })
+          }
+          options={[...USER_TYPE_OPTIONS]}
+          fullWidth
+        />
+        <SelectInput
+          label='Status'
+          data-testid='edit-status'
+          value={formData.status}
+          onChange={value =>
+            setFormData({ ...formData, status: toUserStatus(value, formData.status) })
+          }
+          options={[...USER_STATUS_OPTIONS]}
+          fullWidth
+        />
       </div>
 
       <div className={styles.formActions}>
-        {saved && <span className={styles.badgeSuccess}>Saved</span>}
+        {saved && <StatusBadge variant='success' label='Saved' />}
         <Button type='submit' variant='primary' size='sm' disabled={isSubmitting}>
           {isSubmitting ? 'Saving...' : 'Save Changes'}
         </Button>
@@ -340,57 +340,67 @@ const ActionsTab: React.FC<{
     <div className={styles.actionsSection}>
       <div className={styles.actionGroup}>
         <span className={styles.actionGroupLabel}>Communication</span>
-        <button type='button' className={styles.actionButton} onClick={() => onMessage(user)}>
-          <Mail size='1em' /> Send Message
-        </button>
+        <Button
+          variant='outline'
+          size='sm'
+          startIcon={<Mail size='1em' />}
+          onClick={() => onMessage(user)}
+        >
+          Send Message
+        </Button>
       </div>
 
       <div className={styles.actionGroup}>
         <span className={styles.actionGroupLabel}>Account</span>
         {user.status === 'suspended' ? (
-          <button
-            type='button'
-            className={styles.actionButton}
+          <Button
+            variant='outline'
+            size='sm'
+            startIcon={<Play size='1em' />}
             onClick={() => onUnsuspend(user.userId)}
           >
-            <Play size='1em' /> Unsuspend User
-          </button>
+            Unsuspend User
+          </Button>
         ) : (
-          <button
-            type='button'
-            className={styles.actionButton}
+          <Button
+            variant='outline'
+            size='sm'
+            startIcon={<Pause size='1em' />}
             onClick={() => setConfirmType('suspend')}
           >
-            <Pause size='1em' /> Suspend User
-          </button>
+            Suspend User
+          </Button>
         )}
         {!user.emailVerified && (
-          <button
-            type='button'
-            className={styles.actionButton}
+          <Button
+            variant='outline'
+            size='sm'
+            startIcon={<CircleCheck size='1em' />}
             onClick={() => onVerify(user.userId)}
           >
-            <CircleCheck size='1em' /> Verify Email
-          </button>
+            Verify Email
+          </Button>
         )}
-        <button
-          type='button'
-          className={styles.actionButton}
+        <Button
+          variant='outline'
+          size='sm'
+          startIcon={<Key size='1em' />}
           onClick={() => onResetPassword(user.userId)}
         >
-          <Key size='1em' /> Reset Password
-        </button>
+          Reset Password
+        </Button>
       </div>
 
       <div className={styles.actionGroup}>
         <span className={styles.actionGroupLabel}>Danger Zone</span>
-        <button
-          type='button'
-          className={clsx(styles.actionButton, styles.actionButtonDanger)}
+        <Button
+          variant='danger'
+          size='sm'
+          startIcon={<Trash2 size='1em' />}
           onClick={() => setConfirmType('delete')}
         >
-          <Trash2 size='1em' /> Delete User
-        </button>
+          Delete User
+        </Button>
       </div>
 
       <ConfirmationModal
@@ -451,8 +461,7 @@ const ActivityTab: React.FC<{ userId: string }> = ({ userId }) => {
           <div className={styles.activityContent}>
             <p className={styles.activityDescription}>{activity.description}</p>
             <p className={styles.activityMeta}>
-              {activity.activityType} &middot;{' '}
-              {new Date(activity.createdAt).toLocaleString('en-GB')}
+              {activity.activityType} &middot; {formatDateTime(activity.createdAt)}
             </p>
           </div>
         </div>
@@ -504,7 +513,7 @@ export const UserDetailPanel: React.FC<UserDetailPanelProps> = ({
       tabs={tabs}
       header={
         <>
-          <div className={styles.avatar}>{getUserInitials(user.firstName, user.lastName)}</div>
+          <Avatar initials={getUserInitials(user.firstName, user.lastName)} size='lg' />
           <div className={styles.headerInfo}>
             <h3 className={styles.headerName}>
               {user.firstName} {user.lastName}

@@ -22,12 +22,15 @@ export {
   useHasAllPermissions,
 } from './hooks/useHasPermission';
 export type { PermissionCheckResult } from './hooks/useHasPermission';
+export { useOneTimeUrlToken } from './hooks/useOneTimeUrlToken';
 
 // Components
+export { SanctionBannerHost } from './components/SanctionBannerHost';
 export { PermissionGate } from './components/PermissionGate';
 export type { PermissionGateProps } from './components/PermissionGate';
 export { AuthLayout } from './components/AuthLayout';
 export type { AuthLayoutProps } from './components/AuthLayout';
+export { ForgotPasswordPage, ResetPasswordPage } from './components/PasswordRecoveryPages';
 export { LoginForm } from './components/LoginForm';
 export type { LoginFormProps } from './components/LoginForm';
 export { RegisterForm } from './components/RegisterForm';
@@ -35,14 +38,24 @@ export type { RegisterFormProps } from './components/RegisterForm';
 export { SocialSignInButtons } from './components/SocialSignInButtons';
 export type { SocialSignInButtonsProps, SocialProvider } from './components/SocialSignInButtons';
 export { TwoFactorSettings } from './components/TwoFactorSettings';
-export { ForgotPasswordForm, ResetPasswordForm } from './components/PasswordRecoveryForms';
+export {
+  ForgotPasswordForm,
+  ResetPasswordForm,
+  classifyFailure,
+  rateLimitMessage,
+} from './components/PasswordRecoveryForms';
+export { NEW_PASSWORD_HINT, NewPasswordSchema } from './utils/new-password';
 export type {
+  RequestOutcome,
   ForgotPasswordFormProps,
   ResetPasswordFormProps,
 } from './components/PasswordRecoveryForms';
 export type { TwoFactorSettingsProps } from './components/TwoFactorSettings';
 export { BackupCodesReveal } from './components/BackupCodesReveal';
 export type { BackupCodesRevealProps } from './components/BackupCodesReveal';
+
+// Utils
+export { isSafeRedirectPath, redirectTargetFromState } from './utils/safeRedirect';
 
 // Types
 export * from './types';

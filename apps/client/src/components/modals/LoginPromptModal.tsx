@@ -1,5 +1,6 @@
 import React from 'react';
-import { Heart, User, X } from 'lucide-react';
+import { Button, Modal } from '@adopt-dont-shop/lib.components';
+import { Heart, User } from 'lucide-react';
 import { Link } from 'react-router';
 import * as styles from './LoginPromptModal.css';
 
@@ -40,31 +41,9 @@ export const LoginPromptModal: React.FC<LoginPromptModalProps> = ({
   };
 
   return (
-    // UX P2 I: backdrop is a click-target convenience, not an interactive
-    // control — the accessible close affordance is the ✕ button inside the
-    // modal content.
-    <div
-      className={styles.modalOverlay({ isOpen })}
-      onClick={onClose}
-      role='presentation'
-      onKeyDown={e => {
-        if (e.key === 'Escape') {
-          onClose();
-        }
-      }}
-    >
-      <div
-        className={styles.modalContent({ isOpen })}
-        onClick={e => e.stopPropagation()}
-        role='presentation'
-      >
-        <button className={styles.closeButton} onClick={onClose}>
-          <X size='1em' />
-        </button>
-
+    <Modal isOpen={isOpen} onClose={onClose} size='sm' title="Join Adopt Don't Shop">
+      <div className={styles.content}>
         <div className={styles.icon}>{getActionIcon()}</div>
-
-        <h2 className={styles.title}>Join Adopt Don&apos;t Shop</h2>
 
         <p className={styles.message}>
           To {getActionMessage()}, you&apos;ll need to create an account or sign in. It&apos;s free
@@ -81,11 +60,11 @@ export const LoginPromptModal: React.FC<LoginPromptModalProps> = ({
             Sign In
           </Link>
 
-          <button className={styles.skipButton} type='button' onClick={onClose}>
+          <Button variant='ghost' size='sm' onClick={onClose}>
             Continue browsing
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

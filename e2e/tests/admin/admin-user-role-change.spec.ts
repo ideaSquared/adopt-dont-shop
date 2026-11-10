@@ -1,6 +1,7 @@
 import { test, expect } from '../../fixtures';
 import { createVerifiedAdopter, loginAccountViaApi } from '../../helpers/accounts';
 import { dismissCookieBannerPatiently } from '../../helpers/cookie-banner-patient';
+import { chooseSelectOption } from '../../helpers/radix-select';
 
 /**
  * An admin changes a user's role from the Edit tab of the Users page detail
@@ -13,14 +14,14 @@ test.describe('changing a user role in the admin app', () => {
 
     await dismissCookieBannerPatiently(page);
     await page.goto('/users');
-    await page.getByRole('textbox', { name: /search by name or email/i }).fill(target.email);
+    await page.getByRole('searchbox', { name: 'Search', exact: true }).fill(target.email);
     // Wait for the debounced search to settle (header row + the one match).
     await expect(page.getByRole('row')).toHaveCount(2, { timeout: 30_000 });
     const row = page.getByRole('row').filter({ hasText: target.email });
     await row.getByRole('cell').filter({ hasText: target.email }).click();
 
     await page.getByRole('tab', { name: 'Edit' }).click();
-    await page.getByLabel('Role').selectOption('moderator');
+    await chooseSelectOption(page, page.getByLabel('Role'), 'Moderator');
     await page.getByRole('button', { name: 'Save Changes' }).click();
     await expect(row.getByRole('cell', { name: 'Moderator' })).toBeVisible({ timeout: 15_000 });
 

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderWithProviders, screen, userEvent, waitFor, fireEvent } from '../../test-utils';
 import RescueProfileForm from './RescueProfileForm';
+import { toast } from '@adopt-dont-shop/lib.components';
 import type { RescueProfile } from '../../types/rescue';
 
 // The global test setup renders SelectInput as an empty <select>. Expose the props the form
@@ -115,6 +116,7 @@ describe('RescueProfileForm', () => {
   it('saves the edited top-level and address values when valid', async () => {
     const user = userEvent.setup();
     const onSave = vi.fn().mockResolvedValue(undefined);
+    const successToast = vi.spyOn(toast, 'success').mockImplementation(() => 'toast-id');
     renderWithProviders(<RescueProfileForm rescue={buildRescue()} onSave={onSave} />);
 
     const name = screen.getByLabelText(/rescue name/i);
@@ -134,7 +136,9 @@ describe('RescueProfileForm', () => {
     expect(saved.address.city).toBe('Manchester');
     expect(saved.address.postcode).toBe('SW1A 1AA');
     expect(saved.address.country).toBe('GB');
-    expect(await screen.findByText(/updated successfully/i)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(successToast).toHaveBeenCalledWith('Rescue profile updated successfully!')
+    );
   });
 
   it('holds the API country code in the built-in country select', () => {

@@ -51,6 +51,7 @@
     "prepublishOnly": "pnpm clean && pnpm build"
   },
   "dependencies": {
+    "@adopt-dont-shop/lib.types": "workspace:*",
     "@radix-ui/react-dropdown-menu": "^2.1.18",
     "@radix-ui/react-select": "^2.3.1",
     "@radix-ui/react-tooltip": "^1.2.10",

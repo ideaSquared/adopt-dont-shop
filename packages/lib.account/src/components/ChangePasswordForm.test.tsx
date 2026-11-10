@@ -7,7 +7,9 @@ const changePassword = vi.fn();
 const logout = vi.fn();
 const toastSuccess = vi.fn();
 
-vi.mock('@adopt-dont-shop/lib.auth', () => ({
+vi.mock('@adopt-dont-shop/lib.auth', async importOriginal => ({
+  // Keep the real password policy so weak passwords are rejected as in production.
+  ...(await importOriginal<typeof import('@adopt-dont-shop/lib.auth')>()),
   authService: { changePassword: (...args: unknown[]) => changePassword(...args) },
   useAuth: () => ({ logout }),
 }));
@@ -47,12 +49,12 @@ describe('ChangePasswordForm', () => {
     const user = userEvent.setup();
     renderForm();
 
-    await fill(user, { current: 'old-pass-1', next: 'new-pass-123', confirm: 'new-pass-123' });
+    await fill(user, { current: 'old-pass-1', next: 'New-pass-123', confirm: 'New-pass-123' });
 
     await waitFor(() =>
       expect(changePassword).toHaveBeenCalledWith({
         currentPassword: 'old-pass-1',
-        newPassword: 'new-pass-123',
+        newPassword: 'New-pass-123',
       })
     );
     await waitFor(() => expect(logout).toHaveBeenCalled());
@@ -71,11 +73,25 @@ describe('ChangePasswordForm', () => {
     expect(changePassword).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['no uppercase letter', 'new-pass-123!', /uppercase letter/i],
+    ['no digit', 'New-pass-abc', /digit/i],
+    ['no symbol', 'NewPass123', /special character/i],
+  ])('rejects a new password with %s', async (_label, next, message) => {
+    const user = userEvent.setup();
+    renderForm();
+
+    await fill(user, { current: 'old-pass-1', next, confirm: next });
+
+    expect(await screen.findByText(message)).toBeInTheDocument();
+    expect(changePassword).not.toHaveBeenCalled();
+  });
+
   it('requires the confirmation to match', async () => {
     const user = userEvent.setup();
     renderForm();
 
-    await fill(user, { current: 'old-pass-1', next: 'new-pass-123', confirm: 'new-pass-124' });
+    await fill(user, { current: 'old-pass-1', next: 'New-pass-123', confirm: 'New-pass-124' });
 
     expect(await screen.findByText(/passwords do not match/i)).toBeInTheDocument();
     expect(changePassword).not.toHaveBeenCalled();
@@ -86,7 +102,7 @@ describe('ChangePasswordForm', () => {
     changePassword.mockRejectedValue(new Error('current password is incorrect'));
     renderForm();
 
-    await fill(user, { current: 'wrong', next: 'new-pass-123', confirm: 'new-pass-123' });
+    await fill(user, { current: 'wrong', next: 'New-pass-123', confirm: 'New-pass-123' });
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       /could not change your password\. check your current password/i

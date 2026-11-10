@@ -4,7 +4,7 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 export const confirmationContent = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const confirmationMessage = style({
@@ -14,44 +14,19 @@ export const confirmationMessage = style({
 });
 
 export const userInfoBox = style({
-  padding: '1rem',
+  padding: vars.spacing['3'],
   background: '#f9fafb',
   border: '1px solid #e5e7eb',
-  borderRadius: '8px',
-  fontWeight: '500',
+  borderRadius: vars.border.radius.base,
+  fontWeight: vars.typography.weight.medium,
   color: '#111827',
-});
-
-export const reasonTextArea = style({
-  padding: '0.625rem 0.875rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '8px',
-  fontSize: '0.875rem',
-  color: '#111827',
-  background: '#ffffff',
-  fontFamily: 'inherit',
-  resize: 'vertical',
-  minHeight: '100px',
-  width: '100%',
-  transition: 'all 0.2s ease',
-  ':hover': {
-    borderColor: '#9ca3af',
-  },
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: vars.colors.primary,
-    boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}`,
-  },
-  '::placeholder': {
-    color: '#9ca3af',
-  },
 });
 
 export const buttonGroup = style({
   display: 'flex',
   gap: '0.75rem',
   justifyContent: 'flex-end',
-  paddingTop: '1rem',
+  paddingTop: vars.spacing['3'],
   borderTop: '1px solid #e5e7eb',
 });
 
@@ -59,16 +34,8 @@ export const dangerBox = style({
   padding: '0.75rem 1rem',
   background: '#fee2e2',
   border: '1px solid #fecaca',
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
   color: '#991b1b',
-  fontSize: '0.875rem',
-  fontWeight: '500',
-});
-
-export const reasonLabel = style({
-  display: 'block',
-  marginBottom: '0.5rem',
-  fontSize: '0.875rem',
-  fontWeight: 600,
-  color: '#374151',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.medium,
 });

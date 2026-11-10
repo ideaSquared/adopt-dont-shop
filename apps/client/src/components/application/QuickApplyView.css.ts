@@ -7,16 +7,16 @@ export const container = style({
 });
 
 export const finalStep = style({
-  marginTop: '2rem',
-  padding: '1.5rem',
+  marginTop: vars.spacing['5'],
+  padding: vars.spacing['4'],
   background: vars.background.body,
   border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '0.75rem',
+  borderRadius: vars.border.radius.lg,
 });
 
 export const finalTitle = style({
-  margin: '0 0 0.5rem 0',
-  fontSize: '1.125rem',
+  margin: `0 0 ${vars.spacing['2']} 0`,
+  fontSize: vars.typography.size.lg,
   color: vars.text.primary,
 });
 
@@ -30,8 +30,8 @@ export const actions = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  gap: '1rem',
-  marginTop: '2rem',
+  gap: vars.spacing['3'],
+  marginTop: vars.spacing['5'],
   flexWrap: 'wrap',
   '@media': {
     '(max-width: 640px)': {
@@ -45,7 +45,7 @@ export const switchLink = style({
   background: 'none',
   border: 'none',
   padding: 0,
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: vars.colors.primaryHover,
   cursor: 'pointer',
   textDecoration: 'underline',
@@ -56,5 +56,5 @@ export const switchLink = style({
 });
 
 export const validationAlert = style({
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });

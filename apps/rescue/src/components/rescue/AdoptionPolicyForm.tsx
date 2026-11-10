@@ -5,12 +5,12 @@ import {
   Input,
   FormField,
   TextArea as LibTextArea,
-  Alert,
   CheckboxInput,
   FormSection,
   FormRow,
+  toast,
 } from '@adopt-dont-shop/lib.components';
-import type { AdoptionPolicy } from '../../types/rescue';
+import type { AdoptionPolicy } from '@adopt-dont-shop/lib.rescue';
 import * as styles from './AdoptionPolicyForm.css';
 
 type PolicyErrors = {
@@ -52,8 +52,6 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
   const [formData, setFormData] = useState<AdoptionPolicy>(DEFAULT_POLICY);
   const [errors, setErrors] = useState<PolicyErrors>({});
   const [saving, setSaving] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const requirementIds = useRef<string[]>([]);
   const policyIds = useRef<string[]>([]);
@@ -69,8 +67,6 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
 
   const handleChange = (field: keyof AdoptionPolicy, value: unknown) => {
     setHasChanges(true);
-    setSuccessMessage(null);
-    setErrorMessage(null);
     setFormData(prev => ({ ...prev, [field]: value }) as AdoptionPolicy);
   };
 
@@ -128,8 +124,6 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
     setErrors({});
 
     setSaving(true);
-    setSuccessMessage(null);
-    setErrorMessage(null);
 
     try {
       // Filter out empty strings from lists
@@ -140,11 +134,11 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
       };
 
       await onSave(cleanedData);
-      setSuccessMessage('Adoption policies updated successfully!');
+      toast.success('Adoption policies updated successfully!');
       setHasChanges(false);
     } catch (error) {
       console.error('Error saving adoption policies:', error);
-      setErrorMessage(
+      toast.error(
         error instanceof Error
           ? error.message
           : 'Failed to save adoption policies. Please try again.'
@@ -158,17 +152,12 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
     if (policy) {
       setFormData(policy);
       setHasChanges(false);
-      setSuccessMessage(null);
-      setErrorMessage(null);
     }
   };
 
   return (
     <Card className={styles.formContainer}>
       <form onSubmit={handleSubmit} noValidate>
-        {successMessage && <Alert variant="success">{successMessage}</Alert>}
-        {errorMessage && <Alert variant="error">{errorMessage}</Alert>}
-
         <div className={styles.formSection}>
           <h3 className={styles.sectionTitle}>Application Requirements</h3>
 
@@ -261,22 +250,24 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
                   onChange={e => updateListItem('requirements', index, e.target.value)}
                   placeholder="e.g., Must be 21 years or older"
                 />
-                <button
-                  className={styles.removeButton}
+                <Button
                   type="button"
+                  variant="danger"
+                  size="sm"
                   onClick={() => removeListItem('requirements', index)}
                 >
                   Remove
-                </button>
+                </Button>
               </div>
             ))}
-            <button
-              className={styles.addButton}
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={() => addListItem('requirements')}
             >
               + Add Requirement
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -292,22 +283,24 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
                   onChange={e => updateListItem('policies', index, e.target.value)}
                   placeholder="e.g., All pets must be spayed/neutered"
                 />
-                <button
-                  className={styles.removeButton}
+                <Button
                   type="button"
+                  variant="danger"
+                  size="sm"
                   onClick={() => removeListItem('policies', index)}
                 >
                   Remove
-                </button>
+                </Button>
               </div>
             ))}
-            <button
-              className={styles.addButton}
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={() => addListItem('policies')}
             >
               + Add Policy
-            </button>
+            </Button>
           </div>
         </div>
 

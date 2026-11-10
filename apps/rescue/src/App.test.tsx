@@ -17,6 +17,9 @@ vi.mock('@adopt-dont-shop/lib.legal', () => ({
 }));
 
 vi.mock('@adopt-dont-shop/lib.auth', () => ({
+  ForgotPasswordPage: () => null,
+  ResetPasswordPage: () => null,
+  redirectTargetFromState: () => '/',
   useAuth: () => ({
     user: { userId: 'u1', userType: 'rescue_staff' },
     isAuthenticated: true,
@@ -32,9 +35,6 @@ vi.mock('./components/shared/Layout', () => ({
 }));
 vi.mock('./components/dev/DevLoginPanel', () => ({
   default: () => null,
-}));
-vi.mock('./components/ErrorBoundary', () => ({
-  default: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
 import App from './App';

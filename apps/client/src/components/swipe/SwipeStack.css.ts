@@ -32,22 +32,22 @@ export const emptyState = style({
   width: '100%',
   textAlign: 'center',
   color: '#475569',
-  padding: '2rem',
+  padding: vars.spacing['5'],
   background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-  borderRadius: '24px',
+  borderRadius: vars.border.radius['2xl'],
   border: '2px dashed #cbd5e1',
 });
 
 export const emptyIcon = style({
   fontSize: '4rem',
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
   opacity: 0.7,
 });
 
 export const emptyTitle = style({
   fontSize: '1.4rem',
-  fontWeight: 700,
-  marginBottom: '0.5rem',
+  fontWeight: vars.typography.weight.bold,
+  marginBottom: vars.spacing['2'],
   color: '#1e293b',
 });
 
@@ -92,7 +92,7 @@ export const accessibleControls = style({
       width: 'auto',
       height: 'auto',
       display: 'flex',
-      gap: '0.5rem',
+      gap: vars.spacing['2'],
       padding: '0.5rem 0.75rem',
       background: vars.background.surface,
       borderRadius: vars.border.radius.base,
@@ -110,8 +110,8 @@ export const accessibleControlButton = style({
   border: `1px solid ${vars.border.color.default}`,
   background: vars.background.body,
   color: vars.text.primary,
-  fontSize: '0.875rem',
-  fontWeight: 600,
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.semibold,
   cursor: 'pointer',
   selectors: {
     '&:focus-visible': {
@@ -130,7 +130,7 @@ export const skeletonCard = style({
   width: '100%',
   maxWidth: '380px',
   height: '620px',
-  borderRadius: '24px',
+  borderRadius: vars.border.radius['2xl'],
   background: 'linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 40%, #f1f5f9 80%)',
   backgroundSize: '800px 100%',
   animationName: shimmer,

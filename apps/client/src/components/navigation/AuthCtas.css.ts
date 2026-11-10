@@ -12,7 +12,7 @@ export const ghostLink = style({
   textDecoration: 'none',
   padding: `${vars.spacing['2']} ${vars.spacing['2']}`,
   borderRadius: vars.border.radius.base,
-  fontWeight: 500,
+  fontWeight: vars.typography.weight.medium,
   fontSize: vars.typography.size.sm,
   transition: `background ${vars.transitions.fast}`,
   ':hover': {
@@ -30,7 +30,7 @@ export const solidLink = style({
   textDecoration: 'none',
   padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
   borderRadius: vars.border.radius.base,
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
   fontSize: vars.typography.size.sm,
   transition: `transform ${vars.transitions.fast}, box-shadow ${vars.transitions.fast}`,
   ':hover': {

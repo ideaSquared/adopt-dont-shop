@@ -13,9 +13,16 @@ import type { ReactNode } from 'react';
 
 const trackEvent = vi.fn();
 const trackPageView = vi.fn();
+const constructorArgs = vi.hoisted(() => ({ calls: [] as unknown[][] }));
+const sharedApiService = vi.hoisted(() => ({ name: 'shared-api-service' }));
+
+vi.mock('@/services/libraryServices', () => ({ apiService: sharedApiService }));
 
 vi.mock('@adopt-dont-shop/lib.analytics', () => ({
   AnalyticsService: class {
+    constructor(...args: unknown[]) {
+      constructorArgs.calls.push(args);
+    }
     trackEvent = trackEvent;
     trackPageView = trackPageView;
   },
@@ -32,6 +39,13 @@ beforeEach(() => {
 });
 
 describe('AnalyticsContext', () => {
+  it('builds the analytics service on the shared apiService', () => {
+    constructorArgs.calls.length = 0;
+    renderHook(() => useAnalytics(), { wrapper });
+
+    expect(constructorArgs.calls[0]?.[1]).toBe(sharedApiService);
+  });
+
   it('forwards trackEvent to the analytics service', () => {
     const { result } = renderHook(() => useAnalytics(), { wrapper });
 

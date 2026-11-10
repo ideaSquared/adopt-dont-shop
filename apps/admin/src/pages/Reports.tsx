@@ -1,17 +1,21 @@
 import React from 'react';
 import { Link } from 'react-router';
-import { Button, Heading, Text } from '@adopt-dont-shop/lib.components';
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  EmptyState,
+  ErrorState,
+  Heading,
+  PageHeader,
+  QueryBoundary,
+  Spinner,
+  Stack,
+  Text,
+} from '@adopt-dont-shop/lib.components';
 import { Plus } from 'lucide-react';
 import { useReports, useReportTemplates } from '@adopt-dont-shop/lib.analytics';
-import {
-  PageContainer,
-  PageHeader,
-  HeaderLeft,
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from '../components/ui';
 import * as styles from './Reports.css';
 
 /**
@@ -25,36 +29,46 @@ import * as styles from './Reports.css';
 const Reports: React.FC = () => {
   const reportsQuery = useReports();
   const templatesQuery = useReportTemplates();
+  const reports = reportsQuery.data ?? [];
+  const templates = templatesQuery.data ?? [];
 
   return (
-    <PageContainer>
-      <PageHeader>
-        <HeaderLeft>
-          <Heading level='h1'>Reports</Heading>
-          <Text>Build, schedule, and share custom analytics reports.</Text>
-        </HeaderLeft>
-        <Link to='/reports/new'>
-          <Button variant='primary'>
-            <Plus size='1em' className={styles.buttonIcon} />
-            New report
-          </Button>
-        </Link>
-      </PageHeader>
+    <Stack spacing='lg'>
+      <PageHeader
+        title='Reports'
+        description='Build, schedule, and share custom analytics reports.'
+        actions={
+          <Link to='/reports/new'>
+            <Button variant='primary' startIcon={<Plus size='1em' />}>
+              New report
+            </Button>
+          </Link>
+        }
+      />
 
       <Card>
         <CardHeader>
-          <CardTitle>Your reports</CardTitle>
+          <Heading level='h2' size='lg' noMargin>
+            Your reports
+          </Heading>
         </CardHeader>
         <CardContent>
-          {reportsQuery.isLoading ? (
-            <Text>Loading…</Text>
-          ) : reportsQuery.isError ? (
-            <Text>Failed to load reports.</Text>
-          ) : (reportsQuery.data ?? []).length === 0 ? (
-            <Text>You haven&apos;t saved any reports yet. Start with a template below.</Text>
-          ) : (
+          <QueryBoundary
+            isLoading={reportsQuery.isLoading}
+            isError={reportsQuery.isError}
+            isEmpty={reports.length === 0}
+            loadingFallback={<Spinner />}
+            errorFallback={<ErrorState message='Failed to load reports.' />}
+            emptyFallback={
+              <EmptyState
+                size='sm'
+                title="You haven't saved any reports yet."
+                description='Start with a template below.'
+              />
+            }
+          >
             <div className={styles.reportList}>
-              {(reportsQuery.data ?? []).map(report => (
+              {reports.map(report => (
                 <Link
                   key={report.saved_report_id}
                   to={`/reports/${report.saved_report_id}`}
@@ -72,20 +86,25 @@ const Reports: React.FC = () => {
                 </Link>
               ))}
             </div>
-          )}
+          </QueryBoundary>
         </CardContent>
       </Card>
 
-      <Card className={styles.templatesCard}>
+      <Card>
         <CardHeader>
-          <CardTitle>Report templates</CardTitle>
+          <Heading level='h2' size='lg' noMargin>
+            Report templates
+          </Heading>
         </CardHeader>
         <CardContent>
-          {templatesQuery.isLoading ? (
-            <Text>Loading…</Text>
-          ) : (
+          <QueryBoundary
+            isLoading={templatesQuery.isLoading}
+            isEmpty={templates.length === 0}
+            loadingFallback={<Spinner />}
+            emptyFallback={<Text>No templates available.</Text>}
+          >
             <div className={styles.templatesGrid}>
-              {(templatesQuery.data ?? []).map(template => (
+              {templates.map(template => (
                 <Link
                   key={template.template_id}
                   to={`/reports/new?template=${template.template_id}`}
@@ -97,14 +116,11 @@ const Reports: React.FC = () => {
                   </div>
                 </Link>
               ))}
-              {(templatesQuery.data ?? []).length === 0 ? (
-                <Text>No templates available.</Text>
-              ) : null}
             </div>
-          )}
+          </QueryBoundary>
         </CardContent>
       </Card>
-    </PageContainer>
+    </Stack>
   );
 };
 

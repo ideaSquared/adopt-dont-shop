@@ -6,6 +6,7 @@ import {
   RegisterRequestSchema,
   RequestPasswordResetSchema,
   ResetPasswordSchema,
+  NewPasswordSchema,
   StrongPasswordSchema,
   UpdateProfileRequestSchema,
   UserStatusSchema,
@@ -36,6 +37,21 @@ describe('User schemas', () => {
     it('rejects a local part that mixes Latin and Cyrillic (homograph squatting)', () => {
       // 'аdmin@example.com' — Cyrillic а (U+0430) + Latin dmin
       expect(() => EmailSchema.parse('аdmin@example.com')).toThrow(/multiple scripts/);
+    });
+  });
+
+  describe('NewPasswordSchema', () => {
+    it('accepts a strong password of up to 128 characters', () => {
+      expect(() => NewPasswordSchema.parse('Abc123!@')).not.toThrow();
+      expect(() => NewPasswordSchema.parse(`Aa1!${'x'.repeat(124)}`)).not.toThrow();
+    });
+
+    it('rejects a strong password longer than 128 characters', () => {
+      expect(() => NewPasswordSchema.parse(`Aa1!${'x'.repeat(125)}`)).toThrow();
+    });
+
+    it('rejects a long password that is missing a required character class', () => {
+      expect(() => NewPasswordSchema.parse('longbutweakpassword')).toThrow();
     });
   });
 

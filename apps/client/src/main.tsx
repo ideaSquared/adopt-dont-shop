@@ -1,6 +1,7 @@
-import { ThemeProvider, Toaster, toast } from '@adopt-dont-shop/lib.components';
+import { ErrorBoundary, ThemeProvider, Toaster, toast } from '@adopt-dont-shop/lib.components';
 import { AuthProvider } from '@adopt-dont-shop/lib.auth';
 import {
+  captureException,
   createSentryWebVitalsReporter,
   initSentry,
   reportWebVitals,
@@ -11,7 +12,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router';
 import App from './App';
 import { StatsigWrapper } from './contexts/StatsigContext';
-import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 // ADS-594: promote deferred font stylesheet via CSSOM so the non-blocking
 // load works under a strict CSP (no inline `onload=` handler).
@@ -58,7 +58,15 @@ const queryClient = new QueryClient({
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ErrorBoundary>
+    <ErrorBoundary
+      onError={(error, errorInfo) =>
+        captureException(error, {
+          app: 'client',
+          boundary: 'root',
+          componentStack: errorInfo.componentStack,
+        })
+      }
+    >
       <QueryClientProvider client={queryClient}>
         <AuthProvider
           allowedUserTypes={['adopter']}

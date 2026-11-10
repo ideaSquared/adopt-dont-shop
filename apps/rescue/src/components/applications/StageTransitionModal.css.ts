@@ -1,53 +1,21 @@
 import { style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
-
-export const overlay = style({
-  position: 'fixed',
-  inset: 0,
-  background: 'rgba(75, 85, 99, 0.5)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 60,
-});
-
-export const modal = style({
-  background: 'white',
-  borderRadius: '0.5rem',
-  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-  maxWidth: '28rem',
-  width: '90%',
-  // Scroll inside the modal so Confirm stays reachable on short viewports.
-  maxHeight: '90vh',
-  overflowY: 'auto',
-  padding: '1.5rem',
-});
-
-export const header = style({
-  marginBottom: '1.5rem',
-});
-
-export const title = style({
-  fontSize: '1.125rem',
-  fontWeight: '600',
-  color: '#111827',
-  margin: '0 0 0.5rem 0',
-});
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const subtitle = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
-  margin: 0,
+  margin: `0 0 ${vars.spacing['3']} 0`,
 });
 
 export const stageDisplay = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '1rem',
-  margin: '1.5rem 0',
-  padding: '1rem',
+  gap: vars.spacing['3'],
+  margin: `${vars.spacing['4']} 0`,
+  padding: vars.spacing['3'],
   background: '#f9fafb',
-  borderRadius: '0.5rem',
+  borderRadius: vars.border.radius.base,
 });
 
 export const stageBox = style({
@@ -56,48 +24,32 @@ export const stageBox = style({
   color: 'white',
   borderRadius: '0.375rem',
   textAlign: 'center',
-  fontSize: '0.875rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.semibold,
 });
 
 export const arrow = style({
-  fontSize: '1.25rem',
+  fontSize: vars.typography.size.xl,
   color: '#9ca3af',
 });
 
 export const formField = style({
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const label = style({
   display: 'block',
-  fontSize: '0.875rem',
-  fontWeight: '500',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.medium,
   color: '#374151',
-  marginBottom: '0.5rem',
-});
-
-export const textArea = style({
-  width: '100%',
-  padding: '0.5rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '0.375rem',
-  fontSize: '0.875rem',
-  resize: 'vertical',
-  minHeight: '100px',
-  boxSizing: 'border-box',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#3b82f6',
-    boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
-  },
+  marginBottom: vars.spacing['2'],
 });
 
 export const actionList = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.5rem',
-  marginBottom: '1rem',
+  gap: vars.spacing['2'],
+  marginBottom: vars.spacing['3'],
 });
 
 export const actionOption = recipe({
@@ -130,14 +82,14 @@ export const actionOption = recipe({
 });
 
 export const actionLabel = style({
-  fontSize: '0.875rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.semibold,
   color: '#111827',
-  marginBottom: '0.25rem',
+  marginBottom: vars.spacing['1'],
 });
 
 export const actionDescription = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: '#6b7280',
 });
 
@@ -145,45 +97,12 @@ export const buttonGroup = style({
   display: 'flex',
   gap: '0.75rem',
   justifyContent: 'flex-end',
-  marginTop: '1.5rem',
-});
-
-export const button = recipe({
-  base: {
-    padding: '0.5rem 1rem',
-    fontSize: '0.875rem',
-    fontWeight: '500',
-    borderRadius: '0.375rem',
-    border: 'none',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-  },
-  variants: {
-    variant: {
-      primary: {
-        background: '#3b82f6',
-        color: 'white',
-        ':hover': { background: '#2563eb' },
-        ':disabled': {
-          background: '#9ca3af',
-          cursor: 'not-allowed',
-        },
-      },
-      secondary: {
-        background: '#f3f4f6',
-        color: '#374151',
-        ':hover': { background: '#e5e7eb' },
-      },
-    },
-  },
-  defaultVariants: {
-    variant: 'secondary',
-  },
+  marginTop: vars.spacing['4'],
 });
 
 export const noActionsMessage = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
   textAlign: 'center',
-  padding: '1rem',
+  padding: vars.spacing['3'],
 });

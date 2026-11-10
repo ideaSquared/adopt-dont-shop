@@ -13,11 +13,13 @@
 import { type ReactNode } from 'react';
 import { ChatProvider as LibChatProvider, useChat as useLibChat } from '@adopt-dont-shop/lib.chat';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
+import { useMyRescueId } from '../hooks/useMyRescueId';
 import { chatService } from '../services/libraryServices';
-import { resolveFileUrl } from '../utils/fileUtils';
+import { resolveFileUrl } from '@adopt-dont-shop/lib.utils';
 
 export function ChatProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
+  const rescueId = useMyRescueId();
 
   const chatUser = user
     ? {
@@ -27,7 +29,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         // Empty / undefined rescueId means the viewer is treated as an
         // adopter and rescue-staff messages render under the rescue's
         // public name.
-        rescueId: user.rescueId ?? undefined,
+        rescueId: rescueId ?? undefined,
       }
     : null;
 

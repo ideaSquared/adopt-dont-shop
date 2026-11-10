@@ -1,5 +1,11 @@
 import type { Locator, Page } from '@playwright/test';
 
+/** Open /profile on its Settings tab (the profile sections are a tablist). */
+export async function openProfileSettings(page: Page): Promise<void> {
+  await page.goto('/profile');
+  await page.getByRole('tab', { name: 'Settings', exact: true }).click();
+}
+
 /**
  * The shared account settings (lib.account) list each setting as a row with a
  * "Change …" button. Open the row titled `label` (as shown on screen, e.g.

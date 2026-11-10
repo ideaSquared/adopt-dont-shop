@@ -214,3 +214,43 @@ describe('PetCard adoption fee', () => {
     expect(screen.getByText('£0.00')).toBeInTheDocument();
   });
 });
+
+describe('PetCard delete confirmation', () => {
+  const openDeleteDialog = async (onDelete: (petId: string, reason?: string) => Promise<void>) => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <PetCard pet={buildPet()} onStatusChange={vi.fn()} onEdit={vi.fn()} onDelete={onDelete} />
+    );
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    return user;
+  };
+
+  it('asks for confirmation before deleting and does not delete on open', async () => {
+    const onDelete = vi.fn().mockResolvedValue(undefined);
+    await openDeleteDialog(onDelete);
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Delete Pet: Buddy' })).toBeInTheDocument();
+    expect(onDelete).not.toHaveBeenCalled();
+  });
+
+  it('deletes the pet with the optional reason once confirmed', async () => {
+    const onDelete = vi.fn().mockResolvedValue(undefined);
+    const user = await openDeleteDialog(onDelete);
+
+    await user.type(screen.getByLabelText(/reason for deletion/i), 'Adopted elsewhere');
+    await user.click(screen.getByRole('button', { name: 'Delete Pet' }));
+
+    expect(onDelete).toHaveBeenCalledWith('pet-1', 'Adopted elsewhere');
+  });
+
+  it('closes the dialog without deleting when cancelled', async () => {
+    const onDelete = vi.fn().mockResolvedValue(undefined);
+    const user = await openDeleteDialog(onDelete);
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(onDelete).not.toHaveBeenCalled();
+  });
+});

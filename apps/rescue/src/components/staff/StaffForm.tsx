@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FormField, Input } from '@adopt-dont-shop/lib.components';
+import { Button, FormField, Input, Modal } from '@adopt-dont-shop/lib.components';
 import { NewStaffMember, StaffMember } from '../../types/staff';
 import * as styles from './StaffForm.css';
 
@@ -10,6 +10,13 @@ interface StaffFormProps {
   isEditing?: boolean;
   loading?: boolean;
 }
+
+const submitLabel = (isEditing: boolean, loading: boolean): string => {
+  if (loading) {
+    return isEditing ? 'Updating...' : 'Adding...';
+  }
+  return isEditing ? 'Update Staff Member' : 'Add Staff Member';
+};
 
 const StaffForm: React.FC<StaffFormProps> = ({
   initialStaff,
@@ -72,92 +79,71 @@ const StaffForm: React.FC<StaffFormProps> = ({
   };
 
   return (
-    <div className={styles.formOverlay}>
-      <div className={styles.formModal}>
-        <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>
-            {isEditing ? 'Edit Staff Member' : 'Add New Staff Member'}
-          </h2>
-          <button className={styles.closeButton} onClick={onCancel} disabled={loading}>
-            ✕
-          </button>
-        </div>
-
-        <form className={styles.form} onSubmit={handleSubmit}>
-          <FormField
-            label="User ID"
-            htmlFor="userId"
+    <Modal
+      isOpen
+      onClose={onCancel}
+      title={isEditing ? 'Edit Staff Member' : 'Add New Staff Member'}
+      size="md"
+      showCloseButton={!loading}
+      closeOnEscape={!loading}
+      closeOnOverlayClick={!loading}
+    >
+      <form className={styles.form} onSubmit={handleSubmit}>
+        <FormField
+          label="User ID"
+          htmlFor="userId"
+          required
+          error={errors.userId}
+          description="This should be the user ID of an existing user in the system"
+        >
+          <Input
+            id="userId"
+            type="text"
+            value={formData.userId}
+            onChange={e => handleInputChange('userId', e.target.value)}
+            placeholder="Enter the user ID of the user to add as staff (e.g., user_0000rscst01)"
+            disabled={isEditing || loading}
             required
-            error={errors.userId}
-            description="This should be the user ID of an existing user in the system"
-          >
-            <Input
-              id="userId"
-              type="text"
-              value={formData.userId}
-              onChange={e => handleInputChange('userId', e.target.value)}
-              placeholder="Enter the user ID of the user to add as staff (e.g., user_0000rscst01)"
-              disabled={isEditing || loading}
-              required
-              aria-required={true}
-              aria-invalid={!!errors.userId}
-            />
-          </FormField>
+            aria-required={true}
+            aria-invalid={!!errors.userId}
+          />
+        </FormField>
 
-          <FormField label="Title" htmlFor="title" error={errors.title}>
-            <Input
-              id="title"
-              type="text"
-              value={formData.title || ''}
-              onChange={e => handleInputChange('title', e.target.value)}
-              placeholder="e.g., Volunteer, Coordinator, Manager"
-              disabled={loading}
-              maxLength={100}
-              aria-invalid={!!errors.title}
-            />
-          </FormField>
+        <FormField label="Title" htmlFor="title" error={errors.title}>
+          <Input
+            id="title"
+            type="text"
+            value={formData.title || ''}
+            onChange={e => handleInputChange('title', e.target.value)}
+            placeholder="e.g., Volunteer, Coordinator, Manager"
+            disabled={loading}
+            maxLength={100}
+            aria-invalid={!!errors.title}
+          />
+        </FormField>
 
-          <div className={styles.formActions}>
-            <button
-              type="button"
-              className={styles.actionButton({ variant: 'secondary' })}
-              onClick={onCancel}
-              disabled={loading}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className={styles.actionButton({ variant: 'primary' })}
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <span className={styles.loadingSpinner} />
-                  {isEditing ? 'Updating...' : 'Adding...'}
-                </>
-              ) : (
-                <>{isEditing ? 'Update Staff Member' : 'Add Staff Member'}</>
-              )}
-            </button>
-          </div>
-        </form>
+        <div className={styles.formActions}>
+          <Button type="button" variant="secondary" onClick={onCancel} disabled={loading}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="primary" disabled={loading} isLoading={loading}>
+            {submitLabel(isEditing, loading)}
+          </Button>
+        </div>
+      </form>
 
-        {!isEditing && (
-          <div className={styles.formInfo}>
-            <div className={styles.infoSection}>
-              <h4>💡 How to find a User ID:</h4>
-              <ol>
-                <li>The user must first create an account on the platform</li>
-                <li>Ask them to log in and navigate to their profile settings</li>
-                <li>They can find their User ID in the profile section</li>
-                <li>Copy the user ID and paste it in the field above</li>
-              </ol>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+      {!isEditing && (
+        <div className={styles.formInfo}>
+          <h3 className={styles.infoHeading}>How to find a User ID</h3>
+          <ol className={styles.infoList}>
+            <li>The user must first create an account on the platform</li>
+            <li>Ask them to log in and navigate to their profile settings</li>
+            <li>They can find their User ID in the profile section</li>
+            <li>Copy the user ID and paste it in the field above</li>
+          </ol>
+        </div>
+      )}
+    </Modal>
   );
 };
 

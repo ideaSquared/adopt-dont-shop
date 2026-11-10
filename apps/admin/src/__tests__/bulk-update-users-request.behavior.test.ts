@@ -28,7 +28,7 @@ describe('userManagementService.bulkUpdateUsers — wire contract', () => {
   beforeEach(() => {
     postMock.mockReset();
     patchMock.mockReset();
-    postMock.mockResolvedValue({ success: 2, failed: 0 });
+    postMock.mockResolvedValue({ success: true, data: { successCount: 2, failedCount: 0 } });
   });
 
   it('POSTs to /api/v1/users/bulk-update (not the old /admin/users path)', async () => {

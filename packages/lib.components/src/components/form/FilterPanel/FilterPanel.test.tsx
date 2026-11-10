@@ -114,6 +114,18 @@ describe('GenericFilters Component', () => {
     expect(mockOnFilterChange).toHaveBeenCalledWith('verified', true);
   });
 
+  it('names each select filter after its label so it can be found by assistive tech', () => {
+    renderWithTheme(
+      <GenericFilters
+        filters={initialFilters}
+        onFilterChange={mockOnFilterChange}
+        filterConfig={filterConfig}
+      />
+    );
+
+    expect(screen.getByRole('combobox', { name: 'Category' })).toBeInTheDocument();
+  });
+
   it('renders options for select input', () => {
     renderWithTheme(
       <GenericFilters

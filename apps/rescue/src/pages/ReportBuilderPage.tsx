@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import {
-  Heading,
+  Button,
+  FormField,
+  Input,
+  PageHeader,
   ReportBuilder,
-  Text,
+  toast,
   type ReportBuilderConfig,
 } from '@adopt-dont-shop/lib.components';
 import {
@@ -75,20 +78,26 @@ const ReportBuilderPage: React.FC = () => {
   };
 
   const handleSave = async (): Promise<void> => {
-    if (id) {
-      await updateMutation.mutateAsync({
-        name,
-        description: description || null,
-        config: config as unknown as ReportConfig,
-      });
-      navigate(`/reports/${id}`);
-    } else {
-      const created = await saveMutation.mutateAsync({
-        name,
-        description: description || undefined,
-        config: config as unknown as ReportConfig,
-      });
-      navigate(`/reports/${created.saved_report_id}`);
+    try {
+      if (id) {
+        await updateMutation.mutateAsync({
+          name,
+          description: description || null,
+          config: config as unknown as ReportConfig,
+        });
+        toast.success('Report saved');
+        navigate(`/reports/${id}`);
+      } else {
+        const created = await saveMutation.mutateAsync({
+          name,
+          description: description || undefined,
+          config: config as unknown as ReportConfig,
+        });
+        toast.success('Report created');
+        navigate(`/reports/${created.saved_report_id}`);
+      }
+    } catch {
+      toast.error('Failed to save report');
     }
   };
 
@@ -100,35 +109,33 @@ const ReportBuilderPage: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.headerRow}>
-        <div>
-          <Heading level="h1">{id ? 'Edit report' : 'New report'}</Heading>
-          <Text>Build a custom report. Click Preview to run it.</Text>
-        </div>
-        <button type="button" onClick={runPreview} disabled={config.widgets.length === 0}>
-          {previewMutation.isPending ? 'Running…' : 'Preview'}
-        </button>
-      </div>
+      <PageHeader
+        title={id ? 'Edit report' : 'New report'}
+        description="Build a custom report. Click Preview to run it."
+        actions={
+          <Button variant="primary" onClick={runPreview} disabled={config.widgets.length === 0}>
+            {previewMutation.isPending ? 'Running…' : 'Preview'}
+          </Button>
+        }
+      />
 
       <div className={styles.formGrid}>
-        <label>
-          <span className={styles.fieldLabel}>Name</span>
-          <input
+        <FormField label="Name" htmlFor="report-name">
+          <Input
+            id="report-name"
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
-            className={styles.textInput}
           />
-        </label>
-        <label>
-          <span className={styles.fieldLabel}>Description</span>
-          <input
+        </FormField>
+        <FormField label="Description" htmlFor="report-description">
+          <Input
+            id="report-description"
             type="text"
             value={description}
             onChange={e => setDescription(e.target.value)}
-            className={styles.textInput}
           />
-        </label>
+        </FormField>
       </div>
 
       <ReportBuilder

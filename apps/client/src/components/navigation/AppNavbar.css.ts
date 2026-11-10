@@ -32,7 +32,7 @@ export const logo = style({
   alignItems: 'center',
   gap: vars.spacing['2'],
   fontSize: vars.typography.size.lg,
-  fontWeight: 700,
+  fontWeight: vars.typography.weight.bold,
   color: '#fff',
   textDecoration: 'none',
   whiteSpace: 'nowrap',

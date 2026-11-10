@@ -142,8 +142,14 @@ describe('applicationService', () => {
   });
 
   describe('bulkUpdate', () => {
-    it('patches the updates and returns the updated count', async () => {
-      mockPatch.mockResolvedValueOnce({ success: true, message: '', data: { updatedCount: 4 } });
+    it('patches the updates and returns the gateway result (no success flag)', async () => {
+      mockPatch.mockResolvedValueOnce({
+        data: {
+          successCount: 3,
+          failureCount: 1,
+          failures: [{ applicationId: 'a2', error: 'illegal transition' }],
+        },
+      });
 
       const result = await applicationService.bulkUpdate(
         ['a1', 'a2'],
@@ -156,11 +162,15 @@ describe('applicationService', () => {
         updates: { status: 'approved', reviewNotes: 'ok' },
         reason: 'batch review',
       });
-      expect(result).toEqual({ updatedCount: 4 });
+      expect(result).toEqual({
+        successCount: 3,
+        failureCount: 1,
+        failures: [{ applicationId: 'a2', error: 'illegal transition' }],
+      });
     });
 
-    it('throws the server message on failure', async () => {
-      mockPatch.mockResolvedValueOnce({ success: false, message: 'cannot update', data: null });
+    it('propagates request errors', async () => {
+      mockPatch.mockRejectedValueOnce(new Error('cannot update'));
 
       await expect(applicationService.bulkUpdate(['a1'], { status: 'rejected' })).rejects.toThrow(
         'cannot update'

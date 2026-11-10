@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import * as styles from './UserActionsMenu.css';
-import { Modal, Button } from '@adopt-dont-shop/lib.components';
+import { Alert, Button, FormField, Modal, TextArea } from '@adopt-dont-shop/lib.components';
 
 type ConfirmationModalProps = {
   isOpen: boolean;
@@ -76,26 +76,19 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         )}
 
         {requiresReason && (
-          <div>
-            <label htmlFor='reason' className={styles.reasonLabel}>
-              Reason {!isDanger && '(Optional)'}
-            </label>
-            <textarea
-              className={styles.reasonTextArea}
+          <FormField label={isDanger ? 'Reason' : 'Reason (Optional)'} htmlFor='reason'>
+            <TextArea
               id='reason'
               value={reason}
               onChange={e => setReason(e.target.value)}
               placeholder='Provide a reason for this action...'
               disabled={isSubmitting}
+              fullWidth
             />
-          </div>
+          </FormField>
         )}
 
-        {error && (
-          <div className={styles.dangerBox} role='alert'>
-            {error}
-          </div>
-        )}
+        {error && <Alert variant='error'>{error}</Alert>}
 
         <div className={styles.buttonGroup}>
           <Button

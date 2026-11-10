@@ -1,0 +1,10 @@
+{
+  "ceilings": {
+    "colour": 856,
+    "fontWeight": 6,
+    "fontSize": 222,
+    "spacing": 357,
+    "borderRadius": 78,
+    "zIndex": 20
+  }
+}

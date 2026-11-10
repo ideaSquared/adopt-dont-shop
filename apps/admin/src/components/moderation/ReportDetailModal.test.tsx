@@ -12,9 +12,9 @@
  */
 
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, waitFor, within, userEvent } from '../../test-utils';
+import { fireEvent, render, screen, waitFor, within, userEvent } from '../../test-utils';
 import { ReportDetailModal } from './ReportDetailModal';
-import { openExternal } from '../../utils/openExternal';
+import { openExternal } from '@adopt-dont-shop/lib.utils';
 import type {
   Report,
   ModeratorAction,
@@ -42,9 +42,12 @@ vi.mock('@adopt-dont-shop/lib.moderation', () => ({
   formatRelativeTime: (_d: Date) => '3 days ago',
 }));
 
-vi.mock('../../utils/openExternal', () => ({
-  openExternal: vi.fn(),
-}));
+vi.mock('@adopt-dont-shop/lib.utils', async () => {
+  const actual = await vi.importActual<typeof import('@adopt-dont-shop/lib.utils')>(
+    '@adopt-dont-shop/lib.utils'
+  );
+  return { ...actual, openExternal: vi.fn() };
+});
 
 vi.mock('react-router', async () => {
   const actual = await vi.importActual<typeof import('react-router')>('react-router');
@@ -451,5 +454,20 @@ describe('ReportDetailModal — activity tab', () => {
     await user.click(screen.getByRole('tab', { name: 'Activity' }));
 
     expect(screen.getByText(/Failed to load activity history/)).toBeInTheDocument();
+  });
+
+  it('is a dialog named by the report title that closes on Escape', () => {
+    const onClose = vi.fn();
+    const report = makeReport({ title: 'Abusive message' });
+
+    render(<ReportDetailModal isOpen onClose={onClose} report={report} />);
+
+    fireEvent.keyDown(screen.getByRole('dialog', { name: 'Abusive message' }), { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders nothing when closed', () => {
+    render(<ReportDetailModal isOpen={false} onClose={() => undefined} report={makeReport({})} />);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

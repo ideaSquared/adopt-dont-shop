@@ -1,5 +1,7 @@
 import React from 'react';
 import clsx from 'clsx';
+import { X } from 'lucide-react';
+import { Button } from '@adopt-dont-shop/lib.components';
 import * as styles from './MemberField.css';
 
 export type MemberType = 'adult' | 'senior' | 'teenager' | 'child' | 'baby';
@@ -158,14 +160,15 @@ export const HouseholdMembersField: React.FC<Props> = ({ value, onChange, hasErr
                     )
                   )}
                 </div>
-                <button
-                  type='button'
+                <Button
+                  variant='ghost'
+                  size='sm'
                   className={styles.removeButton}
                   onClick={() => removeMember(member.id)}
                   aria-label={`Remove ${config.label}`}
                 >
-                  ×
-                </button>
+                  <X size='1em' />
+                </Button>
               </div>
             );
           })}

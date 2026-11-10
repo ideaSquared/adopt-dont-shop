@@ -203,7 +203,7 @@ describe('auth_registrations_total counter', () => {
 
     await register(mocks.deps, null, {
       email: 'new@example.com',
-      password: 'securepassword',
+      password: 'DevPassword123!',
       firstName: 'New',
       lastName: 'User',
       termsAccepted: true,
@@ -220,7 +220,7 @@ describe('auth_registrations_total counter', () => {
 
     await register(mocks.deps, null, {
       email: 'existing@example.com',
-      password: 'securepassword',
+      password: 'DevPassword123!',
       firstName: 'Existing',
       lastName: 'User',
       termsAccepted: true,
@@ -235,7 +235,7 @@ describe('auth_registrations_total counter', () => {
     await expect(
       register(mocks.deps, null, {
         email: 'valid@example.com',
-        password: 'securepassword',
+        password: 'DevPassword123!',
         firstName: '',
         lastName: '',
         termsAccepted: true,

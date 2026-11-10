@@ -1,14 +1,21 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import {
+  Badge,
+  Button,
   DataTable,
   type DataTableColumn,
-  Input,
+  ErrorState,
+  PageHeader,
+  SearchToolbar,
+  Stack,
   toast,
   useDebouncedValue,
+  useFilterParamSetter,
 } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { Search, User, UserPlus } from 'lucide-react';
+import { formatRelativeDate } from '@adopt-dont-shop/lib.utils';
+import { User, UserPlus } from 'lucide-react';
 import {
   useInbox,
   useInboxAssign,
@@ -18,34 +25,16 @@ import {
 } from '../hooks/useInbox';
 import * as styles from './Inbox.css';
 
-const formatRelativeTime = (iso: string): string => {
-  const date = new Date(iso);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
+type BadgeVariant = NonNullable<React.ComponentProps<typeof Badge>['variant']>;
 
-  if (diffMins < 60) {
-    return `${diffMins}m ago`;
-  }
-  if (diffHours < 24) {
-    return `${diffHours}h ago`;
-  }
-  if (diffDays < 7) {
-    return `${diffDays}d ago`;
-  }
-  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-};
-
-const getSourceBadgeClass = (source: InboxSource): string => {
+const getSourceVariant = (source: InboxSource): BadgeVariant => {
   switch (source) {
     case 'moderation':
-      return styles.sourceBadgeModeration;
+      return 'error';
     case 'support':
-      return styles.sourceBadgeSupport;
+      return 'info';
     case 'message':
-      return styles.sourceBadgeMessage;
+      return 'secondary';
   }
 };
 
@@ -60,25 +49,22 @@ const getSourceLabel = (source: InboxSource): string => {
   }
 };
 
-const getStatusBadgeClass = (status: string): string => {
+const getStatusVariant = (status: string): BadgeVariant => {
   switch (status) {
     case 'pending':
     case 'open':
-      return styles.badgeDanger;
+      return 'error';
     case 'under_review':
     case 'in_progress':
     case 'active':
-      return styles.badgeInfo;
+      return 'info';
     case 'waiting_for_user':
-      return styles.badgeWarning;
+      return 'warning';
     case 'resolved':
     case 'closed':
-      return styles.badgeSuccess;
-    case 'dismissed':
-    case 'archived':
-      return styles.badgeNeutral;
+      return 'success';
     default:
-      return styles.badgeNeutral;
+      return 'neutral';
   }
 };
 
@@ -125,19 +111,17 @@ const Inbox: React.FC = () => {
   const assignedToParam = searchParams.get('assignedTo');
   const myQueueActive = assignedToParam === 'me';
 
-  const setFilterParam = (key: string, value: string) => {
-    setSearchParams(
-      prev => {
-        const next = new URLSearchParams(prev);
-        if (value && value !== 'all') {
-          next.set(key, value);
-        } else {
-          next.delete(key);
-        }
-        return next;
-      },
-      { replace: true }
-    );
+  const setFilterParam = useFilterParamSetter(setSearchParams);
+
+  const handleFilterChange = (name: string, value: string | boolean) => {
+    const next = String(value);
+    if (name === 'source') {
+      setFilterParam('source', next);
+    } else if (name === 'status') {
+      setStatusFilter(next);
+    } else if (name === 'severity') {
+      setSeverityFilter(next);
+    }
   };
 
   const toggleMyQueue = () => {
@@ -226,9 +210,7 @@ const Inbox: React.FC = () => {
       sortable: false,
       render: (_value, row) => {
         const item = row as InboxItem;
-        return (
-          <span className={getSourceBadgeClass(item.source)}>{getSourceLabel(item.source)}</span>
-        );
+        return <Badge variant={getSourceVariant(item.source)}>{getSourceLabel(item.source)}</Badge>;
       },
     },
     {
@@ -271,7 +253,7 @@ const Inbox: React.FC = () => {
       render: (_value, row) => {
         const item = row as InboxItem;
         return (
-          <span className={getStatusBadgeClass(item.status)}>{item.status.replace(/_/g, ' ')}</span>
+          <Badge variant={getStatusVariant(item.status)}>{item.status.replace(/_/g, ' ')}</Badge>
         );
       },
     },
@@ -297,9 +279,9 @@ const Inbox: React.FC = () => {
       sortable: false,
       render: (_value, row) =>
         (row as InboxItem).assignedTo ? (
-          <span className={styles.badgeInfo}>Assigned</span>
+          <Badge variant='info'>Assigned</Badge>
         ) : (
-          <span className={styles.badgeWarning}>Unassigned</span>
+          <Badge variant='warning'>Unassigned</Badge>
         ),
     },
     {
@@ -308,7 +290,7 @@ const Inbox: React.FC = () => {
       width: '100px',
       sortable: false,
       render: (_value, row) => (
-        <span className={styles.timestamp}>{formatRelativeTime((row as InboxItem).createdAt)}</span>
+        <span className={styles.timestamp}>{formatRelativeDate((row as InboxItem).createdAt)}</span>
       ),
     },
     {
@@ -317,7 +299,7 @@ const Inbox: React.FC = () => {
       width: '100px',
       sortable: false,
       render: (_value, row) => (
-        <span className={styles.timestamp}>{formatRelativeTime((row as InboxItem).updatedAt)}</span>
+        <span className={styles.timestamp}>{formatRelativeDate((row as InboxItem).updatedAt)}</span>
       ),
     },
     {
@@ -329,115 +311,90 @@ const Inbox: React.FC = () => {
       render: (_value, row) => {
         const item = row as InboxItem;
         return !item.assignedTo ? (
-          <button
-            className={styles.assignButton}
+          <Button
+            variant='outline'
+            size='sm'
             onClick={e => handleAssignToMe(item, e)}
             title='Assign to me'
             disabled={assignMutation.isPending}
           >
-            <UserPlus size={14} />
+            <UserPlus size='1em' />
             Assign
-          </button>
+          </Button>
         ) : null;
       },
     },
   ];
 
   if (error) {
-    return (
-      <div className={styles.pageContainer}>
-        <div className={styles.errorBanner}>Error loading inbox: {error.message}</div>
-      </div>
-    );
+    return <ErrorState size='sm' title='Error loading inbox' message={error.message} />;
   }
 
   return (
-    <div className={styles.pageContainer}>
-      <div className={styles.pageHeader}>
-        <div className={styles.headerLeft}>
-          <h1>Triage Inbox</h1>
-          <p>Unified view of moderation reports, support tickets, and flagged messages</p>
-        </div>
-      </div>
+    <Stack spacing='lg'>
+      <PageHeader
+        title='Triage Inbox'
+        description='Unified view of moderation reports, support tickets, and flagged messages'
+      />
 
-      <div className={styles.filterBar}>
-        <div className={styles.searchWrapper}>
-          <div className={styles.searchIcon}>
-            <Search size='1em' />
-          </div>
-          <Input
-            className={styles.searchInputPadded}
-            placeholder='Search across all items...'
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-        </div>
+      <SearchToolbar
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder='Search across all items...'
+        filterConfig={[
+          {
+            name: 'source',
+            label: 'Source',
+            type: 'select',
+            options: [
+              { value: 'all', label: 'All Sources' },
+              { value: 'moderation', label: 'Moderation' },
+              { value: 'support', label: 'Support' },
+            ],
+          },
+          {
+            name: 'status',
+            label: 'Status',
+            type: 'select',
+            options: [
+              { value: 'all', label: 'All Statuses' },
+              { value: 'pending', label: 'Pending' },
+              { value: 'open', label: 'Open' },
+              { value: 'under_review', label: 'Under Review' },
+              { value: 'in_progress', label: 'In Progress' },
+              { value: 'active', label: 'Active' },
+              { value: 'resolved', label: 'Resolved' },
+            ],
+          },
+          {
+            name: 'severity',
+            label: 'Severity',
+            type: 'select',
+            options: [
+              { value: 'all', label: 'All Severities' },
+              { value: 'critical', label: 'Critical' },
+              { value: 'high', label: 'High' },
+              { value: 'medium', label: 'Medium' },
+              { value: 'low', label: 'Low' },
+            ],
+          },
+        ]}
+        filters={{ source: sourceFilter, status: statusFilter, severity: severityFilter }}
+        onFilterChange={handleFilterChange}
+      />
 
-        <button
-          type='button'
-          className={myQueueActive ? styles.myQueueChipActive : styles.myQueueChip}
+      <div>
+        <Button
+          variant={myQueueActive ? 'primary' : 'outline'}
+          size='sm'
           onClick={toggleMyQueue}
           aria-pressed={myQueueActive}
           disabled={!user}
           title='Show only items assigned to me'
         >
-          <User size={14} />
+          <User size='1em' />
           My Queue
-        </button>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor='inbox-source-filter'>
-            Source
-          </label>
-          <select
-            id='inbox-source-filter'
-            className={styles.select}
-            value={sourceFilter}
-            onChange={e => setFilterParam('source', e.target.value)}
-          >
-            <option value='all'>All Sources</option>
-            <option value='moderation'>Moderation</option>
-            <option value='support'>Support</option>
-          </select>
-        </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor='inbox-status-filter'>
-            Status
-          </label>
-          <select
-            id='inbox-status-filter'
-            className={styles.select}
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-          >
-            <option value='all'>All Statuses</option>
-            <option value='pending'>Pending</option>
-            <option value='open'>Open</option>
-            <option value='under_review'>Under Review</option>
-            <option value='in_progress'>In Progress</option>
-            <option value='active'>Active</option>
-            <option value='resolved'>Resolved</option>
-          </select>
-        </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor='inbox-severity-filter'>
-            Severity
-          </label>
-          <select
-            id='inbox-severity-filter'
-            className={styles.select}
-            value={severityFilter}
-            onChange={e => setSeverityFilter(e.target.value)}
-          >
-            <option value='all'>All Severities</option>
-            <option value='critical'>Critical</option>
-            <option value='high'>High</option>
-            <option value='medium'>Medium</option>
-            <option value='low'>Low</option>
-          </select>
-        </div>
+        </Button>
       </div>
 
       <DataTable
@@ -454,7 +411,7 @@ const Inbox: React.FC = () => {
         onRowClick={row => handleRowClick(row as InboxItem)}
         getRowId={row => `${(row as InboxItem).source}-${(row as InboxItem).id}`}
       />
-    </div>
+    </Stack>
   );
 };
 

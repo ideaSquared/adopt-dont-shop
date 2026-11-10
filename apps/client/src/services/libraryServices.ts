@@ -36,6 +36,9 @@ const serviceConfig = {
 // Create configured service instances with centralized configuration
 export const applicationService = new ApplicationsService(globalApiService, serviceConfig);
 
+// Discovery deliberately keeps its own client: DiscoveryService builds one with
+// a 30s timeout for its slow queue endpoints, and the shared apiService (10s)
+// has no per-request timeout on get/post.
 export const discoveryService = new DiscoveryService(serviceConfig);
 
 export const petService = new PetsService(globalApiService);
@@ -71,9 +74,12 @@ export const chatService = new ChatService({
   csrfToken: () => globalApiService.getCsrfToken(),
 });
 
-export const permissionsService = new PermissionsService({
-  debug: import.meta.env.DEV,
-});
+export const permissionsService = new PermissionsService(
+  {
+    debug: import.meta.env.DEV,
+  },
+  globalApiService
+);
 
 // Re-export types for convenience
 export type {

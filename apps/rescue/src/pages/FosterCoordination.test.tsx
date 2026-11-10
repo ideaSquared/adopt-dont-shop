@@ -1,7 +1,8 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import FosterCoordination from './FosterCoordination';
 import { fosterService } from '../services/fosterService';
 import { petService } from '../services/libraryServices';
@@ -9,14 +10,19 @@ import { staffService } from '../services/staffService';
 
 const renderAt = (initialEntry: string) =>
   render(
-    <MemoryRouter initialEntries={[initialEntry]}>
-      <FosterCoordination />
-    </MemoryRouter>
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <FosterCoordination />
+      </MemoryRouter>
+    </QueryClientProvider>
   );
 
 vi.mock('@adopt-dont-shop/lib.auth', () => ({
   useAuth: () => ({
-    user: { userId: 'user-1', rescueId: 'rescue-1' },
+    // GET /auth/me does not carry the rescue id, so the page must not rely on it.
+    user: { userId: 'user-1' },
   }),
 }));
 
@@ -37,6 +43,7 @@ vi.mock('../services/libraryServices', () => ({
 vi.mock('../services/staffService', () => ({
   staffService: {
     getRescueStaff: vi.fn(),
+    getMyRescueId: vi.fn(),
   },
 }));
 
@@ -82,6 +89,7 @@ const mockedPet = petService as unknown as {
 };
 const mockedStaff = staffService as unknown as {
   getRescueStaff: ReturnType<typeof vi.fn>;
+  getMyRescueId: ReturnType<typeof vi.fn>;
 };
 
 describe('FosterCoordination', () => {
@@ -98,6 +106,7 @@ describe('FosterCoordination', () => {
       ],
       pagination: { page: 1, limit: 20, total: 2, totalPages: 1, hasNext: false, hasPrev: false },
     });
+    mockedStaff.getMyRescueId.mockResolvedValue('rescue-1');
     mockedStaff.getRescueStaff.mockResolvedValue([
       {
         id: 's-1',
@@ -122,6 +131,91 @@ describe('FosterCoordination', () => {
     });
     expect(screen.getByRole('option', { name: /Whiskers/ })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: /Ada Lovelace/ })).toBeInTheDocument();
+  });
+
+  it('shows an error with a retry in the picker when the pets fetch fails, distinct from loading', async () => {
+    mockedPet.getPetsByRescue.mockRejectedValueOnce(new Error('pets down'));
+    renderAt('/foster');
+    fireEvent.click(screen.getByRole('button', { name: 'New Placement' }));
+
+    const dialog = screen.getByRole('dialog');
+    expect(await within(dialog).findByText('Unable to load pets')).toBeInTheDocument();
+    expect(within(dialog).queryByText('Loading pets...')).not.toBeInTheDocument();
+    expect(within(dialog).getByRole('option', { name: 'Failed to load pets' })).toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Try again' }));
+
+    expect(await within(dialog).findByRole('option', { name: /Buddy/ })).toBeInTheDocument();
+    expect(within(dialog).queryByText('Unable to load pets')).not.toBeInTheDocument();
+  });
+
+  it('tells the user on the page that pet names could not be loaded, and retry works', async () => {
+    mockedPet.getPetsByRescue.mockRejectedValueOnce(new Error('pets down'));
+    renderAt('/foster');
+
+    expect(await screen.findByText('Unable to load pets')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await waitFor(() => {
+      expect(screen.queryByText('Unable to load pets')).not.toBeInTheDocument();
+    });
+  });
+
+  it('shows "No pets" rather than loading or an error when the rescue has none', async () => {
+    mockedPet.getPetsByRescue.mockResolvedValue({
+      data: [],
+      pagination: { page: 1, limit: 20, total: 0, totalPages: 1, hasNext: false, hasPrev: false },
+    });
+    renderAt('/foster');
+    fireEvent.click(screen.getByRole('button', { name: 'New Placement' }));
+
+    expect(
+      await screen.findByRole('option', { name: 'No pets in your rescue' })
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Unable to load pets')).not.toBeInTheDocument();
+    expect(screen.queryByText('Loading pets...')).not.toBeInTheDocument();
+  });
+
+  it('loads every page of pets, beyond 200', async () => {
+    const totalPages = 13;
+    mockedPet.getPetsByRescue.mockImplementation(async (_rescueId: string, page: number) => ({
+      data: [{ pet_id: `pet-p${page}`, name: `Pet page ${page}`, breed: 'Mixed' }],
+      pagination: {
+        page,
+        limit: 20,
+        total: totalPages * 20,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+      },
+    }));
+    renderAt('/foster');
+    fireEvent.click(screen.getByRole('button', { name: 'New Placement' }));
+
+    expect(await screen.findByRole('option', { name: /Pet page 13/ })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /Pet page 1 \(/ })).toBeInTheDocument();
+    expect(mockedPet.getPetsByRescue).toHaveBeenCalledTimes(totalPages);
+  });
+
+  it('looks pets up under the rescue from the staff membership and names them in the list', async () => {
+    mockedFoster.list.mockResolvedValueOnce([
+      {
+        placementId: 'pl-1',
+        petId: 'pet-1',
+        fosterUserId: 'staff-1',
+        rescueId: 'rescue-1',
+        startDate: '2026-01-01',
+        endDate: null,
+        status: 'active',
+        notes: null,
+        createdAt: '2026-01-01',
+        updatedAt: '2026-01-01',
+      },
+    ]);
+
+    renderAt('/foster');
+
+    expect(await screen.findByText('Buddy (Labrador)')).toBeInTheDocument();
+    expect(mockedPet.getPetsByRescue).toHaveBeenCalledWith('rescue-1', 1);
   });
 
   it('creates a placement using the picker-selected pet and foster user', async () => {

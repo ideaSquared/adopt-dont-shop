@@ -19,7 +19,7 @@ export const imageContainer = style({
   position: 'relative',
   height: '200px',
   overflow: 'hidden',
-  borderRadius: '8px 8px 0 0',
+  borderRadius: `${vars.border.radius.base} ${vars.border.radius.base} 0 0`,
 });
 
 globalStyle(`${imageContainer} img`, {
@@ -65,28 +65,28 @@ export const statusBadge = style({
 });
 
 export const cardContent = style({
-  padding: '1.5rem',
+  padding: vars.spacing['4'],
   flexGrow: 1,
   display: 'flex',
   flexDirection: 'column',
 });
 
 export const petName = style({
-  fontSize: '1.5rem',
-  fontWeight: 600,
-  marginBottom: '0.5rem',
+  fontSize: vars.typography.size['2xl'],
+  fontWeight: vars.typography.weight.semibold,
+  marginBottom: vars.spacing['2'],
   color: vars.text.primary,
 });
 
 export const petDetails = style({
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
   flexGrow: 1,
 });
 
 export const detailRow = style({
   display: 'flex',
   justifyContent: 'space-between',
-  marginBottom: '0.25rem',
+  marginBottom: vars.spacing['1'],
   fontSize: '0.9rem',
 });
 
@@ -95,7 +95,7 @@ export const detailLabel = style({
 });
 
 export const detailValue = style({
-  fontWeight: 500,
+  fontWeight: vars.typography.weight.medium,
   color: vars.text.primary,
 });
 
@@ -103,7 +103,7 @@ export const description = style({
   fontSize: '0.9rem',
   color: vars.text.secondary,
   lineHeight: 1.4,
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
   display: '-webkit-box',
   WebkitLineClamp: 2,
   WebkitBoxOrient: 'vertical',
@@ -112,15 +112,15 @@ export const description = style({
 
 export const cardActions = style({
   display: 'flex',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   marginTop: 'auto',
 });
 
 export const rescueInfo = style({
   fontSize: '0.8rem',
   color: vars.text.secondary,
-  marginBottom: '1rem',
-  paddingTop: '0.5rem',
+  marginBottom: vars.spacing['3'],
+  paddingTop: vars.spacing['2'],
   borderTop: `1px solid ${vars.border.color.default}`,
 });
 
@@ -131,13 +131,13 @@ export const distanceBadge = style({
   display: 'inline-flex',
   alignItems: 'center',
   gap: '0.2rem',
-  fontSize: '0.75rem',
-  fontWeight: 600,
+  fontSize: vars.typography.size.xs,
+  fontWeight: vars.typography.weight.semibold,
   color: '#fff',
   background: 'rgba(0, 0, 0, 0.55)',
   backdropFilter: 'blur(4px)',
   WebkitBackdropFilter: 'blur(4px)',
-  borderRadius: '9999px',
+  borderRadius: vars.border.radius.pill,
   padding: '0.25rem 0.6rem 0.25rem 0.45rem',
   letterSpacing: '0.01em',
   pointerEvents: 'none',

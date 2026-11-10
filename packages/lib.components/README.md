@@ -34,19 +34,20 @@ pnpm type-check        # TypeScript type-check
 The canonical list lives in [`src/index.ts`](src/index.ts), grouped:
 
 - **Theme**: `ThemeProvider`, `useTheme`, `darkTheme`,
-  `lightTheme`, `normalTheme`, `vars`, `THEME_STORAGE_KEY`.
-- **Hooks**: `useConfirm`, `useToast`, `useDebouncedValue`.
-- **Foundation**: `Logo`, `Avatar`, `Badge`, `Button`, `DateTime`, `Heading`,
-  `Spinner`, `DotSpinner`, `Text`, `MatchReasonChips`, `Skeleton` (+
+  `lightTheme`, `normalTheme`, `vars`, `THEME_STORAGE_KEY`, and the static `breakpoints` / `media.up()` /
+  `media.down()` helpers for media queries (`vars.breakpoints` cannot be used in one).
+- **Hooks**: `useConfirm`, `useToast`, `useDebouncedValue`, `useFilterParamSetter`.
+- **Foundation**: `Logo`, `Avatar`, `Badge`, `StatusBadge`, `Button`, `DateTime`, `Heading`,
+  `Spinner`, `DotSpinner`, `Text`, `DropdownMenu`, `DropdownButton`, `Tooltip`, `MatchReasonChips`, `Skeleton` (+
   `SkeletonCard` / `SkeletonText` / `SkeletonTableRow`).
-- **Layout**: `Container`, `Stack`, `SplitPaneDetail`, `Card` (+ `CardHeader` /
+- **Layout**: `Container`, `Stack`, `PageHeader`, `SplitPaneDetail`, `Card` (+ `CardHeader` /
   `CardContent` / `CardFooter`).
 - **Data**: `EntityInspector`, `QueryBoundary`, `SearchToolbar`.
 - **Form**: `CheckboxInput`, `SelectInput`, `TextArea`, `Input`, `FileUpload`,
   `FormField` (+ `FormRow` / `FormSection`), `DateRangePicker` (+
   `createDefaultDateRangePresets`). `TextInput` is deprecated — prefer `Input`;
   it is still exported for existing consumers, do not add new call sites.
-- **Feedback**: `Alert`, `Modal`, `ConfirmDialog`, `EmptyState`, `ErrorState`,
+- **Feedback**: `Alert`, `Modal`, `ConfirmDialog`, `EmptyState`, `ErrorState`, `ErrorBoundary`, `NotFoundPage`,
   `Stepper`. `Toaster` / `toast` (sonner-based, ADS-125) is the current toast
   system; the legacy `Toast` / `ToastContainer` remain for existing call sites.
 - **Navigation**: `Breadcrumbs`, `Footer`, `Header`, `Navbar`, `NavSidebar`, `Tabs` (+
@@ -87,4 +88,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 7 workspace package(s) depend on this library. See [lib.components-consumers.md](../../docs/libraries/lib.components-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

@@ -236,9 +236,9 @@ export const QuickApplyView: React.FC<Props> = ({
       </section>
 
       <div className={styles.actions}>
-        <button className={styles.switchLink} type='button' onClick={onSwitchToGuided}>
+        <Button variant='link' className={styles.switchLink} onClick={onSwitchToGuided}>
           Prefer to go step-by-step? Switch to the guided form →
-        </button>
+        </Button>
         <Button
           variant='primary'
           onClick={handleSubmit}

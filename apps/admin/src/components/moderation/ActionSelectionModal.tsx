@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
-import { X } from 'lucide-react';
-import clsx from 'clsx';
-import { toast } from '@adopt-dont-shop/lib.components';
+import {
+  Alert,
+  Button,
+  FormField,
+  Modal,
+  SelectInput,
+  TextArea,
+  toast,
+} from '@adopt-dont-shop/lib.components';
+import { formatCustomDate } from '@adopt-dont-shop/lib.utils';
 import * as styles from './ActionSelectionModal.css';
 
 export type ActionType =
@@ -28,6 +35,16 @@ interface ActionSelectionModalProps {
   isLoading?: boolean;
   error?: string | null;
 }
+
+const ACTION_TYPES: ReadonlyArray<ActionType> = [
+  'no_action',
+  'warning_issued',
+  'content_removed',
+  'user_suspended',
+  'user_banned',
+  'account_restricted',
+  'content_flagged',
+];
 
 const actionTypeLabels: Record<ActionType, string> = {
   no_action: 'No Action Required',
@@ -60,13 +77,25 @@ const DURATION_OPTIONS = [
 const DEFAULT_DURATION_DAYS = 7;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+const FORM_ID = 'action-selection-form';
+
+const ACTION_TYPE_OPTIONS = Object.entries(actionTypeLabels).map(([value, label]) => ({
+  value,
+  label,
+}));
+
+const DURATION_SELECT_OPTIONS = DURATION_OPTIONS.map(option => ({
+  value: String(option.days),
+  label: option.label,
+}));
+
+const toActionType = (value: string | string[]): ActionType =>
+  ACTION_TYPES.find(type => type === value) ?? 'no_action';
+
 const describeSuspensionEnd = (days: number): string =>
   days === INDEFINITE
     ? 'No expiry date is recorded; the suspension stays until an admin lifts it.'
-    : `The recorded expiry date is ${new Date(Date.now() + days * DAY_MS).toLocaleDateString(
-        'en-GB',
-        { day: 'numeric', month: 'long', year: 'numeric' }
-      )}. The account is not reactivated automatically; reactivate the account manually after that date.`;
+    : `The recorded expiry date is ${formatCustomDate(Date.now() + days * DAY_MS, 'd MMMM yyyy')}. The account is not reactivated automatically; reactivate the account manually after that date.`;
 
 export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
   isOpen,
@@ -109,128 +138,98 @@ export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
   };
 
   return (
-    <div
-      className={clsx(styles.overlay, !isOpen && styles.overlayHidden)}
-      onClick={handleClose}
-      onKeyDown={e => e.key === 'Escape' && handleClose()}
-      role='presentation'
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title='Take Moderation Action'
+      size='md'
+      closeOnOverlayClick={!isLoading}
+      closeOnEscape={!isLoading}
+      footer={
+        <>
+          <Button type='button' variant='outline' onClick={handleClose} disabled={isLoading}>
+            Cancel
+          </Button>
+          <Button type='submit' form={FORM_ID} variant='primary' disabled={isLoading}>
+            {isLoading ? 'Processing...' : 'Take Action'}
+          </Button>
+        </>
+      }
     >
-      <div
-        className={styles.modal}
-        onClick={e => e.stopPropagation()}
-        onKeyDown={e => e.stopPropagation()}
-        role='presentation'
-      >
-        <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>Take Moderation Action</h2>
-          <button className={styles.closeButton} onClick={handleClose} disabled={isLoading}>
-            <X size='1em' />
-          </button>
+      <form id={FORM_ID} onSubmit={handleSubmit}>
+        <div className={styles.reportInfo}>
+          <div className={styles.reportTitle}>Report:</div>
+          <div className={styles.reportText}>{reportTitle}</div>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className={styles.modalBody}>
-            <div className={styles.reportInfo}>
-              <div className={styles.reportTitle}>Report:</div>
-              <div className={styles.reportText}>{reportTitle}</div>
-            </div>
+        {error && <Alert variant='error'>{error}</Alert>}
 
-            {error && (
-              <div className={styles.inlineError} role='alert'>
-                {error}
-              </div>
-            )}
+        <div className={styles.formGroup}>
+          <SelectInput
+            label='Action Type'
+            data-testid='actionType'
+            required
+            helperText={actionTypeDescriptions[actionType]}
+            value={actionType}
+            onChange={value => setActionType(toActionType(value))}
+            options={ACTION_TYPE_OPTIONS}
+            disabled={isLoading}
+            fullWidth
+          />
+        </div>
 
-            <div className={styles.formGroup}>
-              <label className={styles.label} htmlFor='actionType'>
-                Action Type *
-              </label>
-              <select
-                id='actionType'
-                className={styles.select}
-                value={actionType}
-                onChange={e => setActionType(e.target.value as ActionType)}
-                disabled={isLoading}
-              >
-                {Object.entries(actionTypeLabels).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-              <p className={styles.helpText}>{actionTypeDescriptions[actionType]}</p>
-            </div>
-
-            {actionType === 'user_suspended' && (
-              <div className={styles.formGroup}>
-                <label className={styles.label} htmlFor='duration'>
-                  Suspension Duration *
-                </label>
-                <select
-                  id='duration'
-                  className={styles.select}
-                  value={duration}
-                  onChange={e => setDuration(parseInt(e.target.value, 10))}
-                  disabled={isLoading}
-                >
-                  {DURATION_OPTIONS.map(option => (
-                    <option key={option.days} value={option.days}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <p className={styles.helpText}>{describeSuspensionEnd(duration)}</p>
-              </div>
-            )}
-
-            <div className={styles.formGroup}>
-              <label className={styles.label} htmlFor='reason'>
-                Reason (visible to user) *
-              </label>
-              <textarea
-                id='reason'
-                className={styles.textArea}
-                value={reason}
-                onChange={e => setReason(e.target.value)}
-                placeholder='Explain why this action is being taken. This will be shown to the user.'
-                disabled={isLoading}
-                required
-                aria-required={true}
-              />
-              <p className={styles.helpText}>This message will be visible to the affected user</p>
-            </div>
-
-            <div className={styles.formGroup}>
-              <label className={styles.label} htmlFor='internalNotes'>
-                Internal Notes (optional)
-              </label>
-              <textarea
-                id='internalNotes'
-                className={styles.textArea}
-                value={internalNotes}
-                onChange={e => setInternalNotes(e.target.value)}
-                placeholder='Add any internal notes for other moderators (not visible to users)'
-                disabled={isLoading}
-              />
-              <p className={styles.helpText}>These notes are only visible to moderators</p>
-            </div>
-          </div>
-
-          <div className={styles.modalFooter}>
-            <button
-              type='button'
-              className={styles.buttonSecondary}
-              onClick={handleClose}
+        {actionType === 'user_suspended' && (
+          <div className={styles.formGroup}>
+            <SelectInput
+              label='Suspension Duration'
+              data-testid='duration'
+              required
+              helperText={describeSuspensionEnd(duration)}
+              value={String(duration)}
+              onChange={value => setDuration(parseInt(String(value), 10))}
+              options={DURATION_SELECT_OPTIONS}
               disabled={isLoading}
-            >
-              Cancel
-            </button>
-            <button type='submit' className={styles.buttonPrimary} disabled={isLoading}>
-              {isLoading ? 'Processing...' : 'Take Action'}
-            </button>
+              fullWidth
+            />
           </div>
-        </form>
-      </div>
-    </div>
+        )}
+
+        <div className={styles.formGroup}>
+          <FormField
+            label='Reason (visible to user)'
+            htmlFor='reason'
+            required
+            description='This message will be visible to the affected user'
+          >
+            <TextArea
+              id='reason'
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              placeholder='Explain why this action is being taken. This will be shown to the user.'
+              disabled={isLoading}
+              required
+              fullWidth
+            />
+          </FormField>
+        </div>
+
+        <div className={styles.formGroup}>
+          <FormField
+            label='Internal Notes (optional)'
+            htmlFor='internalNotes'
+            description='These notes are only visible to moderators'
+          >
+            <TextArea
+              id='internalNotes'
+              value={internalNotes}
+              onChange={e => setInternalNotes(e.target.value)}
+              placeholder='Add any internal notes for other moderators (not visible to users)'
+              disabled={isLoading}
+              fullWidth
+            />
+          </FormField>
+        </div>
+      </form>
+    </Modal>
   );
 };

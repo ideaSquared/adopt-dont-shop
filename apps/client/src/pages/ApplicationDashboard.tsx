@@ -1,19 +1,22 @@
-import { Badge, Button, Card, EmptyState, ErrorState } from '@adopt-dont-shop/lib.components';
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+  StatusBadge,
+} from '@adopt-dont-shop/lib.components';
 import { ApplicationCardSkeletonList } from '@/components/skeletons';
-import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
-import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
+import { formatDisplayDate, resolveFileUrl } from '@adopt-dont-shop/lib.utils';
 import { useChat } from '@/contexts/ChatContext';
 import { useUnreadConversations } from '@adopt-dont-shop/lib.chat';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { applicationService, petService, Application, Pet } from '@/services';
-import { resolveFileUrl } from '../utils/fileUtils';
+import { type Pet } from '@/services';
+import { useUserApplications, type ApplicationWithPet } from '@/hooks/useUserApplications';
 import * as styles from './ApplicationDashboard.css';
-
-interface ApplicationWithPet extends Application {
-  pet?: Pet;
-}
 
 // ADS C4 (follow-up to PR #676): the backend's ApplicationStage enum carries
 // the in-progress workflow state alongside the terminal `status`. Surface a
@@ -38,49 +41,12 @@ export const ApplicationDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { conversations } = useChat();
   const { unreadByConversationId } = useUnreadConversations();
-  const [applications, setApplications] = useState<ApplicationWithPet[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadApplications = async (signal?: { cancelled: boolean }) => {
-    try {
-      setLoading(true);
-      // Clear any prior error so retrying from the ErrorState actually recovers.
-      setError(null);
-      const userApplications = await applicationService.getUserApplications();
-      if (signal?.cancelled) return;
-
-      // Load pet details for each application
-      const applicationsWithPets = await Promise.all(
-        userApplications.map(async app => {
-          try {
-            const pet = await petService.getPetById(app.petId);
-            return { ...app, pet };
-          } catch (error) {
-            console.error(`Failed to load pet for application ${app.id}:`, error);
-            return app;
-          }
-        })
-      );
-
-      if (signal?.cancelled) return;
-      setApplications(applicationsWithPets);
-    } catch (error) {
-      if (signal?.cancelled) return;
-      console.error('Failed to load applications:', error);
-      setError('Failed to load your applications. Please try again.');
-    } finally {
-      if (!signal?.cancelled) setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const signal = { cancelled: false };
-    loadApplications(signal);
-    return () => {
-      signal.cancelled = true;
-    };
-  }, []);
+  const applicationsQuery = useUserApplications(user?.userId);
+  const applications = applicationsQuery.data ?? [];
+  const loading = applicationsQuery.isLoading;
+  const error = applicationsQuery.isError
+    ? 'Failed to load your applications. Please try again.'
+    : null;
 
   // Map an application to the corresponding conversation (if any).
   // Conversations are tagged with petId + rescueId server-side; we use both
@@ -128,9 +94,7 @@ export const ApplicationDashboard: React.FC = () => {
   if (loading) {
     return (
       <div className={styles.container}>
-        <div className={styles.header}>
-          <h1 className={styles.title}>My Applications</h1>
-        </div>
+        <PageHeader title='My Applications' />
         <ApplicationCardSkeletonList count={3} />
       </div>
     );
@@ -142,7 +106,7 @@ export const ApplicationDashboard: React.FC = () => {
         <ErrorState
           title='Error loading applications'
           message={error}
-          onRetry={() => loadApplications()}
+          onRetry={() => void applicationsQuery.refetch()}
         />
       </div>
     );
@@ -151,9 +115,7 @@ export const ApplicationDashboard: React.FC = () => {
   if (applications.length === 0) {
     return (
       <div className={styles.container}>
-        <div className={styles.header}>
-          <h1 className={styles.title}>My Applications</h1>
-        </div>
+        <PageHeader title='My Applications' />
         <EmptyState
           title='No applications yet'
           description='Start your adoption journey by browsing available pets.'
@@ -165,9 +127,7 @@ export const ApplicationDashboard: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>My Applications</h1>
-      </div>
+      <PageHeader title='My Applications' />
 
       <div className={styles.applicationGrid}>
         {applications.map(application => {
@@ -208,9 +168,10 @@ export const ApplicationDashboard: React.FC = () => {
                 </div>
 
                 {conversationId && (
-                  <button
+                  <Button
                     type='button'
-                    className={styles.messagesButton}
+                    size='sm'
+                    variant='outline'
                     onClick={event => handleOpenMessages(event, conversationId)}
                     aria-label={
                       unread > 0 ? `Messages from rescue: ${unread} unread` : 'Messages from rescue'
@@ -222,27 +183,11 @@ export const ApplicationDashboard: React.FC = () => {
                         {unread}
                       </Badge>
                     )}
-                  </button>
+                  </Button>
                 )}
               </div>
 
-              <span
-                className={styles.statusBadge({
-                  // ADS C4-1: `under_review` was previously in this allowlist but
-                  // ApplicationStatusSchema only emits 'submitted' | 'approved' |
-                  // 'rejected' | 'withdrawn', so the branch was unreachable and the
-                  // 'withdrawn' status fell through to the 'default' badge. List the
-                  // statuses that can actually appear so withdrawn applications get
-                  // their own visual treatment.
-                  status: (['submitted', 'approved', 'rejected', 'withdrawn'].includes(
-                    application.status
-                  )
-                    ? application.status
-                    : 'default') as 'submitted' | 'approved' | 'rejected' | 'withdrawn' | 'default',
-                })}
-              >
-                {applicationStatusLabel(application.status)}
-              </span>
+              <StatusBadge kind='application' status={application.status} />
 
               {/* ADS C4 (follow-up to PR #676): while the terminal status is
                   still 'submitted', show the workflow stage so adopters can
@@ -259,9 +204,11 @@ export const ApplicationDashboard: React.FC = () => {
               {application.status === 'submitted' &&
                 application.stage &&
                 IN_PROGRESS_STAGE_LABELS[application.stage] && (
-                  <span className={styles.stageBadge} data-testid='stage-badge'>
-                    {IN_PROGRESS_STAGE_LABELS[application.stage]}
-                  </span>
+                  <StatusBadge
+                    variant='warning'
+                    label={IN_PROGRESS_STAGE_LABELS[application.stage]}
+                    data-testid='stage-badge'
+                  />
                 )}
 
               <div className={styles.applicationDetails}>

@@ -16,6 +16,7 @@ if (typeof globalThis.WritableStream === 'undefined') {
   });
 }
 import { expect, afterEach, vi } from 'vitest';
+import { getStatusDisplay, type StatusKind } from '@adopt-dont-shop/lib.types';
 import { cleanup } from '@testing-library/react';
 import * as matchers from '@testing-library/jest-dom/matchers';
 
@@ -73,11 +74,16 @@ Object.defineProperty(import.meta, 'env', {
 });
 
 // Mock environment utilities
-vi.mock('./utils/env', () => ({
-  isDevelopment: () => false,
-  getApiBaseUrl: () => 'http://localhost:5000',
-  getEnvironmentVariable: (_key: string, defaultValue?: string) => defaultValue,
-}));
+vi.mock('@adopt-dont-shop/lib.utils', async () => {
+  const actual = await vi.importActual<typeof import('@adopt-dont-shop/lib.utils')>(
+    '@adopt-dont-shop/lib.utils'
+  );
+  return {
+    ...actual,
+    isDevelopment: () => false,
+    getApiBaseUrl: () => 'http://localhost:5000',
+  };
+});
 
 // Mock library dependencies
 vi.mock('@adopt-dont-shop/lib.auth', () => ({
@@ -91,18 +97,25 @@ vi.mock('@adopt-dont-shop/lib.auth', () => ({
     updateProfile: vi.fn(),
   },
   AuthService: vi.fn(),
+  SanctionBannerHost: () => null,
 }));
 
-vi.mock('@adopt-dont-shop/lib.pets', () => ({
-  PetsService: vi.fn(),
-  petManagementService: {
-    getPets: vi.fn(),
-    getPet: vi.fn(),
-    createPet: vi.fn(),
-    updatePet: vi.fn(),
-    deletePet: vi.fn(),
-  },
-}));
+vi.mock('@adopt-dont-shop/lib.pets', async () => {
+  const { formatAge } = await vi.importActual<typeof import('@adopt-dont-shop/lib.pets')>(
+    '@adopt-dont-shop/lib.pets'
+  );
+  return {
+    PetsService: vi.fn(),
+    petManagementService: {
+      getPets: vi.fn(),
+      getPet: vi.fn(),
+      createPet: vi.fn(),
+      updatePet: vi.fn(),
+      deletePet: vi.fn(),
+    },
+    formatAge,
+  };
+});
 
 vi.mock('@adopt-dont-shop/lib.applications', () => ({
   ApplicationsService: vi.fn(),
@@ -112,7 +125,124 @@ vi.mock('@adopt-dont-shop/lib.rescue', () => ({
   RescueService: vi.fn(),
 }));
 
+type StubDropdownMenuItem = {
+  label: string;
+  to?: string;
+  onClick?: () => void;
+  disabled?: boolean;
+};
+
+type StubDropdownMenuProps = {
+  triggerLabel: string;
+  items: StubDropdownMenuItem[];
+  trigger?: React.ReactElement;
+  header?: React.ReactNode;
+  disabled?: boolean;
+};
+
+// Test double for the shared DropdownMenu / DropdownButton: a trigger button
+// that toggles a role="menu" list of role="menuitem" entries, closing on select.
+const StubDropdownMenu = ({ triggerLabel, items, header, disabled }: StubDropdownMenuProps) => {
+  const [open, setOpen] = React.useState(false);
+  return React.createElement(
+    'div',
+    null,
+    React.createElement(
+      'button',
+      {
+        type: 'button',
+        'aria-haspopup': 'menu',
+        'aria-expanded': open,
+        disabled,
+        onClick: () => setOpen(current => !current),
+      },
+      triggerLabel
+    ),
+    open
+      ? React.createElement(
+          'div',
+          { role: 'menu', 'aria-label': triggerLabel },
+          header,
+          items.map(item =>
+            item.to
+              ? React.createElement(
+                  'a',
+                  { key: item.label, role: 'menuitem', href: item.to },
+                  item.label
+                )
+              : React.createElement(
+                  'button',
+                  {
+                    key: item.label,
+                    type: 'button',
+                    role: 'menuitem',
+                    disabled: item.disabled,
+                    onClick: () => {
+                      setOpen(false);
+                      item.onClick?.();
+                    },
+                  },
+                  item.label
+                )
+          )
+        )
+      : null
+  );
+};
+
 vi.mock('@adopt-dont-shop/lib.components', () => ({
+  // Shared primitives added for the app migrations. Each stub mirrors the real
+  // component's accessible output (roles, names, text) and drops styling props.
+  PageHeader: ({
+    title,
+    description,
+    actions,
+    'data-testid': testId,
+  }: {
+    title: React.ReactNode;
+    description?: React.ReactNode;
+    actions?: React.ReactNode;
+    'data-testid'?: string;
+  }) =>
+    React.createElement(
+      'header',
+      { 'data-testid': testId },
+      React.createElement('h1', null, title),
+      description ? React.createElement('p', null, description) : null,
+      actions ? React.createElement('div', null, actions) : null
+    ),
+  StatusBadge: (props: {
+    kind?: StatusKind;
+    status?: string;
+    label?: string;
+    variant?: string;
+    'data-testid'?: string;
+  }) =>
+    React.createElement(
+      'span',
+      { role: 'status', 'data-testid': props['data-testid'] },
+      props.label ??
+        (props.kind && props.status !== undefined
+          ? getStatusDisplay(props.kind, props.status).label
+          : null)
+    ),
+  DropdownMenu: ({ triggerLabel, items, trigger, header, disabled }: StubDropdownMenuProps) =>
+    React.createElement(StubDropdownMenu, { triggerLabel, items, trigger, header, disabled }),
+  DropdownButton: ({ triggerLabel, items, header, disabled }: StubDropdownMenuProps) =>
+    React.createElement(StubDropdownMenu, { triggerLabel, items, header, disabled }),
+  Tooltip: ({ content, children }: { content: React.ReactNode; children: React.ReactElement }) =>
+    React.createElement(
+      React.Fragment,
+      null,
+      children,
+      React.createElement('span', { role: 'tooltip' }, content)
+    ),
+  Avatar: ({ name, alt, initials }: { name?: string; alt?: string; initials?: string }) =>
+    React.createElement(
+      'span',
+      { role: 'img', 'aria-label': alt || `Avatar for ${name ?? ''}` },
+      initials
+    ),
   lightTheme: {},
   darkTheme: {},
   ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
@@ -190,6 +320,9 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   Heading: ({ children, ...props }: any) => React.createElement('h1', props, children),
   Alert: ({ children, ...props }: any) =>
     React.createElement('div', { role: 'alert', ...props }, children),
+  // Shared app-shell components: pass-through boundary, minimal 404.
+  ErrorBoundary: ({ children }: { children?: React.ReactNode }) => children,
+  NotFoundPage: () => React.createElement('h1', null, '404'),
   Spinner: (props: any) => React.createElement('div', { 'aria-label': props?.label ?? 'loading' }),
   Skeleton: ({ width, height, radius, className, style, ...props }: any) =>
     React.createElement('div', {
@@ -394,6 +527,31 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
       error ? React.createElement('span', { role: 'alert' }, error) : null,
       !error && description ? React.createElement('span', null, description) : null
     ),
+  // Real URL-filter setter so list pages keep writing filters to the query string.
+  useFilterParamSetter:
+    (
+      setSearchParams: (
+        update: (prev: URLSearchParams) => URLSearchParams,
+        options: { replace: boolean }
+      ) => void,
+      { resetPage = false }: { resetPage?: boolean } = {}
+    ) =>
+    (key: string, value: string) =>
+      setSearchParams(
+        prev => {
+          const next = new URLSearchParams(prev);
+          if (value && value !== 'all') {
+            next.set(key, value);
+          } else {
+            next.delete(key);
+          }
+          if (resetPage) {
+            next.delete('page');
+          }
+          return next;
+        },
+        { replace: true }
+      ),
   // ADS-586: useConfirm / ConfirmDialog mocks so tests can intercept the
   // promise-based confirm flow without rendering the real modal. Default
   // returns `true` so existing flows don't break.
@@ -428,8 +586,63 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
           children
         )
       : null,
+  // Shared Tabs: tablist of tab buttons plus the active tabpanel.
+  Tabs: ({
+    tabs,
+    value,
+    onChange,
+    'aria-label': ariaLabel,
+  }: {
+    tabs: Array<{ id: string; label: React.ReactNode; content: React.ReactNode }>;
+    value: string;
+    onChange: (id: string) => void;
+    'aria-label'?: string;
+  }) =>
+    React.createElement(
+      'div',
+      null,
+      React.createElement(
+        'div',
+        { role: 'tablist', 'aria-label': ariaLabel },
+        ...tabs.map(tab =>
+          React.createElement(
+            'button',
+            {
+              key: tab.id,
+              type: 'button',
+              role: 'tab',
+              'aria-selected': tab.id === value,
+              onClick: () => onChange(tab.id),
+            },
+            tab.label
+          )
+        )
+      ),
+      ...tabs
+        .filter(tab => tab.id === value)
+        .map(tab => React.createElement('div', { key: tab.id, role: 'tabpanel' }, tab.content))
+    ),
+  // Shared Stepper: ordered list of step titles with the current step marked.
+  Stepper: ({
+    steps,
+    activeStep,
+  }: {
+    steps: Array<{ id: string; title: string }>;
+    activeStep: number;
+  }) =>
+    React.createElement(
+      'ol',
+      null,
+      ...steps.map((step, index) =>
+        React.createElement(
+          'li',
+          { key: step.id, 'aria-current': index === activeStep ? 'step' : undefined },
+          step.title
+        )
+      )
+    ),
   InstallPwaBanner: () => null,
-  // ADS C4-5: rendered by SanctionBannerHost; tests don't exercise sanctions.
+  // ADS C4-5: rendered by lib.auth SanctionBannerHost; tests don't exercise sanctions.
   SanctionBanner: () => null,
   // AGPL-3.0 section 13 footer link; the real component is covered in lib.components.
   SourceCodeLink: () =>

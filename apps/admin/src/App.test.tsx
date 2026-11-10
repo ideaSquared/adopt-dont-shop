@@ -14,6 +14,9 @@ const useAuthMock = vi.fn();
 
 vi.mock('@adopt-dont-shop/lib.auth', () => ({
   useAuth: () => useAuthMock(),
+  ForgotPasswordPage: () => null,
+  ResetPasswordPage: () => null,
+  redirectTargetFromState: () => '/',
   PermissionsProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
@@ -37,9 +40,6 @@ vi.mock('./components/layout/AdminLayout', () => ({
 }));
 vi.mock('./components/dev/DevLoginPanel', () => ({
   default: () => null,
-}));
-vi.mock('./components/ErrorBoundary', () => ({
-  default: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
 import App from './App';

@@ -27,7 +27,7 @@ import {
   type OfflineState as AppOfflineState,
 } from '@/utils/offlineManager';
 import { useStatsig } from '@/hooks/useStatsig';
-import { resolveFileUrl } from '@/utils/fileUtils';
+import { resolveFileUrl } from '@adopt-dont-shop/lib.utils';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 
 const toLibOfflineState = (state: AppOfflineState): OfflineState => ({

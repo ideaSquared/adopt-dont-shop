@@ -1,14 +1,18 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import {
   Alert,
   Button,
   Card,
   ConfirmDialog,
+  FormField,
   Input,
+  TextArea,
   useConfirm,
 } from '@adopt-dont-shop/lib.components';
 import { apiService } from '../../services/libraryServices';
-import { getApiBaseUrl } from '../../utils/env';
+import { getApiBaseUrl } from '@adopt-dont-shop/lib.utils';
 import * as styles from './QuestionsBuilder.css';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -236,8 +240,6 @@ const questionsByCategory = (questions: Question[]): Map<QuestionCategory, Quest
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -251,24 +253,19 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
 
   const apiBase = getApiBaseUrl();
 
-  const loadQuestions = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const questionsQuery = useQuery({
+    queryKey: ['rescue-questions', rescueId],
+    queryFn: async () => {
       const response = await apiService.get<{ data?: GatewayQuestion[] }>(
         `${apiBase}/api/v1/rescues/${rescueId}/questions`
       );
-      setQuestions((response.data ?? []).map(toQuestion));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load questions');
-    } finally {
-      setLoading(false);
-    }
-  }, [rescueId, apiBase]);
-
-  useEffect(() => {
-    loadQuestions();
-  }, [loadQuestions]);
+      return (response.data ?? []).map(toQuestion);
+    },
+  });
+  const questions = questionsQuery.data ?? [];
+  const loading = questionsQuery.isLoading;
+  const loadError = questionsQuery.error instanceof Error ? questionsQuery.error.message : null;
+  const loadQuestions = () => questionsQuery.refetch();
 
   const validateForm = (): boolean => {
     const errors: Partial<Record<keyof QuestionFormData, string>> = {};
@@ -489,9 +486,9 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
         )}
       </div>
 
-      {error && (
+      {(error ?? loadError) && (
         <Alert variant="error" closable onClose={() => setError(null)}>
-          {error}
+          {error ?? loadError}
         </Alert>
       )}
 
@@ -512,15 +509,16 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
               <h4>Quick templates</h4>
               <div className={styles.templateGrid}>
                 {QUESTION_TEMPLATES.map(template => (
-                  <button
+                  <Button
                     key={template.label}
                     type="button"
-                    className={styles.templateButton}
+                    variant="outline"
+                    size="sm"
                     onClick={() => handleApplyTemplate(template)}
                     data-testid={`template-${template.label.toLowerCase().replace(/\s+/g, '-')}`}
                   >
                     {template.label}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -528,21 +526,20 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
 
           <div className={styles.formGrid}>
             <div className={styles.formGroupFullWidth}>
-              <label className={styles.label} htmlFor="question-text">
-                Question text *
-              </label>
-              <Input
-                className={styles.input}
-                id="question-text"
-                data-testid="question-text-input"
-                value={formData.questionText}
-                onChange={e => handleFieldChange('questionText', e.target.value)}
-                placeholder="e.g. Do you have a garden or outdoor space?"
-                aria-invalid={!!formErrors.questionText}
-              />
-              {formErrors.questionText && (
-                <p className={styles.errorText}>{formErrors.questionText}</p>
-              )}
+              <FormField
+                label="Question text *"
+                htmlFor="question-text"
+                error={formErrors.questionText}
+              >
+                <Input
+                  id="question-text"
+                  data-testid="question-text-input"
+                  value={formData.questionText}
+                  onChange={e => handleFieldChange('questionText', e.target.value)}
+                  placeholder="e.g. Do you have a garden or outdoor space?"
+                  aria-invalid={!!formErrors.questionText}
+                />
+              </FormField>
             </div>
 
             <div className={styles.formGroup}>
@@ -584,91 +581,82 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
             </div>
 
             <div className={styles.formGroup}>
-              <label className={styles.label} htmlFor="question-key">
-                Question key *
-              </label>
-              <Input
-                className={styles.input}
-                id="question-key"
-                data-testid="question-key-input"
-                value={formData.questionKey}
-                onChange={e => handleFieldChange('questionKey', e.target.value)}
-                placeholder="e.g. has_garden"
-                aria-invalid={!!formErrors.questionKey}
-              />
-              <p className={styles.helpText}>
-                Unique identifier (auto-generated from question text)
-              </p>
-              {formErrors.questionKey && (
-                <p className={styles.errorText}>{formErrors.questionKey}</p>
-              )}
+              <FormField
+                label="Question key *"
+                htmlFor="question-key"
+                error={formErrors.questionKey}
+                description="Unique identifier (auto-generated from question text)"
+              >
+                <Input
+                  id="question-key"
+                  data-testid="question-key-input"
+                  value={formData.questionKey}
+                  onChange={e => handleFieldChange('questionKey', e.target.value)}
+                  placeholder="e.g. has_garden"
+                  aria-invalid={!!formErrors.questionKey}
+                />
+              </FormField>
             </div>
 
             <div className={styles.formGroup}>
-              <label className={styles.label} htmlFor="question-placeholder">
-                Placeholder text
-              </label>
-              <Input
-                className={styles.input}
-                id="question-placeholder"
-                data-testid="question-placeholder-input"
-                value={formData.placeholder}
-                onChange={e => handleFieldChange('placeholder', e.target.value)}
-                placeholder="Enter placeholder text..."
-              />
+              <FormField label="Placeholder text" htmlFor="question-placeholder">
+                <Input
+                  id="question-placeholder"
+                  data-testid="question-placeholder-input"
+                  value={formData.placeholder}
+                  onChange={e => handleFieldChange('placeholder', e.target.value)}
+                  placeholder="Enter placeholder text..."
+                />
+              </FormField>
             </div>
 
             <div className={styles.formGroupFullWidth}>
-              <label className={styles.label} htmlFor="question-help">
-                Help text
-              </label>
-              <Input
-                className={styles.input}
-                id="question-help"
-                data-testid="question-help-input"
-                value={formData.helpText}
-                onChange={e => handleFieldChange('helpText', e.target.value)}
-                placeholder="Additional guidance for the applicant..."
-              />
+              <FormField label="Help text" htmlFor="question-help">
+                <Input
+                  id="question-help"
+                  data-testid="question-help-input"
+                  value={formData.helpText}
+                  onChange={e => handleFieldChange('helpText', e.target.value)}
+                  placeholder="Additional guidance for the applicant..."
+                />
+              </FormField>
             </div>
 
             {needsOptions && (
               <div className={styles.formGroupFullWidth}>
-                <label className={styles.label} htmlFor="question-options">
-                  Options * (one per line)
-                </label>
-                <textarea
-                  className={styles.textArea}
-                  id="question-options"
-                  data-testid="question-options-input"
-                  value={formData.options}
-                  onChange={e => handleFieldChange('options', e.target.value)}
-                  placeholder={'Option 1\nOption 2\nOption 3'}
-                  rows={4}
-                />
-                {formErrors.options && <p className={styles.errorText}>{formErrors.options}</p>}
+                <FormField
+                  label="Options * (one per line)"
+                  htmlFor="question-options"
+                  error={formErrors.options}
+                >
+                  <TextArea
+                    id="question-options"
+                    data-testid="question-options-input"
+                    value={formData.options}
+                    onChange={e => handleFieldChange('options', e.target.value)}
+                    placeholder={'Option 1\nOption 2\nOption 3'}
+                    rows={4}
+                  />
+                </FormField>
               </div>
             )}
 
             <div className={styles.formGroupFullWidth}>
-              <label className={styles.label} htmlFor="conditional-logic">
-                Conditional logic (optional, JSON)
-              </label>
-              <textarea
-                className={styles.textArea}
-                id="conditional-logic"
-                data-testid="conditional-logic-input"
-                value={formData.conditionalLogic}
-                onChange={e => handleFieldChange('conditionalLogic', e.target.value)}
-                placeholder={'{"showWhen": {"questionKey": "has_pets", "operator": "is_true"}}'}
-                rows={3}
-              />
-              <p className={styles.helpText}>
-                Show this question only when a specific condition is met
-              </p>
-              {formErrors.conditionalLogic && (
-                <p className={styles.errorText}>{formErrors.conditionalLogic}</p>
-              )}
+              <FormField
+                label="Conditional logic (optional, JSON)"
+                htmlFor="conditional-logic"
+                error={formErrors.conditionalLogic}
+                description="Show this question only when a specific condition is met"
+              >
+                <TextArea
+                  id="conditional-logic"
+                  data-testid="conditional-logic-input"
+                  value={formData.conditionalLogic}
+                  onChange={e => handleFieldChange('conditionalLogic', e.target.value)}
+                  placeholder={'{"showWhen": {"questionKey": "has_pets", "operator": "is_true"}}'}
+                  rows={3}
+                />
+              </FormField>
             </div>
 
             <div className={styles.formGroup}>
@@ -749,24 +737,28 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
               >
                 <div className={styles.questionHeader}>
                   <div className={styles.orderControls}>
-                    <button
-                      className={styles.orderButton}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => handleMoveQuestion(question, 'up', rescueQs)}
                       disabled={index === 0}
                       aria-label="Move question up"
                       data-testid={`move-up-${question.questionId}`}
                     >
-                      ▲
-                    </button>
-                    <button
-                      className={styles.orderButton}
+                      <ChevronUp size="1em" aria-hidden="true" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => handleMoveQuestion(question, 'down', rescueQs)}
                       disabled={index === rescueQs.length - 1}
                       aria-label="Move question down"
                       data-testid={`move-down-${question.questionId}`}
                     >
-                      ▼
-                    </button>
+                      <ChevronDown size="1em" aria-hidden="true" />
+                    </Button>
                   </div>
 
                   <div className={styles.questionText}>

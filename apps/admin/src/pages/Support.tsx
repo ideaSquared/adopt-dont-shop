@@ -1,18 +1,21 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
 import {
+  Alert,
+  Badge,
   DataTable,
   type DataTableColumn,
-  Heading,
-  Text,
-  Input,
-  useToast,
-  Toast,
-  ToastContainer,
+  type FilterConfig,
+  MetricCard,
+  PageHeader,
+  SearchToolbar,
+  Stack,
+  StatusBadge,
+  toast,
   useDebouncedValue,
-  type ToastMessage,
+  useFilterParamSetter,
 } from '@adopt-dont-shop/lib.components';
-import { CircleAlert, CircleCheck, Clock, MessageSquare, Search } from 'lucide-react';
+import { CircleAlert, CircleCheck, Clock, MessageSquare } from 'lucide-react';
 import {
   useTickets,
   useTicketStats,
@@ -29,38 +32,11 @@ import {
 import { TicketDetailModal } from '../components/modals/TicketDetailModal';
 import * as styles from './Support.css';
 
-const getStatusBadgeClass = (status: TicketStatus): string => {
-  switch (status) {
-    case 'open':
-      return styles.badgeDanger;
-    case 'in_progress':
-      return styles.badgeInfo;
-    case 'waiting_for_user':
-      return styles.badgeWarning;
-    case 'resolved':
-      return styles.badgeSuccess;
-    case 'closed':
-      return styles.badgeNeutral;
-    case 'escalated':
-      return styles.badgeDanger;
-    default:
-      return styles.badgeNeutral;
-  }
-};
-
-const getPriorityBadgeClass = (level: string): string => {
-  switch (level) {
-    case 'urgent':
-      return styles.priorityBadgeUrgent;
-    case 'high':
-      return styles.priorityBadgeHigh;
-    case 'medium':
-      return styles.priorityBadgeMedium;
-    case 'low':
-      return styles.priorityBadgeLow;
-    default:
-      return styles.priorityBadgeDefault;
-  }
+const PRIORITY_BADGE_VARIANTS: Record<string, 'error' | 'warning' | 'info' | 'neutral'> = {
+  urgent: 'error',
+  high: 'warning',
+  medium: 'info',
+  low: 'neutral',
 };
 
 const VALID_TICKET_STATUSES: ReadonlySet<string> = new Set([
@@ -81,20 +57,7 @@ const Support: React.FC = () => {
   const statusFilter: TicketStatus | 'all' =
     statusParam && VALID_TICKET_STATUSES.has(statusParam) ? (statusParam as TicketStatus) : 'all';
 
-  const setFilterParam = (key: string, value: string) => {
-    setSearchParams(
-      prev => {
-        const next = new URLSearchParams(prev);
-        if (value && value !== 'all') {
-          next.set(key, value);
-        } else {
-          next.delete(key);
-        }
-        return next;
-      },
-      { replace: true }
-    );
-  };
+  const setFilterParam = useFilterParamSetter(setSearchParams);
 
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
@@ -102,7 +65,6 @@ const Support: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState<TicketCategory | 'all'>('all');
   const [page, setPage] = useState(1);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
-  const { toasts, showToast, hideToast } = useToast();
 
   useEffect(() => {
     setPage(1);
@@ -178,9 +140,9 @@ const Support: React.FC = () => {
       setSelectedTicket(match);
       return;
     }
-    showToast('Ticket not found', 'error');
+    toast.error('Ticket not found');
     navigate(`/support${searchSuffix}`, { replace: true });
-  }, [ticketId, ticketsLoading, tickets, navigate, searchSuffix, showToast]);
+  }, [ticketId, ticketsLoading, tickets, navigate, searchSuffix]);
 
   const handleRowClick = (ticket: SupportTicket) => {
     navigate(`/support/${ticket.ticketId}${searchSuffix}`);
@@ -235,6 +197,65 @@ const Support: React.FC = () => {
   // sortBy/sortOrder and ignores the URL params the old table wrote), so every
   // column is explicitly non-sortable rather than opting into the shared table's
   // client-side sort of the current page only.
+  const filterConfig: FilterConfig[] = [
+    {
+      name: 'status',
+      label: 'Status',
+      type: 'select',
+      options: [
+        { value: 'all', label: 'All Statuses' },
+        { value: 'open', label: 'Open' },
+        { value: 'in_progress', label: 'In Progress' },
+        { value: 'waiting_for_user', label: 'Waiting for User' },
+        { value: 'resolved', label: 'Resolved' },
+        { value: 'closed', label: 'Closed' },
+        { value: 'escalated', label: 'Escalated' },
+      ],
+    },
+    {
+      name: 'priority',
+      label: 'Priority',
+      type: 'select',
+      options: [
+        { value: 'all', label: 'All Priorities' },
+        { value: 'critical', label: 'Critical' },
+        { value: 'urgent', label: 'Urgent' },
+        { value: 'high', label: 'High' },
+        { value: 'normal', label: 'Normal' },
+        { value: 'low', label: 'Low' },
+      ],
+    },
+    {
+      name: 'category',
+      label: 'Category',
+      type: 'select',
+      options: [
+        { value: 'all', label: 'All Categories' },
+        { value: 'technical_issue', label: 'Technical Issue' },
+        { value: 'account_problem', label: 'Account Problem' },
+        { value: 'adoption_inquiry', label: 'Adoption Inquiry' },
+        { value: 'payment_issue', label: 'Payment Issue' },
+        { value: 'feature_request', label: 'Feature Request' },
+        { value: 'report_bug', label: 'Report Bug' },
+        { value: 'general_question', label: 'General Question' },
+        { value: 'compliance_concern', label: 'Compliance Concern' },
+        { value: 'data_request', label: 'Data Request' },
+        { value: 'other', label: 'Other' },
+      ],
+    },
+  ];
+
+  const handleFilterChange = (name: string, value: string | boolean): void => {
+    const next = String(value);
+    if (name === 'status') {
+      setFilterParam('status', next);
+    } else if (name === 'priority') {
+      setPriorityFilter(next as TicketPriority | 'all');
+    } else if (name === 'category') {
+      setCategoryFilter(next as TicketCategory | 'all');
+    }
+  };
+
   const columns: DataTableColumn[] = [
     {
       key: 'ticket',
@@ -279,10 +300,9 @@ const Support: React.FC = () => {
           );
         const level = getPriorityLevel(ticket.priority);
         return (
-          <span className={getPriorityBadgeClass(level)}>
-            {icon}
+          <Badge variant={PRIORITY_BADGE_VARIANTS[level] ?? 'neutral'} icon={icon}>
             {getPriorityLabel(ticket.priority)}
-          </span>
+          </Badge>
         );
       },
     },
@@ -294,9 +314,11 @@ const Support: React.FC = () => {
       render: (_value, row) => {
         const ticket = row as SupportTicket;
         return (
-          <span className={getStatusBadgeClass(ticket.status)}>
-            {getStatusLabel(ticket.status)}
-          </span>
+          <StatusBadge
+            kind='supportTicket'
+            status={ticket.status}
+            label={getStatusLabel(ticket.status)}
+          />
         );
       },
     },
@@ -323,134 +345,37 @@ const Support: React.FC = () => {
   ];
 
   return (
-    <div className={styles.pageContainer}>
-      <div className={styles.pageHeader}>
-        <div className={styles.headerLeft}>
-          <Heading level='h1'>Support Tickets</Heading>
-          <Text>Manage customer support requests and inquiries</Text>
-        </div>
-      </div>
+    <Stack spacing='lg'>
+      <PageHeader
+        title='Support Tickets'
+        description='Manage customer support requests and inquiries'
+      />
 
       <div className={styles.statsBar}>
-        <div className={styles.statCard}>
-          <div className={styles.statIconRed}>
-            <CircleAlert size='1em' />
-          </div>
-          <div className={styles.statDetails}>
-            <div className={styles.statLabel}>Open Tickets</div>
-            <div className={styles.statValue}>{stats.open}</div>
-          </div>
-        </div>
-
-        <div className={styles.statCard}>
-          <div className={styles.statIconBlue}>
-            <Clock size='1em' />
-          </div>
-          <div className={styles.statDetails}>
-            <div className={styles.statLabel}>In Progress</div>
-            <div className={styles.statValue}>{stats.inProgress}</div>
-          </div>
-        </div>
-
-        <div className={styles.statCard}>
-          <div className={styles.statIconAmber}>
-            <MessageSquare size='1em' />
-          </div>
-          <div className={styles.statDetails}>
-            <div className={styles.statLabel}>Waiting on User</div>
-            <div className={styles.statValue}>{stats.waitingUser}</div>
-          </div>
-        </div>
-
-        <div className={styles.statCard}>
-          <div className={styles.statIconGreen}>
-            <CircleCheck size='1em' />
-          </div>
-          <div className={styles.statDetails}>
-            <div className={styles.statLabel}>Resolved Today</div>
-            <div className={styles.statValue}>{stats.resolved}</div>
-          </div>
-        </div>
+        <MetricCard label='Open Tickets' value={stats.open} icon={<CircleAlert size='1em' />} />
+        <MetricCard label='In Progress' value={stats.inProgress} icon={<Clock size='1em' />} />
+        <MetricCard
+          label='Waiting on User'
+          value={stats.waitingUser}
+          icon={<MessageSquare size='1em' />}
+        />
+        <MetricCard
+          label='Resolved Today'
+          value={stats.resolved}
+          icon={<CircleCheck size='1em' />}
+        />
       </div>
 
-      <div className={styles.filterBar}>
-        <div className={styles.searchInputWrapper}>
-          <Search size='1em' />
-          <Input
-            type='text'
-            placeholder='Search tickets by subject, user, or email...'
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-        </div>
+      <SearchToolbar
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder='Search tickets by subject, user, or email...'
+        filterConfig={filterConfig}
+        filters={{ status: statusFilter, priority: priorityFilter, category: categoryFilter }}
+        onFilterChange={handleFilterChange}
+      />
 
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor='support-status-filter'>
-            Status
-          </label>
-          <select
-            id='support-status-filter'
-            className={styles.select}
-            value={statusFilter}
-            onChange={e => setFilterParam('status', e.target.value)}
-          >
-            <option value='all'>All Statuses</option>
-            <option value='open'>Open</option>
-            <option value='in_progress'>In Progress</option>
-            <option value='waiting_for_user'>Waiting for User</option>
-            <option value='resolved'>Resolved</option>
-            <option value='closed'>Closed</option>
-            <option value='escalated'>Escalated</option>
-          </select>
-        </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor='support-priority-filter'>
-            Priority
-          </label>
-          <select
-            id='support-priority-filter'
-            className={styles.select}
-            value={priorityFilter}
-            onChange={e => setPriorityFilter(e.target.value as TicketPriority | 'all')}
-          >
-            <option value='all'>All Priorities</option>
-            <option value='critical'>Critical</option>
-            <option value='urgent'>Urgent</option>
-            <option value='high'>High</option>
-            <option value='normal'>Normal</option>
-            <option value='low'>Low</option>
-          </select>
-        </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor='support-category-filter'>
-            Category
-          </label>
-          <select
-            id='support-category-filter'
-            className={styles.select}
-            value={categoryFilter}
-            onChange={e => setCategoryFilter(e.target.value as TicketCategory | 'all')}
-          >
-            <option value='all'>All Categories</option>
-            <option value='technical_issue'>Technical Issue</option>
-            <option value='account_problem'>Account Problem</option>
-            <option value='adoption_inquiry'>Adoption Inquiry</option>
-            <option value='payment_issue'>Payment Issue</option>
-            <option value='feature_request'>Feature Request</option>
-            <option value='report_bug'>Report Bug</option>
-            <option value='general_question'>General Question</option>
-            <option value='compliance_concern'>Compliance Concern</option>
-            <option value='data_request'>Data Request</option>
-            <option value='other'>Other</option>
-          </select>
-        </div>
-      </div>
-
-      {ticketsError && (
-        <div className={styles.errorState}>Error loading tickets: {ticketsError.message}</div>
-      )}
+      {ticketsError && <Alert variant='error'>Error loading tickets: {ticketsError.message}</Alert>}
 
       <DataTable
         frameless
@@ -475,13 +400,7 @@ const Support: React.FC = () => {
         siblingIds={ticketSiblingIds}
         onNavigate={handleNavigateTicket}
       />
-
-      <ToastContainer position='top-right'>
-        {toasts.map((toast: ToastMessage) => (
-          <Toast key={toast.id} {...toast} onClose={hideToast} position='top-right' />
-        ))}
-      </ToastContainer>
-    </div>
+    </Stack>
   );
 };
 

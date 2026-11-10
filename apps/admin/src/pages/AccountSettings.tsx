@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AccountSettings as SharedAccountSettings } from '@adopt-dont-shop/lib.account';
+import { PageHeader } from '@adopt-dont-shop/lib.components';
 import * as styles from './AccountSettings.css';
 
 const AccountSettings: React.FC = () => {
@@ -7,10 +8,10 @@ const AccountSettings: React.FC = () => {
 
   return (
     <div className={styles.pageContainer}>
-      <div className={styles.pageHeader}>
-        <h1>Account Settings</h1>
-        <p>Check your details and change anything that needs updating.</p>
-      </div>
+      <PageHeader
+        title='Account Settings'
+        description='Check your details and change anything that needs updating.'
+      />
 
       <SharedAccountSettings value={openSection} onChange={setOpenSection} />
     </div>

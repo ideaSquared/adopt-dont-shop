@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { runBootstrapCli, stripTrailingNewline, type BootstrapCliDeps } from './bootstrap-admin.js';
 
-const PASSWORD = 'correct-horse-battery';
+const PASSWORD = 'CorrectHorse-Battery1!';
 const ARGS = [
   '--password-stdin',
   '--email',

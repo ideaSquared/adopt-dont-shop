@@ -272,6 +272,73 @@ describe('foster placements', () => {
     });
   });
 
+  it('GET /placements returns each status as its lowercase name, not the enum number', async () => {
+    m.listFosterPlacementsMock.mockResolvedValueOnce({
+      placements: [
+        FOSTER_FIXTURE,
+        {
+          ...FOSTER_FIXTURE,
+          placementId: 'fp-2',
+          status: RescueV1.FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_COMPLETED,
+        },
+        {
+          ...FOSTER_FIXTURE,
+          placementId: 'fp-3',
+          status: RescueV1.FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_CANCELLED,
+        },
+      ],
+    });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/foster/placements',
+      headers: ADOPTER_HEADERS,
+    });
+    const { data } = JSON.parse(res.body) as { data: Array<{ status: string }> };
+    expect(data.map(p => p.status)).toEqual(['active', 'completed', 'cancelled']);
+  });
+
+  it('GET /placements/:id returns the status as a lowercase name', async () => {
+    m.getFosterPlacementMock.mockResolvedValueOnce({ placement: FOSTER_FIXTURE });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/foster/placements/fp-1',
+      headers: ADOPTER_HEADERS,
+    });
+    expect(JSON.parse(res.body).data.status).toBe('active');
+  });
+
+  it('POST /placements returns the new placement with a lowercase status', async () => {
+    m.createFosterPlacementMock.mockResolvedValueOnce({ placement: FOSTER_FIXTURE });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/foster/placements',
+      headers: ADOPTER_HEADERS,
+      payload: {
+        rescueId: 'rsc-1',
+        petId: 'pet-1',
+        fosterUserId: 'usr-foster',
+        startDate: '2026-06-01T00:00:00Z',
+      },
+    });
+    expect(JSON.parse(res.body).data.status).toBe('active');
+  });
+
+  it('POST /placements/:id/end returns the ended placement with a lowercase status', async () => {
+    m.endFosterPlacementMock.mockResolvedValueOnce({
+      placement: {
+        ...FOSTER_FIXTURE,
+        status: RescueV1.FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_COMPLETED,
+      },
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/foster/placements/fp-1/end',
+      headers: ADOPTER_HEADERS,
+      payload: { outcome: 'return_to_rescue' },
+    });
+    expect(JSON.parse(res.body).data.status).toBe('completed');
+  });
+
   it('GET /placements/:id returns the placement', async () => {
     m.getFosterPlacementMock.mockResolvedValueOnce({ placement: FOSTER_FIXTURE });
     const res = await app.inject({

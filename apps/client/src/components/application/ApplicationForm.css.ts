@@ -10,29 +10,29 @@ export const reviewContainer = style({
 });
 
 export const reviewTitle = style({
-  fontSize: '1.5rem',
+  fontSize: vars.typography.size['2xl'],
   color: vars.text.primary,
-  margin: '0 0 0.5rem 0',
+  margin: `0 0 ${vars.spacing['2']} 0`,
 });
 
 export const reviewDescription = style({
   color: vars.text.secondary,
-  margin: '0 0 2rem 0',
+  margin: `0 0 ${vars.spacing['5']} 0`,
 });
 
 export const reviewCategory = style({
-  marginBottom: '1.5rem',
+  marginBottom: vars.spacing['4'],
   padding: '1.25rem 1.5rem',
   background: vars.background.surface,
-  borderRadius: '0.5rem',
+  borderRadius: vars.border.radius.base,
 });
 
 export const reviewCategoryTitle = style({
-  fontSize: '1rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.base,
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
-  margin: '0 0 1rem 0',
-  paddingBottom: '0.5rem',
+  margin: `0 0 ${vars.spacing['3']} 0`,
+  paddingBottom: vars.spacing['2'],
   borderBottom: `1px solid ${vars.border.color.default}`,
 });
 
@@ -40,7 +40,7 @@ export const reviewItem = style({
   display: 'flex',
   flexDirection: 'column',
   gap: '0.125rem',
-  padding: '0.5rem 0',
+  padding: `${vars.spacing['2']} 0`,
   selectors: {
     '& + &': {
       borderTop: `1px solid ${vars.border.color.default}`,
@@ -62,13 +62,13 @@ export const navigationButtons = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  marginTop: '2rem',
-  paddingTop: '2rem',
+  marginTop: vars.spacing['5'],
+  paddingTop: vars.spacing['5'],
   borderTop: `1px solid ${vars.border.color.default}`,
   '@media': {
     'screen and (max-width: 768px)': {
       flexDirection: 'column',
-      gap: '1rem',
+      gap: vars.spacing['3'],
       // C4: on mobile the question steps run long, so pin the step
       // navigation (Back / Continue / Send) to the bottom of the viewport
       // so the primary CTA is always reachable without scrolling to the end.
@@ -84,7 +84,7 @@ export const navigationButtons = style({
 
 export const buttonGroup = style({
   display: 'flex',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   '@media': {
     'screen and (max-width: 768px)': {
       width: '100%',

@@ -5,6 +5,7 @@ import { createVerifiedAdopter, loginAccountViaApi } from '../../helpers/account
 import { dismissCookieBannerPatiently } from '../../helpers/cookie-banner-patient';
 import { uniqueText } from '../../helpers/factories';
 import { createAvailablePet, expectOk, postWithCsrf } from '../../helpers/seeds';
+import { chooseSelectOption } from '../../helpers/radix-select';
 
 /**
  * The moderation queue lists reports adopters have filed and narrows them by
@@ -33,10 +34,22 @@ const FILTER_QUERY_PARAM: Record<string, string> = {
   'Content Type': 'reportedEntityType',
 };
 
+// The queue's filters are select comboboxes: choose by the option's visible label.
+const FILTER_OPTION_LABEL: Record<string, string> = {
+  'Severity:all': 'All Severities',
+  'Severity:high': 'High',
+  'Status:dismissed': 'Dismissed',
+  'Content Type:pet': 'Pet',
+};
+
 const filterBy = async (page: Page, label: string, option: string): Promise<void> => {
   // Wait for the refetch that carries this filter (or drops it, for "all") so
   // assertions never see the list mid-swap.
   const param = FILTER_QUERY_PARAM[label];
+  const optionLabel = FILTER_OPTION_LABEL[`${label}:${option}`];
+  if (!optionLabel) {
+    throw new Error(`no option label mapped for ${label}:${option}`);
+  }
   const expected = option === 'all' ? `${param}=` : `${param}=${option}`;
   await Promise.all([
     page.waitForResponse(res => {
@@ -46,7 +59,7 @@ const filterBy = async (page: Page, label: string, option: string): Promise<void
         (option === 'all' ? !url.includes(expected) : url.includes(expected))
       );
     }),
-    page.getByLabel(label, { exact: true }).selectOption(option),
+    chooseSelectOption(page, page.getByLabel(label, { exact: true }), optionLabel),
   ]);
 };
 

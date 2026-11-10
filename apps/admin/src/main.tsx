@@ -1,7 +1,8 @@
-import { ThemeProvider, Toaster, toast } from '@adopt-dont-shop/lib.components';
+import { ErrorBoundary, ThemeProvider, Toaster, toast } from '@adopt-dont-shop/lib.components';
 import { AuthProvider } from '@adopt-dont-shop/lib.auth';
 import { attachStoredCookieConsent } from '@adopt-dont-shop/lib.legal';
 import {
+  captureException,
   createSentryWebVitalsReporter,
   initSentry,
   reportWebVitals,
@@ -11,7 +12,6 @@ import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router';
 import App from './App';
-import ErrorBoundary from './components/ErrorBoundary';
 import { StatsigWrapper } from './contexts/StatsigContext';
 
 // ADS-594: promote deferred font stylesheet via CSSOM so the non-blocking
@@ -72,7 +72,15 @@ const handleAuthEvent = (event: string, data?: Record<string, unknown>) => {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ErrorBoundary>
+    <ErrorBoundary
+      onError={(error, errorInfo) =>
+        captureException(error, {
+          app: 'admin',
+          boundary: 'root',
+          componentStack: errorInfo.componentStack,
+        })
+      }
+    >
       <QueryClientProvider client={queryClient}>
         <AuthProvider
           allowedUserTypes={['admin', 'moderator', 'super_admin']}

@@ -14,7 +14,7 @@ test.describe('admin user moderation', () => {
     const account = await createVerifiedAdopter('user-search');
 
     await page.goto('/users');
-    await page.getByRole('textbox', { name: /search by name or email/i }).fill(account.email);
+    await page.getByRole('searchbox', { name: 'Search', exact: true }).fill(account.email);
     // Header row + the one match: the debounced search has settled.
     await expect(page.getByRole('row')).toHaveCount(2, { timeout: 30_000 });
     const row = page.getByRole('row').filter({ hasText: account.email });
@@ -29,7 +29,7 @@ test.describe('admin user moderation', () => {
 
     // A search nobody matches shows the empty state instead of stale rows.
     await page
-      .getByRole('textbox', { name: /search by name or email/i })
+      .getByRole('searchbox', { name: 'Search', exact: true })
       .fill(`no-such-${account.email}`);
     await expect(page.getByText(/no users found matching your criteria/i)).toBeVisible({
       timeout: 30_000,

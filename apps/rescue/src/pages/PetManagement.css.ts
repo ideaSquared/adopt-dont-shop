@@ -1,15 +1,14 @@
-import { globalStyle, style } from '@vanilla-extract/css';
-
+import { style } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const pageContainer = style({
   maxWidth: '1200px',
   margin: '0 auto',
   width: '100%',
-  padding: '1rem',
+  padding: vars.spacing['3'],
   '@media': {
     'screen and (min-width: 768px)': {
-      padding: '1.5rem',
+      padding: vars.spacing['4'],
     },
   },
 });
@@ -17,7 +16,7 @@ export const pageContainer = style({
 export const contentWrapper = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   '@media': {
     'screen and (min-width: 768px)': {
       gap: '1.25rem',
@@ -25,39 +24,9 @@ export const contentWrapper = style({
   },
 });
 
-export const pageHeader = style({
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'flex-start',
-  gap: '2rem',
-  '@media': {
-    'screen and (max-width: 768px)': {
-      flexDirection: 'column',
-      gap: '1rem',
-    },
-  },
-});
-
-export const headerContent = style({
-  flex: 1,
-});
-
-globalStyle(`${headerContent} h1`, {
-  fontSize: '2.5rem',
-  fontWeight: 700,
-  color: vars.text.primary,
-  margin: '0 0 0.5rem 0',
-});
-
-globalStyle(`${headerContent} p`, {
-  fontSize: '1.1rem',
-  color: vars.text.tertiary,
-  margin: 0,
-});
-
 export const headerActions = style({
   display: 'flex',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   alignItems: 'center',
   '@media': {
     'screen and (max-width: 768px)': {
@@ -72,7 +41,7 @@ export const filtersContainer = style({
 });
 
 export const statusFilterSection = style({
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const advancedFiltersSection = style({
@@ -87,83 +56,47 @@ export const mainContent = style({
 export const statsContainer = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-  gap: '1rem',
-});
-
-export const statCard = style({
-  padding: '1.5rem',
-  textAlign: 'center',
-});
-
-export const statNumber = style({
-  fontSize: '2rem',
-  fontWeight: 700,
-  color: vars.colors.infoHover,
-  marginBottom: '0.5rem',
-});
-
-export const statLabel = style({
-  fontSize: '0.875rem',
-  color: vars.text.tertiary,
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-});
-
-export const errorContainer = style({
-  padding: '2rem',
-  textAlign: 'center',
-  border: `1px solid ${vars.colors.danger}`,
-  backgroundColor: vars.colors.dangerBgSubtle,
-  color: vars.colors.dangerHover,
-  borderRadius: '0.5rem',
-});
-
-export const retryButton = style({
-  marginTop: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const setupCard = style({
-  padding: '2rem',
+  padding: vars.spacing['5'],
   textAlign: 'center',
   maxWidth: '600px',
-  margin: '1rem auto',
+  margin: `${vars.spacing['3']} auto`,
 });
 
 export const setupEmoji = style({
-  fontSize: '3rem',
-  marginBottom: '1rem',
+  fontSize: vars.typography.size['5xl'],
+  marginBottom: vars.spacing['3'],
 });
 
 export const setupHint = style({
-  marginBottom: '1.5rem',
+  marginBottom: vars.spacing['4'],
   color: '#6b7280',
 });
 
 export const setupActions = style({
   display: 'flex',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   justifyContent: 'center',
   flexWrap: 'wrap',
 });
 
 export const devNote = style({
-  marginTop: '1.5rem',
-  padding: '1rem',
+  marginTop: vars.spacing['4'],
+  padding: vars.spacing['3'],
   background: '#f3f4f6',
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
 });
 
 export const devNoteIntro = style({
-  margin: '0.5rem 0',
-  fontSize: '0.875rem',
+  margin: `${vars.spacing['2']} 0`,
+  fontSize: vars.typography.size.sm,
 });
 
 export const devNoteSteps = style({
   textAlign: 'left',
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   margin: 0,
-});
-
-export const dismissButton = style({
-  marginTop: '0.5rem',
 });

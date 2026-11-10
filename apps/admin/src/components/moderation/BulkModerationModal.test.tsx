@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderWithProviders, screen, waitFor } from '../../test-utils';
+import { fireEvent, renderWithProviders, screen, waitFor } from '../../test-utils';
 import userEvent from '@testing-library/user-event';
 import { BulkModerationModal, type BulkModerationModalProps } from './BulkModerationModal';
 
@@ -38,13 +38,13 @@ describe('BulkModerationModal', () => {
     it('shows the correct title for dismiss kind', () => {
       renderModal({ kind: 'dismiss' });
 
-      expect(screen.getByText('Bulk Dismiss Reports')).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: 'Bulk Dismiss Reports' })).toBeInTheDocument();
     });
 
     it('shows the correct title for sanction kind', () => {
       renderModal({ kind: 'sanction' });
 
-      expect(screen.getByText('Bulk Sanction Reports')).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: 'Bulk Sanction Reports' })).toBeInTheDocument();
     });
 
     it('displays the selected count', () => {
@@ -213,18 +213,22 @@ describe('BulkModerationModal', () => {
       expect(screen.getByRole('button', { name: /cancel/i })).toBeDisabled();
     });
 
-    it('prevents closing via overlay click when loading', async () => {
+    it('prevents closing via Escape when loading', () => {
       const onClose = vi.fn();
       renderModal({ isLoading: true, onClose });
 
-      const user = userEvent.setup();
-      // Click the overlay (the outermost div)
-      const overlay = screen.getByRole('dialog').parentElement;
-      if (overlay) {
-        await user.click(overlay);
-      }
+      fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
 
       expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it('closes via Escape when idle', () => {
+      const onClose = vi.fn();
+      renderModal({ onClose });
+
+      fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+
+      expect(onClose).toHaveBeenCalled();
     });
   });
 
@@ -280,7 +284,7 @@ describe('BulkModerationModal', () => {
       renderModal({ onClose });
 
       const user = userEvent.setup();
-      await user.click(screen.getByLabelText('Close'));
+      await user.click(screen.getByLabelText('Close modal'));
 
       expect(onClose).toHaveBeenCalled();
     });

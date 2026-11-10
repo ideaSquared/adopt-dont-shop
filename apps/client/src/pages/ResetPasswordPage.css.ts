@@ -2,66 +2,35 @@ import { globalStyle, style } from '@vanilla-extract/css';
 
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
-export const container = style({
-  minHeight: 'calc(100vh - 200px)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '2rem',
-  background: `linear-gradient(135deg, ${vars.background.surface} 0%, ${vars.background.body} 100%)`,
-});
-
-export const resetPasswordCard = style({
-  width: '100%',
-  maxWidth: '450px',
-  padding: '2rem',
-});
-
-export const header = style({
-  textAlign: 'center',
-  marginBottom: '2rem',
-});
-
-globalStyle(`${header} h1`, {
-  fontSize: '2rem',
-  marginBottom: '0.5rem',
-  color: vars.text.primary,
-});
-
-globalStyle(`${header} p`, {
-  color: vars.text.tertiary,
-  lineHeight: '1.6',
-});
-
 export const form = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '1.5rem',
+  gap: vars.spacing['4'],
 });
 
 export const formGroup = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const passwordRequirements = style({
   background: vars.background.body,
   border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '8px',
-  padding: '1rem',
-  marginTop: '0.5rem',
+  borderRadius: vars.border.radius.base,
+  padding: vars.spacing['3'],
+  marginTop: vars.spacing['2'],
 });
 
 globalStyle(`${passwordRequirements} h4`, {
   fontSize: '0.9rem',
   color: vars.text.primary,
-  margin: '0 0 0.5rem 0',
+  margin: `0 0 ${vars.spacing['2']} 0`,
 });
 
 globalStyle(`${passwordRequirements} ul`, {
   margin: '0',
-  paddingLeft: '1.5rem',
+  paddingLeft: vars.spacing['4'],
   listStyle: 'disc',
 });
 
@@ -76,7 +45,7 @@ export const backToLoginLink = style({
   color: vars.colors.primary,
   textDecoration: 'none',
   textAlign: 'center',
-  marginTop: '1rem',
+  marginTop: vars.spacing['3'],
   display: 'block',
   ':hover': {
     textDecoration: 'underline',
@@ -84,23 +53,17 @@ export const backToLoginLink = style({
 });
 
 export const styledAlert = style({
-  marginBottom: '1.5rem',
+  marginBottom: vars.spacing['4'],
 });
 
 export const successContainer = style({
   textAlign: 'center',
 });
 
-globalStyle(`${successContainer} h2`, {
-  fontSize: '1.5rem',
-  color: '#059669',
-  marginBottom: '1rem',
-});
-
 globalStyle(`${successContainer} p`, {
   color: vars.text.tertiary,
   lineHeight: '1.6',
-  marginBottom: '1.5rem',
+  marginBottom: vars.spacing['4'],
 });
 
 globalStyle(`${successContainer} .redirect-message`, {
@@ -110,5 +73,5 @@ globalStyle(`${successContainer} .redirect-message`, {
 });
 
 export const fullWidthTopGap = style({
-  marginTop: '1rem',
+  marginTop: vars.spacing['3'],
 });

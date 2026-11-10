@@ -493,6 +493,9 @@ importers:
       '@adopt-dont-shop/lib.discovery':
         specifier: workspace:*
         version: link:../../packages/lib.discovery
+      '@adopt-dont-shop/lib.feature-flags':
+        specifier: workspace:*
+        version: link:../../packages/lib.feature-flags
       '@adopt-dont-shop/lib.invitations':
         specifier: workspace:*
         version: link:../../packages/lib.invitations
@@ -973,6 +976,9 @@ importers:
       react-dom:
         specifier: 19.2.7
         version: 19.2.7(react@19.2.7)
+      react-router:
+        specifier: ^8.3.0
+        version: 8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
 
   packages/lib.av-scan:
     dependencies:
@@ -1050,6 +1056,9 @@ importers:
 
   packages/lib.components:
     dependencies:
+      '@adopt-dont-shop/lib.types':
+        specifier: workspace:*
+        version: link:../lib.types
       '@radix-ui/react-dropdown-menu':
         specifier: ^2.1.18
         version: 2.1.18(@types/react-dom@19.3.0(@types/react@19.2.16))(@types/react@19.2.16)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -1194,6 +1203,9 @@ importers:
       '@statsig/react-bindings':
         specifier: ^3.33.1
         version: 3.33.2(react@19.2.7)
+      '@vanilla-extract/css':
+        specifier: ^1.20.1
+        version: 1.21.3
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -1201,6 +1213,15 @@ importers:
       '@adopt-dont-shop/eslint-config-base':
         specifier: workspace:*
         version: link:../eslint-config-base
+      '@testing-library/dom':
+        specifier: ^10.4.0
+        version: 10.4.1
+      '@testing-library/jest-dom':
+        specifier: ^6.4.2
+        version: 6.9.1
+      '@testing-library/react':
+        specifier: ^16.3.2
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.3.0(@types/react@19.2.16))(@types/react@19.2.16)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@types/node':
         specifier: ^26.0.0
         version: 26.1.1
@@ -1210,6 +1231,9 @@ importers:
       react:
         specifier: 19.2.7
         version: 19.2.7
+      react-dom:
+        specifier: 19.2.7
+        version: 19.2.7(react@19.2.7)
 
   packages/lib.invitations:
     dependencies:
@@ -1895,6 +1919,9 @@ importers:
       '@adopt-dont-shop/lib.types':
         specifier: workspace:*
         version: link:../../packages/lib.types
+      '@adopt-dont-shop/lib.validation':
+        specifier: workspace:*
+        version: link:../../packages/lib.validation
       '@adopt-dont-shop/observability':
         specifier: workspace:*
         version: link:../../packages/observability

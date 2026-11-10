@@ -7,7 +7,8 @@ import { useDrag } from '@use-gesture/react';
 import React, { useCallback, useRef, useState } from 'react';
 import { ChevronUp, CircleCheck, Lock, MapPin, PawPrint, RefreshCw, Star } from 'lucide-react';
 import { useNavigate } from 'react-router';
-import { resolveFileUrl } from '../../utils/fileUtils';
+import { formatAge } from '@adopt-dont-shop/lib.pets';
+import { resolveFileUrl } from '@adopt-dont-shop/lib.utils';
 import * as styles from './SwipeCard.css';
 
 interface SwipeCardProps {
@@ -46,16 +47,6 @@ const PlaceholderIcon: React.FC<{ isLoading?: boolean; petType?: string }> = ({
 const SWIPE_THRESHOLD = 100;
 const ROTATION_MULTIPLIER = 0.08;
 const STAMP_FADE_DISTANCE = 120;
-
-const formatAge = (pet: DiscoveryPet): string => {
-  if (pet.ageYears && pet.ageYears > 0) {
-    return `${pet.ageYears} yr${pet.ageYears > 1 ? 's' : ''}`;
-  }
-  if (pet.ageMonths && pet.ageMonths > 0) {
-    return `${pet.ageMonths} mo`;
-  }
-  return pet.ageGroup ?? '';
-};
 
 const formatDistance = (distance?: number): string | null => {
   if (distance === undefined || distance === null) {
@@ -311,7 +302,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
     navigate(`/pets/${pet.petId}`);
   };
 
-  const age = formatAge(pet);
+  const age = formatAge(pet.ageYears, pet.ageMonths, pet.ageGroup ?? '');
   const distanceLabel = formatDistance(pet.distance);
   const compatibilityScore =
     pet.compatibilityScore !== undefined && pet.compatibilityScore !== null

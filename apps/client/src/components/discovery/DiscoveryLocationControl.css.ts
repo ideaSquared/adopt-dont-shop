@@ -5,7 +5,7 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 export const container = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   padding: '0.75rem 1rem',
   borderRadius: vars.border.radius.lg,
   background: vars.background.surface,

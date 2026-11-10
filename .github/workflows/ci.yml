@@ -54,6 +54,10 @@ jobs:
               - 'nginx/**'
               - 'deploy/**'
               - 'package.json'
+              # The debt ratchets below read these ceilings, so a ceiling-only PR
+              # must still run the guards.
+              - 'form-primitives-threshold.json'
+              - 'design-tokens-threshold.json'
               - 'pnpm-lock.yaml'
               - 'pnpm-workspace.yaml'
               - 'tsconfig*.json'
@@ -228,6 +232,13 @@ jobs:
       - name: Verify apps do not add raw form controls
         if: steps.changed-code.outputs.code == 'true' || github.event_name != 'pull_request'
         run: node scripts/check-form-primitives.mjs
+
+      # Ratchet the design-token debt: fail if any category of hard-coded
+      # style value in the apps' .css.ts files (colour, font, spacing, radius,
+      # z-index) exceeds its ceiling in design-tokens-threshold.json.
+      - name: Verify apps do not add hard-coded style values
+        if: steps.changed-code.outputs.code == 'true' || github.event_name != 'pull_request'
+        run: node scripts/check-design-tokens.mjs
 
       # ADS-1028: prettier formatting was enforced only by the lint-staged
       # pre-commit hook, which --no-verify, web-UI and agent commits all bypass

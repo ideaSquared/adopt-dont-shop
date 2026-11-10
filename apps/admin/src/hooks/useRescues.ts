@@ -1,5 +1,13 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { rescueService } from '../services/rescueService';
+import type { AdminRescueFilters } from '../types/rescue';
+
+export const useRescues = (filters: AdminRescueFilters = {}) =>
+  useQuery({
+    queryKey: ['rescues', 'list', filters],
+    queryFn: () => rescueService.getAll(filters),
+    placeholderData: keepPreviousData,
+  });
 
 export const useRescuesList = () =>
   useQuery({

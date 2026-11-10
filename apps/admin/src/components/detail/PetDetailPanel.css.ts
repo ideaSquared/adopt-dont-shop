@@ -4,19 +4,6 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 // ── Header ────────────────────────────────────────────────────────
 
-export const avatar = style({
-  width: '48px',
-  height: '48px',
-  borderRadius: '50%',
-  background: vars.colors.gradientPrimary,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  color: vars.background.surface,
-  fontSize: '1.25rem',
-  flexShrink: 0,
-});
-
 export const headerInfo = style({
   flex: 1,
   minWidth: 0,
@@ -24,8 +11,8 @@ export const headerInfo = style({
 
 export const headerName = style({
   margin: 0,
-  fontSize: '1.125rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.lg,
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
   overflow: 'hidden',
   textOverflow: 'ellipsis',
@@ -52,13 +39,13 @@ export const headerBadges = style({
 export const detailGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const detailItem = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.25rem',
+  gap: vars.spacing['1'],
 });
 
 export const detailLabel = style({
@@ -66,16 +53,16 @@ export const detailLabel = style({
   alignItems: 'center',
   gap: '0.375rem',
   fontSize: '0.6875rem',
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
   color: vars.text.muted,
 });
 
 export const detailValue = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: vars.text.primary,
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
 });
 
 export const emptyValue = style({
@@ -122,60 +109,16 @@ export const activityDescription = style({
 });
 
 export const activityMeta = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: vars.text.muted,
   margin: '0.125rem 0 0 0',
 });
 
 export const activityEmpty = style({
-  padding: '2rem 1rem',
+  padding: `${vars.spacing['5']} ${vars.spacing['3']}`,
   textAlign: 'center',
   color: vars.text.muted,
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });
 
 // ── Badge styles ──────────────────────────────────────────────────
-
-export const badgeSuccess = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '0.125rem 0.5rem',
-  borderRadius: '9999px',
-  fontSize: '0.6875rem',
-  fontWeight: '600',
-  background: vars.colors.successBgSubtle,
-  color: vars.colors.successTextEmphasis,
-});
-
-export const badgeWarning = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '0.125rem 0.5rem',
-  borderRadius: '9999px',
-  fontSize: '0.6875rem',
-  fontWeight: '600',
-  background: vars.colors.warningBgSubtle,
-  color: vars.colors.warningTextEmphasis,
-});
-
-export const badgeInfo = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '0.125rem 0.5rem',
-  borderRadius: '9999px',
-  fontSize: '0.6875rem',
-  fontWeight: '600',
-  background: vars.colors.infoBgSubtle,
-  color: vars.colors.infoTextEmphasis,
-});
-
-export const badgeNeutral = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '0.125rem 0.5rem',
-  borderRadius: '9999px',
-  fontSize: '0.6875rem',
-  fontWeight: '600',
-  background: vars.background.muted,
-  color: vars.text.secondary,
-});

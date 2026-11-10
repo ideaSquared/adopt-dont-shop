@@ -1,13 +1,7 @@
 import { NotificationsService, Notification } from '@adopt-dont-shop/lib.notifications';
-import {
-  createContext,
-  useContext,
-  ReactNode,
-  useMemo,
-  useState,
-  useEffect,
-  useCallback,
-} from 'react';
+import { apiService } from '@/services/libraryServices';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { createContext, useContext, ReactNode, useMemo, useCallback } from 'react';
 
 interface NotificationsContextType {
   notificationsService: NotificationsService;
@@ -34,92 +28,108 @@ interface NotificationsProviderProps {
   userId?: string;
 }
 
+const markRead = (notification: Notification): Notification => ({
+  ...notification,
+  readAt: notification.readAt || new Date().toISOString(),
+});
+
 export const NotificationsProvider = ({ children, userId }: NotificationsProviderProps) => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const queryKey = useMemo(() => ['notifications', userId] as const, [userId]);
 
   const notificationsService = useMemo(() => {
-    return new NotificationsService({
-      apiUrl: import.meta.env.VITE_API_BASE_URL,
-      debug: import.meta.env.DEV,
-    });
+    return new NotificationsService(
+      {
+        apiUrl: import.meta.env.VITE_API_BASE_URL,
+        debug: import.meta.env.DEV,
+      },
+      apiService
+    );
   }, []);
+
+  const notificationsQuery = useQuery({
+    queryKey,
+    enabled: !!userId,
+    queryFn: async () => {
+      try {
+        const response = await notificationsService.getUserNotifications(userId ?? '');
+        return response.data || [];
+      } catch (error) {
+        console.error('Failed to load notifications:', error);
+        throw error;
+      }
+    },
+  });
+  const notifications = useMemo(() => notificationsQuery.data ?? [], [notificationsQuery.data]);
+  const isLoading = notificationsQuery.isLoading;
 
   const unreadCount = useMemo(() => {
     return notifications.filter(n => !n.readAt).length;
   }, [notifications]);
 
-  useEffect(() => {
-    const initializeNotifications = async () => {
-      if (!userId) {
-        setIsLoading(false);
-        return;
-      }
+  const updateCached = useCallback(
+    (update: (current: Notification[]) => Notification[]) =>
+      queryClient.setQueryData<Notification[]>(queryKey, current => update(current ?? [])),
+    [queryClient, queryKey]
+  );
 
-      try {
-        // Load initial notifications for the user
-        const response = await notificationsService.getUserNotifications(userId);
-        setNotifications(response.data || []);
-      } catch (error) {
-        console.error('Failed to load notifications:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // These actions report failures to the console, not the app-wide generic toast, and never reject.
+  const markAsReadMutation = useMutation({
+    mutationFn: (id: string) => notificationsService.markAsRead([id]),
+    onSuccess: (_result, id) =>
+      updateCached(current =>
+        current.map(notification =>
+          notification.id === id ? markRead(notification) : notification
+        )
+      ),
+    onError: error => console.error('Failed to mark notification as read:', error),
+  });
 
-    initializeNotifications();
-  }, [notificationsService, userId]);
+  const markAllAsReadMutation = useMutation({
+    mutationFn: (currentUserId: string) => notificationsService.markAllAsRead(currentUserId),
+    onSuccess: () => updateCached(current => current.map(markRead)),
+    onError: error => console.error('Failed to mark all notifications as read:', error),
+  });
+
+  // Optimistically clear the cache, then delete server-side; restore on failure.
+  // Mirrors the rescue context, which deletes per-item via the notifications service.
+  const clearAllMutation = useMutation({
+    mutationFn: (snapshot: Notification[]) =>
+      Promise.all(snapshot.map(n => notificationsService.deleteNotification(n.id))),
+    onMutate: () => {
+      const snapshot = queryClient.getQueryData<Notification[]>(queryKey) ?? [];
+      queryClient.setQueryData<Notification[]>(queryKey, []);
+      return { snapshot };
+    },
+    onError: (error, _snapshot, context) => {
+      console.error('Failed to clear all notifications:', error);
+      queryClient.setQueryData<Notification[]>(queryKey, context?.snapshot ?? []);
+    },
+  });
+
+  const { mutateAsync: markAsReadAsync } = markAsReadMutation;
+  const { mutateAsync: markAllAsReadAsync } = markAllAsReadMutation;
+  const { mutateAsync: clearAllAsync } = clearAllMutation;
 
   const markAsRead = useCallback(
     async (id: string): Promise<void> => {
-      try {
-        await notificationsService.markAsRead([id]);
-        setNotifications(prev =>
-          prev.map(notification =>
-            notification.id === id
-              ? { ...notification, readAt: new Date().toISOString() }
-              : notification
-          )
-        );
-      } catch (error) {
-        console.error('Failed to mark notification as read:', error);
-      }
+      await markAsReadAsync(id).catch(() => undefined);
     },
-    [notificationsService]
+    [markAsReadAsync]
   );
 
   const markAllAsRead = useCallback(
     async (currentUserId: string): Promise<void> => {
-      try {
-        await notificationsService.markAllAsRead(currentUserId);
-        setNotifications(prev =>
-          prev.map(notification => ({
-            ...notification,
-            readAt: notification.readAt || new Date().toISOString(),
-          }))
-        );
-      } catch (error) {
-        console.error('Failed to mark all notifications as read:', error);
-      }
+      await markAllAsReadAsync(currentUserId).catch(() => undefined);
     },
-    [notificationsService]
+    [markAllAsReadAsync]
   );
 
   const clearAll = useCallback(
     async (_currentUserId: string): Promise<void> => {
-      // Optimistically clear local state, then delete server-side.
-      // Mirror the rescue context which deletes per-item via the notifications service.
-      const snapshot = notifications;
-      setNotifications([]);
-      try {
-        await Promise.all(snapshot.map(n => notificationsService.deleteNotification(n.id)));
-      } catch (error) {
-        console.error('Failed to clear all notifications:', error);
-        // Restore on failure
-        setNotifications(snapshot);
-      }
+      await clearAllAsync(notifications).catch(() => undefined);
     },
-    [notificationsService, notifications]
+    [clearAllAsync, notifications]
   );
 
   const value = useMemo(

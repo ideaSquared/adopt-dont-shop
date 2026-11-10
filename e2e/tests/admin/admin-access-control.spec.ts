@@ -74,7 +74,7 @@ test.describe('signing out of the admin app', () => {
       );
 
       await page.getByRole('button', { name: 'User menu' }).click();
-      await page.getByRole('button', { name: 'Sign Out' }).click();
+      await page.getByRole('menuitem', { name: 'Sign Out' }).click();
       await expect(page).toHaveURL(/\/login$/, { timeout: 30_000 });
 
       await page.goBack();

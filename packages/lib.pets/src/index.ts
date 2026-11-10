@@ -16,3 +16,4 @@ export type { PaginatedResponse, PetsServiceConfig } from './types';
 export * from './csv-import';
 
 export * from './constants';
+export { formatAge } from './format-age';

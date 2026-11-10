@@ -1,4 +1,8 @@
 // Rescue configuration types for settings management
+import type { AdoptionPolicy } from '@adopt-dont-shop/lib.rescue';
+
+// The adoption policy shape is owned by lib.rescue; re-exported so existing imports keep working.
+export type { AdoptionPolicy };
 
 export interface RescueProfile {
   rescueId: string;
@@ -53,20 +57,4 @@ export interface QuestionValidation {
   max?: number; // For number type
   pattern?: string; // Regex pattern
   errorMessage?: string;
-}
-
-export interface AdoptionPolicy {
-  requireHomeVisit: boolean;
-  requireReferences: boolean;
-  minimumReferenceCount: number;
-  requireVeterinarianReference: boolean;
-  adoptionFeeRange: {
-    min: number;
-    max: number;
-  };
-  requirements: string[]; // List of adoption requirements
-  policies: string[]; // List of policies
-  returnPolicy?: string;
-  spayNeuterPolicy?: string;
-  followUpPolicy?: string;
 }

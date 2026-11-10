@@ -2,15 +2,16 @@ import { StatsigContext } from '@statsig/react-bindings';
 import { useCallback, useContext } from 'react';
 
 /**
- * Custom hook to access Statsig client and common functionality for feature flags,
- * experiments, dynamic configs, and event logging.
+ * Custom hook to access Statsig client and common functionality for feature flags
+ * and event logging. For gates and dynamic configs in components, prefer `useFeatureGate`
+ * and `useDynamicConfig` from `lib.feature-flags`.
  *
  * @example
  * ```tsx
  * import { useStatsig } from '@/hooks/useStatsig';
  *
  * function MyComponent() {
- *   const { logEvent, checkGate, getExperiment } = useStatsig();
+ *   const { logEvent, checkGate } = useStatsig();
  *
  *   // Log user interactions
  *   const handleClick = () => {
@@ -19,10 +20,6 @@ import { useCallback, useContext } from 'react';
  *
  *   // Check feature flags
  *   const showNewFeature = checkGate('new_feature_enabled');
- *
- *   // Get experiment configurations
- *   const experiment = getExperiment('homepage_layout_test');
- *   const layout = experiment?.get('layout', 'default');
  *
  *   return (
  *     <div>
@@ -99,65 +96,6 @@ export const useStatsig = () => {
     [client]
   );
 
-  /**
-   * Get experiment configuration for A/B testing and variant assignment.
-   *
-   * @param experimentName - The name of the experiment configured in Statsig
-   * @returns Experiment object with get() method to retrieve parameter values, or null
-   *
-   * @example
-   * ```tsx
-   * const layoutExperiment = getExperiment('homepage_layout_test');
-   * const buttonColor = layoutExperiment?.get('button_color', 'blue');
-   * const headerText = layoutExperiment?.get('header_text', 'Welcome!');
-   *
-   * return (
-   *   <div>
-   *     <h1>{headerText}</h1>
-   *     <button style={{ backgroundColor: buttonColor }}>
-   *       Get Started
-   *     </button>
-   *   </div>
-   * );
-   * ```
-   */
-  const getExperiment = useCallback(
-    (experimentName: string) => {
-      if (client) {
-        return client.getExperiment(experimentName);
-      }
-      return null;
-    },
-    [client]
-  );
-
-  /**
-   * Get dynamic configuration values that can be updated remotely without code changes.
-   *
-   * @param configName - The name of the dynamic config configured in Statsig
-   * @returns Config object with get() method to retrieve values, or null
-   *
-   * @example
-   * ```tsx
-   * const appConfig = getDynamicConfig('app_settings');
-   * const maxFileSize = appConfig?.get('max_upload_size_mb', 10);
-   * const apiTimeout = appConfig?.get('api_timeout_ms', 5000);
-   * const enabledFeatures = appConfig?.get('enabled_features', []);
-   *
-   * // Use config values
-   * const uploadLimitText = `Max file size: ${maxFileSize}MB`;
-   * ```
-   */
-  const getDynamicConfig = useCallback(
-    (configName: string) => {
-      if (client) {
-        return client.getDynamicConfig(configName);
-      }
-      return null;
-    },
-    [client]
-  );
-
   return {
     /** Direct access to the Statsig client instance */
     client,
@@ -165,9 +103,5 @@ export const useStatsig = () => {
     logEvent,
     /** Check if a feature gate is enabled */
     checkGate,
-    /** Get experiment configuration for A/B testing */
-    getExperiment,
-    /** Get dynamic configuration values */
-    getDynamicConfig,
   };
 };

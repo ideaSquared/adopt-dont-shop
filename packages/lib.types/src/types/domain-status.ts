@@ -78,5 +78,26 @@ export const APPLICATION_STAGES = [
 ] as const;
 export type ApplicationStage = (typeof APPLICATION_STAGES)[number];
 
+// Mirrors the support-ticket workflow enum owned by lib.support-tickets
+// (`TicketStatusSchema`); duplicated here because this package is dependency-free.
+export const SUPPORT_TICKET_STATUSES = [
+  'open',
+  'in_progress',
+  'waiting_for_user',
+  'resolved',
+  'closed',
+  'escalated',
+] as const;
+export type SupportTicketStatus = (typeof SUPPORT_TICKET_STATUSES)[number];
+
+// Moderation report statuses. The matching type is `ReportStatusValue` in status-labels.
+export const REPORT_STATUSES = [
+  'pending',
+  'under_review',
+  'resolved',
+  'dismissed',
+  'escalated',
+] as const;
+
 export const APPLICATION_PRIORITIES = ['low', 'normal', 'high', 'urgent'] as const;
 export type ApplicationPriority = (typeof APPLICATION_PRIORITIES)[number];

@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
+import { Button, Modal } from '@adopt-dont-shop/lib.components';
 import { useNavigate } from 'react-router';
 import * as styles from './AnonymousSwipePaywallModal.css';
 
@@ -11,9 +12,9 @@ export type AnonymousSwipePaywallModalProps = {
 
 /**
  * ADS-625: soft-block paywall shown to anonymous users once they
- * exceed the swipe budget. Modal traps focus on its first button so
- * keyboard users can navigate immediately, and announces itself to
- * screen readers via `role="alertdialog"`.
+ * exceed the swipe budget. The shared Modal traps focus and closes on
+ * Escape; the Sign up button takes initial focus so keyboard users can
+ * act immediately.
  */
 export const AnonymousSwipePaywallModal: React.FC<AnonymousSwipePaywallModalProps> = ({
   petId,
@@ -22,11 +23,6 @@ export const AnonymousSwipePaywallModal: React.FC<AnonymousSwipePaywallModalProp
   onDismiss,
 }) => {
   const navigate = useNavigate();
-  const signUpRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    signUpRef.current?.focus();
-  }, []);
 
   const handleSignUp = () => {
     onSignUp();
@@ -39,37 +35,19 @@ export const AnonymousSwipePaywallModal: React.FC<AnonymousSwipePaywallModalProp
   };
 
   return (
-    <div
-      className={styles.backdrop}
-      role='alertdialog'
-      aria-modal='true'
-      aria-labelledby='anon-paywall-title'
-      aria-describedby='anon-paywall-desc'
-    >
-      <div className={styles.card}>
-        <h2 id='anon-paywall-title' className={styles.title}>
-          Keep swiping
-        </h2>
-        <p id='anon-paywall-desc' className={styles.subtitle}>
-          Sign up free in 10 seconds to keep meeting your matches.
-        </p>
+    <Modal isOpen onClose={onDismiss} size='sm' title='Keep swiping'>
+      <div className={styles.body}>
+        <p className={styles.subtitle}>Sign up free in 10 seconds to keep meeting your matches.</p>
         <div className={styles.actions}>
-          <button
-            ref={signUpRef}
-            type='button'
-            className={styles.ctaPrimary}
-            onClick={handleSignUp}
-          >
+          {/* eslint-disable-next-line jsx-a11y/no-autofocus -- primary action of a blocking prompt */}
+          <Button autoFocus isRounded onClick={handleSignUp}>
             Sign up
-          </button>
-          <button type='button' className={styles.ctaSecondary} onClick={handleLogIn}>
+          </Button>
+          <Button variant='outline' isRounded onClick={handleLogIn}>
             Log in
-          </button>
+          </Button>
         </div>
-        <button type='button' className={styles.dismiss} onClick={onDismiss} aria-label='Dismiss'>
-          ×
-        </button>
       </div>
-    </div>
+    </Modal>
   );
 };

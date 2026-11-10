@@ -3,21 +3,21 @@ import { globalStyle, style } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const panel = style({
-  marginBottom: '2rem',
+  marginBottom: vars.spacing['5'],
 });
 
 export const header = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
-  padding: '1rem 1.5rem',
+  padding: `${vars.spacing['3']} ${vars.spacing['4']}`,
   borderBottom: `1px solid ${vars.border.color.default}`,
 });
 
 export const headingGroup = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 globalStyle(`${headingGroup} h3`, {
@@ -27,9 +27,9 @@ globalStyle(`${headingGroup} h3`, {
 export const countBadge = style({
   backgroundColor: '#ef4444',
   color: 'white',
-  fontSize: '0.75rem',
-  fontWeight: 600,
-  padding: '0.25rem 0.5rem',
+  fontSize: vars.typography.size.xs,
+  fontWeight: vars.typography.weight.semibold,
+  padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
   borderRadius: '10px',
   minWidth: '1.25rem',
   textAlign: 'center',
@@ -44,8 +44,8 @@ export const list = style({
 export const rowLink = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.25rem',
-  padding: '1rem 1.5rem',
+  gap: vars.spacing['1'],
+  padding: `${vars.spacing['3']} ${vars.spacing['4']}`,
   borderBottom: `1px solid ${vars.border.color.default}`,
   textDecoration: 'none',
   color: 'inherit',
@@ -58,22 +58,22 @@ export const rowTopLine = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const senderName = style({
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
   fontSize: '0.95rem',
 });
 
 export const timestamp = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: '#6b7280',
   whiteSpace: 'nowrap',
 });
 
 export const snippet = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#4b5563',
   overflow: 'hidden',
   textOverflow: 'ellipsis',
@@ -88,18 +88,7 @@ export const unreadDot = style({
   height: '8px',
   backgroundColor: '#3b82f6',
   borderRadius: '50%',
-  marginRight: '0.5rem',
-});
-
-export const emptyState = style({
-  padding: '1.5rem',
-  textAlign: 'center',
-  color: '#6b7280',
-});
-
-globalStyle(`${emptyState} p`, {
-  margin: '0.25rem 0',
-  fontSize: '0.875rem',
+  marginRight: vars.spacing['2'],
 });
 
 export const footer = style({
@@ -109,8 +98,8 @@ export const footer = style({
 
 export const viewAllLink = style({
   color: vars.colors.infoTextEmphasis,
-  fontSize: '0.875rem',
-  fontWeight: 500,
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.medium,
   textDecoration: 'none',
   ':hover': {
     textDecoration: 'underline',

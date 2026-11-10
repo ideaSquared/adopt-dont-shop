@@ -13,9 +13,9 @@ export const tile = style({
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   padding: '1rem 0.75rem',
-  borderRadius: '0.75rem',
+  borderRadius: vars.border.radius.lg,
   border: '2px solid',
   cursor: 'pointer',
   textAlign: 'center',
@@ -57,7 +57,7 @@ export const hiddenRadio = style({
 });
 
 export const emoji = style({
-  fontSize: '1.5rem',
+  fontSize: vars.typography.size['2xl'],
   lineHeight: '1',
 });
 
@@ -67,6 +67,6 @@ export const label = style({
 });
 
 export const labelVariants = styleVariants({
-  selected: { fontWeight: '600', color: vars.colors.primaryActive },
-  unselected: { fontWeight: '500', color: vars.text.primary },
+  selected: { fontWeight: vars.typography.weight.semibold, color: vars.colors.primaryActive },
+  unselected: { fontWeight: vars.typography.weight.medium, color: vars.text.primary },
 });

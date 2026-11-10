@@ -1,12 +1,11 @@
-import React, { useId, useState } from 'react';
-import { Input, toast } from '@adopt-dont-shop/lib.components';
+import React, { useState } from 'react';
+import { Button, FormField, Input, Modal, TextArea, toast } from '@adopt-dont-shop/lib.components';
 import {
   ApplicationStage,
   STAGE_CONFIG,
   STAGE_ACTIONS,
   StageAction,
 } from '../../types/applicationStages';
-import { useDialogFocus } from '../../hooks/useDialogFocus';
 import * as styles from './StageTransitionModal.css';
 
 type Choice = { value: string; label: string };
@@ -50,9 +49,6 @@ const StageTransitionModal: React.FC<StageTransitionModalProps> = ({
   onClose,
   onTransition,
 }) => {
-  // Only rendered while open.
-  const titleId = useId();
-  const dialog = useDialogFocus<HTMLDivElement>(true);
   const [selectedAction, setSelectedAction] = useState<StageAction | null>(null);
   const [notes, setNotes] = useState('');
   const [choice, setChoice] = useState<string | null>(null);
@@ -117,154 +113,133 @@ const StageTransitionModal: React.FC<StageTransitionModalProps> = ({
   };
 
   return (
-    <div
-      className={styles.overlay}
-      onClick={e => e.target === e.currentTarget && onClose()}
-      onKeyDown={e => e.key === 'Escape' && onClose()}
-      role="presentation"
+    <Modal
+      isOpen
+      onClose={onClose}
+      title="Transition Application Stage"
+      size="sm"
+      showCloseButton={false}
     >
-      <div
-        ref={dialog.ref}
-        className={styles.modal}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        onKeyDown={dialog.onKeyDown}
-      >
-        <div className={styles.header}>
-          <h2 id={titleId} className={styles.title}>
-            Transition Application Stage
-          </h2>
-          <p className={styles.subtitle}>Move this application to a new stage</p>
+      <p className={styles.subtitle}>Move this application to a new stage</p>
+
+      {selectedAction && selectedAction.nextStage && (
+        <div className={styles.stageDisplay}>
+          <div
+            className={styles.stageBox}
+            style={{ background: STAGE_CONFIG[currentStage]?.color || '#9ca3af' }}
+          >
+            {STAGE_CONFIG[currentStage]?.emoji} {STAGE_CONFIG[currentStage]?.label}
+          </div>
+          <div className={styles.arrow}>→</div>
+          <div
+            className={styles.stageBox}
+            style={{ background: STAGE_CONFIG[selectedAction.nextStage]?.color || '#9ca3af' }}
+          >
+            {STAGE_CONFIG[selectedAction.nextStage]?.emoji}{' '}
+            {STAGE_CONFIG[selectedAction.nextStage]?.label}
+          </div>
         </div>
+      )}
 
-        {selectedAction && selectedAction.nextStage && (
-          <div className={styles.stageDisplay}>
-            <div
-              className={styles.stageBox}
-              style={{ background: STAGE_CONFIG[currentStage]?.color || '#9ca3af' }}
-            >
-              {STAGE_CONFIG[currentStage]?.emoji} {STAGE_CONFIG[currentStage]?.label}
-            </div>
-            <div className={styles.arrow}>→</div>
-            <div
-              className={styles.stageBox}
-              style={{ background: STAGE_CONFIG[selectedAction.nextStage]?.color || '#9ca3af' }}
-            >
-              {STAGE_CONFIG[selectedAction.nextStage]?.emoji}{' '}
-              {STAGE_CONFIG[selectedAction.nextStage]?.label}
-            </div>
-          </div>
-        )}
-
-        {availableActions.length === 0 ? (
+      {availableActions.length === 0 ? (
+        <div className={styles.formField}>
+          <p className={styles.noActionsMessage}>
+            No stage transitions available for {STAGE_CONFIG[currentStage]?.label || currentStage}.
+          </p>
+        </div>
+      ) : (
+        <>
           <div className={styles.formField}>
-            <p className={styles.noActionsMessage}>
-              No stage transitions available for {STAGE_CONFIG[currentStage]?.label || currentStage}
-              .
-            </p>
+            <p className={styles.label}>Select Action</p>
+            <div className={styles.actionList}>
+              {availableActions.map(action => (
+                <button
+                  key={action.type}
+                  className={styles.actionOption({
+                    selected: selectedAction?.type === action.type,
+                  })}
+                  onClick={() => selectAction(action)}
+                  type="button"
+                >
+                  <div className={styles.actionLabel}>{getActionLabel(action.type)}</div>
+                  <div className={styles.actionDescription}>{getActionDescription(action)}</div>
+                </button>
+              ))}
+            </div>
           </div>
-        ) : (
-          <>
+
+          {(selectedAction?.type === 'MAKE_DECISION' ||
+            selectedAction?.type === 'COMPLETE_VISIT') && (
             <div className={styles.formField}>
-              <p className={styles.label}>Select Action</p>
-              <div className={styles.actionList}>
-                {availableActions.map(action => (
+              <p className={styles.label} id="stage-transition-choice">
+                {selectedAction.type === 'MAKE_DECISION' ? 'Decision' : 'Visit outcome'}
+              </p>
+              <div
+                className={styles.actionList}
+                role="group"
+                aria-labelledby="stage-transition-choice"
+              >
+                {(selectedAction.type === 'MAKE_DECISION'
+                  ? DECISION_CHOICES
+                  : VISIT_OUTCOME_CHOICES
+                ).map(option => (
                   <button
-                    key={action.type}
-                    className={styles.actionOption({
-                      selected: selectedAction?.type === action.type,
-                    })}
-                    onClick={() => selectAction(action)}
+                    key={option.value}
                     type="button"
+                    className={styles.actionOption({ selected: choice === option.value })}
+                    aria-pressed={choice === option.value}
+                    onClick={() => setChoice(option.value)}
                   >
-                    <div className={styles.actionLabel}>{getActionLabel(action.type)}</div>
-                    <div className={styles.actionDescription}>{getActionDescription(action)}</div>
+                    {option.label}
                   </button>
                 ))}
               </div>
             </div>
+          )}
 
-            {(selectedAction?.type === 'MAKE_DECISION' ||
-              selectedAction?.type === 'COMPLETE_VISIT') && (
-              <div className={styles.formField}>
-                <p className={styles.label} id="stage-transition-choice">
-                  {selectedAction.type === 'MAKE_DECISION' ? 'Decision' : 'Visit outcome'}
-                </p>
-                <div
-                  className={styles.actionList}
-                  role="group"
-                  aria-labelledby="stage-transition-choice"
-                >
-                  {(selectedAction.type === 'MAKE_DECISION'
-                    ? DECISION_CHOICES
-                    : VISIT_OUTCOME_CHOICES
-                  ).map(option => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      className={styles.actionOption({ selected: choice === option.value })}
-                      aria-pressed={choice === option.value}
-                      onClick={() => setChoice(option.value)}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {selectedAction?.type === 'SCHEDULE_VISIT' && (
-              <div className={styles.formField}>
+          {selectedAction?.type === 'SCHEDULE_VISIT' && (
+            <div className={styles.formField}>
+              <FormField label="Visit date and time" htmlFor="stage-transition-visit-at" required>
                 <Input
                   id="stage-transition-visit-at"
                   type="datetime-local"
-                  label="Visit date and time"
                   value={visitAt}
                   onChange={e => setVisitAt(e.target.value)}
                   required
                 />
-              </div>
-            )}
+              </FormField>
+            </div>
+          )}
 
-            {selectedAction && (
-              <div className={styles.formField}>
-                <label className={styles.label} htmlFor="stage-transition-notes">
-                  Notes (optional)
-                </label>
-                <textarea
+          {selectedAction && (
+            <div className={styles.formField}>
+              <FormField label="Notes (optional)" htmlFor="stage-transition-notes">
+                <TextArea
                   id="stage-transition-notes"
-                  className={styles.textArea}
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
                   placeholder="Add any notes about this stage transition..."
                 />
-              </div>
-            )}
-          </>
-        )}
+              </FormField>
+            </div>
+          )}
+        </>
+      )}
 
-        <div className={styles.buttonGroup}>
-          <button
-            type="button"
-            className={styles.button({ variant: 'secondary' })}
-            onClick={onClose}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            className={styles.button({ variant: 'primary' })}
-            onClick={handleSubmit}
-            disabled={
-              !selectedAction || data === null || isSubmitting || availableActions.length === 0
-            }
-          >
-            {isSubmitting ? 'Transitioning...' : 'Confirm Transition'}
-          </button>
-        </div>
+      <div className={styles.buttonGroup}>
+        <Button variant="secondary" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          disabled={
+            !selectedAction || data === null || isSubmitting || availableActions.length === 0
+          }
+        >
+          {isSubmitting ? 'Transitioning...' : 'Confirm Transition'}
+        </Button>
       </div>
-    </div>
+    </Modal>
   );
 };
 

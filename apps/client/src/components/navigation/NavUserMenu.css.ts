@@ -1,4 +1,4 @@
-import { globalStyle, style } from '@vanilla-extract/css';
+import { style } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const triggerButton = style({
@@ -21,90 +21,18 @@ export const triggerButton = style({
   },
 });
 
-export const content = style({
-  minWidth: '240px',
-  background: vars.background.body,
-  color: vars.text.primary,
-  border: `1px solid ${vars.border.color.default}`,
-  borderRadius: vars.border.radius.base,
-  boxShadow: vars.shadows.base,
-  padding: `${vars.spacing['1']} 0`,
-  zIndex: 1100,
-});
-
-export const header = style({
-  padding: `${vars.spacing['2']} ${vars.spacing['3']} ${vars.spacing['2']}`,
+export const identity = style({
   display: 'flex',
   flexDirection: 'column',
   gap: vars.spacing['1'],
 });
 
 export const name = style({
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
 });
 
 export const email = style({
   fontSize: vars.typography.size.sm,
   color: vars.text.secondary,
-});
-
-export const separator = style({
-  height: '1px',
-  background: vars.border.color.default,
-  margin: `${vars.spacing['1']} 0`,
-});
-
-export const item = style({
-  display: 'flex',
-  alignItems: 'center',
-  gap: vars.spacing['2'],
-  padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
-  color: vars.text.primary,
-  textDecoration: 'none',
-  cursor: 'pointer',
-  outline: 'none',
-  fontSize: vars.typography.size.sm,
-  selectors: {
-    '&[data-highlighted]': {
-      background: vars.background.muted,
-    },
-    '&:focus-visible': {
-      background: vars.background.muted,
-    },
-  },
-});
-
-globalStyle(`${item} svg`, {
-  width: '18px',
-  height: '18px',
-  flexShrink: 0,
-});
-
-export const dangerItem = style({
-  display: 'flex',
-  alignItems: 'center',
-  gap: vars.spacing['2'],
-  padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
-  textDecoration: 'none',
-  cursor: 'pointer',
-  outline: 'none',
-  fontSize: vars.typography.size.sm,
-  color: vars.colors.dangerHover,
-  selectors: {
-    '&[data-highlighted]': {
-      background: vars.colors.dangerBgSubtle,
-      color: vars.colors.dangerActive,
-    },
-    '&:focus-visible': {
-      background: vars.colors.dangerBgSubtle,
-      color: vars.colors.dangerActive,
-    },
-  },
-});
-
-globalStyle(`${dangerItem} svg`, {
-  width: '18px',
-  height: '18px',
-  flexShrink: 0,
 });

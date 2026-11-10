@@ -3,59 +3,20 @@ import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
 export const searchContainer = style({
-  padding: '2rem 0',
+  padding: `${vars.spacing['5']} 0`,
   minHeight: 'calc(100vh - 200px)',
 });
 
-export const searchHeader = style({
-  textAlign: 'center',
-  marginBottom: '2rem',
-});
-
-export const browseToggle = style({
-  marginTop: '1.25rem',
-});
-
-globalStyle(`${searchHeader} h1`, {
-  fontFamily: vars.typography.family.display,
-  fontSize: '2.5rem',
-  color: vars.text.primary,
-  marginBottom: '1rem',
-});
-
-globalStyle(`${searchHeader} p`, {
-  fontSize: '1.2rem',
-  color: vars.text.secondary,
-  maxWidth: '600px',
-  margin: '0 auto',
-});
-
-globalStyle(`${searchHeader} h1`, {
-  '@media': {
-    '(max-width: 768px)': {
-      fontSize: '2rem',
-    },
-  },
-});
-
-globalStyle(`${searchHeader} p`, {
-  '@media': {
-    '(max-width: 768px)': {
-      fontSize: '1rem',
-    },
-  },
-});
-
 export const filtersCard = style({
-  marginBottom: '2rem',
-  padding: '1.5rem',
+  marginBottom: vars.spacing['5'],
+  padding: vars.spacing['4'],
 });
 
 export const filtersGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-  gap: '1rem',
-  marginBottom: '1rem',
+  gap: vars.spacing['3'],
+  marginBottom: vars.spacing['3'],
   '@media': {
     '(max-width: 768px)': {
       gridTemplateColumns: '1fr',
@@ -65,7 +26,7 @@ export const filtersGrid = style({
 
 export const filterActions = style({
   display: 'flex',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   justifyContent: 'flex-end',
   flexWrap: 'wrap',
   '@media': {
@@ -76,16 +37,16 @@ export const filterActions = style({
 });
 
 export const searchResults = style({
-  marginBottom: '2rem',
+  marginBottom: vars.spacing['5'],
 });
 
 export const resultsHeader = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  marginBottom: '1.5rem',
+  marginBottom: vars.spacing['4'],
   flexWrap: 'wrap',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 globalStyle(`${resultsHeader} h2`, {
@@ -96,44 +57,44 @@ globalStyle(`${resultsHeader} h2`, {
 globalStyle(`${resultsHeader} .sort-controls`, {
   display: 'flex',
   alignItems: 'center',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const petGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-  gap: '1.5rem',
+  gap: vars.spacing['4'],
   '@media': {
     '(max-width: 768px)': {
       gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-      gap: '1rem',
+      gap: vars.spacing['3'],
     },
   },
 });
 
 export const emptyState = style({
   textAlign: 'center',
-  padding: '3rem 1rem',
+  padding: `${vars.spacing['6']} ${vars.spacing['3']}`,
   color: vars.text.secondary,
 });
 
 globalStyle(`${emptyState} h3`, {
-  fontSize: '1.5rem',
-  marginBottom: '1rem',
+  fontSize: vars.typography.size['2xl'],
+  marginBottom: vars.spacing['3'],
   color: vars.text.primary,
 });
 
 globalStyle(`${emptyState} p`, {
-  fontSize: '1rem',
-  marginBottom: '2rem',
+  fontSize: vars.typography.size.base,
+  marginBottom: vars.spacing['5'],
 });
 
 export const pagination = style({
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
-  gap: '1rem',
-  marginTop: '2rem',
+  gap: vars.spacing['3'],
+  marginTop: vars.spacing['5'],
   flexWrap: 'wrap',
 });
 
@@ -144,13 +105,13 @@ globalStyle(`${pagination} .page-info`, {
 
 globalStyle(`${pagination} .page-controls`, {
   display: 'flex',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const locationFilterRow = style({
   display: 'flex',
   alignItems: 'flex-end',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   flexWrap: 'wrap',
   '@media': {
     '(max-width: 768px)': {
@@ -163,13 +124,13 @@ export const locationFilterRow = style({
 export const locationInputGroup = style({
   display: 'flex',
   alignItems: 'flex-end',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   flex: '1',
   minWidth: '160px',
 });
 
 export const orLabel = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: vars.text.tertiary,
   whiteSpace: 'nowrap',
   paddingBottom: '10px',
@@ -195,7 +156,7 @@ export const locationHint = style({
 export const locationStatus = recipe({
   base: {
     fontSize: '0.8rem',
-    marginTop: '0.25rem',
+    marginTop: vars.spacing['1'],
   },
   variants: {
     variant: {

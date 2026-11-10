@@ -1,57 +1,41 @@
-import { globalStyle, style } from '@vanilla-extract/css';
+import { style } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
-
-import { recipe } from '@vanilla-extract/recipes';
 
 export const container = style({
   maxWidth: '800px',
   margin: '0 auto',
-  padding: '2rem',
+  padding: vars.spacing['5'],
   '@media': {
     '(max-width: 768px)': {
-      padding: '1rem',
+      padding: vars.spacing['3'],
     },
   },
-});
-
-export const header = style({
-  marginBottom: '2rem',
 });
 
 export const messageRescueRow = style({
   display: 'flex',
   flexDirection: 'column',
   gap: '0.75rem',
-  marginBottom: '2rem',
-});
-
-globalStyle(`${header} h1`, {
-  fontSize: '2rem',
-  color: vars.text.primary,
-  marginBottom: '0.5rem',
-});
-
-globalStyle(`${header} p`, {
-  color: vars.text.tertiary,
+  marginBottom: vars.spacing['5'],
 });
 
 export const section = style({
   background: vars.background.surface,
   border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '12px',
-  padding: '2rem',
-  marginBottom: '2rem',
+  borderRadius: vars.border.radius.lg,
+  padding: vars.spacing['5'],
+  marginBottom: vars.spacing['5'],
 });
 
 export const sectionTitle = style({
-  fontSize: '1.25rem',
+  fontSize: vars.typography.size.xl,
   color: vars.text.primary,
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const infoGrid = style({
   display: 'grid',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const infoItem = style({
@@ -68,7 +52,7 @@ export const infoItem = style({
 });
 
 export const infoLabel = style({
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
   color: vars.text.tertiary,
   minWidth: '120px',
 });
@@ -79,45 +63,10 @@ export const infoValue = style({
   flex: '1',
 });
 
-export const statusBadge = recipe({
-  base: {
-    padding: '0.5rem 1rem',
-    borderRadius: '20px',
-    fontSize: '0.875rem',
-    fontWeight: '500',
-    textTransform: 'uppercase',
-  },
-  variants: {
-    status: {
-      submitted: {
-        background: '#ede9fe',
-        color: '#6d28d9',
-      },
-      approved: {
-        background: vars.colors.successBgSubtle,
-        color: vars.colors.successTextEmphasis,
-      },
-      rejected: {
-        background: vars.colors.dangerBgSubtle,
-        color: vars.colors.dangerTextEmphasis,
-      },
-      withdrawn: {
-        background: vars.border.color.default,
-        color: vars.text.tertiary,
-        border: `1px solid ${vars.border.color.muted}`,
-      },
-      default: {
-        background: vars.background.muted,
-        color: vars.text.secondary,
-      },
-    },
-  },
-});
-
 export const buttonGroup = style({
   display: 'flex',
-  gap: '1rem',
-  marginTop: '2rem',
+  gap: vars.spacing['3'],
+  marginTop: vars.spacing['5'],
 });
 
 export const withdrawButton = style({

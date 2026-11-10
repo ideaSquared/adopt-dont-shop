@@ -35,7 +35,7 @@ export const switchLink = style({
   // real margin (~5.9:1) on both.
   color: vars.colors.primaryActive,
   textDecoration: 'none',
-  fontWeight: 500,
+  fontWeight: vars.typography.weight.medium,
   fontSize: vars.typography.size.sm,
   ':hover': {
     textDecoration: 'underline',

@@ -1,6 +1,6 @@
-import { style, keyframes } from '@vanilla-extract/css';
+import { style } from '@vanilla-extract/css';
 
-import { vars } from '@adopt-dont-shop/lib.components/theme';
+import { media, vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const headerActions = style({
   display: 'flex',
@@ -10,17 +10,17 @@ export const headerActions = style({
 export const statsGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-  gap: '1rem',
-  marginBottom: '1rem',
+  gap: vars.spacing['3'],
+  marginBottom: vars.spacing['3'],
 });
 
 export const analyticsGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))',
-  gap: '1.5rem',
+  gap: vars.spacing['4'],
   // The 500px minimum overflows phones; drop to a single full-width column.
   '@media': {
-    '(max-width: 768px)': {
+    [media.down('md')]: {
       gridTemplateColumns: '1fr',
     },
   },
@@ -33,7 +33,7 @@ export const chartCard = style({
 export const chartContainer = style({
   width: '100%',
   height: '280px',
-  marginTop: '1rem',
+  marginTop: vars.spacing['3'],
   position: 'relative',
 });
 
@@ -42,7 +42,7 @@ export const barChart = style({
   alignItems: 'flex-end',
   height: '100%',
   gap: '0.75rem',
-  padding: '1rem 0',
+  padding: `${vars.spacing['3']} 0`,
 });
 
 export const bar = style({
@@ -64,17 +64,17 @@ export const bar = style({
 export const barLabel = style({
   position: 'absolute',
   bottom: '-30px',
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: vars.text.tertiary,
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
   whiteSpace: 'nowrap',
 });
 
 export const barValue = style({
   position: 'absolute',
   top: '-30px',
-  fontSize: '0.875rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
 });
 
@@ -83,7 +83,7 @@ export const pieChartContainer = style({
   alignItems: 'center',
   justifyContent: 'center',
   height: '100%',
-  gap: '2rem',
+  gap: vars.spacing['5'],
 });
 
 export const pieChart = style({
@@ -106,19 +106,19 @@ export const legendItem = style({
 export const legendColor = style({
   width: '16px',
   height: '16px',
-  borderRadius: '4px',
+  borderRadius: vars.border.radius.sm,
   flexShrink: 0,
 });
 
 export const legendLabel = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: vars.text.secondary,
   flex: 1,
 });
 
 export const legendValue = style({
-  fontSize: '0.875rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
 });
 
@@ -126,7 +126,7 @@ export const topItemsList = style({
   display: 'flex',
   flexDirection: 'column',
   gap: '0.75rem',
-  marginTop: '1rem',
+  marginTop: vars.spacing['3'],
 });
 
 export const topItem = style({
@@ -135,7 +135,7 @@ export const topItem = style({
   justifyContent: 'space-between',
   padding: '0.875rem',
   border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
   transition: 'all 0.2s ease',
   ':hover': {
     background: vars.background.body,
@@ -146,62 +146,38 @@ export const topItem = style({
 export const topItemRank = style({
   width: '32px',
   height: '32px',
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
   background: vars.colors.gradientPrimary,
   color: vars.background.surface,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  fontWeight: '700',
-  fontSize: '0.875rem',
+  fontWeight: vars.typography.weight.bold,
+  fontSize: vars.typography.size.sm,
   flexShrink: 0,
 });
 
 export const topItemInfo = style({
   flex: 1,
-  marginLeft: '1rem',
+  marginLeft: vars.spacing['3'],
 });
 
 export const topItemName = style({
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });
 
 export const topItemMeta = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: vars.text.tertiary,
   marginTop: '0.125rem',
 });
 
 export const topItemValue = style({
-  fontSize: '1.125rem',
-  fontWeight: '700',
+  fontSize: vars.typography.size.lg,
+  fontWeight: vars.typography.weight.bold,
   color: vars.text.primary,
-});
-
-const shimmerAnim = keyframes({
-  '0%': { backgroundPosition: '-200px 0' },
-  '100%': { backgroundPosition: 'calc(200px + 100%) 0' },
-});
-
-export const skeletonBlock = style({
-  borderRadius: '6px',
-  background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
-  backgroundSize: '200px 100%',
-  animationName: shimmerAnim,
-  animationDuration: '1.4s',
-  animationIterationCount: 'infinite',
-  animationTimingFunction: 'linear',
-});
-
-export const errorBanner = style({
-  background: vars.colors.dangerBgSubtle,
-  border: `1px solid ${vars.colors.dangerBorderSubtle}`,
-  borderRadius: '8px',
-  padding: '1rem',
-  color: vars.colors.dangerTextEmphasis,
-  fontSize: '0.875rem',
 });
 
 // Clamp the shared SearchToolbar to a compact width so the single time-range
@@ -213,41 +189,7 @@ export const headerFilter = style({
 });
 
 export const exportIcon = style({
-  marginRight: '0.5rem',
-});
-
-export const skeletonFullHeight = style({
-  height: '100%',
-});
-
-export const skeletonRow3rem = style({
-  height: '3rem',
-});
-
-export const skeletonPie = style({
-  width: '200px',
-  height: '200px',
-  borderRadius: '50%',
-});
-
-export const chartEmptyState = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  height: '100%',
-  color: '#9ca3af',
-  fontSize: '0.875rem',
-});
-
-export const pieEmptyState = style({
-  color: '#9ca3af',
-  fontSize: '0.875rem',
-});
-
-export const emptyStatePadded = style({
-  color: '#9ca3af',
-  fontSize: '0.875rem',
-  padding: '1rem 0',
+  marginRight: vars.spacing['2'],
 });
 
 export const barLabelCapitalize = style({

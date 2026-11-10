@@ -1,5 +1,5 @@
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 import { globalStyle, style } from '@vanilla-extract/css';
-import { recipe } from '@vanilla-extract/recipes';
 
 export const styledCard = style({
   padding: 0,
@@ -26,7 +26,7 @@ export const placeholderImage = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  fontSize: '3rem',
+  fontSize: vars.typography.size['5xl'],
   color: '#9ca3af',
   background: 'linear-gradient(135deg, #f9fafb, #f3f4f6)',
 });
@@ -49,7 +49,7 @@ export const selectCheckboxLabel = style({
   width: '1.75rem',
   height: '1.75rem',
   background: 'rgba(255, 255, 255, 0.9)',
-  borderRadius: '0.25rem',
+  borderRadius: vars.border.radius.sm,
   border: '1px solid #d1d5db',
   cursor: 'pointer',
 });
@@ -84,11 +84,11 @@ export const inlineStatusSrOnly = style({
 export const inlineStatusSelect = style({
   width: '100%',
   height: '32px',
-  padding: '0 0.5rem',
+  padding: `0 ${vars.spacing['2']}`,
   borderRadius: '0.375rem',
   border: '1px solid #d1d5db',
   background: 'white',
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#111827',
   cursor: 'pointer',
 });
@@ -98,41 +98,41 @@ export const petContent = style({
 });
 
 export const petHeader = style({
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 globalStyle(`${petHeader} .pet-info`, {
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
   margin: 0,
 });
 
 globalStyle(`${petHeader} h3`, {
-  fontSize: '1.25rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.xl,
+  fontWeight: vars.typography.weight.semibold,
   color: '#111827',
-  margin: '0 0 0.25rem 0',
+  margin: `0 0 ${vars.spacing['1']} 0`,
   lineHeight: '1.2',
 });
 
 export const petDetails = style({
   display: 'grid',
   gridTemplateColumns: '1fr 1fr',
-  gap: '0.5rem',
-  marginBottom: '1rem',
-  fontSize: '0.875rem',
+  gap: vars.spacing['2'],
+  marginBottom: vars.spacing['3'],
+  fontSize: vars.typography.size.sm,
 });
 
 globalStyle(`${petDetails} .detail-item`, {
   display: 'flex',
   justifyContent: 'space-between',
-  padding: '0.25rem 0',
+  padding: `${vars.spacing['1']} 0`,
   borderBottom: '1px solid #f3f4f6',
 });
 
 globalStyle(`${petDetails} .detail-item .label`, {
   color: '#6b7280',
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
 });
 
 globalStyle(`${petDetails} .detail-item .value`, {
@@ -140,11 +140,11 @@ globalStyle(`${petDetails} .detail-item .value`, {
 });
 
 export const petDescription = style({
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 globalStyle(`${petDescription} p`, {
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
   lineHeight: '1.4',
   margin: 0,
@@ -156,111 +156,25 @@ globalStyle(`${petDescription} p`, {
 
 export const petActions = style({
   display: 'flex',
-  gap: '0.5rem',
-  marginTop: '1rem',
+  gap: vars.spacing['2'],
+  marginTop: vars.spacing['3'],
 });
 
 globalStyle(`${petActions} button`, {
   flex: 1,
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });
 
-export const statusUpdateModal = style({
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  background: 'rgba(0, 0, 0, 0.5)',
+export const statusLink = style({
+  display: 'inline-flex',
+  textDecoration: 'none',
+});
+
+export const modalActions = style({
   display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 1000,
-  padding: '1rem',
-});
-
-export const modalContent = style({
-  width: '100%',
-  maxWidth: '400px',
-  padding: '1.5rem',
-});
-
-globalStyle(`${modalContent} h3`, {
-  margin: '0 0 1rem 0',
-  color: '#111827',
-});
-
-globalStyle(`${modalContent} .form-group`, {
-  marginBottom: '1rem',
-});
-
-globalStyle(`${modalContent} .form-group label`, {
-  display: 'block',
-  marginBottom: '0.5rem',
-  fontWeight: '500',
-  color: '#111827',
-});
-
-globalStyle(`${modalContent} .form-group select, ${modalContent} .form-group textarea`, {
-  width: '100%',
-  padding: '0.75rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '4px',
-  fontSize: '0.875rem',
-  fontFamily: 'inherit',
-});
-
-globalStyle(`${modalContent} .form-group textarea`, {
-  resize: 'vertical',
-  minHeight: '80px',
-});
-
-globalStyle(`${modalContent} .modal-actions`, {
-  display: 'flex',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   justifyContent: 'flex-end',
-  marginTop: '1.5rem',
-});
-
-globalStyle(`${modalContent} .modal-actions button`, {
-  minWidth: '80px',
-});
-
-globalStyle(`${modalContent} .form-actions`, {
-  display: 'flex',
-  gap: '0.5rem',
-  justifyContent: 'flex-end',
-  marginTop: '1.5rem',
-});
-
-globalStyle(`${modalContent} .form-actions button`, {
-  minWidth: '80px',
-});
-
-export const statusBadge = recipe({
-  base: {
-    display: 'inline-block',
-    padding: '0.25rem 0.5rem',
-    fontSize: '0.75rem',
-    fontWeight: '500',
-    borderRadius: '4px',
-    textTransform: 'capitalize',
-    color: 'white',
-  },
-  variants: {
-    status: {
-      available: { backgroundColor: '#10b981' },
-      pending: { backgroundColor: '#f59e0b' },
-      adopted: { backgroundColor: '#3b82f6' },
-      on_hold: { backgroundColor: '#f97316' },
-      medical_care: { backgroundColor: '#ef4444' },
-      foster: { backgroundColor: '#8b5cf6' },
-      default: { backgroundColor: '#6b7280' },
-    },
-  },
-  defaultVariants: {
-    status: 'default',
-  },
+  marginTop: vars.spacing['5'],
 });
 
 export const dangerText = style({
@@ -268,11 +182,6 @@ export const dangerText = style({
 });
 
 export const deleteWarning = style({
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
   color: '#666',
-});
-
-export const dangerButton = style({
-  backgroundColor: '#ef4444',
-  borderColor: '#ef4444',
 });

@@ -1,22 +1,22 @@
 import React, { ReactNode, lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router';
-import { useAuth, PermissionsProvider } from '@adopt-dont-shop/lib.auth';
-import { Spinner } from '@adopt-dont-shop/lib.components';
+import { Routes, Route, Navigate, useLocation } from 'react-router';
+import {
+  useAuth,
+  PermissionsProvider,
+  ForgotPasswordPage,
+  ResetPasswordPage,
+  redirectTargetFromState,
+} from '@adopt-dont-shop/lib.auth';
+import { ErrorBoundary, NotFoundPage, Spinner } from '@adopt-dont-shop/lib.components';
+import { captureException } from '@adopt-dont-shop/lib.observability';
 import { CookieBanner, LegalReacceptanceModal } from '@adopt-dont-shop/lib.legal';
 import { permissionsService } from './services/libraryServices';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminLayout } from './components/layout/AdminLayout';
 import DevLoginPanel from './components/dev/DevLoginPanel';
-import ErrorBoundary from './components/ErrorBoundary';
 import * as styles from './App.css';
 
 const LoginPage = lazy(() => import('./pages/LoginPage').then(m => ({ default: m.LoginPage })));
-const ForgotPasswordPage = lazy(() =>
-  import('./pages/ForgotPasswordPage').then(m => ({ default: m.ForgotPasswordPage }))
-);
-const ResetPasswordPage = lazy(() =>
-  import('./pages/ResetPasswordPage').then(m => ({ default: m.ResetPasswordPage }))
-);
 const RegisterPage = lazy(() =>
   import('./pages/RegisterPage').then(m => ({ default: m.RegisterPage }))
 );
@@ -41,7 +41,6 @@ const FieldPermissions = lazy(() => import('./pages/FieldPermissions'));
 const ContentManagement = lazy(() => import('./pages/ContentManagement'));
 const BroadcastNotifications = lazy(() => import('./pages/BroadcastNotifications'));
 const PrivacyTools = lazy(() => import('./pages/PrivacyTools'));
-const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 const PageLoader = () => (
   <div className={styles.pageLoader}>
@@ -52,11 +51,22 @@ const PageLoader = () => (
 // ADS-482: route-level ErrorBoundary so a crash in one risky admin route
 // (moderation, messages, audit, etc.) doesn't blank the whole dashboard.
 const RouteBoundary = ({ name, children }: { name: string; children: ReactNode }) => (
-  <ErrorBoundary boundary={name}>{children}</ErrorBoundary>
+  <ErrorBoundary
+    onError={(error, errorInfo) =>
+      captureException(error, {
+        app: 'admin',
+        boundary: name,
+        componentStack: errorInfo.componentStack,
+      })
+    }
+  >
+    {children}
+  </ErrorBoundary>
 );
 
 const AdminApp: React.FC = () => {
   const { isAuthenticated, isInitializing } = useAuth();
+  const location = useLocation();
 
   if (isInitializing) {
     return <PageLoader />;
@@ -72,7 +82,7 @@ const AdminApp: React.FC = () => {
             <Route path='/register' element={<RegisterPage />} />
             <Route path='/forgot-password' element={<ForgotPasswordPage />} />
             <Route path='/reset-password' element={<ResetPasswordPage />} />
-            <Route path='*' element={<Navigate to='/login' replace />} />
+            <Route path='*' element={<Navigate to='/login' replace state={{ from: location }} />} />
           </Routes>
         </Suspense>
 
@@ -95,8 +105,12 @@ const AdminApp: React.FC = () => {
               {/* Auth routes are not valid for signed-in users — bounce home.
                   This also covers the post-login transition: when the auth
                   state flips before LoginPage's navigate() runs, the URL
-                  is still /login and would otherwise fall through to 404. */}
-              <Route path='/login' element={<Navigate to='/' replace />} />
+                  is still /login and would otherwise fall through to 404.
+                  A deep link the visitor was bounced from returns there. */}
+              <Route
+                path='/login'
+                element={<Navigate to={redirectTargetFromState(location.state)} replace />}
+              />
               <Route path='/register' element={<Navigate to='/' replace />} />
               {/* A reset link opened while signed in still resets the password. */}
               <Route path='/reset-password' element={<ResetPasswordPage />} />
@@ -262,7 +276,7 @@ const AdminApp: React.FC = () => {
               <Route path='/security/:tab' element={<SecurityCenter />} />
 
               {/* Catch-all 404 */}
-              <Route path='*' element={<NotFoundPage />} />
+              <Route path='*' element={<NotFoundPage homeLabel='Back to dashboard' />} />
             </Routes>
           </Suspense>
         </AdminLayout>

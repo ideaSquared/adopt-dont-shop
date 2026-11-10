@@ -37,18 +37,18 @@ test.describe('foster coordination', () => {
     apiAs,
   }) => {
     const rescueApi = await apiAs('rescue');
-    const { petId } = await createAvailablePet(rescueApi, 'Foster');
-    const { fosterUserId, placementId } = await startPlacement(rescueApi, petId);
+    const { petId, name } = await createAvailablePet(rescueApi, 'Foster');
+    const { placementId } = await startPlacement(rescueApi, petId);
 
     try {
       await page.goto('/foster');
       await dismissCookieBannerWhenShown(page);
 
-      // The list shows the placement against the pet and the carer. (Both appear as
-      // ids because the page cannot load its name lookups — see the first fixme.)
-      const row = page.getByRole('row', { name: new RegExp(petId) });
+      // The list shows the placement against the pet and the carer, who is named by
+      // "First Last <email>"; the pet is named, found through the rescue's pets.
+      const row = page.getByRole('row', { name });
       await expect(row).toBeVisible();
-      await expect(row).toContainText(fosterUserId);
+      await expect(row).toContainText('Sarah Johnson <sarah.johnson@pawsrescue.dev>');
       await expect(row).toContainText('15/06/2030');
 
       await page.reload();
@@ -72,18 +72,14 @@ test.describe('foster coordination', () => {
     }
   });
 
-  // App bug: the list shows each placement's status as the raw enum number (1)
-  // rather than "active", so the "End placement" button (only rendered for
-  // status 'active') never appears and a manager cannot end a placement from
-  // the UI. Remove the fixme once the status is mapped.
-  test.fixme('a manager can end a placement from the list', async ({ page, apiAs }) => {
+  test('a manager can end a placement from the list', async ({ page, apiAs }) => {
     const rescueApi = await apiAs('rescue');
-    const { petId } = await createAvailablePet(rescueApi, 'Foster');
+    const { petId, name } = await createAvailablePet(rescueApi, 'Foster');
     await startPlacement(rescueApi, petId);
 
     await page.goto('/foster');
     await dismissCookieBannerWhenShown(page);
-    const row = page.getByRole('row', { name: new RegExp(petId) });
+    const row = page.getByRole('row', { name });
     await expect(row).toContainText('active');
     await row.getByRole('button', { name: 'End placement' }).click();
     await page
@@ -98,14 +94,7 @@ test.describe('foster coordination', () => {
     await expect(row).toBeHidden();
   });
 
-  // App bug: the New Placement form's pet and foster-user pickers stay empty
-  // ("Loading pets...") because the page reads `user.rescueId`, which GET
-  // /api/v1/auth/me does not return, so a manager cannot assign a pet from the
-  // UI. Remove the fixme once the pickers load.
-  test.fixme('a manager can assign a pet to a foster carer from the form', async ({
-    page,
-    apiAs,
-  }) => {
+  test('a manager can assign a pet to a foster carer from the form', async ({ page, apiAs }) => {
     const { name } = await createAvailablePet(await apiAs('rescue'), 'Foster');
 
     await page.goto('/foster');

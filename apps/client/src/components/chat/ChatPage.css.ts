@@ -24,7 +24,7 @@ export const chatLayout = style({
   display: 'flex',
   minHeight: 0,
   background: vars.background.surface,
-  borderRadius: '12px',
+  borderRadius: vars.border.radius.lg,
   overflow: 'hidden',
   boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
   border: `1px solid ${vars.border.color.muted}`,
@@ -97,7 +97,7 @@ export const conversationPanel = style({
 });
 
 export const header = style({
-  padding: '1.5rem 2rem 1rem 2rem',
+  padding: `${vars.spacing['4']} ${vars.spacing['5']} ${vars.spacing['3']} ${vars.spacing['5']}`,
   background: vars.background.body,
   borderBottom: `1px solid ${vars.border.color.muted}`,
   '@media': {
@@ -108,7 +108,7 @@ export const header = style({
 });
 
 globalStyle(`${header} h1`, {
-  margin: '0 0 0.25rem 0',
+  margin: `0 0 ${vars.spacing['1']} 0`,
   fontSize: '1.75rem',
   fontWeight: 800,
   color: vars.text.primary,
@@ -117,7 +117,7 @@ globalStyle(`${header} h1`, {
 
 globalStyle(`${header} p`, {
   margin: 0,
-  fontSize: '1rem',
+  fontSize: vars.typography.size.base,
   color: vars.text.secondary,
   lineHeight: 1.4,
 });
@@ -134,9 +134,9 @@ export const errorMessage = style({
   background: vars.colors.dangerBgSubtle,
   color: vars.colors.dangerTextEmphasis,
   border: `1px solid ${vars.colors.dangerBorderSubtle}`,
-  padding: '1.5rem',
-  borderRadius: '8px',
-  margin: '2rem auto',
+  padding: vars.spacing['4'],
+  borderRadius: vars.border.radius.base,
+  margin: `${vars.spacing['5']} auto`,
   textAlign: 'center',
   maxWidth: '400px',
   fontSize: '1.1rem',
@@ -144,22 +144,22 @@ export const errorMessage = style({
 
 export const loginPrompt = style({
   textAlign: 'center',
-  padding: '4rem 2rem',
+  padding: `${vars.spacing['7']} ${vars.spacing['5']}`,
   background: vars.background.surface,
-  borderRadius: '12px',
-  margin: '2rem 0',
+  borderRadius: vars.border.radius.lg,
+  margin: `${vars.spacing['5']} 0`,
 });
 
 globalStyle(`${loginPrompt} h2`, {
   fontSize: '1.8rem',
   color: vars.text.primary,
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 globalStyle(`${loginPrompt} p`, {
   fontSize: '1.1rem',
   color: vars.text.secondary,
-  marginBottom: '2rem',
+  marginBottom: vars.spacing['5'],
   lineHeight: 1.6,
 });
 
@@ -171,9 +171,9 @@ export const ctaButton = style({
   background: vars.colors.primaryHover,
   color: 'white',
   textDecoration: 'none',
-  borderRadius: '8px',
-  fontWeight: 600,
-  fontSize: '1rem',
+  borderRadius: vars.border.radius.base,
+  fontWeight: vars.typography.weight.semibold,
+  fontSize: vars.typography.size.base,
   transition: 'all 0.2s ease',
   ':hover': {
     background: vars.colors.primaryActive,

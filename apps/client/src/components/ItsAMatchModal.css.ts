@@ -1,4 +1,5 @@
 import { keyframes, style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 // ADS-633: Tinder-inspired "It's a Match!" celebration. The animations are
 // intentionally large — this is meant to be the dopamine peak of the flow.
@@ -19,7 +20,7 @@ export const celebration = style({
   flexDirection: 'column',
   alignItems: 'center',
   textAlign: 'center',
-  padding: '1rem 0.5rem 0.5rem',
+  padding: `${vars.spacing['3']} ${vars.spacing['2']} ${vars.spacing['2']}`,
   animationName: slideUp,
   animationDuration: '0.4s',
   animationTimingFunction: 'ease-out',
@@ -29,7 +30,7 @@ export const celebration = style({
 });
 
 export const headline = style({
-  fontSize: '2.25rem',
+  fontSize: vars.typography.size['4xl'],
   fontWeight: 800,
   margin: 0,
   background: 'linear-gradient(45deg, #ff6b6b, #ff8e53)',
@@ -40,10 +41,10 @@ export const headline = style({
 });
 
 export const subhead = style({
-  fontSize: '1rem',
+  fontSize: vars.typography.size.base,
   color: '#555',
-  marginTop: '0.5rem',
-  marginBottom: '1.5rem',
+  marginTop: vars.spacing['2'],
+  marginBottom: vars.spacing['4'],
   lineHeight: 1.5,
 });
 
@@ -80,12 +81,12 @@ export const photoPlaceholder = style({
   background: 'linear-gradient(45deg, #4ecdc4, #44a08d)',
   color: 'white',
   fontSize: '4rem',
-  fontWeight: 700,
+  fontWeight: vars.typography.weight.bold,
 });
 
 export const petName = style({
-  fontSize: '1.5rem',
-  fontWeight: 700,
+  fontSize: vars.typography.size['2xl'],
+  fontWeight: vars.typography.weight.bold,
   color: '#222',
   margin: 0,
 });
@@ -95,18 +96,18 @@ export const buttonGroup = style({
   flexDirection: 'column',
   gap: '0.75rem',
   width: '100%',
-  marginTop: '1.5rem',
+  marginTop: vars.spacing['4'],
 });
 
 export const primaryButton = style({
   background: 'linear-gradient(45deg, #ff6b6b, #ff8e53)',
   color: 'white',
-  padding: '1rem 1.5rem',
+  padding: `${vars.spacing['3']} ${vars.spacing['4']}`,
   borderRadius: '999px',
   border: 'none',
   textDecoration: 'none',
-  fontWeight: 700,
-  fontSize: '1rem',
+  fontWeight: vars.typography.weight.bold,
+  fontSize: vars.typography.size.base,
   cursor: 'pointer',
   textAlign: 'center',
   transition: 'transform 0.2s ease, box-shadow 0.2s ease',
@@ -121,7 +122,7 @@ export const dismissButton = style({
   background: 'transparent',
   color: '#888',
   border: 'none',
-  padding: '0.5rem',
+  padding: vars.spacing['2'],
   fontSize: '0.9rem',
   cursor: 'pointer',
   ':hover': {

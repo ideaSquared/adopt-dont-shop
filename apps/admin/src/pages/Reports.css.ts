@@ -2,14 +2,10 @@ import { style } from '@vanilla-extract/css';
 
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
-export const buttonIcon = style({
-  marginRight: '0.5rem',
-});
-
 export const reportList = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '8px',
+  gap: vars.spacing['2'],
 });
 
 export const reportRow = style({
@@ -17,7 +13,7 @@ export const reportRow = style({
   justifyContent: 'space-between',
   padding: '12px',
   border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
   textDecoration: 'none',
   color: 'inherit',
 });
@@ -29,11 +25,7 @@ export const subtleSmall = style({
 
 export const subtleScope = style({
   color: vars.text.tertiary,
-  fontSize: '12px',
-});
-
-export const templatesCard = style({
-  marginTop: '16px',
+  fontSize: vars.typography.size.xs,
 });
 
 export const templatesGrid = style({
@@ -46,13 +38,13 @@ export const templateCard = style({
   display: 'block',
   padding: '14px',
   border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
   textDecoration: 'none',
   color: 'inherit',
 });
 
 export const templateDescription = style({
   color: vars.text.tertiary,
-  fontSize: '12px',
-  marginTop: '4px',
+  fontSize: vars.typography.size.xs,
+  marginTop: vars.spacing['1'],
 });

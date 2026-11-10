@@ -3,10 +3,10 @@ import { recipe } from '@vanilla-extract/recipes';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const card = style({
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
   background: vars.background.body,
   border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '0.75rem',
+  borderRadius: vars.border.radius.lg,
   overflow: 'hidden',
 });
 
@@ -27,7 +27,7 @@ export const header = style({
 });
 
 export const iconWrap = style({
-  fontSize: '1.25rem',
+  fontSize: vars.typography.size.xl,
   lineHeight: 1,
 });
 
@@ -38,8 +38,8 @@ export const titleWrap = style({
 
 export const title = style({
   margin: 0,
-  fontSize: '1rem',
-  fontWeight: 600,
+  fontSize: vars.typography.size.base,
+  fontWeight: vars.typography.weight.semibold,
 });
 
 export const summary = style({
@@ -71,20 +71,20 @@ export const chevron = recipe({
 export const attentionBadge = style({
   display: 'inline-flex',
   alignItems: 'center',
-  gap: '0.25rem',
+  gap: vars.spacing['1'],
   padding: '0.125rem 0.5rem',
-  marginLeft: '0.5rem',
+  marginLeft: vars.spacing['2'],
   fontSize: '0.6875rem',
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
   color: vars.colors.warningActive,
   background: vars.colors.warningBgSubtle,
   border: `1px solid ${vars.colors.warningBorderSubtle}`,
-  borderRadius: '9999px',
+  borderRadius: vars.border.radius.pill,
   verticalAlign: 'middle',
 });
 
 export const body = style({
   padding: '0 1.25rem 1.25rem',
   borderTop: `1px solid ${vars.border.color.default}`,
-  paddingTop: '1rem',
+  paddingTop: vars.spacing['3'],
 });

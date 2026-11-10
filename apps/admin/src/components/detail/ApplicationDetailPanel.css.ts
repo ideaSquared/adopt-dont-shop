@@ -9,7 +9,7 @@ export const container = style({
 export const detailGrid = style({
   display: 'grid',
   gridTemplateColumns: '8rem 1fr',
-  gap: '0.25rem 1rem',
+  gap: `${vars.spacing['1']} ${vars.spacing['3']}`,
 });
 
 // ── EntityInspector header ──────────────────────────────────────
@@ -23,8 +23,8 @@ export const headerInfo = style({
 });
 
 export const headerTitle = style({
-  fontSize: '1rem',
-  fontWeight: 600,
+  fontSize: vars.typography.size.base,
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
   margin: 0,
 });
@@ -74,14 +74,14 @@ export const activityDescription = style({
 });
 
 export const activityMeta = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: vars.text.muted,
   margin: '0.125rem 0 0 0',
 });
 
 export const activityEmpty = style({
-  padding: '2rem 1rem',
+  padding: `${vars.spacing['5']} ${vars.spacing['3']}`,
   textAlign: 'center',
   color: vars.text.muted,
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });

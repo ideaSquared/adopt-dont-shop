@@ -1,27 +1,22 @@
 import { style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const container = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '16px',
-  padding: '24px',
-});
-
-export const headerRow = style({
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
+  gap: vars.spacing['3'],
+  padding: vars.spacing['4'],
 });
 
 export const headerActions = style({
   display: 'flex',
-  gap: '8px',
+  gap: vars.spacing['2'],
 });
 
 export const panel = style({
   padding: '12px',
   border: '1px solid #e5e7eb',
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
 });
 
 export const schedulePanel = style({
@@ -34,21 +29,16 @@ export const sharePanel = style({
 
 export const scheduleRow = style({
   display: 'flex',
-  gap: '8px',
-  marginTop: '8px',
+  gap: vars.spacing['2'],
+  marginTop: vars.spacing['2'],
 });
 
 export const cronInput = style({
-  padding: '6px',
-  border: '1px solid #e5e7eb',
-  borderRadius: '6px',
+  minWidth: '160px',
 });
 
 export const emailInput = style({
   flex: 1,
-  padding: '6px',
-  border: '1px solid #e5e7eb',
-  borderRadius: '6px',
 });
 
 export const shareCode = style({

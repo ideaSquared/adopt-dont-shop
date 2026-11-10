@@ -27,10 +27,16 @@ vi.mock('../services/libraryServices', () => ({
   },
 }));
 
-vi.mock('../utils/env', () => ({
-  getApiBaseUrl: () => 'http://localhost:5000',
-  isDevelopment: () => false,
-}));
+vi.mock('@adopt-dont-shop/lib.utils', async () => {
+  const actual = await vi.importActual<typeof import('@adopt-dont-shop/lib.utils')>(
+    '@adopt-dont-shop/lib.utils'
+  );
+  return {
+    ...actual,
+    getApiBaseUrl: () => 'http://localhost:5000',
+    isDevelopment: () => false,
+  };
+});
 
 // ADS-586: Override the global lib.components mock with a controllable
 // `useConfirm` so tests can simulate accept/reject of the destructive delete
@@ -51,6 +57,29 @@ vi.mock('@adopt-dont-shop/lib.components', async () => {
       React.createElement('div', { role: 'alert', ...props }, children as React.ReactNode),
     Input: ({ children: _children, ...props }: Record<string, unknown>) =>
       React.createElement('input', props),
+    TextArea: ({ children: _children, ...props }: Record<string, unknown>) =>
+      React.createElement('textarea', props),
+    FormField: ({
+      label,
+      htmlFor,
+      error,
+      description,
+      children,
+    }: {
+      label?: string;
+      htmlFor?: string;
+      error?: string;
+      description?: string;
+      children?: React.ReactNode;
+    }) =>
+      React.createElement(
+        'div',
+        null,
+        label ? React.createElement('label', { htmlFor }, label) : null,
+        children,
+        error ? React.createElement('p', { role: 'alert' }, error) : null,
+        !error && description ? React.createElement('p', null, description) : null
+      ),
     useConfirm: () => ({
       isOpen: false,
       confirm: confirmFn,

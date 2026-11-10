@@ -60,7 +60,7 @@ describe('Rescue ReportsPage', () => {
     renderWithProviders(<ReportsPage />);
 
     expect(screen.getByRole('heading', { name: 'Reports', level: 1 })).toBeInTheDocument();
-    expect(screen.getByText('Loading…')).toBeInTheDocument();
+    expect(screen.getByLabelText('Loading…')).toBeInTheDocument();
   });
 
   it('shows the empty-state prompt when there are no saved reports', () => {
@@ -99,5 +99,34 @@ describe('Rescue ReportsPage', () => {
       'href',
       '/reports/new'
     );
+  });
+
+  it('shows an error message when the reports fail to load', () => {
+    useReportsMock.mockReturnValue({ isLoading: false, isError: true, data: undefined });
+    useReportTemplatesMock.mockReturnValue({ isLoading: false, data: [] });
+
+    renderWithProviders(<ReportsPage />);
+
+    expect(screen.getByText('Failed to load reports.')).toBeInTheDocument();
+    expect(screen.queryByText(/no saved reports yet/i)).not.toBeInTheDocument();
+  });
+
+  it('shows an empty state when there are no templates', () => {
+    useReportsMock.mockReturnValue({ isLoading: false, data: [] });
+    useReportTemplatesMock.mockReturnValue({ isLoading: false, data: [] });
+
+    renderWithProviders(<ReportsPage />);
+
+    expect(screen.getByText('No templates available.')).toBeInTheDocument();
+  });
+
+  it('shows a loading state while templates are fetching', () => {
+    useReportsMock.mockReturnValue({ isLoading: false, data: [] });
+    useReportTemplatesMock.mockReturnValue({ isLoading: true, data: undefined });
+
+    renderWithProviders(<ReportsPage />);
+
+    expect(screen.getByLabelText('Loading…')).toBeInTheDocument();
+    expect(screen.queryByText('No templates available.')).not.toBeInTheDocument();
   });
 });

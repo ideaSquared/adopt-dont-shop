@@ -2,8 +2,8 @@ import { style, styleVariants } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const container = style({
-  borderRadius: '0.5rem',
-  padding: '1rem',
+  borderRadius: vars.border.radius.base,
+  padding: vars.spacing['3'],
   background: vars.background.body,
 });
 
@@ -14,7 +14,7 @@ export const containerVariants = styleVariants({
 
 export const addSection = style({
   display: 'flex',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   flexWrap: 'wrap',
 });
 
@@ -22,11 +22,11 @@ export const addButton = style({
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
-  gap: '0.25rem',
+  gap: vars.spacing['1'],
   padding: '0.625rem 0.875rem',
   minWidth: '4.5rem',
   border: `2px dashed ${vars.border.color.default}`,
-  borderRadius: '0.5rem',
+  borderRadius: vars.border.radius.base,
   background: vars.background.surface,
   cursor: 'pointer',
   position: 'relative',
@@ -45,7 +45,7 @@ export const addIcon = style({
 export const addLabel = style({
   fontSize: '0.6875rem',
   color: vars.text.secondary,
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
   whiteSpace: 'nowrap',
 });
 
@@ -55,36 +55,36 @@ export const countBadge = style({
   right: '-0.4rem',
   background: vars.colors.primary,
   color: 'white',
-  borderRadius: '9999px',
+  borderRadius: vars.border.radius.pill,
   minWidth: '1.25rem',
   height: '1.25rem',
-  padding: '0 0.25rem',
+  padding: `0 ${vars.spacing['1']}`,
   fontSize: '0.6875rem',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  fontWeight: '700',
+  fontWeight: vars.typography.weight.bold,
 });
 
 export const plusIcon = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: vars.text.secondary,
-  fontWeight: '700',
+  fontWeight: vars.typography.weight.bold,
 });
 
 export const itemsSection = style({
-  marginTop: '1rem',
-  paddingTop: '1rem',
+  marginTop: vars.spacing['3'],
+  paddingTop: vars.spacing['3'],
   borderTop: `1px solid ${vars.border.color.default}`,
   display: 'flex',
   flexWrap: 'wrap',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const itemCard = style({
   display: 'inline-flex',
   alignItems: 'center',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   padding: '0.375rem 0.5rem 0.375rem 0.75rem',
   background: vars.background.surface,
   border: `1px solid ${vars.border.color.default}`,
@@ -92,14 +92,14 @@ export const itemCard = style({
 });
 
 export const itemIcon = style({
-  fontSize: '1.25rem',
+  fontSize: vars.typography.size.xl,
   lineHeight: '1',
 });
 
 export const itemInfo = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const itemInfoColumn = style({
@@ -110,7 +110,7 @@ export const itemInfoColumn = style({
 
 export const itemLabel = style({
   fontSize: '0.8125rem',
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
   color: vars.text.primary,
   lineHeight: '1',
 });
@@ -132,14 +132,14 @@ export const detailLabel = style({
   color: vars.text.secondary,
   display: 'inline-flex',
   alignItems: 'center',
-  gap: '0.25rem',
+  gap: vars.spacing['1'],
   cursor: 'pointer',
 });
 
 export const ageRow = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '0.25rem',
+  gap: vars.spacing['1'],
 });
 
 export const ageLabel = style({
@@ -150,9 +150,9 @@ export const ageLabel = style({
 export const ageInput = style({
   width: '3rem',
   padding: '0.125rem 0.25rem',
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '0.25rem',
+  borderRadius: vars.border.radius.sm,
   color: vars.text.primary,
   background: vars.background.body,
   outline: 'none',
@@ -169,9 +169,9 @@ export const ageInput = style({
 export const ageInputNarrow = style({
   width: '2.75rem',
   padding: '0.125rem 0.25rem',
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '0.25rem',
+  borderRadius: vars.border.radius.sm,
   color: vars.text.primary,
   background: vars.background.body,
   outline: 'none',
@@ -195,10 +195,10 @@ export const removeButton = style({
   border: 'none',
   cursor: 'pointer',
   color: vars.text.secondary,
-  fontSize: '1.125rem',
+  fontSize: vars.typography.size.lg,
   lineHeight: '1',
   padding: '0.125rem 0.25rem',
-  borderRadius: '9999px',
+  borderRadius: vars.border.radius.pill,
   display: 'flex',
   alignItems: 'center',
   transition: 'color 0.15s, background 0.15s',

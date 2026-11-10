@@ -1,8 +1,8 @@
-import { request as playwrightRequest, type Page } from '@playwright/test';
+import { request as playwrightRequest } from '@playwright/test';
 
 import { test, expect } from '../../fixtures';
 import { createVerifiedAdopter } from '../../helpers/accounts';
-import { openSettingsSection } from '../../helpers/account-settings';
+import { openProfileSettings, openSettingsSection } from '../../helpers/account-settings';
 import { uniqueEmail } from '../../helpers/factories';
 import { postWithCsrf } from '../../helpers/seeds';
 import { openSignedInSession } from '../../helpers/signed-in-session';
@@ -29,11 +29,6 @@ const canSignIn = async (email: string, password: string): Promise<boolean> => {
   }
 };
 
-const openSettings = async (page: Page): Promise<void> => {
-  await page.goto('/profile');
-  await page.getByRole('button', { name: 'Settings', exact: true }).click();
-};
-
 test.describe('adopter account settings', () => {
   test('lists the shared settings plus the adopter-only Privacy & data section', async ({
     browser,
@@ -41,7 +36,7 @@ test.describe('adopter account settings', () => {
     const account = await createVerifiedAdopter('settings-tabs');
     const session = await openSignedInSession(browser, account);
     try {
-      await openSettings(session.page);
+      await openProfileSettings(session.page);
 
       // Name and phone are edited on the Profile tab, so no "Your details" row.
       await expect(
@@ -64,7 +59,7 @@ test.describe('adopter account settings', () => {
     const session = await openSignedInSession(browser, account);
     const { page } = session;
     try {
-      await openSettings(page);
+      await openProfileSettings(page);
       const notifications = await openSettingsSection(page, 'Notifications');
       // lib.components' CheckboxInput hides the real <input> (0×0, opacity 0)
       // behind a styled box, so click its visible label, as a person would,
@@ -85,7 +80,7 @@ test.describe('adopter account settings', () => {
       // Before this PR, saved preferences never loaded back (the form read
       // field names the gateway doesn't return), so a reload showed defaults.
       await page.reload();
-      await openSettings(page);
+      await openProfileSettings(page);
       const reloaded = await openSettingsSection(page, 'Notifications');
       await expect(reloaded.getByRole('checkbox', { name: /^browser alerts/i })).toBeChecked({
         checked: !alertsWere,
@@ -105,7 +100,7 @@ test.describe('adopter account settings', () => {
     const session = await openSignedInSession(browser, account);
     const { page } = session;
     try {
-      await openSettings(page);
+      await openProfileSettings(page);
       const password = await openSettingsSection(page, 'Password');
       await password.getByLabel('Current password').fill(account.password);
       await password.getByLabel(/^new password/i).fill(newPassword);
@@ -129,7 +124,7 @@ test.describe('adopter account settings', () => {
     const session = await openSignedInSession(browser, account);
     const { page } = session;
     try {
-      await openSettings(page);
+      await openProfileSettings(page);
       const email = await openSettingsSection(page, 'Email');
       await email.getByLabel('New email').fill(newEmail);
       await email.getByLabel('Current password').fill(account.password);
@@ -164,7 +159,7 @@ test.describe('adopter account settings', () => {
     const session = await openSignedInSession(browser, account);
     const { page } = session;
     try {
-      await openSettings(page);
+      await openProfileSettings(page);
       await page.getByRole('button', { name: 'Delete account…' }).click();
       const dialog = page.getByRole('dialog');
       await dialog.getByLabel('Current password').fill(account.password);

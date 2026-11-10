@@ -1,6 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router';
-import { Heading, Text } from '@adopt-dont-shop/lib.components';
+import {
+  Button,
+  EmptyState,
+  ErrorState,
+  Heading,
+  PageHeader,
+  Spinner,
+} from '@adopt-dont-shop/lib.components';
+import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import { useReports, useReportTemplates } from '@adopt-dont-shop/lib.analytics';
 import * as styles from './Reports.css';
 
@@ -18,22 +26,24 @@ const ReportsPage: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <div>
-          <Heading level="h1">Reports</Heading>
-          <Text>Build custom reports for your rescue, schedule them, and share with the team.</Text>
-        </div>
-        <Link to="/reports/new">
-          <button type="button">New report</button>
-        </Link>
-      </div>
+      <PageHeader
+        title="Reports"
+        description="Build custom reports for your rescue, schedule them, and share with the team."
+        actions={
+          <Link to="/reports/new">
+            <Button variant="primary">New report</Button>
+          </Link>
+        }
+      />
 
       <section className={styles.section}>
         <Heading level="h2">Your reports</Heading>
         {reportsQuery.isLoading ? (
-          <Text>Loading…</Text>
+          <Spinner label="Loading…" />
+        ) : reportsQuery.isError ? (
+          <ErrorState message="Failed to load reports." />
         ) : (reportsQuery.data ?? []).length === 0 ? (
-          <Text>No saved reports yet — pick a template below to start.</Text>
+          <EmptyState title="No saved reports yet — pick a template below to start." />
         ) : (
           <div className={styles.reportList}>
             {(reportsQuery.data ?? []).map(report => (
@@ -44,7 +54,7 @@ const ReportsPage: React.FC = () => {
               >
                 <strong>{report.name}</strong>
                 <span className={styles.updatedMeta}>
-                  Updated {new Date(report.updated_at).toLocaleDateString()}
+                  Updated {formatDisplayDate(report.updated_at)}
                 </span>
               </Link>
             ))}
@@ -54,20 +64,26 @@ const ReportsPage: React.FC = () => {
 
       <section className={styles.section}>
         <Heading level="h2">Templates</Heading>
-        <div className={styles.templateGrid}>
-          {(templatesQuery.data ?? []).map(template => (
-            <Link
-              key={template.template_id}
-              to={`/reports/new?template=${template.template_id}`}
-              className={styles.templateCard}
-            >
-              <strong>{template.name}</strong>
-              <div className={styles.templateMeta}>
-                {template.description ?? `${template.category} report`}
-              </div>
-            </Link>
-          ))}
-        </div>
+        {templatesQuery.isLoading ? (
+          <Spinner label="Loading…" />
+        ) : (templatesQuery.data ?? []).length === 0 ? (
+          <EmptyState title="No templates available." />
+        ) : (
+          <div className={styles.templateGrid}>
+            {(templatesQuery.data ?? []).map(template => (
+              <Link
+                key={template.template_id}
+                to={`/reports/new?template=${template.template_id}`}
+                className={styles.templateCard}
+              >
+                <strong>{template.name}</strong>
+                <div className={styles.templateMeta}>
+                  {template.description ?? `${template.category} report`}
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

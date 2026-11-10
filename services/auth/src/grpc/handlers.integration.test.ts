@@ -181,7 +181,7 @@ describe.skipIf(!process.env.DATABASE_URL)(
               email,
               firstName: 'Ada',
               lastName: 'Admin',
-              password: 'correct-horse-battery',
+              password: 'CorrectHorse-Battery1!',
             });
 
           const results = await Promise.allSettled([

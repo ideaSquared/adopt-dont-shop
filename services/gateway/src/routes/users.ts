@@ -1222,6 +1222,12 @@ export const registerUsersRoutes = async (
               maxItems: MAX_BULK_USER_IDS,
             },
             status: { type: 'string' },
+            // The shared BulkUserUpdateRequestSchema (lib.validation) nests
+            // the change under `updateData`; the admin app sends that shape.
+            updateData: {
+              type: 'object',
+              properties: { status: { type: 'string' } },
+            },
             userType: { type: 'string' },
             user_type: { type: 'string' },
             reason: { type: 'string' },
@@ -1252,6 +1258,7 @@ export const registerUsersRoutes = async (
         userIds?: string[];
         user_ids?: string[];
         status?: string;
+        updateData?: { status?: string };
         userType?: string;
         user_type?: string;
         reason?: string;
@@ -1269,7 +1276,7 @@ export const registerUsersRoutes = async (
         const res = await authClient.bulkUpdateUsers(
           {
             userIds,
-            status: statusFilterFromString(body.status),
+            status: statusFilterFromString(body.updateData?.status ?? body.status),
             userType: userTypeFilterFromString(body.userType ?? body.user_type),
             reason: body.reason,
           },

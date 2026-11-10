@@ -44,11 +44,23 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
   "check your email" screen, not a session.
 - **React**: `AuthProvider` / `AuthContext` / `useAuth`, `PermissionsProvider` /
   `usePermissions`, `useHasPermission` / `useHasAnyPermission` /
-  `useHasAllPermissions`, `PermissionGate`, and the UI components (`AuthLayout`,
+  `useHasAllPermissions`, `useOneTimeUrlToken(paramName = 'token')` (captures a
+  single-use URL token once and strips it from the address bar; needs
+  `react-router`, a peer dependency), `PermissionGate`, and the UI components (`AuthLayout`,
   `LoginForm`, `RegisterForm`, `SocialSignInButtons`, `TwoFactorSettings`,
-  `BackupCodesReveal`, and `ForgotPasswordForm` / `ResetPasswordForm` for the
-  rescue and admin apps' `/forgot-password` and `/reset-password` pages;
-  app.client keeps its own pages).
+  `BackupCodesReveal`, and `ForgotPasswordForm` / `ResetPasswordForm`, and the
+  route-level `ForgotPasswordPage` / `ResetPasswordPage` that the rescue and
+  admin apps mount at `/forgot-password` and `/reset-password`; app.client
+  keeps its own pages). `SanctionBannerHost` is the account-sanction banner bound to the
+  shared `apiService`, with toast feedback on acknowledge; each app mounts it in its layout.
+- **Utilities**: `isSafeRedirectPath` — open-redirect guard for post-login
+  redirect targets (same-origin paths only); `redirectTargetFromState` — reads
+  the safe post-login path, query and hash from the `location.state.from` a
+  route guard sets (falls back to `/`); `NewPasswordSchema` /
+  `NEW_PASSWORD_HINT` — the one rule every "set a new password" form applies
+  (`StrongPasswordSchema` from lib.validation, capped at the gateway's 128
+  characters); `classifyFailure` / `rateLimitMessage` — how the forgot-password
+  forms read a failed reset request (429 surfaces, other 4xx look like "sent").
 - **Types**: `User`, `LoginRequest`, `RegisterRequest`, `AuthResponse`, the
   two-factor response types, `RescueRole`, `Permission`, `rolePermissions`.
 
@@ -74,4 +86,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 5 workspace package(s) depend on this library. See [lib.auth-consumers.md](../../docs/libraries/lib.auth-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

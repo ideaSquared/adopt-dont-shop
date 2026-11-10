@@ -1,10 +1,10 @@
-import { style, keyframes } from '@vanilla-extract/css';
+import { style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const chartContainer = style({
   width: '100%',
-  padding: '1rem 0',
+  padding: `${vars.spacing['3']} 0`,
 });
 
 export const funnelStage = recipe({
@@ -31,24 +31,24 @@ export const stageHeader = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
-  marginBottom: '0.5rem',
+  marginBottom: vars.spacing['2'],
 });
 
 export const stageName = style({
-  fontSize: '0.875rem',
-  fontWeight: '500',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.medium,
   color: vars.text.primary,
 });
 
 export const stageStats = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '1rem',
-  fontSize: '0.75rem',
+  gap: vars.spacing['3'],
+  fontSize: vars.typography.size.xs,
 });
 
 export const conversionRate = style({
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
 });
 
 export const applicantCount = style({
@@ -59,7 +59,7 @@ export const barContainer = style({
   position: 'relative',
   height: '48px',
   background: vars.background.muted,
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
   overflow: 'hidden',
 });
 
@@ -68,7 +68,7 @@ export const barFill = style({
   transition: 'all 0.5s ease',
   display: 'flex',
   alignItems: 'center',
-  padding: '0 1rem',
+  padding: `0 ${vars.spacing['3']}`,
   position: 'absolute',
   top: 0,
   left: 0,
@@ -88,8 +88,8 @@ export const barFill = style({
 
 export const barLabel = style({
   color: 'white',
-  fontSize: '0.875rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.semibold,
   whiteSpace: 'nowrap',
   textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)',
 });
@@ -97,23 +97,23 @@ export const barLabel = style({
 export const dropOffIndicator = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
-  fontSize: '0.75rem',
+  gap: vars.spacing['2'],
+  fontSize: vars.typography.size.xs,
   color: vars.colors.dangerHover,
-  margin: '0.25rem 0 0.5rem 0',
-  paddingLeft: '0.5rem',
+  margin: `${vars.spacing['1']} 0 ${vars.spacing['2']} 0`,
+  paddingLeft: vars.spacing['2'],
 });
 
 export const dropOffIcon = style({
-  fontSize: '1rem',
+  fontSize: vars.typography.size.base,
 });
 
 export const summary = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-  gap: '1rem',
-  marginTop: '1.5rem',
-  paddingTop: '1.5rem',
+  gap: vars.spacing['3'],
+  marginTop: vars.spacing['4'],
+  paddingTop: vars.spacing['4'],
   borderTop: `1px solid ${vars.border.color.muted}`,
 });
 
@@ -122,45 +122,21 @@ export const summaryItem = style({
 });
 
 export const summaryLabel = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: vars.text.secondary,
-  marginBottom: '0.25rem',
+  marginBottom: vars.spacing['1'],
   textTransform: 'uppercase',
   letterSpacing: '0.025em',
 });
 
 export const summaryValue = style({
-  fontSize: '1.5rem',
-  fontWeight: '700',
+  fontSize: vars.typography.size['2xl'],
+  fontWeight: vars.typography.weight.bold,
   color: vars.text.primary,
 });
 
-const shimmer = keyframes({
-  '0%': { transform: 'translateX(-100%)' },
-  '100%': { transform: 'translateX(100%)' },
-});
-
-export const loadingSkeletonRow = style({
-  height: '48px',
-  background: vars.background.muted,
-  borderRadius: '8px',
-  marginBottom: '0.75rem',
-  position: 'relative',
-  overflow: 'hidden',
-  '::after': {
-    content: "''",
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    background: `linear-gradient(90deg, transparent, ${vars.border.color.muted}, transparent)`,
-    animation: `${shimmer} 1.5s infinite`,
-  },
-});
-
-export const emptyState = style({
-  textAlign: 'center',
-  padding: '2rem',
-  color: '#6b7280',
+export const skeletonList = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.75rem',
 });

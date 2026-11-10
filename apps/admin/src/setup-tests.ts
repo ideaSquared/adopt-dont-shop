@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom';
 import React from 'react';
 import { expect, afterEach, vi } from 'vitest';
+import { getStatusDisplay, type StatusKind } from '@adopt-dont-shop/lib.types';
 import { cleanup } from '@testing-library/react';
 import * as matchers from '@testing-library/jest-dom/matchers';
 import { ReadableStream, WritableStream, TransformStream } from 'node:stream/web';
@@ -42,7 +43,118 @@ global.Image = class MockImage {
   src: string = '';
 } as any;
 
+type StubDropdownMenuItem = {
+  label: string;
+  to?: string;
+  onClick?: () => void;
+  disabled?: boolean;
+};
+
+type StubDropdownMenuProps = {
+  triggerLabel: string;
+  items: StubDropdownMenuItem[];
+  trigger?: React.ReactElement;
+  header?: React.ReactNode;
+  disabled?: boolean;
+};
+
+// Test double for the shared DropdownMenu / DropdownButton: a trigger button
+// that toggles a role="menu" list of role="menuitem" entries, closing on select.
+const StubDropdownMenu = ({ triggerLabel, items, header, disabled }: StubDropdownMenuProps) => {
+  const [open, setOpen] = React.useState(false);
+  return React.createElement(
+    'div',
+    null,
+    React.createElement(
+      'button',
+      {
+        type: 'button',
+        'aria-haspopup': 'menu',
+        'aria-expanded': open,
+        disabled,
+        onClick: () => setOpen(current => !current),
+      },
+      triggerLabel
+    ),
+    open
+      ? React.createElement(
+          'div',
+          { role: 'menu', 'aria-label': triggerLabel },
+          header,
+          items.map(item =>
+            item.to
+              ? React.createElement(
+                  'a',
+                  { key: item.label, role: 'menuitem', href: item.to },
+                  item.label
+                )
+              : React.createElement(
+                  'button',
+                  {
+                    key: item.label,
+                    type: 'button',
+                    role: 'menuitem',
+                    disabled: item.disabled,
+                    onClick: () => {
+                      setOpen(false);
+                      item.onClick?.();
+                    },
+                  },
+                  item.label
+                )
+          )
+        )
+      : null
+  );
+};
+
 vi.mock('@adopt-dont-shop/lib.components', () => ({
+  // Shared primitives added for the app migrations. Each stub mirrors the real
+  // component's accessible output (roles, names, text) and drops styling props.
+  PageHeader: ({
+    title,
+    description,
+    actions,
+    'data-testid': testId,
+  }: {
+    title: React.ReactNode;
+    description?: React.ReactNode;
+    actions?: React.ReactNode;
+    'data-testid'?: string;
+  }) =>
+    React.createElement(
+      'header',
+      { 'data-testid': testId },
+      React.createElement('h1', null, title),
+      description ? React.createElement('p', null, description) : null,
+      actions ? React.createElement('div', null, actions) : null
+    ),
+  StatusBadge: (props: {
+    kind?: StatusKind;
+    status?: string;
+    label?: string;
+    variant?: string;
+    'data-testid'?: string;
+  }) =>
+    React.createElement(
+      'span',
+      { role: 'status', 'data-testid': props['data-testid'] },
+      props.label ??
+        (props.kind && props.status !== undefined
+          ? getStatusDisplay(props.kind, props.status).label
+          : null)
+    ),
+  DropdownMenu: ({ triggerLabel, items, trigger, header, disabled }: StubDropdownMenuProps) =>
+    React.createElement(StubDropdownMenu, { triggerLabel, items, trigger, header, disabled }),
+  DropdownButton: ({ triggerLabel, items, header, disabled }: StubDropdownMenuProps) =>
+    React.createElement(StubDropdownMenu, { triggerLabel, items, header, disabled }),
+  Tooltip: ({ content, children }: { content: React.ReactNode; children: React.ReactElement }) =>
+    React.createElement(
+      React.Fragment,
+      null,
+      children,
+      React.createElement('span', { role: 'tooltip' }, content)
+    ),
   lightTheme: {},
   darkTheme: {},
   ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
@@ -51,6 +163,10 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   Stack: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
   Card: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
+    React.createElement('div', props, children),
+  CardHeader: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
+    React.createElement('div', props, children),
+  CardContent: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
   // ADS-B3: shared Badge now backs the admin status pills (Audit, Messages).
   // Mirror the real component's text output + status role; badge-specific props
@@ -153,12 +269,14 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     React.createElement('div', props, children),
   FormField: ({
     label,
+    htmlFor,
     error,
     description,
     children,
     ...props
   }: {
     label?: string;
+    htmlFor?: string;
     error?: string;
     description?: string;
     children: React.ReactNode;
@@ -167,13 +285,20 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     React.createElement(
       'div',
       props,
-      label ? React.createElement('label', null, label) : null,
+      label ? React.createElement('label', { htmlFor }, label) : null,
       children,
       error ? React.createElement('span', { role: 'alert' }, error) : null,
       description ? React.createElement('span', null, description) : null
     ),
-  Button: ({ children, ...props }: React.ComponentPropsWithoutRef<'button'>) =>
-    React.createElement('button', props, children),
+  Button: ({
+    children,
+    startIcon,
+    endIcon,
+    ...props
+  }: React.ComponentPropsWithoutRef<'button'> & {
+    startIcon?: React.ReactNode;
+    endIcon?: React.ReactNode;
+  }) => React.createElement('button', props, startIcon, children, endIcon),
   Text: ({ children, ...props }: React.ComponentPropsWithoutRef<'span'>) =>
     React.createElement('span', props, children),
   Heading: ({ children, ...props }: React.ComponentPropsWithoutRef<'h1'>) =>
@@ -483,8 +608,203 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     );
     return React.createElement(React.Fragment, null, table, pager);
   },
-  Modal: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
-    React.createElement('div', props, children),
+  // Mirrors the real Modal's accessible output: nothing when closed; otherwise a
+  // dialog named by its title (as an aria-label, so the title text is not repeated
+  // in the DOM), a "Close modal" button, the body and footer.
+  Modal: ({
+    isOpen,
+    onClose,
+    title,
+    children,
+    header,
+    footer,
+    showCloseButton = true,
+    closeOnEscape = true,
+    'data-testid': testId,
+  }: {
+    isOpen: boolean;
+    onClose: () => void;
+    title?: string;
+    children?: React.ReactNode;
+    header?: React.ReactNode;
+    footer?: React.ReactNode;
+    showCloseButton?: boolean;
+    closeOnEscape?: boolean;
+    'data-testid'?: string;
+    [k: string]: unknown;
+  }) =>
+    isOpen
+      ? React.createElement(
+          'div',
+          {
+            role: 'dialog',
+            'aria-modal': 'true',
+            'aria-label': title,
+            'data-testid': testId,
+            onKeyDown: (e: React.KeyboardEvent) => {
+              if (e.key === 'Escape' && closeOnEscape) {
+                onClose();
+              }
+            },
+          },
+          header ?? null,
+          children,
+          showCloseButton
+            ? React.createElement(
+                'button',
+                { type: 'button', onClick: onClose, 'aria-label': 'Close modal' },
+                '×'
+              )
+            : null,
+          footer
+        )
+      : null,
+  TextArea: ({
+    label,
+    id,
+    error,
+    helperText,
+    required,
+    fullWidth: _fullWidth,
+    state: _state,
+    variant: _variant,
+    size: _size,
+    ...props
+  }: React.ComponentPropsWithoutRef<'textarea'> & {
+    label?: string;
+    error?: string;
+    helperText?: string;
+    fullWidth?: boolean;
+    state?: string;
+    variant?: string;
+    size?: string;
+  }) =>
+    React.createElement(
+      'div',
+      null,
+      label ? React.createElement('label', { htmlFor: id }, label) : null,
+      React.createElement('textarea', {
+        id,
+        required,
+        'aria-required': required ? true : undefined,
+        ...props,
+      }),
+      error
+        ? React.createElement('span', { role: 'alert' }, error)
+        : helperText
+          ? React.createElement('span', null, helperText)
+          : null
+    ),
+  SelectInput: ({
+    label,
+    id,
+    value,
+    onChange,
+    options = [],
+    helperText,
+    error,
+    required,
+    disabled,
+    'data-testid': testId,
+    fullWidth: _fullWidth,
+    state: _state,
+    placeholder: _placeholder,
+    ...props
+  }: {
+    label?: string;
+    id?: string;
+    value?: string;
+    onChange?: (v: string) => void;
+    options?: Array<{ value: string; label: string }>;
+    helperText?: string;
+    error?: string;
+    required?: boolean;
+    disabled?: boolean;
+    'data-testid'?: string;
+    fullWidth?: boolean;
+    state?: string;
+    placeholder?: string;
+  }) => {
+    const inputId = id ?? testId ?? (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+    return React.createElement(
+      'div',
+      null,
+      label && React.createElement('label', { htmlFor: inputId }, label, required ? ' *' : null),
+      React.createElement(
+        'select',
+        {
+          id: inputId,
+          value,
+          disabled,
+          'data-testid': testId,
+          onChange: (e: React.ChangeEvent<HTMLSelectElement>) => onChange?.(e.target.value),
+          ...props,
+        },
+        options.map(o => React.createElement('option', { key: o.value, value: o.value }, o.label))
+      ),
+      error
+        ? React.createElement('span', { role: 'alert' }, error)
+        : helperText
+          ? React.createElement('span', null, helperText)
+          : null
+    );
+  },
+  CheckboxInput: ({
+    label,
+    checked,
+    defaultChecked,
+    description,
+    disabled,
+    id,
+    onChange,
+    required,
+    error,
+    helperText,
+    'data-testid': testId,
+    ...props
+  }: {
+    label?: string;
+    checked?: boolean;
+    defaultChecked?: boolean;
+    description?: string;
+    disabled?: boolean;
+    id?: string;
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    required?: boolean;
+    error?: string;
+    helperText?: string;
+    'data-testid'?: string;
+    [key: string]: unknown;
+  }) => {
+    const inputId =
+      id ?? (label ? `checkbox-${label.toLowerCase().replace(/\s+/g, '-')}` : undefined);
+    return React.createElement(
+      'div',
+      null,
+      React.createElement('input', {
+        type: 'checkbox',
+        id: inputId,
+        checked,
+        defaultChecked,
+        disabled,
+        required,
+        'aria-required': required ? true : undefined,
+        'data-testid': testId,
+        onChange,
+        ...props,
+      }),
+      label && React.createElement('label', { htmlFor: inputId }, label),
+      description ? React.createElement('p', null, description) : null,
+      error
+        ? React.createElement('span', { role: 'alert' }, error)
+        : helperText
+          ? React.createElement('span', null, helperText)
+          : null
+    );
+  },
+  // Shared app-shell components: pass-through boundary, minimal 404.
+  ErrorBoundary: ({ children }: { children?: React.ReactNode }) => children,
+  NotFoundPage: () => React.createElement('h1', null, '404'),
   Spinner: () => React.createElement('div', { 'aria-label': 'loading' }),
   Skeleton: ({ width, height, radius, className, style, ...props }: Record<string, unknown>) =>
     React.createElement('div', {
@@ -522,6 +842,64 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
         'div',
         { key: 'text' },
         ...Array.from({ length: lines as number }, (_, i) => React.createElement('div', { key: i }))
+      )
+    ),
+  Avatar: ({ name = '', initials }: { name?: string; initials?: string }) =>
+    React.createElement(
+      'span',
+      null,
+      initials ??
+        name
+          .split(' ')
+          .map(part => part[0])
+          .join('')
+          .toUpperCase()
+          .slice(0, 2)
+    ),
+  // Mirrors the real Alert: an alert-role region with optional title and body.
+  Alert: ({ children, title }: { children?: React.ReactNode; title?: string }) =>
+    React.createElement(
+      'div',
+      { role: 'alert' },
+      title ? React.createElement('strong', null, title) : null,
+      children
+    ),
+  // Mirrors the real Tabs: a tablist of role="tab" buttons and the active panel.
+  Tabs: ({
+    tabs,
+    value,
+    onChange,
+    'aria-label': ariaLabel,
+  }: {
+    tabs: ReadonlyArray<{ id: string; label: React.ReactNode; content: React.ReactNode }>;
+    value: string;
+    onChange: (id: string) => void;
+    'aria-label'?: string;
+  }) =>
+    React.createElement(
+      'div',
+      null,
+      React.createElement(
+        'div',
+        { role: 'tablist', 'aria-label': ariaLabel },
+        ...tabs.map(tab =>
+          React.createElement(
+            'button',
+            {
+              key: tab.id,
+              type: 'button',
+              role: 'tab',
+              'aria-selected': tab.id === value,
+              onClick: () => onChange(tab.id),
+            },
+            tab.label
+          )
+        )
+      ),
+      React.createElement(
+        'div',
+        { role: 'tabpanel' },
+        tabs.find(tab => tab.id === value)?.content ?? null
       )
     ),
   DateTime: ({ value }: { value: string }) => React.createElement('span', null, value),
@@ -605,7 +983,7 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     href?: string;
     children?: React.ReactNode;
   }) => React.createElement('a', { href }, children),
-  // ADS C4-5: rendered by SanctionBannerHost; tests don't exercise sanctions.
+  // ADS C4-5: rendered by lib.auth SanctionBannerHost; tests don't exercise sanctions.
   SanctionBanner: () => null,
   // ADS-585: useConfirm mock returns both `confirm` and `confirmProps` so tests
   // covering pages that spread `confirmProps` into ConfirmDialog don't crash.
@@ -628,6 +1006,31 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     }, [value, delayMs]);
     return debounced;
   },
+  // Real URL-filter setter so list pages keep writing filters to the query string.
+  useFilterParamSetter:
+    (
+      setSearchParams: (
+        update: (prev: URLSearchParams) => URLSearchParams,
+        options: { replace: boolean }
+      ) => void,
+      { resetPage = false }: { resetPage?: boolean } = {}
+    ) =>
+    (key: string, value: string) =>
+      setSearchParams(
+        prev => {
+          const next = new URLSearchParams(prev);
+          if (value && value !== 'all') {
+            next.set(key, value);
+          } else {
+            next.delete(key);
+          }
+          if (resetPage) {
+            next.delete('page');
+          }
+          return next;
+        },
+        { replace: true }
+      ),
   // ADS-585: toast.* is the replacement for native window.alert in app.admin.
   toast: Object.assign(vi.fn(), {
     success: vi.fn(),

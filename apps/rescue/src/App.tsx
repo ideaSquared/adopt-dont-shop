@@ -1,14 +1,19 @@
 import { ReactNode, lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router';
-import { Spinner } from '@adopt-dont-shop/lib.components';
+import { Routes, Route, Navigate, useLocation } from 'react-router';
+import { ErrorBoundary, NotFoundPage, Spinner } from '@adopt-dont-shop/lib.components';
+import { captureException } from '@adopt-dont-shop/lib.observability';
 import { CookieBanner, LegalReacceptanceModal } from '@adopt-dont-shop/lib.legal';
-import { useAuth } from '@adopt-dont-shop/lib.auth';
+import {
+  useAuth,
+  ForgotPasswordPage,
+  ResetPasswordPage,
+  redirectTargetFromState,
+} from '@adopt-dont-shop/lib.auth';
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
 import DevLoginPanel from './components/dev/DevLoginPanel';
 import Layout from './components/shared/Layout';
-import ErrorBoundary from './components/ErrorBoundary';
 
 // Pages — lazily loaded for code splitting
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -21,21 +26,13 @@ const Communication = lazy(() => import('./pages/Communication'));
 const FosterCoordination = lazy(() => import('./pages/FosterCoordination'));
 const AcceptInvitation = lazy(() => import('./pages/AcceptInvitation'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
-const ForgotPasswordPage = lazy(() =>
-  import('./pages/ForgotPasswordPage').then(m => ({ default: m.ForgotPasswordPage }))
-);
-const ResetPasswordPage = lazy(() =>
-  import('./pages/ResetPasswordPage').then(m => ({ default: m.ResetPasswordPage }))
-);
 const Analytics = lazy(() => import('./pages/Analytics'));
 // Reports (ADS-105)
 const Reports = lazy(() => import('./pages/Reports'));
 const ReportBuilderPage = lazy(() => import('./pages/ReportBuilderPage'));
 const ReportViewPage = lazy(() => import('./pages/ReportViewPage'));
-const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const RegisterRescue = lazy(() => import('./pages/RegisterRescue'));
 
-import './App.css';
 import * as styles from './AppRouting.css';
 
 const PageLoader = () => (
@@ -47,11 +44,22 @@ const PageLoader = () => (
 // ADS-482: route-level ErrorBoundary so a crash in one risky route (chat,
 // applications, etc.) doesn't blank the whole rescue dashboard.
 const RouteBoundary = ({ name, children }: { name: string; children: ReactNode }) => (
-  <ErrorBoundary boundary={name}>{children}</ErrorBoundary>
+  <ErrorBoundary
+    onError={(error, errorInfo) =>
+      captureException(error, {
+        app: 'rescue',
+        boundary: name,
+        componentStack: errorInfo.componentStack,
+      })
+    }
+  >
+    {children}
+  </ErrorBoundary>
 );
 
 function App() {
   const { isAuthenticated, isInitializing } = useAuth();
+  const location = useLocation();
 
   if (isInitializing) {
     return <PageLoader />;
@@ -67,7 +75,7 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="*" element={<Navigate to="/login" replace />} />
+            <Route path="*" element={<Navigate to="/login" replace state={{ from: location }} />} />
           </Routes>
         </Suspense>
 
@@ -83,7 +91,10 @@ function App() {
         <Routes>
           <Route path="/accept-invitation" element={<AcceptInvitation />} />
           <Route path="/register-rescue" element={<RegisterRescue />} />
-          <Route path="/login" element={<Navigate to="/" replace />} />
+          <Route
+            path="/login"
+            element={<Navigate to={redirectTargetFromState(location.state)} replace />}
+          />
           {/* A reset link opened while signed in still resets the password. */}
           <Route path="/reset-password" element={<ResetPasswordPage />} />
 
@@ -129,7 +140,7 @@ function App() {
                       <Route path="/reports/:id" element={<ReportViewPage />} />
                       <Route path="/reports/:id/edit" element={<ReportBuilderPage />} />
                       {/* ADS-480: 404 catch-all inside the protected subtree */}
-                      <Route path="*" element={<NotFoundPage />} />
+                      <Route path="*" element={<NotFoundPage homeLabel="Back to dashboard" />} />
                     </Routes>
                   </Suspense>
                 </Layout>

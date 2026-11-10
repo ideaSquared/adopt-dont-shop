@@ -9,7 +9,7 @@
  */
 
 import React from 'react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { BrowserRouter } from 'react-router';
 import { ThemeProvider } from '@adopt-dont-shop/lib.components';
@@ -143,6 +143,12 @@ const Wrapper = ({ children }: { children: React.ReactNode }) => (
 );
 
 // ── Tests ────────────────────────────────────────────────────────────────────
+
+// Warm the module graph once: the first import of DiscoveryPage is slow on a cold
+// transform cache and would otherwise eat the first test's 5s budget.
+beforeAll(async () => {
+  await import('./DiscoveryPage');
+}, 60_000);
 
 beforeEach(() => {
   vi.clearAllMocks();

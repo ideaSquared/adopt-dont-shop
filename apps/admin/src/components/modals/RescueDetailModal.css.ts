@@ -1,30 +1,12 @@
 import { style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const headerContent = style({
   flex: 1,
 });
 
-export const closeButton = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  // WCAG 2.5.5 AA: 44x44 minimum touch target.
-  minWidth: '44px',
-  minHeight: '44px',
-  border: 'none',
-  borderRadius: '8px',
-  background: '#f3f4f6',
-  color: '#6b7280',
-  cursor: 'pointer',
-  transition: 'all 0.2s ease',
-  ':hover': {
-    background: '#e5e7eb',
-    color: '#111827',
-  },
-});
-
 export const section = style({
-  marginBottom: '2rem',
+  marginBottom: vars.spacing['5'],
   selectors: {
     '&:last-child': {
       marginBottom: 0,
@@ -33,10 +15,10 @@ export const section = style({
 });
 
 export const sectionTitle = style({
-  fontSize: '1rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.base,
+  fontWeight: vars.typography.weight.semibold,
   color: '#111827',
-  margin: '0 0 1rem 0',
+  margin: `0 0 ${vars.spacing['3']} 0`,
 });
 
 export const infoGrid = style({
@@ -53,11 +35,11 @@ export const infoItem = style({
 
 export const infoLabel = style({
   fontSize: '0.8125rem',
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
   color: '#6b7280',
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const infoValue = style({
@@ -66,64 +48,31 @@ export const infoValue = style({
   wordBreak: 'break-word',
 });
 
-export const badgeSuccess = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '0.375rem 0.875rem',
-  borderRadius: '9999px',
-  fontSize: '0.8125rem',
-  fontWeight: '600',
-  background: '#d1fae5',
-  color: '#065f46',
-});
-
-export const badgeWarning = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '0.375rem 0.875rem',
-  borderRadius: '9999px',
-  fontSize: '0.8125rem',
-  fontWeight: '600',
-  background: '#fef3c7',
-  color: '#92400e',
-});
-
-export const badgeDanger = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '0.375rem 0.875rem',
-  borderRadius: '9999px',
-  fontSize: '0.8125rem',
-  fontWeight: '600',
-  background: '#fee2e2',
-  color: '#991b1b',
-});
-
 export const statsGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const statCard = style({
   background: '#f9fafb',
   border: '1px solid #e5e7eb',
-  borderRadius: '12px',
+  borderRadius: vars.border.radius.lg,
   padding: '1.25rem',
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const statLabel = style({
   fontSize: '0.8125rem',
   color: '#6b7280',
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
 });
 
 export const statValue = style({
-  fontSize: '1.875rem',
-  fontWeight: '700',
+  fontSize: vars.typography.size['3xl'],
+  fontWeight: vars.typography.weight.bold,
   color: '#111827',
 });
 
@@ -131,17 +80,17 @@ export const loadingSpinner = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  padding: '3rem',
+  padding: vars.spacing['6'],
   color: '#6b7280',
 });
 
 export const errorMessage = style({
   background: '#fee2e2',
   border: '1px solid #fecaca',
-  borderRadius: '8px',
-  padding: '1rem',
+  borderRadius: vars.border.radius.base,
+  padding: vars.spacing['3'],
   color: '#991b1b',
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const staffList = style({
@@ -154,9 +103,9 @@ export const staffCard = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  padding: '1rem',
+  padding: vars.spacing['3'],
   border: '1px solid #e5e7eb',
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
   background: '#ffffff',
   ':hover': {
     background: '#f9fafb',
@@ -166,12 +115,12 @@ export const staffCard = style({
 export const staffInfo = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.25rem',
+  gap: vars.spacing['1'],
   flex: 1,
 });
 
 export const staffName = style({
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
   color: '#111827',
   fontSize: '0.9375rem',
   overflow: 'hidden',
@@ -188,84 +137,34 @@ export const staffEmail = style({
 export const staffMeta = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
-  fontSize: '0.75rem',
+  gap: vars.spacing['2'],
+  fontSize: vars.typography.size.xs,
   color: '#9ca3af',
 });
 
 export const staffActions = style({
   display: 'flex',
-  gap: '0.5rem',
-});
-
-export const iconButton = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '32px',
-  height: '32px',
-  border: '1px solid #e5e7eb',
-  borderRadius: '6px',
-  background: '#ffffff',
-  color: '#6b7280',
-  cursor: 'pointer',
-  transition: 'all 0.2s ease',
-  ':hover': {
-    background: '#f9fafb',
-    color: '#111827',
-    borderColor: '#d1d5db',
-  },
-  ':disabled': {
-    opacity: 0.5,
-    cursor: 'not-allowed',
-  },
+  gap: vars.spacing['2'],
 });
 
 export const inviteForm = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   padding: '1.25rem',
   border: '1px solid #e5e7eb',
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
   background: '#f9fafb',
-  marginBottom: '1.5rem',
+  marginBottom: vars.spacing['4'],
 });
 
 export const formRow = style({
   display: 'flex',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   '@media': {
     'screen and (max-width: 640px)': {
       flexDirection: 'column',
     },
-  },
-});
-
-export const formGroup = style({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.375rem',
-  flex: 1,
-});
-
-export const label = style({
-  fontSize: '0.8125rem',
-  fontWeight: '500',
-  color: '#374151',
-});
-
-export const input = style({
-  padding: '0.625rem 0.875rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '6px',
-  fontSize: '0.875rem',
-  color: '#111827',
-  background: '#ffffff',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#667eea',
-    boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',
   },
 });
 
@@ -276,70 +175,23 @@ export const formActions = style({
 });
 
 export const invitationsList = style({
-  marginTop: '2rem',
+  marginTop: vars.spacing['5'],
 });
 
 export const invitationCard = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  padding: '1rem',
+  padding: vars.spacing['3'],
   border: '1px solid #fef3c7',
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
   background: '#fffbeb',
   marginBottom: '0.75rem',
 });
 
-export const invitationBadgePending = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '0.375rem',
-  padding: '0.25rem 0.625rem',
-  borderRadius: '9999px',
-  fontSize: '0.75rem',
-  fontWeight: '600',
-  background: '#fef3c7',
-  color: '#92400e',
-});
-
-export const invitationBadgeDefault = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '0.375rem',
-  padding: '0.25rem 0.625rem',
-  borderRadius: '9999px',
-  fontSize: '0.75rem',
-  fontWeight: '600',
-  background: '#e5e7eb',
-  color: '#374151',
-});
-
 export const skeletonRow = style({
   display: 'flex',
-  gap: '0.5rem',
-});
-
-export const tableWrapper = style({
-  overflowX: 'auto',
-});
-
-export const dataTable = style({
-  width: '100%',
-  borderCollapse: 'collapse',
-  fontSize: '0.875rem',
-});
-
-export const tableHeadRow = style({
-  textAlign: 'left',
-  borderBottom: '1px solid #e5e7eb',
-});
-
-export const tableCell = style({
-  padding: '0.5rem',
-});
-
-export const tableBodyRow = style({
-  borderBottom: '1px solid #f3f4f6',
+  gap: vars.spacing['2'],
 });
 
 export const manageLinkRow = style({
@@ -347,17 +199,13 @@ export const manageLinkRow = style({
 });
 
 export const inviteFormSpacing = style({
-  marginTop: '1.5rem',
+  marginTop: vars.spacing['4'],
 });
 
 export const planSectionTitle = style({
-  margin: '0 0 1rem',
+  margin: `0 0 ${vars.spacing['3']}`,
   fontSize: '0.9375rem',
   color: '#111827',
-});
-
-export const errorMessageSpacing = style({
-  marginBottom: '1rem',
 });
 
 export const staffSectionHeader = style({
@@ -367,7 +215,7 @@ export const staffSectionHeader = style({
 });
 
 export const userPlusIcon = style({
-  marginRight: '0.5rem',
+  marginRight: vars.spacing['2'],
 });
 
 export const staffSectionSubtitle = style({
@@ -380,7 +228,7 @@ export const skeletonStaffList = style({
   display: 'flex',
   flexDirection: 'column',
   gap: '0.75rem',
-  padding: '1rem 0',
+  padding: `${vars.spacing['3']} 0`,
 });
 
 export const skeletonStaffRow = style({
@@ -394,12 +242,12 @@ export const skeletonStaffText = style({
 });
 
 export const skeletonStaffName = style({
-  marginBottom: '0.25rem',
+  marginBottom: vars.spacing['1'],
 });
 
 export const acceptedBadge = style({
   display: 'inline-block',
-  marginLeft: '0.5rem',
+  marginLeft: vars.spacing['2'],
   color: '#10b981',
 });
 
@@ -410,20 +258,20 @@ export const staffRowFlex = style({
 });
 
 export const headerSpacing = style({
-  marginTop: '0.5rem',
+  marginTop: vars.spacing['2'],
 });
 
 export const skeletonContent = style({
-  padding: '2rem',
+  padding: vars.spacing['5'],
   display: 'flex',
   flexDirection: 'column',
-  gap: '1.5rem',
+  gap: vars.spacing['4'],
 });
 
 export const skeletonAvatarRow = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const skeletonAvatarText = style({
@@ -431,17 +279,7 @@ export const skeletonAvatarText = style({
 });
 
 export const skeletonName = style({
-  marginBottom: '0.5rem',
-});
-
-export const successMessage = style({
-  padding: '0.75rem',
-  marginBottom: '1rem',
-  background: '#f0fdf4',
-  border: '1px solid #bbf7d0',
-  borderRadius: '0.375rem',
-  color: '#166534',
-  fontSize: '0.875rem',
+  marginBottom: vars.spacing['2'],
 });
 
 // ── Actions tab (split-pane detail panel) ─────────────────────────
@@ -449,24 +287,43 @@ export const successMessage = style({
 export const actionsSection = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '1.5rem',
+  gap: vars.spacing['4'],
 });
 
 export const actionGroup = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   alignItems: 'flex-start',
 });
 
 export const actionGroupLabel = style({
   fontSize: '0.6875rem',
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
   color: '#6b7280',
 });
 
 export const actionButtonIcon = style({
-  marginRight: '0.5rem',
+  marginRight: vars.spacing['2'],
+});
+
+export const closeButton = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  // WCAG 2.5.5 AA: 44x44 minimum touch target.
+  minWidth: '44px',
+  minHeight: '44px',
+  border: 'none',
+  borderRadius: vars.border.radius.base,
+  background: '#f3f4f6',
+  color: '#6b7280',
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+  ':hover': {
+    background: '#e5e7eb',
+    color: '#111827',
+  },
 });

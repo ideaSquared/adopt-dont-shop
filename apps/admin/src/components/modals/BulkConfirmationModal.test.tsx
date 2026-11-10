@@ -30,13 +30,9 @@ describe('BulkConfirmationModal accessibility', () => {
     expect(dialog).toHaveAttribute('aria-modal', 'true');
   });
 
-  it('labels the dialog with its visible title via aria-labelledby', () => {
+  it('names the dialog with its visible title', () => {
     render(<BulkConfirmationModal {...defaultProps} />);
-    const dialog = screen.getByRole('dialog');
-    const labelId = dialog.getAttribute('aria-labelledby');
-    expect(labelId).toBeTruthy();
-    const titleEl = document.getElementById(labelId!);
-    expect(titleEl).toHaveTextContent('Suspend 3 users');
+    expect(screen.getByRole('dialog', { name: 'Suspend 3 users' })).toBeInTheDocument();
   });
 
   it('calls onClose when Escape is pressed', async () => {
@@ -187,5 +183,28 @@ describe('BulkConfirmationModal — failedIds display', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /retry failed only/i }));
     expect(onRetryFailed).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('BulkConfirmationModal — reason and loading behaviour', () => {
+  it('keeps Confirm disabled until a required reason is entered, then passes it on', () => {
+    const onConfirm = vi.fn();
+    render(<BulkConfirmationModal {...defaultProps} onConfirm={onConfirm} requireReason />);
+
+    const confirm = screen.getByRole('button', { name: 'Suspend' });
+    expect(confirm).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText(/reason/i), { target: { value: '  spam  ' } });
+    expect(confirm).toBeEnabled();
+
+    fireEvent.click(confirm);
+    expect(onConfirm).toHaveBeenCalledWith('spam');
+  });
+
+  it('does not close on Escape while the action is running', () => {
+    const onClose = vi.fn();
+    render(<BulkConfirmationModal {...defaultProps} onClose={onClose} isLoading />);
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+    expect(onClose).not.toHaveBeenCalled();
   });
 });

@@ -5,25 +5,25 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 export const pageContainer = style({
   maxWidth: '1200px',
   margin: '0 auto',
-  padding: '2rem',
+  padding: vars.spacing['5'],
 });
 
 export const backButton = style({
-  marginBottom: '2rem',
+  marginBottom: vars.spacing['5'],
 });
 
 export const rescueHeader = style({
   background: vars.background.body,
-  borderRadius: '16px',
-  padding: '3rem',
-  marginBottom: '3rem',
+  borderRadius: vars.border.radius.xl,
+  padding: vars.spacing['6'],
+  marginBottom: vars.spacing['6'],
   textAlign: 'center',
 });
 
 globalStyle(`${rescueHeader} h1`, {
-  fontSize: '3rem',
-  fontWeight: '700',
-  marginBottom: '1rem',
+  fontSize: vars.typography.size['5xl'],
+  fontWeight: vars.typography.weight.bold,
+  marginBottom: vars.spacing['3'],
   color: vars.text.primary,
 });
 
@@ -31,15 +31,15 @@ globalStyle(`${rescueHeader} .rescue-meta`, {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   flexWrap: 'wrap',
-  marginBottom: '1.5rem',
+  marginBottom: vars.spacing['4'],
 });
 
 globalStyle(`${rescueHeader} .rescue-meta .meta-item`, {
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   fontSize: '1.1rem',
   color: vars.text.tertiary,
 });
@@ -51,21 +51,21 @@ globalStyle(`${rescueHeader} .rescue-meta .meta-item .icon`, {
 });
 
 globalStyle(`${rescueHeader} .verification-badge`, {
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 globalStyle(`${rescueHeader} .contact-info`, {
   display: 'flex',
   justifyContent: 'center',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   flexWrap: 'wrap',
 });
 
 export const rescueInfo = style({
   display: 'grid',
   gridTemplateColumns: '1fr',
-  gap: '2rem',
-  marginBottom: '3rem',
+  gap: vars.spacing['5'],
+  marginBottom: vars.spacing['6'],
   '@media': {
     '(min-width: 768px)': {
       gridTemplateColumns: '2fr 1fr',
@@ -74,20 +74,20 @@ export const rescueInfo = style({
 });
 
 export const descriptionCard = style({
-  padding: '2rem',
+  padding: vars.spacing['5'],
 });
 
 globalStyle(`${descriptionCard} h2`, {
-  fontSize: '1.5rem',
-  fontWeight: '600',
-  marginBottom: '1.5rem',
+  fontSize: vars.typography.size['2xl'],
+  fontWeight: vars.typography.weight.semibold,
+  marginBottom: vars.spacing['4'],
   color: vars.text.primary,
 });
 
 globalStyle(`${descriptionCard} h3`, {
   fontSize: '1.2rem',
-  fontWeight: '600',
-  margin: '2rem 0 1rem 0',
+  fontWeight: vars.typography.weight.semibold,
+  margin: `${vars.spacing['5']} 0 ${vars.spacing['3']} 0`,
   color: vars.text.primary,
 });
 
@@ -98,24 +98,24 @@ globalStyle(`${descriptionCard} p`, {
 });
 
 export const contactCard = style({
-  padding: '2rem',
+  padding: vars.spacing['5'],
 });
 
 globalStyle(`${contactCard} h2`, {
-  fontSize: '1.5rem',
-  fontWeight: '600',
-  marginBottom: '1.5rem',
+  fontSize: vars.typography.size['2xl'],
+  fontWeight: vars.typography.weight.semibold,
+  marginBottom: vars.spacing['4'],
   color: vars.text.primary,
 });
 
 globalStyle(`${contactCard} .contact-item`, {
   display: 'flex',
   alignItems: 'center',
-  gap: '1rem',
-  marginBottom: '1rem',
-  padding: '1rem',
+  gap: vars.spacing['3'],
+  marginBottom: vars.spacing['3'],
+  padding: vars.spacing['3'],
   background: vars.background.surface,
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
 });
 
 globalStyle(`${contactCard} .contact-item .icon`, {
@@ -126,14 +126,14 @@ globalStyle(`${contactCard} .contact-item .icon`, {
 });
 
 globalStyle(`${contactCard} .contact-item .details .label`, {
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
   color: vars.text.tertiary,
   fontSize: '0.9rem',
 });
 
 globalStyle(`${contactCard} .contact-item .details .value`, {
   color: vars.text.primary,
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
 });
 
 globalStyle(`${contactCard} .website-link`, {
@@ -150,8 +150,8 @@ export const petsSection = style({});
 
 globalStyle(`${petsSection} h2`, {
   fontSize: '2rem',
-  fontWeight: '600',
-  marginBottom: '2rem',
+  fontWeight: vars.typography.weight.semibold,
+  marginBottom: vars.spacing['5'],
   color: vars.text.primary,
   textAlign: 'center',
 });
@@ -160,9 +160,9 @@ globalStyle(`${petsSection} .pets-header`, {
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  marginBottom: '2rem',
+  marginBottom: vars.spacing['5'],
   flexWrap: 'wrap',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 globalStyle(`${petsSection} .pets-header .pets-count`, {
@@ -172,56 +172,47 @@ globalStyle(`${petsSection} .pets-header .pets-count`, {
 
 globalStyle(`${petsSection} .pets-header .view-toggle`, {
   display: 'flex',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const petsGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-  gap: '1.5rem',
+  gap: vars.spacing['4'],
 });
 
 export const loadMoreButton = style({
-  margin: '2rem auto',
+  margin: `${vars.spacing['5']} auto`,
   display: 'block',
 });
 
-export const errorContainer = style({
-  textAlign: 'center',
-  padding: '3rem',
-  color: vars.colors.danger,
-});
-
-globalStyle(`${errorContainer} h2`, {
-  fontSize: '1.5rem',
-  marginBottom: '1rem',
-});
-
-globalStyle(`${errorContainer} p`, {
-  marginBottom: '2rem',
+export const errorActions = style({
+  display: 'flex',
+  justifyContent: 'center',
+  marginTop: vars.spacing['3'],
 });
 
 export const emptyState = style({
   textAlign: 'center',
-  padding: '3rem',
+  padding: vars.spacing['6'],
   color: vars.text.tertiary,
 });
 
 globalStyle(`${emptyState} .icon`, {
   width: '64px',
   height: '64px',
-  margin: '0 auto 1rem',
+  margin: `0 auto ${vars.spacing['3']}`,
   fill: 'currentColor',
   opacity: '0.5',
 });
 
 globalStyle(`${emptyState} h3`, {
-  fontSize: '1.5rem',
-  marginBottom: '1rem',
+  fontSize: vars.typography.size['2xl'],
+  marginBottom: vars.spacing['3'],
   color: vars.text.primary,
 });
 
 globalStyle(`${emptyState} p`, {
   fontSize: '1.1rem',
-  marginBottom: '2rem',
+  marginBottom: vars.spacing['5'],
 });

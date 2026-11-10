@@ -3,8 +3,8 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const pageContainer = style({
   maxWidth: '720px',
-  margin: '2rem auto',
-  padding: '0 1rem',
+  margin: `${vars.spacing['5']} auto`,
+  padding: `0 ${vars.spacing['3']}`,
 });
 
 export const card = style({
@@ -14,32 +14,13 @@ export const card = style({
   boxShadow: vars.shadows.base,
 });
 
-export const stepIndicator = style({
-  display: 'flex',
-  justifyContent: 'center',
-  gap: vars.spacing['2'],
+export const stepper = style({
   marginBottom: vars.spacing['6'],
-});
-
-export const stepDot = style({
-  width: '12px',
-  height: '12px',
-  borderRadius: '50%',
-  backgroundColor: vars.gray['300'],
-  transition: 'background-color 0.2s',
-});
-
-export const stepDotActive = style({
-  backgroundColor: vars.colors.primary,
-});
-
-export const stepDotCompleted = style({
-  backgroundColor: vars.colors.success,
 });
 
 export const stepTitle = style({
   fontSize: vars.typography.size['2xl'],
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
   marginBottom: vars.spacing['4'],
 });
@@ -92,7 +73,7 @@ export const reviewSection = style({
 });
 
 export const reviewLabel = style({
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
   fontSize: vars.typography.size.sm,
 });
@@ -109,7 +90,7 @@ export const successContainer = style({
 
 export const successTitle = style({
   fontSize: vars.typography.size['2xl'],
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
   color: vars.colors.success,
   marginBottom: vars.spacing['3'],
 });
@@ -117,15 +98,6 @@ export const successTitle = style({
 export const successMessage = style({
   color: vars.text.secondary,
   lineHeight: vars.typography.lineHeight.relaxed,
-});
-
-export const errorAlert = style({
-  padding: vars.spacing['3'],
-  borderRadius: vars.border.radius.base,
-  backgroundColor: vars.background.danger,
-  color: vars.text.danger,
-  marginBottom: vars.spacing['4'],
-  border: `${vars.border.width.thin} solid ${vars.border.color.danger}`,
 });
 
 export const optionalHint = style({

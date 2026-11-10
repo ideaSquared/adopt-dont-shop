@@ -1,80 +1,13 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
-import { recipe } from '@vanilla-extract/recipes';
-
 export const container = style({
   maxWidth: '1000px',
   margin: '0 auto',
-  padding: '2rem',
+  padding: vars.spacing['5'],
   '@media': {
     '(max-width: 768px)': {
-      padding: '1rem',
-    },
-  },
-});
-
-export const header = style({
-  marginBottom: '3rem',
-  '@media': {
-    '(max-width: 768px)': {
-      marginBottom: '2rem',
-    },
-  },
-});
-
-globalStyle(`${header} h1`, {
-  fontSize: '2.5rem',
-  color: vars.text.primary,
-  marginBottom: '0.5rem',
-});
-
-globalStyle(`${header} p`, {
-  fontSize: '1.1rem',
-  color: vars.text.tertiary,
-});
-
-globalStyle(`${header} h1`, {
-  '@media': {
-    '(max-width: 768px)': {
-      fontSize: '2rem',
-    },
-  },
-});
-
-export const tabContainer = style({
-  borderBottom: `1px solid ${vars.border.color.default}`,
-  marginBottom: '2rem',
-});
-
-export const tabList = style({
-  display: 'flex',
-  gap: '2rem',
-});
-
-export const tab = recipe({
-  base: {
-    background: 'none',
-    border: 'none',
-    padding: '1rem 0',
-    fontSize: '1rem',
-    fontWeight: '500',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    ':hover': {
-      color: vars.colors.primaryHover,
-    },
-  },
-  variants: {
-    active: {
-      true: {
-        color: vars.colors.primaryHover,
-        borderBottom: '2px solid #4f46e5',
-      },
-      false: {
-        color: vars.text.tertiary,
-        borderBottom: '2px solid transparent',
-      },
+      padding: vars.spacing['3'],
     },
   },
 });
@@ -82,27 +15,27 @@ export const tab = recipe({
 export const section = style({
   background: vars.background.surface,
   border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '12px',
-  padding: '2rem',
-  marginBottom: '2rem',
+  borderRadius: vars.border.radius.lg,
+  padding: vars.spacing['5'],
+  marginBottom: vars.spacing['5'],
 });
 
 export const sectionTitle = style({
-  fontSize: '1.5rem',
+  fontSize: vars.typography.size['2xl'],
   color: vars.text.primary,
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const profileInfo = style({
   display: 'grid',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const infoItem = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  padding: '1rem 0',
+  padding: `${vars.spacing['3']} 0`,
   borderBottom: `1px solid ${vars.border.color.default}`,
   selectors: {
     '&:last-child': {
@@ -112,7 +45,7 @@ export const infoItem = style({
 });
 
 export const infoLabel = style({
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
   color: vars.text.tertiary,
 });
 
@@ -122,18 +55,18 @@ export const infoValue = style({
 
 export const applicationsGrid = style({
   display: 'grid',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const applicationCard = style({
   background: vars.background.body,
   border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '8px',
-  padding: '1.5rem',
+  borderRadius: vars.border.radius.base,
+  padding: vars.spacing['4'],
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   '@media': {
     '(max-width: 768px)': {
       flexDirection: 'column',
@@ -147,61 +80,31 @@ export const applicationInfo = style({});
 globalStyle(`${applicationInfo} h3`, {
   fontSize: '1.1rem',
   color: vars.text.primary,
-  marginBottom: '0.5rem',
+  marginBottom: vars.spacing['2'],
 });
 
 globalStyle(`${applicationInfo} p`, {
   color: vars.text.tertiary,
-  fontSize: '0.875rem',
-});
-
-export const statusBadge = recipe({
-  base: {
-    padding: '0.25rem 0.75rem',
-    borderRadius: '20px',
-    fontSize: '0.75rem',
-    fontWeight: '500',
-    textTransform: 'uppercase',
-  },
-  variants: {
-    status: {
-      submitted: {
-        background: '#ede9fe',
-        color: '#6d28d9',
-      },
-      approved: {
-        background: vars.colors.successBgSubtle,
-        color: vars.colors.successTextEmphasis,
-      },
-      rejected: {
-        background: vars.colors.dangerBgSubtle,
-        color: vars.colors.dangerTextEmphasis,
-      },
-      default: {
-        background: vars.background.muted,
-        color: vars.text.secondary,
-      },
-    },
-  },
+  fontSize: vars.typography.size.sm,
 });
 
 export const sectionGap = style({
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const sectionTopGap = style({
-  marginTop: '2rem',
+  marginTop: vars.spacing['5'],
 });
 
 export const smallTopGap = style({
-  marginTop: '0.5rem',
+  marginTop: vars.spacing['2'],
 });
 
 export const buttonTopGap = style({
-  marginTop: '1rem',
+  marginTop: vars.spacing['3'],
 });
 
 export const centeredEmpty = style({
   textAlign: 'center',
-  padding: '2rem',
+  padding: vars.spacing['5'],
 });

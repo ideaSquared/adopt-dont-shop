@@ -106,3 +106,24 @@ describe('NotificationsPage states (C6)', () => {
     expect(screen.queryByText(/no notifications yet/i)).not.toBeInTheDocument();
   });
 });
+
+describe('NotificationsPage timestamps', () => {
+  beforeEach(() => {
+    mockIsAuthenticated.value = true;
+    notificationsStateMock.isLoading = false;
+  });
+
+  it('shows an en-GB date for notifications older than a day', () => {
+    notificationsStateMock.notifications = [
+      {
+        id: 'n1',
+        title: 'Old news',
+        message: 'Something happened',
+        createdAt: '2024-03-05T10:00:00Z',
+        readAt: null,
+      },
+    ];
+    renderPage();
+    expect(screen.getByText('5 Mar 2024')).toBeInTheDocument();
+  });
+});

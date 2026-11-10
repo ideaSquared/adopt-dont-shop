@@ -7,11 +7,12 @@
 // pickString/pickBool alias lists in auth.ts), so `normalizeRegisterBody`
 // resolves aliases into the canonical shape before it's validated.
 
+import { NewPasswordSchema } from '@adopt-dont-shop/lib.validation';
 import { z } from 'zod';
 
 export const RegisterBodySchema = z.object({
   email: z.string().trim().min(1, 'email is required').max(254).email('email must be valid'),
-  password: z.string().min(8, 'password must be at least 8 characters').max(128),
+  password: NewPasswordSchema,
   firstName: z.string().trim().max(100).default(''),
   lastName: z.string().trim().max(100).default(''),
   phoneNumber: z.string().trim().max(32).optional(),
@@ -47,7 +48,9 @@ const emailField = z
   .min(1, 'email is required')
   .max(254)
   .email('email must be valid');
-const newPasswordField = z.string().min(8, 'password must be at least 8 characters').max(128);
+// A new password must meet the shared rule used by every "set a new password"
+// form (reset, change, invitation acceptance): strong, and at most 128 characters.
+const newPasswordField = NewPasswordSchema;
 
 export const VerifyEmailBodySchema = z.object({
   verificationToken: tokenField,

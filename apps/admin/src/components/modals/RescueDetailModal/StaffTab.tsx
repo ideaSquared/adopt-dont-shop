@@ -1,82 +1,97 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as styles from '../RescueDetailModal.css';
 import {
+  Badge,
   Button,
   DateTime,
   ConfirmDialog,
+  ErrorState,
+  FormField,
+  Input,
   useConfirm,
   Skeleton,
 } from '@adopt-dont-shop/lib.components';
 import { Check, Clock, UserMinus, UserPlus, X } from 'lucide-react';
-import type { StaffMember, StaffInvitation, InviteStaffPayload } from '@/types/rescue';
+import type { InviteStaffPayload } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
 
 type StaffTabProps = {
   rescueId: string;
 };
 
+const errorMessage = (err: unknown, fallback: string): string =>
+  err instanceof Error ? err.message : fallback;
+
 export const StaffTab: React.FC<StaffTabProps> = ({ rescueId }) => {
-  const [staff, setStaff] = useState<StaffMember[]>([]);
-  const [invitations, setInvitations] = useState<StaffInvitation[]>([]);
-  const [loadingStaff, setLoadingStaff] = useState(false);
-  const [staffError, setStaffError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const [actionError, setActionError] = useState<string | null>(null);
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteTitle, setInviteTitle] = useState('');
   const { confirm, confirmProps } = useConfirm();
 
-  const fetchStaff = async (showLoading = true) => {
-    try {
-      if (showLoading) {
-        setLoadingStaff(true);
-      }
-      setStaffError(null);
+  const staffKey = ['rescues', 'staff', rescueId];
 
+  const {
+    data,
+    isLoading: loadingList,
+    error: loadError,
+    refetch,
+  } = useQuery({
+    queryKey: staffKey,
+    queryFn: async () => {
       const [staffData, invitationsData] = await Promise.all([
         rescueService.getStaff(rescueId, 1, 100),
         rescueService.getInvitations(rescueId),
       ]);
+      return { staff: staffData.data, invitations: invitationsData };
+    },
+  });
+  const staff = data?.staff ?? [];
+  const invitations = data?.invitations ?? [];
 
-      setStaff(staffData.data);
-      setInvitations(invitationsData);
-    } catch (err) {
-      setStaffError(err instanceof Error ? err.message : 'Failed to load staff');
-    } finally {
-      if (showLoading) {
-        setLoadingStaff(false);
-      }
-    }
-  };
+  const refreshStaff = () => queryClient.invalidateQueries({ queryKey: staffKey });
 
-  useEffect(() => {
-    fetchStaff();
-  }, [rescueId]);
-
-  const handleInviteStaff = async () => {
-    if (!inviteEmail.trim()) {
-      setStaffError('Please enter an email address');
-      return;
-    }
-
-    try {
-      setLoadingStaff(true);
-      setStaffError(null);
-
-      const payload: InviteStaffPayload = {
-        email: inviteEmail.trim(),
-        title: inviteTitle.trim() || undefined,
-      };
-
-      await rescueService.inviteStaff(rescueId, payload);
+  const inviteMutation = useMutation({
+    mutationFn: (payload: InviteStaffPayload) => rescueService.inviteStaff(rescueId, payload),
+    onSuccess: async () => {
       setInviteEmail('');
       setInviteTitle('');
       setShowInviteForm(false);
-      await fetchStaff(false);
-    } catch (err) {
-      setStaffError(err instanceof Error ? err.message : 'Failed to send invitation');
-    } finally {
-      setLoadingStaff(false);
+      await refreshStaff();
+    },
+    onError: err => setActionError(errorMessage(err, 'Failed to send invitation')),
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: (userId: string) => rescueService.removeStaff(rescueId, userId),
+    onSuccess: refreshStaff,
+    onError: err => setActionError(errorMessage(err, 'Failed to remove staff member')),
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: (invitationId: number) => rescueService.cancelInvitation(rescueId, invitationId),
+    onSuccess: refreshStaff,
+    onError: err => setActionError(errorMessage(err, 'Failed to cancel invitation')),
+  });
+
+  const loadingStaff =
+    loadingList || inviteMutation.isPending || removeMutation.isPending || cancelMutation.isPending;
+  const staffError =
+    actionError ?? (loadError ? errorMessage(loadError, 'Failed to load staff') : null);
+
+  const handleInviteStaff = () => {
+    if (!inviteEmail.trim()) {
+      setActionError('Please enter an email address');
+      return;
     }
+
+    setActionError(null);
+    inviteMutation.mutate({
+      email: inviteEmail.trim(),
+      title: inviteTitle.trim() || undefined,
+    });
   };
 
   const handleRemoveStaff = async (userId: string) => {
@@ -92,29 +107,13 @@ export const StaffTab: React.FC<StaffTabProps> = ({ rescueId }) => {
       return;
     }
 
-    try {
-      setLoadingStaff(true);
-      setStaffError(null);
-      await rescueService.removeStaff(rescueId, userId);
-      await fetchStaff(false);
-    } catch (err) {
-      setStaffError(err instanceof Error ? err.message : 'Failed to remove staff member');
-    } finally {
-      setLoadingStaff(false);
-    }
+    setActionError(null);
+    removeMutation.mutate(userId);
   };
 
-  const handleCancelInvitation = async (invitationId: number) => {
-    try {
-      setLoadingStaff(true);
-      setStaffError(null);
-      await rescueService.cancelInvitation(rescueId, invitationId);
-      await fetchStaff(false);
-    } catch (err) {
-      setStaffError(err instanceof Error ? err.message : 'Failed to cancel invitation');
-    } finally {
-      setLoadingStaff(false);
-    }
+  const handleCancelInvitation = (invitationId: number) => {
+    setActionError(null);
+    cancelMutation.mutate(invitationId);
   };
 
   return (
@@ -122,7 +121,7 @@ export const StaffTab: React.FC<StaffTabProps> = ({ rescueId }) => {
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>
           <div className={styles.staffSectionHeader}>
-            <span>Staff Members ({staff?.length || 0})</span>
+            <span>Staff Members ({staff.length})</span>
             <Button variant='primary' size='sm' onClick={() => setShowInviteForm(!showInviteForm)}>
               <UserPlus size='1em' className={styles.userPlusIcon} />
               Invite Staff
@@ -130,18 +129,16 @@ export const StaffTab: React.FC<StaffTabProps> = ({ rescueId }) => {
           </div>
         </h3>
 
-        {staffError && <div className={styles.errorMessage}>{staffError}</div>}
+        {staffError && (
+          <ErrorState message={staffError} onRetry={loadError ? () => void refetch() : undefined} />
+        )}
 
         {showInviteForm && (
           <div className={styles.inviteForm}>
             <h4 className={styles.staffSectionSubtitle}>Invite New Staff Member</h4>
             <div className={styles.formRow}>
-              <div className={styles.formGroup}>
-                <label className={styles.label} htmlFor='invite-email'>
-                  Email Address *
-                </label>
-                <input
-                  className={styles.input}
+              <FormField label='Email Address' htmlFor='invite-email' required>
+                <Input
                   id='invite-email'
                   type='email'
                   placeholder='staffmember@example.com'
@@ -149,13 +146,9 @@ export const StaffTab: React.FC<StaffTabProps> = ({ rescueId }) => {
                   onChange={e => setInviteEmail(e.target.value)}
                   disabled={loadingStaff}
                 />
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.label} htmlFor='invite-title'>
-                  Job Title (Optional)
-                </label>
-                <input
-                  className={styles.input}
+              </FormField>
+              <FormField label='Job Title (Optional)' htmlFor='invite-title'>
+                <Input
                   id='invite-title'
                   type='text'
                   placeholder='e.g., Veterinarian, Coordinator'
@@ -163,7 +156,7 @@ export const StaffTab: React.FC<StaffTabProps> = ({ rescueId }) => {
                   onChange={e => setInviteTitle(e.target.value)}
                   disabled={loadingStaff}
                 />
-              </div>
+              </FormField>
             </div>
             <div className={styles.formActions}>
               <Button
@@ -173,7 +166,7 @@ export const StaffTab: React.FC<StaffTabProps> = ({ rescueId }) => {
                   setShowInviteForm(false);
                   setInviteEmail('');
                   setInviteTitle('');
-                  setStaffError(null);
+                  setActionError(null);
                 }}
                 disabled={loadingStaff}
               >
@@ -205,15 +198,15 @@ export const StaffTab: React.FC<StaffTabProps> = ({ rescueId }) => {
           </div>
         )}
 
-        {!loadingStaff && (staff?.length || 0) === 0 && (invitations?.length || 0) === 0 && (
+        {!loadingStaff && staff.length === 0 && invitations.length === 0 && (
           <div className={styles.infoValue}>
             No staff members yet. Invite your first team member!
           </div>
         )}
 
-        {!loadingStaff && (staff?.length || 0) > 0 && (
+        {!loadingStaff && staff.length > 0 && (
           <div className={styles.staffList}>
-            {staff?.map(member => (
+            {staff.map(member => (
               <div className={styles.staffCard} key={member.staffMemberId}>
                 <div className={styles.staffInfo}>
                   <div className={styles.staffName}>
@@ -227,14 +220,16 @@ export const StaffTab: React.FC<StaffTabProps> = ({ rescueId }) => {
                   </div>
                 </div>
                 <div className={styles.staffActions}>
-                  <button
-                    className={styles.iconButton}
+                  <Button
+                    variant='ghost'
+                    size='sm'
                     title='Remove staff member'
+                    aria-label='Remove staff member'
                     onClick={() => handleRemoveStaff(member.userId)}
                     disabled={loadingStaff}
                   >
-                    <UserMinus size='1em' color='#ef4444' />
-                  </button>
+                    <UserMinus size='1em' />
+                  </Button>
                 </div>
               </div>
             ))}
@@ -242,13 +237,11 @@ export const StaffTab: React.FC<StaffTabProps> = ({ rescueId }) => {
         )}
       </div>
 
-      {(invitations?.length || 0) > 0 && (
+      {invitations.length > 0 && (
         <div className={styles.invitationsList}>
           <div className={styles.section}>
-            <h3 className={styles.sectionTitle}>
-              Pending Invitations ({invitations?.length || 0})
-            </h3>
-            {invitations?.map(invitation => (
+            <h3 className={styles.sectionTitle}>Pending Invitations ({invitations.length})</h3>
+            {invitations.map(invitation => (
               <div className={styles.invitationCard} key={invitation.invitationId}>
                 <div className={styles.staffInfo}>
                   <div className={styles.staffName}>{invitation.email}</div>
@@ -259,24 +252,20 @@ export const StaffTab: React.FC<StaffTabProps> = ({ rescueId }) => {
                   </div>
                 </div>
                 <div className={styles.staffRowFlex}>
-                  <span
-                    className={
-                      invitation.status === 'pending'
-                        ? styles.invitationBadgePending
-                        : styles.invitationBadgeDefault
-                    }
-                  >
-                    <Clock size={12} />
+                  <Badge variant={invitation.status === 'pending' ? 'warning' : 'neutral'}>
+                    <Clock size='1em' />
                     {invitation.status}
-                  </span>
-                  <button
-                    className={styles.iconButton}
+                  </Badge>
+                  <Button
+                    variant='ghost'
+                    size='sm'
                     title='Cancel invitation'
+                    aria-label='Cancel invitation'
                     onClick={() => handleCancelInvitation(invitation.invitationId)}
                     disabled={loadingStaff}
                   >
-                    <X size='1em' color='#ef4444' />
-                  </button>
+                    <X size='1em' />
+                  </Button>
                 </div>
               </div>
             ))}

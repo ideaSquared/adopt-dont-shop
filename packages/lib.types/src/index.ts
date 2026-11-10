@@ -23,6 +23,9 @@ export {
 // Shared display labels for status enums
 export * from './status-labels.js';
 
+// Status → badge variant maps and kind-based label/variant lookup
+export * from './status-variants.js';
+
 // Notification enums and helpers (cross-cutting across all apps)
 export * from './types/notifications.js';
 

@@ -46,13 +46,16 @@ Standalone helpers exported alongside the service:
 
 - `safeHref` — XSS-hardened `href`/`src` sanitizer.
 - `escapeLikePattern` — escape SQL `LIKE`/`ILIKE` wildcards in user search terms.
-- `getErrorMessage` — user-facing message from an HTTP status / network error.
 - `safeFormatDate` — null-safe date formatter.
+- `resolveFileUrl` — resolve a relative upload path against `VITE_API_BASE_URL` (same-origin when unset); rejects non-http(s) schemes and placeholder hosts.
+- `openExternal` — open an http(s) URL in a new tab with `noopener,noreferrer`; ignores other schemes and malformed input.
 
 Sub-module exports:
 
 - `./env` — environment/URL config helpers (`getEnvironmentConfig`,
-  `getApiBaseUrl`, `buildApiUrl`, …) plus `EnvironmentUrls` / `EnvironmentConfig`.
+  `getApiBaseUrl`, `buildApiUrl`, `isDevelopment`, …) plus `EnvironmentUrls` /
+  `EnvironmentConfig`. `getApiBaseUrl` reads `VITE_API_BASE_URL` and falls back
+  to `''` (same-origin, via the Vite dev proxy) in every mode.
 - `./locale` — UK-locale date/currency/phone/address utilities plus
   `LocaleConfig` and `UKCounty`.
 
@@ -82,4 +85,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 4 workspace package(s) depend on this library. See [lib.utils-consumers.md](../../docs/libraries/lib.utils-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

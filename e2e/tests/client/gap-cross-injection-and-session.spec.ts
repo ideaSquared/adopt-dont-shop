@@ -139,7 +139,7 @@ test.describe('X-011 script injection in text fields', () => {
       // Admin: the user's name in the list and the detail panel.
       const admin = await open(adminContext);
       await admin.goto('/users');
-      await admin.getByRole('textbox', { name: /search by name or email/i }).fill(account.email);
+      await admin.getByRole('searchbox', { name: 'Search', exact: true }).fill(account.email);
       await expect(admin.getByRole('row')).toHaveCount(2, { timeout: 15_000 });
       const userRow = admin.getByRole('row').filter({ hasText: account.email });
       await expect(userRow.getByText(payload)).toBeVisible();

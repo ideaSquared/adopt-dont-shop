@@ -1,9 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import {
-  Heading,
+  Button,
+  Card,
+  FormField,
+  FormRow,
+  Input,
+  PageHeader,
   ReportBuilder,
-  Text,
+  Stack,
   toast,
   type ReportBuilderConfig,
 } from '@adopt-dont-shop/lib.components';
@@ -15,8 +20,6 @@ import {
   useUpdateReport,
   type ReportConfig,
 } from '@adopt-dont-shop/lib.analytics';
-import { PageContainer, PageHeader, HeaderLeft } from '../components/ui';
-import * as styles from './ReportBuilderPage.css';
 
 /**
  * ADS-105: Custom report builder page.
@@ -116,37 +119,37 @@ const ReportBuilderPage: React.FC = () => {
   );
 
   return (
-    <PageContainer>
-      <PageHeader>
-        <HeaderLeft>
-          <Heading level='h1'>{id ? 'Edit report' : 'New report'}</Heading>
-          <Text>Build a custom analytics report. Click Preview to run it.</Text>
-        </HeaderLeft>
-        <button type='button' onClick={runPreview} disabled={config.widgets.length === 0}>
-          {previewMutation.isPending ? 'Running…' : 'Preview'}
-        </button>
-      </PageHeader>
+    <Stack spacing='lg'>
+      <PageHeader
+        title={id ? 'Edit report' : 'New report'}
+        description='Build a custom analytics report. Click Preview to run it.'
+        actions={
+          <Button variant='outline' onClick={runPreview} disabled={config.widgets.length === 0}>
+            {previewMutation.isPending ? 'Running…' : 'Preview'}
+          </Button>
+        }
+      />
 
-      <div className={styles.formGrid}>
-        <label>
-          <span className={styles.fieldLabel}>Name</span>
-          <input
-            type='text'
-            value={name}
-            onChange={e => setName(e.target.value)}
-            className={styles.textInput}
-          />
-        </label>
-        <label>
-          <span className={styles.fieldLabel}>Description (optional)</span>
-          <input
-            type='text'
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-            className={styles.textInput}
-          />
-        </label>
-      </div>
+      <Card variant='filled' padding='sm'>
+        <FormRow columns='two'>
+          <FormField label='Name' htmlFor='report-name'>
+            <Input
+              id='report-name'
+              type='text'
+              value={name}
+              onChange={e => setName(e.target.value)}
+            />
+          </FormField>
+          <FormField label='Description (optional)' htmlFor='report-description'>
+            <Input
+              id='report-description'
+              type='text'
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+            />
+          </FormField>
+        </FormRow>
+      </Card>
 
       <ReportBuilder
         config={config}
@@ -157,7 +160,7 @@ const ReportBuilderPage: React.FC = () => {
         onSave={handleSave}
         isSaving={isSaving}
       />
-    </PageContainer>
+    </Stack>
   );
 };
 

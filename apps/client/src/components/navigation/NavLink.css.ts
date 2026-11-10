@@ -10,7 +10,7 @@ export const styledLink = recipe({
     borderRadius: vars.border.radius.base,
     color: '#fff',
     textDecoration: 'none',
-    fontWeight: 500,
+    fontWeight: vars.typography.weight.medium,
     fontSize: vars.typography.size.sm,
     transition: `background ${vars.transitions.fast}`,
     position: 'relative',
@@ -32,7 +32,7 @@ export const styledLink = recipe({
     primary: {
       true: {
         background: 'rgba(255, 255, 255, 0.15)',
-        fontWeight: 600,
+        fontWeight: vars.typography.weight.semibold,
       },
       false: {},
     },
@@ -49,7 +49,7 @@ export const styledLink = recipe({
 });
 
 export const navIcon = style({
-  fontSize: '1.25rem',
+  fontSize: vars.typography.size.xl,
   display: 'inline-flex',
 });
 

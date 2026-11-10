@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderWithProviders, screen, userEvent, waitFor } from '../../test-utils';
 import AdoptionPolicyForm from './AdoptionPolicyForm';
-import type { AdoptionPolicy } from '../../types/rescue';
+import type { AdoptionPolicy } from '@adopt-dont-shop/lib.rescue';
+import { toast } from '@adopt-dont-shop/lib.components';
 
 const buildPolicy = (overrides: Partial<AdoptionPolicy> = {}): AdoptionPolicy => ({
   requireHomeVisit: true,
@@ -66,6 +67,30 @@ describe('AdoptionPolicyForm', () => {
 
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     expect(onSave.mock.calls[0][0].minimumReferenceCount).toBe(3);
-    expect(await screen.findByText(/updated successfully/i)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith('Adoption policies updated successfully!')
+    );
+  });
+
+  it('reports a failed save with an error toast', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockRejectedValue(new Error('Server said no'));
+    renderWithProviders(<AdoptionPolicyForm policy={buildPolicy()} onSave={onSave} />);
+
+    await user.click(screen.getByRole('button', { name: /add requirement/i }));
+    await user.click(screen.getByRole('button', { name: /save policies/i }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Server said no'));
+  });
+
+  it('removes a list item', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <AdoptionPolicyForm policy={buildPolicy({ policies: ['No cats'] })} onSave={vi.fn()} />
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Remove' }));
+
+    expect(screen.queryByLabelText(/policy 1/i)).toBeNull();
   });
 });

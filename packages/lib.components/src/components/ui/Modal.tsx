@@ -1,5 +1,13 @@
 import clsx from 'clsx';
-import React, { useCallback, useEffect, useId, useRef } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+} from 'react';
 import { createPortal } from 'react-dom';
 
 import * as styles from './Modal.css';
@@ -35,6 +43,49 @@ const CloseIcon = () => (
   </svg>
 );
 
+// Open modals, so stacked dialogs behave as a stack: Escape closes only the
+// top-most one, and the page stays scroll-locked until the last one closes.
+//
+// "Top-most" cannot be read from registration order alone: effects run
+// child-first, so a modal nested inside another registers before its parent
+// when both mount in the same commit. Each entry therefore also records the
+// modals it is rendered inside (via context, which flows through portals). A
+// modal that contains another open modal is never the top one; among the rest,
+// the one opened last wins.
+type OpenModal = {
+  id: string;
+  ancestorIds: readonly string[];
+  order: number;
+};
+
+let openModals: readonly OpenModal[] = [];
+let lastOpenOrder = 0;
+
+const registerOpenModal = (id: string, ancestorIds: readonly string[]) => {
+  lastOpenOrder += 1;
+  openModals = [
+    ...openModals.filter(modal => modal.id !== id),
+    { id, ancestorIds, order: lastOpenOrder },
+  ];
+};
+
+const unregisterOpenModal = (id: string) => {
+  openModals = openModals.filter(modal => modal.id !== id);
+};
+
+const isTopModal = (id: string) => {
+  const withoutOpenDescendant = openModals.filter(
+    modal => !openModals.some(other => other.ancestorIds.includes(modal.id))
+  );
+  const top = withoutOpenDescendant.reduce<OpenModal | undefined>(
+    (best, modal) => (!best || modal.order > best.order ? modal : best),
+    undefined
+  );
+  return top?.id === id;
+};
+
+const ModalAncestryContext = createContext<readonly string[]>([]);
+
 export const Modal: React.FC<ModalProps> = ({
   isOpen,
   onClose,
@@ -51,23 +102,37 @@ export const Modal: React.FC<ModalProps> = ({
   footer,
 }) => {
   const titleId = useId();
+  const ancestorIds = useContext(ModalAncestryContext);
+  const ownAncestry = useMemo(() => [...ancestorIds, titleId], [ancestorIds, titleId]);
   const modalRef = useRef<HTMLDivElement>(null);
   const isInitialOpen = useRef(false);
   const previouslyFocused = useRef<HTMLElement | null>(null);
 
   const handleEscape = useCallback(
     (event: KeyboardEvent) => {
-      if (closeOnEscape && event.key === 'Escape') {
+      if (closeOnEscape && event.key === 'Escape' && isTopModal(titleId)) {
         onClose();
       }
     },
-    [closeOnEscape, onClose]
+    [closeOnEscape, onClose, titleId]
   );
 
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
+    if (!isOpen) {
+      return undefined;
+    }
+    registerOpenModal(titleId, ancestorIds);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      unregisterOpenModal(titleId);
+      if (openModals.length === 0) {
+        document.body.style.overflow = '';
+      }
+    };
+  }, [isOpen, titleId, ancestorIds]);
 
+  useEffect(() => {
+    if (isOpen) {
       if (!isInitialOpen.current) {
         isInitialOpen.current = true;
         const activeElement = document.activeElement;
@@ -89,7 +154,6 @@ export const Modal: React.FC<ModalProps> = ({
       }
 
       return () => {
-        document.body.style.overflow = '';
         if (closeOnEscape) {
           document.removeEventListener('keydown', handleEscape);
         }
@@ -114,7 +178,11 @@ export const Modal: React.FC<ModalProps> = ({
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Escape' && closeOnEscape) {
-      onClose();
+      // React events bubble through portals, so a nested modal's Escape also
+      // reaches this handler; only the top-most modal reacts.
+      if (isTopModal(titleId)) {
+        onClose();
+      }
       return;
     }
     if (event.key === 'Tab' && modalRef.current) {
@@ -184,7 +252,14 @@ export const Modal: React.FC<ModalProps> = ({
     </div>
   );
 
-  return createPortal(modalContent, document.body);
+  // Header, body and footer can all host a nested modal, so the whole dialog
+  // sits inside the ancestry provider.
+  return createPortal(
+    <ModalAncestryContext.Provider value={ownAncestry}>
+      {modalContent}
+    </ModalAncestryContext.Provider>,
+    document.body
+  );
 };
 
 Modal.displayName = 'Modal';

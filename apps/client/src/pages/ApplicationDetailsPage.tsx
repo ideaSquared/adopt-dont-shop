@@ -1,10 +1,10 @@
 import { applicationService, type ApplicationWithPetInfo } from '@/services';
-import { Alert, Button } from '@adopt-dont-shop/lib.components';
+import { Alert, Button, PageHeader, StatusBadge, toast } from '@adopt-dont-shop/lib.components';
 import { ApplicationDetailSkeleton } from '@/components/skeletons';
-import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
 import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import { useChat } from '@/contexts/ChatContext';
-import React, { useEffect, useRef, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import React, { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { WithdrawApplicationModal } from '../components/application';
 import * as styles from './ApplicationDetailsPage.css';
@@ -12,71 +12,46 @@ import * as styles from './ApplicationDetailsPage.css';
 export const ApplicationDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [application, setApplication] = useState<ApplicationWithPetInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
-  const [isWithdrawing, setIsWithdrawing] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isOpeningMessages, setIsOpeningMessages] = useState(false);
   const [messageError, setMessageError] = useState<string | null>(null);
   const { conversations, startConversation } = useChat();
 
-  // Clear success timer on unmount to prevent setState after unmount.
-  useEffect(() => {
-    return () => {
-      if (successTimerRef.current) clearTimeout(successTimerRef.current);
-    };
-  }, []);
+  const applicationQuery = useQuery({
+    queryKey: ['applications', id],
+    queryFn: () => applicationService.getApplicationById(id ?? ''),
+    enabled: !!id,
+  });
+  const application = applicationQuery.data ?? null;
+  const isLoading = applicationQuery.isLoading;
+  const error = !id
+    ? 'Application ID is required'
+    : applicationQuery.isError
+      ? 'Failed to load application details. Please try again.'
+      : null;
 
-  useEffect(() => {
-    const loadApplication = async () => {
-      if (!id) {
-        setError('Application ID is required');
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        setError(null);
-        const app = await applicationService.getApplicationById(id);
-        setApplication(app);
-      } catch (error) {
-        console.error('Failed to load application:', error);
-        setError('Failed to load application details. Please try again.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadApplication();
-  }, [id]);
+  const withdrawMutation = useMutation({
+    mutationFn: (reason?: string) => applicationService.withdrawApplication(id ?? '', reason),
+    onSuccess: () => {
+      // Reflect the withdrawn status without waiting for a refetch.
+      queryClient.setQueryData<ApplicationWithPetInfo>(['applications', id], current =>
+        current ? { ...current, status: 'withdrawn' } : current
+      );
+      toast.success('Application withdrawn successfully');
+      setIsWithdrawModalOpen(false);
+    },
+    // Failures are logged only: the global mutation toast would be a second message.
+    onError: err => {
+      console.error('Failed to withdraw application:', err);
+    },
+  });
 
   const handleWithdraw = async (reason?: string) => {
     if (!application) {
       return;
     }
-
-    setIsWithdrawing(true);
-    try {
-      await applicationService.withdrawApplication(application.id, reason);
-
-      // Update local state to reflect withdrawn status
-      setApplication({ ...application, status: 'withdrawn' });
-      setSuccessMessage('Application withdrawn successfully');
-      setIsWithdrawModalOpen(false);
-
-      // Clear success message after 5 seconds
-      if (successTimerRef.current) clearTimeout(successTimerRef.current);
-      successTimerRef.current = setTimeout(() => setSuccessMessage(null), 5000);
-    } catch (error) {
-      console.error('Failed to withdraw application:', error);
-      // Error handling is done in the modal
-    } finally {
-      setIsWithdrawing(false);
-    }
+    await withdrawMutation.mutateAsync(reason).catch(() => undefined);
   };
 
   const handleMessageRescue = async () => {
@@ -139,10 +114,10 @@ export const ApplicationDetailsPage: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <h1>Application Details</h1>
-        <p>Application #{application.id.slice(-6)}</p>
-      </div>
+      <PageHeader
+        title='Application Details'
+        description={`Application #${application.id.slice(-6)}`}
+      />
 
       <div className={styles.messageRescueRow}>
         <Button
@@ -155,12 +130,6 @@ export const ApplicationDetailsPage: React.FC = () => {
         </Button>
         {messageError && <Alert variant='error'>{messageError}</Alert>}
       </div>
-
-      {successMessage && (
-        <Alert variant='success' title='Success'>
-          {successMessage}
-        </Alert>
-      )}
 
       {application.status === 'withdrawn' && (
         <Alert variant='info' title='Application Withdrawn'>
@@ -176,17 +145,7 @@ export const ApplicationDetailsPage: React.FC = () => {
           <div className={styles.infoItem}>
             <span className={styles.infoLabel}>Status</span>
             <span className={styles.infoValue}>
-              <span
-                className={styles.statusBadge({
-                  status: (['submitted', 'approved', 'rejected', 'withdrawn'].includes(
-                    application.status
-                  )
-                    ? application.status
-                    : 'default') as 'submitted' | 'approved' | 'rejected' | 'withdrawn' | 'default',
-                })}
-              >
-                {applicationStatusLabel(application.status)}
-              </span>
+              <StatusBadge kind='application' status={application.status} />
             </span>
           </div>
           <div className={styles.infoItem}>
@@ -270,7 +229,7 @@ export const ApplicationDetailsPage: React.FC = () => {
         isOpen={isWithdrawModalOpen}
         onClose={() => setIsWithdrawModalOpen(false)}
         onConfirm={handleWithdraw}
-        isLoading={isWithdrawing}
+        isLoading={withdrawMutation.isPending}
       />
     </div>
   );

@@ -204,7 +204,7 @@ Documentation for the adopt-don't-shop monorepo, organised by audience: **Start 
 - [lib.components consumers](./libraries/lib.components-consumers.md) — 7 consumer(s)
 - [lib.dev-tools consumers](./libraries/lib.dev-tools-consumers.md) — 3 consumer(s)
 - [lib.discovery consumers](./libraries/lib.discovery-consumers.md) — 2 consumer(s)
-- [lib.feature-flags consumers](./libraries/lib.feature-flags-consumers.md) — 2 consumer(s)
+- [lib.feature-flags consumers](./libraries/lib.feature-flags-consumers.md) — 3 consumer(s)
 - [lib.invitations consumers](./libraries/lib.invitations-consumers.md) — 1 consumer(s)
 - [lib.legal consumers](./libraries/lib.legal-consumers.md) — 3 consumer(s)
 - [lib.matching consumers](./libraries/lib.matching-consumers.md) — 1 consumer(s)
@@ -216,7 +216,7 @@ Documentation for the adopt-don't-shop monorepo, organised by audience: **Start 
 - [lib.rescue consumers](./libraries/lib.rescue-consumers.md) — 3 consumer(s)
 - [lib.search consumers](./libraries/lib.search-consumers.md) — 2 consumer(s)
 - [lib.support-tickets consumers](./libraries/lib.support-tickets-consumers.md) — 1 consumer(s)
-- [lib.types consumers](./libraries/lib.types-consumers.md) — 31 consumer(s)
+- [lib.types consumers](./libraries/lib.types-consumers.md) — 32 consumer(s)
 - [lib.utils consumers](./libraries/lib.utils-consumers.md) — 4 consumer(s)
 - [lib.validation consumers](./libraries/lib.validation-consumers.md) — 3 consumer(s)
 <!-- LIB-CONSUMER-LISTS:END -->

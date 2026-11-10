@@ -1,4 +1,5 @@
 import { style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const activityList = style({
   display: 'flex',
@@ -37,14 +38,14 @@ export const activityDescription = style({
 });
 
 export const activityMeta = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: '#6b7280',
   margin: '0.125rem 0 0 0',
 });
 
 export const activityEmpty = style({
-  padding: '2rem 1rem',
+  padding: `${vars.spacing['5']} ${vars.spacing['3']}`,
   textAlign: 'center',
   color: '#6b7280',
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });

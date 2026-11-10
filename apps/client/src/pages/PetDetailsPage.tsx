@@ -3,14 +3,25 @@ import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useChat } from '@/contexts/ChatContext';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useStatsig } from '@/hooks/useStatsig';
-import { petService, Pet } from '@/services';
-import { Badge, Button, Card, toast } from '@adopt-dont-shop/lib.components';
+import { petService } from '@/services';
+import {
+  Badge,
+  Button,
+  Card,
+  ErrorState,
+  PageHeader,
+  StatusBadge,
+  toast,
+} from '@adopt-dont-shop/lib.components';
+import { ArrowLeft, Heart } from 'lucide-react';
 import { hasAnalyticsConsent } from '@adopt-dont-shop/lib.observability';
 import { PetDetailSkeleton } from '@/components/skeletons';
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
-import { resolveFileUrl } from '../utils/fileUtils';
+import { formatAge } from '@adopt-dont-shop/lib.pets';
+import { resolveFileUrl } from '@adopt-dont-shop/lib.utils';
 import * as styles from './PetDetailsPage.css';
+import { usePetDetails, usePetFavorite } from './usePetDetails';
 
 interface PetDetailsPageProps {}
 
@@ -117,6 +128,18 @@ const renderContactCta = ({
   );
 };
 
+// The details page spells statuses out longer than the shared labels do.
+const PET_STATUS_LONG_LABEL: Record<string, string> = {
+  available: 'Available for Adoption',
+  pending: 'Adoption Pending',
+  adopted: 'Adopted',
+  on_hold: 'On Hold',
+  medical_care: 'In Medical Care',
+};
+
+const petStatusLongLabel = (status: string | undefined): string =>
+  (status && PET_STATUS_LONG_LABEL[status]) || status || 'Unknown';
+
 export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
   const { id } = useParams<{ id: string }>();
   const { isAuthenticated } = useAuth();
@@ -124,12 +147,17 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
   const { logEvent } = useStatsig();
   const { trackPageView, trackEvent } = useAnalytics();
   const { latitude, longitude } = useGeolocation();
-  const [pet, setPet] = useState<Pet | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const petQuery = usePetDetails(id, { latitude, longitude });
+  const pet = petQuery.data ?? null;
+  const loading = petQuery.isLoading;
+  const error = !id
+    ? 'Pet ID is required'
+    : petQuery.isError
+      ? 'Failed to load pet details. Please try again.'
+      : null;
+  const { isFavorite, toggle: favoriteToggle } = usePetFavorite(id, isAuthenticated);
+  const favoriteLoading = favoriteToggle.isPending;
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [favoriteLoading, setFavoriteLoading] = useState(false);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   // ADS-638: after a signed-out user clicks "Sign in to message rescue"
@@ -149,124 +177,83 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
     navigate('/');
   };
 
+  // Report one view per pet and sign-in state; the ref also keeps StrictMode's
+  // double effect run from reporting twice.
+  const reportedViewRef = useRef<string | null>(null);
   useEffect(() => {
-    const fetchPet = async () => {
-      if (!id) {
-        setError('Pet ID is required');
-        setLoading(false);
-        return;
-      }
+    if (!id || !pet) {
+      return;
+    }
+    const viewKey = `${id}:${isAuthenticated}`;
+    if (reportedViewRef.current === viewKey) {
+      return;
+    }
+    reportedViewRef.current = viewKey;
 
-      try {
-        setLoading(true);
-        // The cached device location (never prompted for here) lets the API
-        // fill in the pet's distance; without one the call is unchanged.
-        const petData =
-          latitude !== undefined && longitude !== undefined
-            ? await petService.getPetById(id, { latitude, longitude })
-            : await petService.getPetById(id);
-        setPet(petData);
+    // Track page view with new analytics service
+    trackPageView(`/pets/${id}`);
+    trackEvent({
+      category: 'pet_details',
+      action: 'pet_viewed',
+      label: pet.name,
+      sessionId: 'pet-details-session',
+      timestamp: new Date(),
+      properties: {
+        pet_id: id,
+        pet_name: pet.name,
+        pet_type: pet.type,
+        pet_breed: pet.breed || 'unknown',
+        pet_age_years: pet.age_years || 0,
+        pet_status: pet.status,
+        pet_gender: pet.gender || 'unknown',
+        pet_size: pet.size || 'unknown',
+        has_images: !!(pet.images && pet.images.length > 0),
+        image_count: pet.images?.length || 0,
+        user_authenticated: isAuthenticated,
+      },
+    });
 
-        // Track page view with new analytics service
-        trackPageView(`/pets/${id}`);
-        trackEvent({
-          category: 'pet_details',
-          action: 'pet_viewed',
-          label: petData.name,
-          sessionId: 'pet-details-session',
-          timestamp: new Date(),
-          properties: {
-            pet_id: id,
-            pet_name: petData.name,
-            pet_type: petData.type,
-            pet_breed: petData.breed || 'unknown',
-            pet_age_years: petData.age_years || 0,
-            pet_status: petData.status,
-            pet_gender: petData.gender || 'unknown',
-            pet_size: petData.size || 'unknown',
-            has_images: !!(petData.images && petData.images.length > 0),
-            image_count: petData.images?.length || 0,
-            user_authenticated: isAuthenticated,
-          },
-        });
+    // Log pet details view (existing Statsig tracking)
+    logEvent('pet_details_viewed', 1, {
+      pet_id: id,
+      pet_name: pet.name,
+      pet_type: pet.type ?? 'unknown',
+      pet_breed: pet.breed || 'unknown',
+      pet_age_years: pet.age_years?.toString() || 'unknown',
+      pet_status: pet.status ?? 'unknown',
+      pet_gender: pet.gender || 'unknown',
+      pet_size: pet.size || 'unknown',
+      has_images: pet.images && pet.images.length > 0 ? 'true' : 'false',
+      image_count: (pet.images?.length || 0).toString(),
+      user_authenticated: isAuthenticated.toString(),
+    });
 
-        // Log pet details view (existing Statsig tracking)
-        logEvent('pet_details_viewed', 1, {
-          pet_id: id,
-          pet_name: petData.name,
-          pet_type: petData.type ?? 'unknown',
-          pet_breed: petData.breed || 'unknown',
-          pet_age_years: petData.age_years?.toString() || 'unknown',
-          pet_status: petData.status ?? 'unknown',
-          pet_gender: petData.gender || 'unknown',
-          pet_size: petData.size || 'unknown',
-          has_images: petData.images && petData.images.length > 0 ? 'true' : 'false',
-          image_count: (petData.images?.length || 0).toString(),
-          user_authenticated: isAuthenticated.toString(),
-        });
-
-        // Count this as a genuine detail-page view (drives the swipe card's
-        // "views today" label). Gated like the rest of our analytics: only
-        // with the user's analytics consent and never under Do Not Track.
-        // Best-effort — a failure must not affect the page.
-        if (isAuthenticated && hasAnalyticsConsent() && navigator.doNotTrack !== '1') {
-          void petService.recordView(id).catch(() => {});
-        }
-
-        // Check if pet is in favorites
-        if (isAuthenticated) {
-          try {
-            const favoriteStatus = await petService.isFavorite(id);
-            setIsFavorite(favoriteStatus);
-          } catch (favoriteError) {
-            console.warn('Failed to check favorite status:', favoriteError);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch pet:', err);
-        setError('Failed to load pet details. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPet();
-  }, [id, isAuthenticated, latitude, longitude, logEvent, trackPageView, trackEvent]);
+    // Count this as a genuine detail-page view (drives the swipe card's
+    // "views today" label). Gated like the rest of our analytics: only
+    // with the user's analytics consent and never under Do Not Track.
+    // Best-effort — a failure must not affect the page.
+    if (isAuthenticated && hasAnalyticsConsent() && navigator.doNotTrack !== '1') {
+      void petService.recordView(id).catch(() => {});
+    }
+  }, [id, pet, isAuthenticated, logEvent, trackPageView, trackEvent]);
 
   const handleFavoriteToggle = async () => {
     if (!isAuthenticated || !pet) {
       return;
     }
 
-    setFavoriteLoading(true);
     try {
-      if (isFavorite) {
-        await petService.removeFromFavorites(pet.pet_id);
-        setIsFavorite(false);
+      await favoriteToggle.mutateAsync({ petId: pet.pet_id, isFavorite });
 
-        // Log unfavorite event
-        logEvent('pet_unfavorited', 1, {
-          pet_id: pet.pet_id.toString(),
-          pet_name: pet.name || 'unknown',
-          pet_type: pet.type || 'unknown',
-          pet_breed: pet.breed || 'unknown',
-          source_page: 'pet_details',
-          user_authenticated: isAuthenticated.toString(),
-        });
-      } else {
-        await petService.addToFavorites(pet.pet_id);
-        setIsFavorite(true);
-
-        // Log favorite event
-        logEvent('pet_favorited', 1, {
-          pet_id: pet.pet_id.toString(),
-          pet_name: pet.name || 'unknown',
-          pet_type: pet.type || 'unknown',
-          pet_breed: pet.breed || 'unknown',
-          source_page: 'pet_details',
-          user_authenticated: isAuthenticated.toString(),
-        });
-      }
+      // Log favorite / unfavorite event
+      logEvent(isFavorite ? 'pet_unfavorited' : 'pet_favorited', 1, {
+        pet_id: pet.pet_id.toString(),
+        pet_name: pet.name || 'unknown',
+        pet_type: pet.type || 'unknown',
+        pet_breed: pet.breed || 'unknown',
+        source_page: 'pet_details',
+        user_authenticated: isAuthenticated.toString(),
+      });
     } catch (error) {
       console.error('Failed to toggle favorite:', error);
 
@@ -286,8 +273,6 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
           : 'Could not save to favorites. Please try again.',
         { action: { label: 'Retry', onClick: handleFavoriteToggle } }
       );
-    } finally {
-      setFavoriteLoading(false);
     }
   };
 
@@ -434,19 +419,6 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
     }
   };
 
-  const formatAge = (ageYears?: number, ageMonths?: number) => {
-    if (!ageYears && !ageMonths) {
-      return 'Unknown';
-    }
-    if (!ageYears && ageMonths) {
-      return `${ageMonths} month${ageMonths !== 1 ? 's' : ''}`;
-    }
-    if (ageYears && !ageMonths) {
-      return `${ageYears} year${ageYears !== 1 ? 's' : ''}`;
-    }
-    return `${ageYears} year${ageYears !== 1 ? 's' : ''} ${ageMonths} month${ageMonths !== 1 ? 's' : ''}`;
-  };
-
   // Pet schema fields are optional because different API responses return
   // different subsets (lib.pets/src/schemas.ts:55-57). Treat absent
   // size / status as "Unknown" rather than crashing the details page.
@@ -455,40 +427,6 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
       return 'Unknown';
     }
     return size.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
-  };
-
-  const getStatusColor = (status: string | undefined) => {
-    switch (status) {
-      case 'available':
-        return 'success';
-      case 'pending':
-        return 'warning';
-      case 'adopted':
-        return 'info';
-      case 'on_hold':
-        return 'warning';
-      case 'medical_care':
-        return 'error';
-      default:
-        return 'neutral';
-    }
-  };
-
-  const getStatusLabel = (status: string | undefined) => {
-    switch (status) {
-      case 'available':
-        return 'Available for Adoption';
-      case 'pending':
-        return 'Adoption Pending';
-      case 'adopted':
-        return 'Adopted';
-      case 'on_hold':
-        return 'On Hold';
-      case 'medical_care':
-        return 'In Medical Care';
-      default:
-        return status ?? 'Unknown';
-    }
   };
 
   if (loading) {
@@ -502,9 +440,11 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
   if (error || !pet) {
     return (
       <div className={styles.pageContainer}>
-        <div className={styles.errorContainer}>
-          <h2>Pet Not Found</h2>
-          <p>{error || 'The pet you are looking for could not be found.'}</p>
+        <ErrorState
+          title='Pet Not Found'
+          message={error || 'The pet you are looking for could not be found.'}
+        />
+        <div className={styles.errorActions}>
           <Link className={styles.errorActionLink} to='/'>
             Back to Home
           </Link>
@@ -518,35 +458,56 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
 
   return (
     <div className={styles.pageContainer}>
-      <button type='button' className={styles.backLink} onClick={handleBackClick}>
-        ← Back
-      </button>
-
-      <div className={styles.petHeader}>
-        <div className={styles.petTitle}>
-          <h1>{pet.name}</h1>
-          <div className='subtitle'>
-            <span>{pet.type}</span>
-            {pet.breed && <span>• {pet.breed}</span>}
-            <span>• {formatAge(pet.age_years, pet.age_months)}</span>
-            <span>• {pet.gender}</span>
-            <span>• {formatSize(pet.size)}</span>
-          </div>
-        </div>
-        <div className={styles.statusSection}>
-          <Badge variant={getStatusColor(pet.status)}>{getStatusLabel(pet.status)}</Badge>
-          {isAuthenticated && (
-            <Button
-              variant='outline'
-              size='sm'
-              onClick={handleFavoriteToggle}
-              disabled={favoriteLoading}
-            >
-              {isFavorite ? '♥ Favorited' : '♡ Add to Favorites'}
-            </Button>
-          )}
-        </div>
+      <div className={styles.backRow}>
+        <Button
+          variant='outline'
+          size='sm'
+          onClick={handleBackClick}
+          startIcon={<ArrowLeft size='1em' aria-hidden='true' />}
+        >
+          Back
+        </Button>
       </div>
+
+      <PageHeader
+        title={pet.name}
+        description={[
+          pet.type,
+          pet.breed,
+          formatAge(pet.age_years, pet.age_months),
+          pet.gender,
+          formatSize(pet.size),
+        ]
+          .filter(Boolean)
+          .join(' • ')}
+        actions={
+          <>
+            <StatusBadge
+              kind='pet'
+              status={pet.status ?? 'unknown'}
+              label={petStatusLongLabel(pet.status)}
+              size='md'
+            />
+            {isAuthenticated && (
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={handleFavoriteToggle}
+                disabled={favoriteLoading}
+                startIcon={
+                  <Heart
+                    size='1em'
+                    aria-hidden='true'
+                    fill={isFavorite ? 'currentColor' : 'none'}
+                  />
+                }
+              >
+                {isFavorite ? 'Favorited' : 'Add to Favorites'}
+              </Button>
+            )}
+          </>
+        }
+      />
 
       <div className={styles.mainContent}>
         <div className={styles.imageSection}>

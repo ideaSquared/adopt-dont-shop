@@ -1,5 +1,6 @@
 import React from 'react';
 import { Spinner } from '@adopt-dont-shop/lib.components';
+import { formatDateTime } from '@adopt-dont-shop/lib.utils';
 import { useEntityActivity } from '../../../hooks';
 import * as styles from './ActivityTab.css';
 
@@ -36,8 +37,7 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({ chatId }) => {
           <div className={styles.activityContent}>
             <p className={styles.activityDescription}>{activity.description}</p>
             <p className={styles.activityMeta}>
-              {activity.activityType} &middot;{' '}
-              {new Date(activity.createdAt).toLocaleString('en-GB')}
+              {activity.activityType} &middot; {formatDateTime(activity.createdAt)}
             </p>
           </div>
         </div>

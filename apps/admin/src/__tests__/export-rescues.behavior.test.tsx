@@ -104,13 +104,13 @@ describe('Export functionality - Rescues page', () => {
   it('shows the Export button once rescue data has loaded', async () => {
     mockRescueGetAll.mockResolvedValue(paginatedResult([makeRescue()]));
     renderWithProviders(<Rescues />);
-    await waitFor(() => expect(screen.getByTestId('export-button')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Export' })).toBeInTheDocument());
   });
 
   it('enables Export button once rescue data has loaded', async () => {
     mockRescueGetAll.mockResolvedValue(paginatedResult([makeRescue()]));
     renderWithProviders(<Rescues />);
-    await waitFor(() => expect(screen.getByTestId('export-button')).not.toBeDisabled());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Export' })).not.toBeDisabled());
   });
 
   it('shows CSV and PDF options in the export dropdown', async () => {
@@ -118,11 +118,11 @@ describe('Export functionality - Rescues page', () => {
     mockRescueGetAll.mockResolvedValue(paginatedResult([makeRescue()]));
     renderWithProviders(<Rescues />);
 
-    await waitFor(() => expect(screen.getByTestId('export-button')).not.toBeDisabled());
-    await user.click(screen.getByTestId('export-button'));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Export' })).not.toBeDisabled());
+    await user.click(screen.getByRole('button', { name: 'Export' }));
 
-    expect(screen.getByTestId('export-csv')).toBeInTheDocument();
-    expect(screen.getByTestId('export-pdf')).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /^CSV/ })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /^PDF/ })).toBeInTheDocument();
   });
 
   it('triggers CSV export with rescue data when CSV option is selected', async () => {
@@ -131,9 +131,9 @@ describe('Export functionality - Rescues page', () => {
     mockRescueGetAll.mockResolvedValue(paginatedResult(rescueData));
     renderWithProviders(<Rescues />);
 
-    await waitFor(() => expect(screen.getByTestId('export-button')).not.toBeDisabled());
-    await user.click(screen.getByTestId('export-button'));
-    await user.click(screen.getByTestId('export-csv'));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Export' })).not.toBeDisabled());
+    await user.click(screen.getByRole('button', { name: 'Export' }));
+    await user.click(screen.getByRole('menuitem', { name: /^CSV/ }));
 
     expect(mockExportToCSV).toHaveBeenCalledTimes(1);
     const call = mockExportToCSV.mock.calls[0][0];
@@ -147,9 +147,9 @@ describe('Export functionality - Rescues page', () => {
     mockRescueGetAll.mockResolvedValue(paginatedResult(rescueData));
     renderWithProviders(<Rescues />);
 
-    await waitFor(() => expect(screen.getByTestId('export-button')).not.toBeDisabled());
-    await user.click(screen.getByTestId('export-button'));
-    await user.click(screen.getByTestId('export-pdf'));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Export' })).not.toBeDisabled());
+    await user.click(screen.getByRole('button', { name: 'Export' }));
+    await user.click(screen.getByRole('menuitem', { name: /^PDF/ }));
 
     expect(mockExportToPDF).toHaveBeenCalledTimes(1);
     const call = mockExportToPDF.mock.calls[0][0];
@@ -161,6 +161,6 @@ describe('Export functionality - Rescues page', () => {
     mockRescueGetAll.mockResolvedValue(paginatedResult([]));
     renderWithProviders(<Rescues />);
     await waitFor(() => expect(mockRescueGetAll).toHaveBeenCalled());
-    expect(screen.getByTestId('export-button')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
   });
 });

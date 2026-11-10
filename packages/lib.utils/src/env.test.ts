@@ -9,6 +9,7 @@ import {
   buildApiUrl,
   buildWsUrl,
   validateUrlConfig,
+  isDevelopment,
 } from './env';
 
 afterEach(() => {
@@ -61,7 +62,32 @@ describe('isDebugMode', () => {
   });
 });
 
+describe('isDevelopment', () => {
+  it('returns true when the Vite DEV flag is set', () => {
+    vi.stubEnv('DEV', true);
+    expect(isDevelopment()).toBe(true);
+  });
+
+  it('returns false when the Vite DEV flag is not set', () => {
+    vi.stubEnv('DEV', false);
+    expect(isDevelopment()).toBe(false);
+  });
+});
+
 describe('getUrlConfig', () => {
+  it.each(['development', 'test', 'production'])(
+    'falls back to a same-origin base in %s when no env vars are set',
+    (mode) => {
+      vi.stubEnv('MODE', mode);
+      vi.stubEnv('VITE_API_BASE_URL', '');
+      vi.stubEnv('VITE_API_URL', '');
+      vi.stubEnv('VITE_WS_BASE_URL', '');
+      vi.stubEnv('VITE_WEBSOCKET_URL', '');
+      vi.stubEnv('VITE_SOCKET_URL', '');
+      expect(getApiBaseUrl()).toBe('');
+    }
+  );
+
   it('falls back to a same-origin/relative base in production when no env vars are set', () => {
     vi.stubEnv('MODE', 'production');
     vi.stubEnv('VITE_API_BASE_URL', '');

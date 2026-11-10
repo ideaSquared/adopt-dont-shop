@@ -79,7 +79,8 @@ route-level `RouteBoundary` (ADS-482).
 
 `Dashboard`, `PetManagement`, `Applications`, `StaffManagement`, `RescueSettings`, `UserSettings`,
 `Communication`, `FosterCoordination`, `Analytics`, `Reports`, `ReportBuilderPage`, `ReportViewPage`,
-`AcceptInvitation`, `RegisterRescue`, `LoginPage`, `NotFoundPage`.
+`AcceptInvitation`, `RegisterRescue`, `LoginPage`. The `*` route renders the shared `NotFoundPage` from
+`@adopt-dont-shop/lib.components`.
 
 ```ts
 // Lazy loading, e.g.:

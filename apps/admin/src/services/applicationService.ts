@@ -24,8 +24,17 @@ export type ApplicationFilters = {
   limit?: number;
 };
 
+export type BulkApplicationFailure = {
+  applicationId: string;
+  error: string;
+};
+
+// Mirrors the `data` body of PATCH /api/v1/applications/bulk-update. The
+// gateway fans out per application, so a 200 can still carry per-item failures.
 export type BulkApplicationResult = {
-  updatedCount: number;
+  successCount: number;
+  failureCount: number;
+  failures: BulkApplicationFailure[];
 };
 
 type BackendApplication = {
@@ -118,15 +127,10 @@ class ApplicationServiceClient {
     updates: { status?: ApplicationStatus; reviewNotes?: string },
     reason?: string
   ): Promise<BulkApplicationResult> {
-    const response = await apiService.patch<{
-      success: boolean;
-      message: string;
-      data: BulkApplicationResult;
-    }>(`${this.baseUrl}/bulk-update`, { applicationIds, updates, reason });
-
-    if (!response.success) {
-      throw new Error(response.message || 'Failed to bulk update applications');
-    }
+    const response = await apiService.patch<{ data: BulkApplicationResult }>(
+      `${this.baseUrl}/bulk-update`,
+      { applicationIds, updates, reason }
+    );
 
     return response.data;
   }

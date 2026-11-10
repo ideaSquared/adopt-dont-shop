@@ -3,6 +3,8 @@ export { darkTheme, lightTheme, normalTheme } from './styles/theme';
 export type { Theme, ThemeMode } from './styles/theme';
 export { THEME_STORAGE_KEY, ThemeProvider, useTheme } from './styles/ThemeProvider';
 export { darkThemeClass, lightThemeClass, normalThemeClass, vars } from './styles/theme.css';
+export { breakpoints, media } from './styles/breakpoints';
+export type { BreakpointName } from './styles/breakpoints';
 
 // Hooks
 export { useConfirm } from './hooks/useConfirm';
@@ -10,12 +12,16 @@ export type { ConfirmOptions, UseConfirmReturn } from './hooks/useConfirm';
 export { useToast } from './hooks/useToast';
 export type { ToastMessage, UseToastReturn } from './hooks/useToast';
 export { useDebouncedValue } from './hooks/useDebouncedValue';
+export { useFilterParamSetter } from './hooks/useFilterParamSetter';
+export type { FilterParamSetterOptions } from './hooks/useFilterParamSetter';
 
 // Foundation Components
 export { Logo } from './components/ui/Logo';
 export type { LogoProps } from './components/ui/Logo';
 export { Avatar } from './components/ui/Avatar';
 export { Badge } from './components/ui/Badge';
+export { StatusBadge } from './components/ui/StatusBadge';
+export type { StatusBadgeProps } from './components/ui/StatusBadge';
 export { Tabs } from './components/ui/Tabs';
 export type { TabItem, TabsProps } from './components/ui/Tabs';
 export { MatchReasonChips } from './components/ui/MatchReasonChips';
@@ -25,6 +31,12 @@ export type {
   MatchReasonChipsProps,
 } from './components/ui/MatchReasonChips';
 export { Button } from './components/ui/Button';
+export { DropdownButton } from './components/ui/DropdownButton/DropdownButton';
+export type { DropdownButtonProps } from './components/ui/DropdownButton/DropdownButton';
+export { DropdownMenu } from './components/ui/DropdownMenu';
+export type { DropdownMenuItem, DropdownMenuProps } from './components/ui/DropdownMenu';
+export { Tooltip } from './components/ui/Tooltip/Tooltip';
+export type { TooltipProps } from './components/ui/Tooltip/Tooltip';
 export { default as DateTime } from './components/ui/DateTime/DateTime';
 export { Heading } from './components/ui/Heading';
 export { DotSpinner, Spinner } from './components/ui/Spinner';
@@ -34,6 +46,8 @@ export { Text } from './components/ui/Text';
 // Layout Components
 export { Container } from './components/layout/Container';
 export { Stack } from './components/layout/Stack';
+export { PageHeader } from './components/ui/PageHeader';
+export type { PageHeaderProps } from './components/ui/PageHeader';
 export { SplitPaneDetail } from './components/layout/SplitPaneDetail';
 export type {
   SplitPaneDetailProps,
@@ -103,6 +117,10 @@ export * from './components/form/FileUpload';
 
 // UI components
 export * from './components/ui/EmptyState';
+export { ErrorBoundary } from './components/ui/ErrorBoundary';
+export type { ErrorBoundaryProps } from './components/ui/ErrorBoundary';
+export { NotFoundPage } from './components/ui/NotFoundPage';
+export type { NotFoundPageProps, NotFoundSuggestion } from './components/ui/NotFoundPage';
 export { ErrorState } from './components/ui/ErrorState';
 export type { ErrorStateProps, ErrorStateSize } from './components/ui/ErrorState';
 export * from './components/ui/Stepper';

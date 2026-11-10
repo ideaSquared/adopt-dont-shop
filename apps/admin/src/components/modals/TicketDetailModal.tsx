@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import {
-  Modal,
+  Badge,
   Button,
+  CheckboxInput,
   EntityInspector,
+  FormField,
+  Modal,
   Spinner,
+  StatusBadge,
+  TextArea,
   type EntityInspectorTab,
 } from '@adopt-dont-shop/lib.components';
+import type { StatusBadgeVariant } from '@adopt-dont-shop/lib.types';
+import { formatDateTime } from '@adopt-dont-shop/lib.utils';
 import {
   type SupportTicket,
   type TicketResponse,
@@ -17,7 +24,7 @@ import {
   formatDate,
   formatTicketId,
 } from '@adopt-dont-shop/lib.support-tickets';
-import { CircleAlert, CircleCheck, Clock, MessageSquare, Send, Tag, User } from 'lucide-react';
+import { CircleCheck, Clock, MessageSquare, Send, User } from 'lucide-react';
 import clsx from 'clsx';
 import * as styles from './TicketDetailModal.css';
 import { ModalBreadcrumbNav, type BreadcrumbSegment } from './ModalBreadcrumbNav';
@@ -36,21 +43,12 @@ type TicketDetailModalProps = {
   onNavigate?: (ticketId: string) => void;
 };
 
-const STATUS_COLOR_MAP: Record<string, { bg: string; color: string }> = {
-  open: { bg: '#dbeafe', color: '#1e40af' },
-  in_progress: { bg: '#fef3c7', color: '#92400e' },
-  waiting_for_user: { bg: '#e0e7ff', color: '#4338ca' },
-  resolved: { bg: '#d1fae5', color: '#065f46' },
-  closed: { bg: '#f3f4f6', color: '#374151' },
-  escalated: { bg: '#fee2e2', color: '#991b1b' },
-};
-
-const PRIORITY_COLOR_MAP: Record<string, { bg: string; color: string }> = {
-  low: { bg: '#f3f4f6', color: '#374151' },
-  normal: { bg: '#dbeafe', color: '#1e40af' },
-  high: { bg: '#fef3c7', color: '#92400e' },
-  urgent: { bg: '#fed7aa', color: '#9a3412' },
-  critical: { bg: '#fee2e2', color: '#991b1b' },
+const PRIORITY_VARIANTS: Readonly<Record<string, StatusBadgeVariant>> = {
+  low: 'neutral',
+  normal: 'info',
+  high: 'warning',
+  urgent: 'warning',
+  critical: 'error',
 };
 
 // ── Overview tab ──────────────────────────────────────────────────
@@ -216,9 +214,9 @@ const ResponsesTab: React.FC<{
                   <div className={styles.responderInfo}>
                     {response.responderType === 'staff' ? 'Staff' : 'Customer'} Response
                     {response.isInternal && (
-                      <span className={clsx(styles.internalBadge, styles.internalBadgeSpacing)}>
+                      <Badge variant='warning' className={styles.internalBadgeSpacing}>
                         Internal
-                      </span>
+                      </Badge>
                     )}
                   </div>
                   <div className={styles.responseTime}>
@@ -239,26 +237,26 @@ const ResponsesTab: React.FC<{
           <Send size='1em' />
           Add Response
         </div>
-        <textarea
-          className={styles.textArea}
-          value={replyContent}
-          onChange={e => setReplyContent(e.target.value)}
-          placeholder='Type your response here...'
-          disabled={isSubmitting}
-          required
-          aria-required={true}
-          minLength={1}
-          maxLength={10000}
-        />
-        <label className={styles.checkboxLabel}>
-          <input
-            type='checkbox'
-            checked={isInternal}
-            onChange={e => setIsInternal(e.target.checked)}
+        <FormField label='Response' htmlFor='ticket-reply'>
+          <TextArea
+            id='ticket-reply'
+            value={replyContent}
+            onChange={e => setReplyContent(e.target.value)}
+            placeholder='Type your response here...'
             disabled={isSubmitting}
+            required
+            minLength={1}
+            maxLength={10000}
+            fullWidth
           />
-          Internal note (not visible to customer)
-        </label>
+        </FormField>
+        <CheckboxInput
+          id='ticket-reply-internal'
+          label='Internal note (not visible to customer)'
+          checked={isInternal}
+          onChange={e => setIsInternal(e.target.checked)}
+          disabled={isSubmitting}
+        />
         <div className={styles.buttonGroup}>
           <Button
             type='button'
@@ -314,8 +312,7 @@ const ActivityTab: React.FC<{ ticketId: string }> = ({ ticketId }) => {
           <div className={styles.activityContent}>
             <p className={styles.activityDescription}>{activity.description}</p>
             <p className={styles.activityMeta}>
-              {activity.activityType} &middot;{' '}
-              {new Date(activity.createdAt).toLocaleString('en-GB')}
+              {activity.activityType} &middot; {formatDateTime(activity.createdAt)}
             </p>
           </div>
         </div>
@@ -337,9 +334,6 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
   if (!ticket) {
     return null;
   }
-
-  const statusColors = STATUS_COLOR_MAP[ticket.status] || STATUS_COLOR_MAP.open;
-  const priorityColors = PRIORITY_COLOR_MAP[ticket.priority] || PRIORITY_COLOR_MAP.normal;
 
   const breadcrumbSegments: ReadonlyArray<BreadcrumbSegment> = [
     { label: 'Tickets', to: '/support' },
@@ -372,24 +366,16 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
         <h3 className={styles.ticketTitle}>{ticket.subject}</h3>
       </div>
       <div className={styles.badgeRow}>
-        <span
-          className={styles.badge}
-          style={{ background: statusColors.bg, color: statusColors.color }}
-        >
-          <CircleCheck size='1em' />
-          {getStatusLabel(ticket.status)}
-        </span>
-        <span
-          className={styles.badge}
-          style={{ background: priorityColors.bg, color: priorityColors.color }}
-        >
-          <CircleAlert size='1em' />
-          {getPriorityLabel(ticket.priority)}
-        </span>
-        <span className={styles.badge}>
-          <Tag size='1em' />
-          {getCategoryLabel(ticket.category)}
-        </span>
+        <StatusBadge
+          kind='supportTicket'
+          status={ticket.status}
+          label={getStatusLabel(ticket.status)}
+        />
+        <StatusBadge
+          variant={PRIORITY_VARIANTS[ticket.priority] ?? 'info'}
+          label={getPriorityLabel(ticket.priority)}
+        />
+        <StatusBadge variant='neutral' label={getCategoryLabel(ticket.category)} />
       </div>
     </div>
   );

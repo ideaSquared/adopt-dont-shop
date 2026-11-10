@@ -1,6 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import { TriangleAlert, X } from 'lucide-react';
+import { TriangleAlert } from 'lucide-react';
 import clsx from 'clsx';
+import {
+  Button,
+  FormField,
+  Input,
+  Modal,
+  SelectInput,
+  TextArea,
+} from '@adopt-dont-shop/lib.components';
 import type { ReportSeverity, ActionType, ActionSeverity } from '@adopt-dont-shop/lib.moderation';
 import * as styles from './BulkModerationModal.css';
 
@@ -32,6 +40,7 @@ export type BulkModerationModalProps = {
 };
 
 const CONFIRM_PHRASE = 'CONFIRM';
+const FORM_ID = 'bulk-moderation-form';
 
 const sanctionActionLabels: Record<BulkSanctionData['actionType'], string> = {
   warning_issued: 'Issue Warning',
@@ -39,6 +48,33 @@ const sanctionActionLabels: Record<BulkSanctionData['actionType'], string> = {
   user_suspended: 'Suspend User',
   user_banned: 'Ban User Permanently',
 };
+
+const SANCTION_ACTIONS: ReadonlyArray<BulkSanctionData['actionType']> = [
+  'warning_issued',
+  'account_restricted',
+  'user_suspended',
+  'user_banned',
+];
+
+const ACTION_SEVERITIES: ReadonlyArray<ActionSeverity> = ['low', 'medium', 'high', 'critical'];
+
+const SANCTION_ACTION_OPTIONS = SANCTION_ACTIONS.map(value => ({
+  value,
+  label: sanctionActionLabels[value],
+}));
+
+const SEVERITY_OPTIONS = [
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
+  { value: 'critical', label: 'Critical' },
+];
+
+const toSanctionAction = (value: string | string[]): BulkSanctionData['actionType'] =>
+  SANCTION_ACTIONS.find(action => action === value) ?? 'warning_issued';
+
+const toActionSeverity = (value: string | string[]): ActionSeverity =>
+  ACTION_SEVERITIES.find(severity => severity === value) ?? 'medium';
 
 const determineHighestSeverity = (severities: ReportSeverity[]): ReportSeverity => {
   if (severities.includes('critical')) {
@@ -75,10 +111,6 @@ export const BulkModerationModal: React.FC<BulkModerationModalProps> = ({
   );
 
   const requiresTypedConfirm = highestSeverity === 'critical' || highestSeverity === 'high';
-
-  if (!isOpen) {
-    return null;
-  }
 
   const handleClose = () => {
     if (isLoading) {
@@ -122,189 +154,150 @@ export const BulkModerationModal: React.FC<BulkModerationModalProps> = ({
     !reason.trim() ||
     (requiresTypedConfirm && confirmPhrase.trim() !== CONFIRM_PHRASE);
 
-  return (
-    <div className={styles.overlay} onClick={handleClose}>
-      <div
-        className={styles.modal}
-        role='dialog'
-        aria-modal='true'
-        aria-labelledby='bulk-moderation-title'
-        onClick={e => e.stopPropagation()}
-        onKeyDown={e => e.stopPropagation()}
+  const footer = resultSummary ? (
+    <Button type='button' variant='primary' onClick={handleClose}>
+      Done
+    </Button>
+  ) : (
+    <>
+      <Button type='button' variant='outline' onClick={handleClose} disabled={isLoading}>
+        Cancel
+      </Button>
+      <Button
+        type='submit'
+        form={FORM_ID}
+        variant={kind === 'dismiss' ? 'primary' : 'danger'}
+        disabled={confirmDisabled}
       >
-        <div className={styles.header}>
-          <h2 id='bulk-moderation-title' className={styles.title}>
-            {headerTitle}
-          </h2>
-          <button
-            type='button'
-            className={styles.closeButton}
-            onClick={handleClose}
-            disabled={isLoading}
-            aria-label='Close'
+        {isLoading ? 'Processing...' : confirmLabel}
+      </Button>
+    </>
+  );
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={headerTitle}
+      size='md'
+      closeOnOverlayClick={!isLoading}
+      closeOnEscape={!isLoading}
+      footer={footer}
+    >
+      <form id={FORM_ID} onSubmit={handleSubmit}>
+        {resultSummary ? (
+          <div
+            className={clsx(
+              styles.resultBanner,
+              resultSummary.failed > 0 && styles.resultBannerFailed
+            )}
+            data-testid='bulk-result'
           >
-            <X size='1em' />
-          </button>
-        </div>
+            {resultSummary.succeeded} succeeded
+            {resultSummary.failed > 0 ? `, ${resultSummary.failed} failed` : ''}
+          </div>
+        ) : (
+          <>
+            <p className={styles.description}>
+              {kind === 'dismiss'
+                ? 'Dismiss the selected reports with a shared reason. No moderation action against the reported users.'
+                : 'Apply the selected sanction to the reported users for all selected reports. This resolves each affected report.'}
+            </p>
 
-        <form onSubmit={handleSubmit}>
-          <div className={styles.body}>
-            {resultSummary ? (
+            <span className={styles.countBadge} data-testid='bulk-selected-count'>
+              {selectedCount} report{selectedCount !== 1 ? 's' : ''} selected
+            </span>
+
+            {requiresTypedConfirm && (
               <div
-                className={clsx(
-                  styles.resultBanner,
-                  resultSummary.failed > 0 && styles.resultBannerFailed
-                )}
-                data-testid='bulk-result'
+                className={
+                  highestSeverity === 'critical' ? styles.severityCritical : styles.severityWarning
+                }
+                data-testid='severity-warning'
               >
-                {resultSummary.succeeded} succeeded
-                {resultSummary.failed > 0 ? `, ${resultSummary.failed} failed` : ''}
-              </div>
-            ) : (
-              <>
-                <p className={styles.description}>
-                  {kind === 'dismiss'
-                    ? 'Dismiss the selected reports with a shared reason. No moderation action against the reported users.'
-                    : 'Apply the selected sanction to the reported users for all selected reports. This resolves each affected report.'}
-                </p>
-
-                <span className={styles.countBadge} data-testid='bulk-selected-count'>
-                  {selectedCount} report{selectedCount !== 1 ? 's' : ''} selected
+                <div className={styles.severityHeading}>
+                  <TriangleAlert size='1em' />
+                  <strong>
+                    {highestSeverity === 'critical' ? 'Critical' : 'High'} severity reports selected
+                  </strong>
+                </div>
+                <span>
+                  Type <code>{CONFIRM_PHRASE}</code> below to confirm this bulk action.
                 </span>
+              </div>
+            )}
 
-                {requiresTypedConfirm && (
-                  <div
-                    className={
-                      highestSeverity === 'critical'
-                        ? styles.severityCritical
-                        : styles.severityWarning
-                    }
-                    data-testid='severity-warning'
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <TriangleAlert size='1em' />
-                      <strong>
-                        {highestSeverity === 'critical' ? 'Critical' : 'High'} severity reports
-                        selected
-                      </strong>
-                    </div>
-                    <span>
-                      Type <code>{CONFIRM_PHRASE}</code> below to confirm this bulk action.
-                    </span>
-                  </div>
-                )}
-
-                {kind === 'sanction' && (
-                  <>
-                    <div className={styles.formGroup}>
-                      <label className={styles.label} htmlFor='bulk-sanction-action'>
-                        Sanction Type<span className={styles.required}>*</span>
-                      </label>
-                      <select
-                        id='bulk-sanction-action'
-                        className={styles.select}
-                        value={sanctionAction}
-                        onChange={e =>
-                          setSanctionAction(e.target.value as BulkSanctionData['actionType'])
-                        }
-                        disabled={isLoading}
-                      >
-                        {Object.entries(sanctionActionLabels).map(([value, lbl]) => (
-                          <option key={value} value={value}>
-                            {lbl}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className={styles.formGroup}>
-                      <label className={styles.label} htmlFor='bulk-sanction-severity'>
-                        Sanction Severity<span className={styles.required}>*</span>
-                      </label>
-                      <select
-                        id='bulk-sanction-severity'
-                        className={styles.select}
-                        value={sanctionSeverity}
-                        onChange={e => setSanctionSeverity(e.target.value as ActionSeverity)}
-                        disabled={isLoading}
-                      >
-                        <option value='low'>Low</option>
-                        <option value='medium'>Medium</option>
-                        <option value='high'>High</option>
-                        <option value='critical'>Critical</option>
-                      </select>
-                    </div>
-                  </>
-                )}
-
+            {kind === 'sanction' && (
+              <>
                 <div className={styles.formGroup}>
-                  <label className={styles.label} htmlFor='bulk-reason'>
-                    Shared Reason<span className={styles.required}>*</span>
-                  </label>
-                  <textarea
-                    id='bulk-reason'
-                    className={styles.textArea}
-                    value={reason}
-                    onChange={e => setReason(e.target.value)}
-                    placeholder='Explain why this bulk action is being taken. The same reason will be recorded on every affected report.'
-                    disabled={isLoading}
+                  <SelectInput
+                    label='Sanction Type'
+                    data-testid='bulk-sanction-action'
                     required
-                    aria-required={true}
+                    value={sanctionAction}
+                    onChange={value => setSanctionAction(toSanctionAction(value))}
+                    options={SANCTION_ACTION_OPTIONS}
+                    disabled={isLoading}
+                    fullWidth
                   />
-                  <span className={styles.helpText}>
-                    Recorded on every audit log entry produced by this bulk action.
-                  </span>
                 </div>
 
-                {requiresTypedConfirm && (
-                  <div className={styles.formGroup}>
-                    <label className={styles.label} htmlFor='bulk-confirm-phrase'>
-                      Type <code>{CONFIRM_PHRASE}</code> to proceed
-                      <span className={styles.required}>*</span>
-                    </label>
-                    <input
-                      id='bulk-confirm-phrase'
-                      className={styles.input}
-                      type='text'
-                      value={confirmPhrase}
-                      onChange={e => setConfirmPhrase(e.target.value)}
-                      placeholder={CONFIRM_PHRASE}
-                      disabled={isLoading}
-                      autoComplete='off'
-                    />
-                  </div>
-                )}
+                <div className={styles.formGroup}>
+                  <SelectInput
+                    label='Sanction Severity'
+                    data-testid='bulk-sanction-severity'
+                    required
+                    value={sanctionSeverity}
+                    onChange={value => setSanctionSeverity(toActionSeverity(value))}
+                    options={SEVERITY_OPTIONS}
+                    disabled={isLoading}
+                    fullWidth
+                  />
+                </div>
               </>
             )}
-          </div>
 
-          <div className={styles.footer}>
-            {resultSummary ? (
-              <button type='button' className={styles.buttonPrimary} onClick={handleClose}>
-                Done
-              </button>
-            ) : (
-              <>
-                <button
-                  type='button'
-                  className={styles.buttonSecondary}
-                  onClick={handleClose}
+            <div className={styles.formGroup}>
+              <FormField
+                label='Shared Reason'
+                htmlFor='bulk-reason'
+                required
+                description='Recorded on every audit log entry produced by this bulk action.'
+              >
+                <TextArea
+                  id='bulk-reason'
+                  value={reason}
+                  onChange={e => setReason(e.target.value)}
+                  placeholder='Explain why this bulk action is being taken. The same reason will be recorded on every affected report.'
                   disabled={isLoading}
+                  required
+                  fullWidth
+                />
+              </FormField>
+            </div>
+
+            {requiresTypedConfirm && (
+              <div className={styles.formGroup}>
+                <FormField
+                  label={`Type ${CONFIRM_PHRASE} to proceed`}
+                  htmlFor='bulk-confirm-phrase'
+                  required
                 >
-                  Cancel
-                </button>
-                <button
-                  type='submit'
-                  className={kind === 'dismiss' ? styles.buttonPrimary : styles.buttonDanger}
-                  disabled={confirmDisabled}
-                >
-                  {isLoading ? 'Processing...' : confirmLabel}
-                </button>
-              </>
+                  <Input
+                    id='bulk-confirm-phrase'
+                    type='text'
+                    value={confirmPhrase}
+                    onChange={e => setConfirmPhrase(e.target.value)}
+                    placeholder={CONFIRM_PHRASE}
+                    disabled={isLoading}
+                    autoComplete='off'
+                  />
+                </FormField>
+              </div>
             )}
-          </div>
-        </form>
-      </div>
-    </div>
+          </>
+        )}
+      </form>
+    </Modal>
   );
 };

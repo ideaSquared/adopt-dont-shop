@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button } from '@adopt-dont-shop/lib.components';
 import * as styles from './PetStatusFilter.css';
 
 interface PetStatusFilterProps {
@@ -34,9 +35,11 @@ const PetStatusFilter: React.FC<PetStatusFilterProps> = ({
         const isActive = activeStatus === option.value;
 
         return (
-          <button
+          <Button
             key={option.value}
-            className={styles.statusButton({ active: isActive })}
+            variant={isActive ? 'primary' : 'outline'}
+            size="sm"
+            isRounded
             onClick={() => onStatusChange(option.value)}
             aria-pressed={isActive}
             aria-label={`${option.label} (${count} pets)`}
@@ -45,7 +48,7 @@ const PetStatusFilter: React.FC<PetStatusFilterProps> = ({
             <span className={styles.statusCount({ active: isActive })} aria-hidden="true">
               {count}
             </span>
-          </button>
+          </Button>
         );
       })}
     </div>

@@ -13,6 +13,9 @@
  * flag system. All feature flags are now managed through Statsig.
  */
 
+// Export the shared Statsig provider
+export * from './StatsigWrapper';
+
 // Export hooks (main API for apps)
 export * from './hooks';
 

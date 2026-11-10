@@ -2,11 +2,12 @@ import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useStatsig } from '@/hooks/useStatsig';
 import { Pet } from '@/services';
-import { Badge, Button, Card, PetImage } from '@adopt-dont-shop/lib.components';
+import { Button, Card, PetImage, StatusBadge } from '@adopt-dont-shop/lib.components';
 import React, { useState } from 'react';
 import { Heart, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router';
-import { resolveFileUrl } from '../utils/fileUtils';
+import { formatAge } from '@adopt-dont-shop/lib.pets';
+import { resolveFileUrl } from '@adopt-dont-shop/lib.utils';
 import { LoginPromptModal } from './modals/LoginPromptModal';
 import * as styles from './PetCard.css';
 
@@ -128,21 +129,6 @@ export const PetCard: React.FC<PetCardProps> = ({
   // Pet schema fields are optional because different API responses return
   // different subsets (lib.pets/src/schemas.ts:55-57). Treat absent age,
   // size, and status as "Unknown" rather than crashing the card render.
-  const formatAge = (ageYears: number | undefined, ageMonths: number | undefined) => {
-    const years = ageYears ?? 0;
-    const months = ageMonths ?? 0;
-    if (years === 0 && months === 0) {
-      return 'Unknown';
-    }
-    if (years === 0) {
-      return `${months} month${months !== 1 ? 's' : ''}`;
-    }
-    if (months === 0) {
-      return `${years} year${years !== 1 ? 's' : ''}`;
-    }
-    return `${years} year${years !== 1 ? 's' : ''}, ${months} month${months !== 1 ? 's' : ''}`;
-  };
-
   const formatSize = (size: string | undefined) => {
     if (!size) {
       return 'Unknown';
@@ -150,39 +136,6 @@ export const PetCard: React.FC<PetCardProps> = ({
     return size.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  const getStatusColor = (status: string | undefined) => {
-    switch (status) {
-      case 'available':
-        return 'success';
-      case 'pending':
-        return 'warning';
-      case 'adopted':
-        return 'info';
-      case 'on_hold':
-        return 'warning';
-      case 'medical_care':
-        return 'error';
-      default:
-        return 'neutral';
-    }
-  };
-
-  const getStatusLabel = (status: string | undefined) => {
-    switch (status) {
-      case 'available':
-        return 'Available';
-      case 'pending':
-        return 'Pending';
-      case 'adopted':
-        return 'Adopted';
-      case 'on_hold':
-        return 'On Hold';
-      case 'medical_care':
-        return 'Medical Care';
-      default:
-        return status ?? 'Unknown';
-    }
-  };
   return (
     <Card
       onClick={handleCardClick}
@@ -194,9 +147,7 @@ export const PetCard: React.FC<PetCardProps> = ({
       <div className={styles.imageContainer}>
         <PetImage src={resolvedImageUrl} alt={pet.name} />
 
-        <Badge variant={getStatusColor(pet.status)} className={styles.statusBadge}>
-          {getStatusLabel(pet.status)}
-        </Badge>
+        <StatusBadge kind='pet' status={pet.status ?? 'unknown'} className={styles.statusBadge} />
 
         {pet.distance !== undefined && pet.distance !== null && (
           <div className={styles.distanceBadge}>
@@ -206,7 +157,8 @@ export const PetCard: React.FC<PetCardProps> = ({
         )}
 
         {showFavoriteButton && isAuthenticated && (
-          <button
+          <Button
+            variant='ghost'
             className={styles.favoriteButton}
             onClick={handleFavoriteClick}
             style={{ color: isFavorite ? '#ff6b6b' : '#ccc' }}
@@ -215,7 +167,7 @@ export const PetCard: React.FC<PetCardProps> = ({
             }
           >
             {isFavorite ? <Heart size={24} fill='currentColor' /> : <Heart size={24} />}
-          </button>
+          </Button>
         )}
       </div>
 

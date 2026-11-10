@@ -1,47 +1,48 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const pageContainer = style({
   minHeight: '100vh',
   display: 'flex',
   flexDirection: 'column',
-  padding: '1rem 0',
+  padding: `${vars.spacing['3']} 0`,
 });
 
 export const header = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  marginBottom: '2rem',
-  padding: '0 1rem',
+  marginBottom: vars.spacing['5'],
+  padding: `0 ${vars.spacing['3']}`,
 });
 
 export const locationRow = style({
-  padding: '0 1rem',
-  marginBottom: '1.5rem',
+  padding: `0 ${vars.spacing['3']}`,
+  marginBottom: vars.spacing['4'],
 });
 
 export const title = style({
   fontSize: '2rem',
-  fontWeight: 700,
+  fontWeight: vars.typography.weight.bold,
   color: '#333',
   margin: 0,
 });
 
 export const headerActions = style({
   display: 'flex',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   alignItems: 'center',
 });
 
 export const filterButton = recipe({
   base: {
-    padding: '0.5rem 1rem',
-    borderRadius: '8px',
+    padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
+    borderRadius: vars.border.radius.base,
     border: '1px solid #dee2e6',
     background: '#f8f9fa',
     color: '#333',
-    fontWeight: 500,
+    fontWeight: vars.typography.weight.medium,
     cursor: 'pointer',
     transition: 'all 0.2s ease',
     ':hover': {
@@ -62,10 +63,10 @@ export const filterButton = recipe({
 });
 
 export const actionLinkPrimary = style({
-  padding: '0.5rem 1rem',
-  borderRadius: '8px',
+  padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
+  borderRadius: vars.border.radius.base,
   textDecoration: 'none',
-  fontWeight: 500,
+  fontWeight: vars.typography.weight.medium,
   transition: 'all 0.2s ease',
   background: '#4ecdc4',
   color: 'white',
@@ -80,15 +81,15 @@ export const mainContent = style({
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
-  padding: '1rem',
+  padding: vars.spacing['3'],
 });
 
 export const filtersPanel = recipe({
   base: {
-    marginBottom: '1rem',
+    marginBottom: vars.spacing['3'],
     overflow: 'hidden',
     background: '#f8f9fa',
-    borderRadius: '8px',
+    borderRadius: vars.border.radius.base,
     transition: 'all 0.3s ease',
     width: '100%',
     maxWidth: '600px',
@@ -96,7 +97,7 @@ export const filtersPanel = recipe({
   variants: {
     isOpen: {
       true: {
-        padding: '1rem',
+        padding: vars.spacing['3'],
         maxHeight: '200px',
       },
       false: {
@@ -111,32 +112,32 @@ export const filtersPanel = recipe({
 export const filterGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const filterGroup = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 globalStyle(`${filterGroup} label`, {
-  fontWeight: 500,
+  fontWeight: vars.typography.weight.medium,
   color: '#333',
   fontSize: '0.9rem',
 });
 
 globalStyle(`${filterGroup} select`, {
-  padding: '0.5rem',
+  padding: vars.spacing['2'],
   border: '1px solid #dee2e6',
-  borderRadius: '4px',
+  borderRadius: vars.border.radius.sm,
   fontSize: '0.9rem',
 });
 
 globalStyle(`${filterGroup} input`, {
-  padding: '0.5rem',
+  padding: vars.spacing['2'],
   border: '1px solid #dee2e6',
-  borderRadius: '4px',
+  borderRadius: vars.border.radius.sm,
   fontSize: '0.9rem',
 });
 
@@ -151,10 +152,10 @@ globalStyle(`${filterGroup} input:focus-visible`, {
 });
 
 export const sessionStats = style({
-  marginTop: '2rem',
-  padding: '1rem',
+  marginTop: vars.spacing['5'],
+  padding: vars.spacing['3'],
   background: '#f8f9fa',
-  borderRadius: '12px',
+  borderRadius: vars.border.radius.lg,
   textAlign: 'center',
   color: '#666',
   fontSize: '0.9rem',
@@ -163,8 +164,8 @@ export const sessionStats = style({
 export const statsGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(4, 1fr)',
-  gap: '1rem',
-  marginTop: '0.5rem',
+  gap: vars.spacing['3'],
+  marginTop: vars.spacing['2'],
 });
 
 export const statItem = style({
@@ -173,13 +174,13 @@ export const statItem = style({
 
 export const statNumber = style({
   fontSize: '1.2rem',
-  fontWeight: 700,
+  fontWeight: vars.typography.weight.bold,
   color: '#333',
 });
 
 export const statLabel = style({
   fontSize: '0.8rem',
-  marginTop: '0.25rem',
+  marginTop: vars.spacing['1'],
 });
 
 export const loadingState = style({
@@ -201,7 +202,7 @@ export const spinner = style({
   animationDuration: '1s',
   animationTimingFunction: 'linear',
   animationIterationCount: 'infinite',
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
   '@media': {
     '(prefers-reduced-motion: reduce)': { animation: 'none' },
   },
@@ -213,30 +214,30 @@ export const errorState = style({
   alignItems: 'center',
   justifyContent: 'center',
   height: '400px',
-  padding: '2rem',
+  padding: vars.spacing['5'],
   textAlign: 'center',
 });
 
 export const errorIcon = style({
-  fontSize: '3rem',
-  marginBottom: '1rem',
+  fontSize: vars.typography.size['5xl'],
+  marginBottom: vars.spacing['3'],
   opacity: 0.5,
 });
 
 export const errorMessageText = style({
   color: '#e74c3c',
-  marginBottom: '1rem',
-  fontWeight: 500,
+  marginBottom: vars.spacing['3'],
+  fontWeight: vars.typography.weight.medium,
 });
 
 export const retryButton = style({
-  padding: '0.5rem 1rem',
+  padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
   background: '#4ecdc4',
   color: 'white',
   border: 'none',
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
   cursor: 'pointer',
-  fontWeight: 500,
+  fontWeight: vars.typography.weight.medium,
   ':hover': {
     background: '#45b7b8',
   },
@@ -248,31 +249,31 @@ export const emptyQueueState = style({
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
-  padding: '3rem 2rem',
+  padding: `${vars.spacing['6']} ${vars.spacing['5']}`,
   textAlign: 'center',
   background: '#ffffff',
   border: '1px solid #dee2e6',
-  borderRadius: '12px',
-  margin: '0 1rem',
+  borderRadius: vars.border.radius.lg,
+  margin: `0 ${vars.spacing['3']}`,
 });
 
 export const emptyQueueIcon = style({
-  fontSize: '3rem',
+  fontSize: vars.typography.size['5xl'],
   color: '#4ecdc4',
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const emptyQueueTitle = style({
-  fontSize: '1.5rem',
-  fontWeight: 700,
+  fontSize: vars.typography.size['2xl'],
+  fontWeight: vars.typography.weight.bold,
   color: '#333',
-  margin: '0 0 0.5rem 0',
+  margin: `0 0 ${vars.spacing['2']} 0`,
 });
 
 export const emptyQueueSubtitle = style({
-  fontSize: '1rem',
+  fontSize: vars.typography.size.base,
   color: '#6c757d',
-  margin: '0 0 1.5rem 0',
+  margin: `0 0 ${vars.spacing['4']} 0`,
 });
 
 export const emptyQueueActions = style({
@@ -287,9 +288,9 @@ export const emptyQueueNotifyButton = style({
   background: '#4ecdc4',
   color: 'white',
   border: 'none',
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
   cursor: 'pointer',
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
   ':hover': {
     background: '#45b7b8',
   },
@@ -299,18 +300,18 @@ export const emptyQueueOptedIn = style({
   padding: '0.75rem 1.5rem',
   background: '#e9f7f6',
   color: '#1f7a73',
-  borderRadius: '8px',
-  fontWeight: 600,
+  borderRadius: vars.border.radius.base,
+  fontWeight: vars.typography.weight.semibold,
 });
 
 export const emptyQueueBrowseLink = style({
   color: '#4ecdc4',
   textDecoration: 'underline',
-  fontWeight: 500,
+  fontWeight: vars.typography.weight.medium,
 });
 
 export const emptyQueueError = style({
-  marginTop: '1rem',
+  marginTop: vars.spacing['3'],
   color: '#e74c3c',
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });

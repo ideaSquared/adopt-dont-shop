@@ -18,7 +18,9 @@ import { LoginPage } from '../pages/LoginPage';
 
 // ── Module mocks ──────────────────────────────────────────────────────────────
 
-vi.mock('@adopt-dont-shop/lib.auth', () => ({
+vi.mock('@adopt-dont-shop/lib.auth', async importOriginal => ({
+  // Keep the real isSafeRedirectPath so the redirect guard is exercised end to end.
+  ...(await importOriginal<typeof import('@adopt-dont-shop/lib.auth')>()),
   AuthLayout: ({
     title,
     subtitle,

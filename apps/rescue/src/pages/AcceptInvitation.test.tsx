@@ -2,23 +2,47 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AcceptInvitation from './AcceptInvitation';
 
 const getInvitationDetails = vi.fn();
 const acceptInvitation = vi.fn();
 
 vi.mock('../services/libraryServices', () => ({
+  // Methods read `this`, like the real InvitationsService: an unbound call fails.
   invitationService: {
-    getInvitationDetails: (...args: unknown[]) => getInvitationDetails(...args),
-    acceptInvitation: (...args: unknown[]) => acceptInvitation(...args),
+    handlers: {
+      getInvitationDetails: (...args: unknown[]) => getInvitationDetails(...args),
+      acceptInvitation: (...args: unknown[]) => acceptInvitation(...args),
+    },
+    getInvitationDetails(...args: unknown[]) {
+      return this.handlers.getInvitationDetails(...args);
+    },
+    acceptInvitation(...args: unknown[]) {
+      return this.handlers.acceptInvitation(...args);
+    },
   },
 }));
 
+// The shared test setup stubs lib.auth; this page needs the real token hook.
+vi.mock('@adopt-dont-shop/lib.auth', async importOriginal => {
+  const actual = await importOriginal<typeof import('@adopt-dont-shop/lib.auth')>();
+  return {
+    useOneTimeUrlToken: actual.useOneTimeUrlToken,
+    NewPasswordSchema: actual.NewPasswordSchema,
+    NEW_PASSWORD_HINT: actual.NEW_PASSWORD_HINT,
+  };
+});
+
 const renderPage = () =>
   render(
-    <MemoryRouter initialEntries={['/accept-invitation?token=tok_123']}>
-      <AcceptInvitation />
-    </MemoryRouter>
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <MemoryRouter initialEntries={['/accept-invitation?token=tok_123']}>
+        <AcceptInvitation />
+      </MemoryRouter>
+    </QueryClientProvider>
   );
 
 describe('AcceptInvitation', () => {
@@ -47,11 +71,25 @@ describe('AcceptInvitation', () => {
 
     await user.type(await screen.findByLabelText(/first name/i), 'Sam');
     await user.type(screen.getByLabelText(/last name/i), 'Smith');
-    await user.type(screen.getByLabelText(/^password/i), 'password123');
-    await user.type(screen.getByLabelText(/confirm password/i), 'different456');
+    await user.type(screen.getByLabelText(/^password/i), 'DevPassword123!');
+    await user.type(screen.getByLabelText(/confirm password/i), 'Different456!');
     await user.click(screen.getByRole('button', { name: /create account/i }));
 
     expect(await screen.findByText(/passwords do not match/i)).toBeInTheDocument();
+    expect(acceptInvitation).not.toHaveBeenCalled();
+  });
+
+  it('rejects a long but weak password and does not accept the invitation', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.type(await screen.findByLabelText(/first name/i), 'Sam');
+    await user.type(screen.getByLabelText(/last name/i), 'Smith');
+    await user.type(screen.getByLabelText(/^password/i), 'longbutweakpassword');
+    await user.type(screen.getByLabelText(/confirm password/i), 'longbutweakpassword');
+    await user.click(screen.getByRole('button', { name: /create account/i }));
+
+    expect(await screen.findByText(/password must contain/i)).toBeInTheDocument();
     expect(acceptInvitation).not.toHaveBeenCalled();
   });
 
@@ -61,8 +99,8 @@ describe('AcceptInvitation', () => {
 
     await user.type(await screen.findByLabelText(/first name/i), 'Sam');
     await user.type(screen.getByLabelText(/last name/i), 'Smith');
-    await user.type(screen.getByLabelText(/^password/i), 'password123');
-    await user.type(screen.getByLabelText(/confirm password/i), 'password123');
+    await user.type(screen.getByLabelText(/^password/i), 'DevPassword123!');
+    await user.type(screen.getByLabelText(/confirm password/i), 'DevPassword123!');
     await user.click(screen.getByRole('button', { name: /create account/i }));
 
     await waitFor(() => expect(acceptInvitation).toHaveBeenCalledTimes(1));
@@ -70,7 +108,7 @@ describe('AcceptInvitation', () => {
       token: 'tok_123',
       firstName: 'Sam',
       lastName: 'Smith',
-      password: 'password123',
+      password: 'DevPassword123!',
     });
   });
 
@@ -99,5 +137,18 @@ describe('AcceptInvitation', () => {
     expect(await screen.findByLabelText(/first name/i)).toBeInTheDocument();
     expect(screen.getByText(/newstaff@rescue.org/)).toBeInTheDocument();
     expect(screen.queryByText(/not found or has expired/i)).not.toBeInTheDocument();
+  });
+
+  it('shows the account created view once the invitation is accepted', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.type(await screen.findByLabelText(/first name/i), 'Sam');
+    await user.type(screen.getByLabelText(/last name/i), 'Smith');
+    await user.type(screen.getByLabelText(/^password/i), 'DevPassword123!');
+    await user.type(screen.getByLabelText(/confirm password/i), 'DevPassword123!');
+    await user.click(screen.getByRole('button', { name: /create account/i }));
+
+    expect(await screen.findByRole('heading', { name: 'Account Created!' })).toBeInTheDocument();
   });
 });

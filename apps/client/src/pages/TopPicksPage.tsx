@@ -4,14 +4,15 @@ import {
   Button,
   Card,
   MatchReasonChips,
+  PageHeader,
   ProgressiveImage,
   Spinner,
 } from '@adopt-dont-shop/lib.components';
-import type { MatchTopPick } from '@adopt-dont-shop/lib.matching';
-import React, { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import React from 'react';
 import { Link, useNavigate } from 'react-router';
 import { matchingService } from '@/services';
-import { resolveFileUrl } from '@/utils/fileUtils';
+import { resolveFileUrl } from '@adopt-dont-shop/lib.utils';
 import * as styles from './TopPicksPage.css';
 
 const TYPE_ICON: Record<string, string> = {
@@ -21,6 +22,8 @@ const TYPE_ICON: Record<string, string> = {
   bird: '🦜',
   small_mammal: '🐹',
 };
+
+const TOP_PICKS_LIMIT = 10;
 
 const titleCase = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
@@ -35,43 +38,14 @@ export const TopPicksPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  const [picks, setPicks] = useState<MatchTopPick[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    if (!isAuthenticated) {
-      setLoading(false);
-      return;
-    }
-
-    const load = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await matchingService.getTopPicks(10);
-        if (!cancelled) {
-          setPicks(data);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          console.error('Failed to load top picks', err);
-          setError('Failed to load your top picks.');
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated]);
+  const picksQuery = useQuery({
+    queryKey: ['matching', 'top-picks', { limit: TOP_PICKS_LIMIT }],
+    queryFn: () => matchingService.getTopPicks(TOP_PICKS_LIMIT),
+    enabled: isAuthenticated,
+  });
+  const picks = picksQuery.data ?? [];
+  const loading = picksQuery.isLoading;
+  const error = picksQuery.isError ? 'Failed to load your top picks.' : null;
 
   if (!isAuthenticated) {
     return (
@@ -120,10 +94,10 @@ export const TopPicksPage: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <h1>Top picks for you</h1>
-        <p>Personalised matches based on your preferences.</p>
-      </div>
+      <PageHeader
+        title='Top picks for you'
+        description='Personalised matches based on your preferences.'
+      />
       <div className={styles.grid}>
         {picks.map(pick => {
           const url = resolveFileUrl(pick.photoUrl ?? undefined);

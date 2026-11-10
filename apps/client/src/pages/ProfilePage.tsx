@@ -6,14 +6,22 @@ import {
 } from '@/components/profile';
 import { AccountSettings } from '@adopt-dont-shop/lib.account';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { apiService, applicationService, type ApplicationWithPetInfo, User } from '@/services';
-import { Alert, Button, ConfirmDialog, toast, useConfirm } from '@adopt-dont-shop/lib.components';
+import { apiService, User } from '@/services';
+import {
+  Alert,
+  Button,
+  PageHeader,
+  StatusBadge,
+  Tabs,
+  toast,
+} from '@adopt-dont-shop/lib.components';
 import { ApplicationCardSkeletonList } from '@/components/skeletons';
 import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
 import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import * as styles from './ProfilePage.css';
+import { useProfileApplications } from './useProfileApplications';
 
 // Shape of GET /api/v1/users/me/export (GDPR Art. 15/20 self-service
 // export, ADS-1320). Downloaded verbatim as the archive — see
@@ -39,20 +47,24 @@ interface UserSettings {
   };
 }
 
+const toTabType = (id: string): TabType => {
+  if (id === 'applications' || id === 'settings') {
+    return id;
+  }
+  return 'profile';
+};
+
 export const ProfilePage: React.FC = () => {
   const { user, isAuthenticated, updateProfile } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('profile');
   const [settingsSection, setSettingsSection] = useState('');
-  const [applications, setApplications] = useState<ApplicationWithPetInfo[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { confirmProps } = useConfirm();
   // GDPR Art. 15/20 self-service export (ADS-1320).
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -64,37 +76,20 @@ export const ProfilePage: React.FC = () => {
     };
   }, []);
 
-  const loadApplications = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      // Check if user is an adopter - only adopters have applications
-      if (user?.userType !== 'adopter') {
-        setApplications([]);
-        return;
-      }
-
-      const userApplications = await applicationService.getUserApplications();
-      setApplications(userApplications);
-    } catch (error) {
-      console.error('Failed to load applications:', error);
-      setError('Failed to load applications. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user?.userType]);
+  const isAdopter = user?.userType === 'adopter';
+  const applicationsQuery = useProfileApplications(
+    isAuthenticated && isAdopter && activeTab === 'applications'
+  );
+  const applications = applicationsQuery.data ?? [];
+  const applicationsError = applicationsQuery.isError
+    ? 'Failed to load applications. Please try again.'
+    : null;
 
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login');
-      return;
     }
-
-    if (activeTab === 'applications') {
-      loadApplications();
-    }
-  }, [isAuthenticated, navigate, activeTab, loadApplications]);
+  }, [isAuthenticated, navigate]);
 
   const handleProfileSave = async (updatedData: Partial<User>) => {
     if (!user) {
@@ -321,17 +316,17 @@ export const ProfilePage: React.FC = () => {
   const renderApplicationsTab = () => (
     <div className={styles.section}>
       <h2 className={styles.sectionTitle}>My Applications</h2>
-      {error && (
+      {(error ?? applicationsError) && (
         <div className={styles.sectionGap}>
-          <Alert variant='error'>{error}</Alert>
+          <Alert variant='error'>{error ?? applicationsError}</Alert>
         </div>
       )}
-      {user?.userType !== 'adopter' ? (
+      {!isAdopter ? (
         <div className={styles.centeredEmpty}>
           <p>Applications are only available for adopter accounts.</p>
           <p>As a {user?.userType}, you don&apos;t submit adoption applications.</p>
         </div>
-      ) : isLoading ? (
+      ) : applicationsQuery.isLoading ? (
         <ApplicationCardSkeletonList count={3} />
       ) : applications.length === 0 ? (
         <div className={styles.centeredEmpty}>
@@ -358,15 +353,11 @@ export const ProfilePage: React.FC = () => {
                 )}
               </div>
               <div>
-                <span
-                  className={styles.statusBadge({
-                    status: (['submitted', 'approved', 'rejected'].includes(application.status)
-                      ? application.status
-                      : 'default') as 'submitted' | 'approved' | 'rejected' | 'default',
-                  })}
-                >
-                  {applicationStatusLabel(application.status)}
-                </span>
+                <StatusBadge
+                  kind='application'
+                  status={application.status}
+                  label={applicationStatusLabel(application.status)}
+                />
                 <div className={styles.smallTopGap}>
                   <Button
                     variant='secondary'
@@ -446,39 +437,33 @@ export const ProfilePage: React.FC = () => {
   return (
     <div className={styles.container}>
       <ProfileCompletionMeter />
-      <div className={styles.header}>
-        <h1>My Profile</h1>
-        <p>Manage your account, applications, and preferences</p>
-      </div>
+      <PageHeader
+        title='My Profile'
+        description='Manage your account, applications, and preferences'
+      />
 
-      <div className={styles.tabContainer}>
-        <div className={styles.tabList}>
-          <button
-            className={styles.tab({ active: activeTab === 'profile' })}
-            onClick={() => setActiveTab('profile')}
-          >
-            Profile
-          </button>
-          <button
-            className={styles.tab({ active: activeTab === 'applications' })}
-            onClick={() => setActiveTab('applications')}
-          >
-            Applications
-          </button>
-          <button
-            className={styles.tab({ active: activeTab === 'settings' })}
-            onClick={() => setActiveTab('settings')}
-          >
-            Settings
-          </button>
-        </div>
-      </div>
-
-      {activeTab === 'profile' && renderProfileTab()}
-      {activeTab === 'applications' && renderApplicationsTab()}
-      {activeTab === 'settings' && renderSettingsTab()}
-
-      <ConfirmDialog {...confirmProps} />
+      <Tabs
+        aria-label='Profile sections'
+        value={activeTab}
+        onChange={id => setActiveTab(toTabType(id))}
+        tabs={[
+          {
+            id: 'profile',
+            label: 'Profile',
+            content: activeTab === 'profile' && renderProfileTab(),
+          },
+          {
+            id: 'applications',
+            label: 'Applications',
+            content: activeTab === 'applications' && renderApplicationsTab(),
+          },
+          {
+            id: 'settings',
+            label: 'Settings',
+            content: activeTab === 'settings' && renderSettingsTab(),
+          },
+        ]}
+      />
     </div>
   );
 };

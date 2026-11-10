@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { toast } from '@adopt-dont-shop/lib.components';
 
 type VisitForm = {
@@ -31,6 +32,13 @@ type UseVisitSchedulingProps = {
   onRefresh?: () => void;
 };
 
+type VisitUpdate = {
+  visitId: string;
+  data: Record<string, unknown>;
+  failure: string;
+  onDone: () => void;
+};
+
 const EMPTY_VISIT_FORM: VisitForm = {
   scheduledDate: '',
   scheduledTime: '',
@@ -57,7 +65,6 @@ export const useVisitScheduling = ({
 }: UseVisitSchedulingProps) => {
   const [showScheduleVisit, setShowScheduleVisit] = useState(false);
   const [visitForm, setVisitForm] = useState<VisitForm>(EMPTY_VISIT_FORM);
-  const [isSchedulingVisit, setIsSchedulingVisit] = useState(false);
   const [editingVisit, setEditingVisit] = useState<string | null>(null);
   const [rescheduleForm, setRescheduleForm] = useState<RescheduleForm>(EMPTY_RESCHEDULE_FORM);
   const [completingVisit, setCompletingVisit] = useState<string | null>(null);
@@ -78,109 +85,108 @@ export const useVisitScheduling = ({
     setCompleteForm(EMPTY_COMPLETE_FORM);
   };
 
-  const handleScheduleVisit = async () => {
-    try {
-      setIsSchedulingVisit(true);
+  const errorText = (error: unknown) => (error instanceof Error ? error.message : 'Unknown error');
+
+  const scheduleVisit = useMutation({
+    mutationFn: async () => {
       await onScheduleVisit({
         scheduledDate: visitForm.scheduledDate,
         scheduledTime: visitForm.scheduledTime,
         assignedStaff: visitForm.assignedStaff,
         notes: visitForm.notes,
       });
+    },
+    onSuccess: () => {
       setVisitForm(EMPTY_VISIT_FORM);
       setShowScheduleVisit(false);
       onRefresh?.();
-    } catch (error) {
+    },
+    onError: error => {
       console.error('Failed to schedule visit:', error);
-      toast.error(
-        `Failed to schedule visit: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        { action: { label: 'Retry', onClick: handleScheduleVisit } }
-      );
-    } finally {
-      setIsSchedulingVisit(false);
-    }
-  };
-
-  const handleMarkVisitInProgress = async (visitId: string) => {
-    try {
-      await onUpdateVisit(visitId, {
-        status: 'in_progress',
-        startedAt: new Date().toISOString(),
+      toast.error(`Failed to schedule visit: ${errorText(error)}`, {
+        action: { label: 'Retry', onClick: () => scheduleVisit.mutate() },
       });
-      onRefresh?.();
-    } catch (error) {
-      console.error('Failed to mark visit as in progress:', error);
-      toast.error(
-        `Failed to mark visit as in progress: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        { action: { label: 'Retry', onClick: () => handleMarkVisitInProgress(visitId) } }
-      );
-    }
-  };
+    },
+  });
 
-  const handleRescheduleVisit = async (visitId: string) => {
-    try {
-      await onUpdateVisit(visitId, {
+  // Every other visit action is an update of one visit; each says what to do on
+  // success and how to describe a failure.
+  const updateVisit = useMutation({
+    mutationFn: async ({ visitId, data }: VisitUpdate) => {
+      await onUpdateVisit(visitId, data);
+    },
+    onSuccess: (_result, update) => {
+      update.onDone();
+      onRefresh?.();
+    },
+    onError: (error, update) => {
+      console.error(`Failed to ${update.failure}:`, error);
+      toast.error(`Failed to ${update.failure}: ${errorText(error)}`, {
+        action: { label: 'Retry', onClick: () => updateVisit.mutate(update) },
+      });
+    },
+  });
+
+  const handleScheduleVisit = () => scheduleVisit.mutate();
+
+  const handleMarkVisitInProgress = (visitId: string) =>
+    updateVisit.mutate({
+      visitId,
+      data: { status: 'in_progress', startedAt: new Date().toISOString() },
+      failure: 'mark visit as in progress',
+      onDone: () => undefined,
+    });
+
+  const handleRescheduleVisit = (visitId: string) =>
+    updateVisit.mutate({
+      visitId,
+      data: {
         scheduledDate: rescheduleForm.scheduledDate,
         scheduledTime: rescheduleForm.scheduledTime,
         notes: rescheduleForm.reason ? `Rescheduled: ${rescheduleForm.reason}` : undefined,
-      });
-      setRescheduleForm(EMPTY_RESCHEDULE_FORM);
-      setEditingVisit(null);
-      onRefresh?.();
-    } catch (error) {
-      console.error('Failed to reschedule visit:', error);
-      toast.error(
-        `Failed to reschedule visit: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        { action: { label: 'Retry', onClick: () => handleRescheduleVisit(visitId) } }
-      );
-    }
+      },
+      failure: 'reschedule visit',
+      onDone: () => {
+        setRescheduleForm(EMPTY_RESCHEDULE_FORM);
+        setEditingVisit(null);
+      },
+    });
+
+  const handleCompleteVisit = (visitId: string) => {
+    const data: Record<string, unknown> = {
+      status: 'completed',
+      outcome: completeForm.outcome,
+      notes: completeForm.notes,
+      completedAt: new Date().toISOString(),
+      ...(completeForm.outcome === 'conditional' && completeForm.conditions
+        ? { conditions: completeForm.conditions }
+        : {}),
+    };
+    updateVisit.mutate({
+      visitId,
+      data,
+      failure: 'complete visit',
+      onDone: () => {
+        setCompleteForm(EMPTY_COMPLETE_FORM);
+        setCompletingVisit(null);
+      },
+    });
   };
 
-  const handleCompleteVisit = async (visitId: string) => {
-    try {
-      const updateData: Record<string, unknown> = {
-        status: 'completed',
-        outcome: completeForm.outcome,
-        notes: completeForm.notes,
-        completedAt: new Date().toISOString(),
-      };
-      if (completeForm.outcome === 'conditional' && completeForm.conditions) {
-        updateData.conditions = completeForm.conditions;
-      }
-      await onUpdateVisit(visitId, updateData);
-      setCompleteForm(EMPTY_COMPLETE_FORM);
-      setCompletingVisit(null);
-      onRefresh?.();
-    } catch (error) {
-      console.error('Failed to complete visit:', error);
-      toast.error(
-        `Failed to complete visit: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        { action: { label: 'Retry', onClick: () => handleCompleteVisit(visitId) } }
-      );
-    }
-  };
-
-  const handleCancelVisit = async (visitId: string) => {
+  const handleCancelVisit = (visitId: string) => {
     const reason = cancelReason.trim();
     if (!reason) {
       return;
     }
-    try {
-      await onUpdateVisit(visitId, {
-        status: 'cancelled',
-        cancelReason: reason,
-        cancelledAt: new Date().toISOString(),
-      });
-      setCancellingVisit(null);
-      setCancelReason('');
-      onRefresh?.();
-    } catch (error) {
-      console.error('Failed to cancel visit:', error);
-      toast.error(
-        `Failed to cancel visit: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        { action: { label: 'Retry', onClick: () => handleCancelVisit(visitId) } }
-      );
-    }
+    updateVisit.mutate({
+      visitId,
+      data: { status: 'cancelled', cancelReason: reason, cancelledAt: new Date().toISOString() },
+      failure: 'cancel visit',
+      onDone: () => {
+        setCancellingVisit(null);
+        setCancelReason('');
+      },
+    });
   };
 
   return {
@@ -188,7 +194,7 @@ export const useVisitScheduling = ({
     setShowScheduleVisit,
     visitForm,
     setVisitForm,
-    isSchedulingVisit,
+    isSchedulingVisit: scheduleVisit.isPending,
     editingVisit,
     setEditingVisit,
     rescheduleForm,

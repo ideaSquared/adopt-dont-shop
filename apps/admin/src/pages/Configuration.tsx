@@ -1,17 +1,17 @@
 import React from 'react';
 import { useConfigValue, KNOWN_CONFIGS } from '@adopt-dont-shop/lib.feature-flags';
-import { openExternal } from '../utils/openExternal';
-import { Heading, Text, Button } from '@adopt-dont-shop/lib.components';
-import { ExternalLink, Flag, Info, RefreshCw, Settings } from 'lucide-react';
+import { openExternal } from '@adopt-dont-shop/lib.utils';
 import {
-  PageContainer,
-  PageHeader,
-  HeaderLeft,
+  Button,
   Card,
-  CardHeader,
-  CardTitle,
   CardContent,
-} from '../components/ui';
+  CardHeader,
+  Heading,
+  PageHeader,
+  Stack,
+  Text,
+} from '@adopt-dont-shop/lib.components';
+import { ExternalLink, Flag, Info, RefreshCw, Settings } from 'lucide-react';
 import * as styles from './Configuration.css';
 
 const Configuration: React.FC = () => {
@@ -88,27 +88,27 @@ const Configuration: React.FC = () => {
   };
 
   return (
-    <PageContainer>
-      <PageHeader>
-        <HeaderLeft>
-          <Heading level='h1'>System Configuration</Heading>
-          <Text>View feature gates and settings managed through Statsig</Text>
-        </HeaderLeft>
-        <div className={styles.headerActions}>
-          <Button variant='outline' size='md' onClick={handleRefresh}>
-            <RefreshCw size='1em' className={styles.inlineIcon} />
-            Reload
-          </Button>
-          <Button
-            variant='primary'
-            size='md'
-            onClick={() => openExternal('https://console.statsig.com')}
-          >
-            <ExternalLink size='1em' className={styles.inlineIcon} />
-            Open Statsig Console
-          </Button>
-        </div>
-      </PageHeader>
+    <Stack spacing='lg' className={styles.page}>
+      <PageHeader
+        title='System Configuration'
+        description='View feature gates and settings managed through Statsig'
+        actions={
+          <>
+            <Button variant='outline' size='md' onClick={handleRefresh}>
+              <RefreshCw size='1em' className={styles.inlineIcon} />
+              Reload
+            </Button>
+            <Button
+              variant='primary'
+              size='md'
+              onClick={() => openExternal('https://console.statsig.com')}
+            >
+              <ExternalLink size='1em' className={styles.inlineIcon} />
+              Open Statsig Console
+            </Button>
+          </>
+        }
+      />
 
       <div className={styles.infoBanner}>
         <Info size={20} />
@@ -131,10 +131,10 @@ const Configuration: React.FC = () => {
       <div className={styles.configGrid}>
         <Card className={styles.sectionCard}>
           <CardHeader>
-            <CardTitle>
+            <Heading level='h3' className={styles.cardTitle}>
               <Flag size='1em' className={styles.sectionIcon} />
               Feature Gates
-            </CardTitle>
+            </Heading>
           </CardHeader>
           <CardContent>
             <Text>
@@ -154,10 +154,10 @@ const Configuration: React.FC = () => {
 
         <Card className={styles.sectionCard}>
           <CardHeader>
-            <CardTitle>
+            <Heading level='h3' className={styles.cardTitle}>
               <Settings size='1em' className={styles.sectionIcon} />
               Application Settings
-            </CardTitle>
+            </Heading>
           </CardHeader>
           <CardContent>
             <div className={styles.settingItem}>
@@ -191,10 +191,10 @@ const Configuration: React.FC = () => {
 
         <Card className={styles.sectionCard}>
           <CardHeader>
-            <CardTitle>
+            <Heading level='h3' className={styles.cardTitle}>
               <Settings size='1em' className={styles.sectionIcon} />
               System Settings
-            </CardTitle>
+            </Heading>
           </CardHeader>
           <CardContent>
             <div className={styles.settingItem}>
@@ -218,10 +218,10 @@ const Configuration: React.FC = () => {
 
         <Card className={styles.sectionCard}>
           <CardHeader>
-            <CardTitle>
+            <Heading level='h3' className={styles.cardTitle}>
               <Settings size='1em' className={styles.sectionIcon} />
               Moderation Settings
-            </CardTitle>
+            </Heading>
           </CardHeader>
           <CardContent>
             <div className={styles.settingItem}>
@@ -243,7 +243,7 @@ const Configuration: React.FC = () => {
           </CardContent>
         </Card>
       </div>
-    </PageContainer>
+    </Stack>
   );
 };
 

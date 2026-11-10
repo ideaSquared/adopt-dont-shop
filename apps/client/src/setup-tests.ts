@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom';
 import React from 'react';
 import { expect, afterEach, vi } from 'vitest';
+import { getStatusDisplay, type StatusKind } from '@adopt-dont-shop/lib.types';
 import { cleanup } from '@testing-library/react';
 import * as matchers from '@testing-library/jest-dom/matchers';
 
@@ -63,7 +64,221 @@ class MockIntersectionObserver {
 }
 global.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
 
+type StubDropdownMenuItem = {
+  label: string;
+  to?: string;
+  onClick?: () => void;
+  disabled?: boolean;
+};
+
+type StubDropdownMenuProps = {
+  triggerLabel: string;
+  items: StubDropdownMenuItem[];
+  trigger?: React.ReactElement<React.ComponentPropsWithoutRef<'button'>>;
+  header?: React.ReactNode;
+  disabled?: boolean;
+};
+
+// Test double for the shared DropdownMenu / DropdownButton: a trigger button
+// that toggles a role="menu" list of role="menuitem" entries, closing on select.
+const StubDropdownMenu = ({
+  triggerLabel,
+  items,
+  trigger,
+  header,
+  disabled,
+}: StubDropdownMenuProps) => {
+  const [open, setOpen] = React.useState(false);
+  const triggerProps = {
+    'aria-haspopup': 'menu',
+    'aria-expanded': open,
+    disabled,
+    onClick: () => setOpen(current => !current),
+  };
+  return React.createElement(
+    'div',
+    null,
+    trigger
+      ? React.cloneElement(trigger, {
+          'aria-label': trigger.props['aria-label'] ?? triggerLabel,
+          ...triggerProps,
+        })
+      : React.createElement('button', { type: 'button', ...triggerProps }, triggerLabel),
+    open
+      ? React.createElement(
+          'div',
+          { role: 'menu', 'aria-label': triggerLabel },
+          header,
+          items.map(item =>
+            item.to
+              ? React.createElement(
+                  'a',
+                  { key: item.label, role: 'menuitem', href: item.to },
+                  item.label
+                )
+              : React.createElement(
+                  'button',
+                  {
+                    key: item.label,
+                    type: 'button',
+                    role: 'menuitem',
+                    disabled: item.disabled,
+                    onClick: () => {
+                      setOpen(false);
+                      item.onClick?.();
+                    },
+                  },
+                  item.label
+                )
+          )
+        )
+      : null
+  );
+};
+
+type StubModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
+  children?: React.ReactNode;
+  showCloseButton?: boolean;
+  closeOnEscape?: boolean;
+  header?: React.ReactNode;
+  footer?: React.ReactNode;
+  'data-testid'?: string;
+};
+
+// Test double for the shared Modal: renders nothing when closed, otherwise a
+// role="dialog" with the title, a "Close modal" button and Escape-to-close.
+const StubModal = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+  showCloseButton = true,
+  closeOnEscape = true,
+  header,
+  footer,
+  'data-testid': testId,
+}: StubModalProps) => {
+  React.useEffect(() => {
+    if (!isOpen || !closeOnEscape) {
+      return undefined;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, closeOnEscape, onClose]);
+
+  if (!isOpen) {
+    return null;
+  }
+  return React.createElement(
+    'div',
+    { role: 'dialog', 'aria-modal': 'true', 'aria-label': title, 'data-testid': testId },
+    header ?? (title ? React.createElement('h2', null, title) : null),
+    children,
+    showCloseButton
+      ? React.createElement('button', {
+          type: 'button',
+          'aria-label': 'Close modal',
+          onClick: onClose,
+        })
+      : null,
+    footer
+  );
+};
+
 vi.mock('@adopt-dont-shop/lib.components', () => ({
+  // Shared primitives added for the app migrations. Each stub mirrors the real
+  // component's accessible output (roles, names, text) and drops styling props.
+  PageHeader: ({
+    title,
+    description,
+    actions,
+    'data-testid': testId,
+  }: {
+    title: React.ReactNode;
+    description?: React.ReactNode;
+    actions?: React.ReactNode;
+    'data-testid'?: string;
+  }) =>
+    React.createElement(
+      'header',
+      { 'data-testid': testId },
+      React.createElement('h1', null, title),
+      description ? React.createElement('p', null, description) : null,
+      actions ? React.createElement('div', null, actions) : null
+    ),
+  StatusBadge: (props: {
+    kind?: StatusKind;
+    status?: string;
+    label?: string;
+    variant?: string;
+    'data-testid'?: string;
+  }) =>
+    React.createElement(
+      'span',
+      { role: 'status', 'data-testid': props['data-testid'] },
+      props.label ??
+        (props.kind && props.status !== undefined
+          ? getStatusDisplay(props.kind, props.status).label
+          : null)
+    ),
+  Tabs: ({
+    tabs,
+    value,
+    onChange,
+    'aria-label': ariaLabel,
+  }: {
+    tabs: ReadonlyArray<{ id: string; label: React.ReactNode; content: React.ReactNode }>;
+    value: string;
+    onChange: (id: string) => void;
+    'aria-label'?: string;
+  }) =>
+    React.createElement(
+      'div',
+      null,
+      React.createElement(
+        'div',
+        { role: 'tablist', 'aria-label': ariaLabel },
+        tabs.map(tab =>
+          React.createElement(
+            'button',
+            {
+              key: tab.id,
+              type: 'button',
+              role: 'tab',
+              'aria-selected': tab.id === value,
+              onClick: () => onChange(tab.id),
+            },
+            tab.label
+          )
+        )
+      ),
+      tabs.map(tab =>
+        React.createElement(
+          'div',
+          { key: tab.id, role: 'tabpanel', hidden: tab.id !== value },
+          tab.content
+        )
+      )
+    ),
+  DropdownMenu: ({ triggerLabel, items, trigger, header, disabled }: StubDropdownMenuProps) =>
+    React.createElement(StubDropdownMenu, { triggerLabel, items, trigger, header, disabled }),
+  DropdownButton: ({ triggerLabel, items, header, disabled }: StubDropdownMenuProps) =>
+    React.createElement(StubDropdownMenu, { triggerLabel, items, header, disabled }),
+  Tooltip: ({ content, children }: { content: React.ReactNode; children: React.ReactElement }) =>
+    React.createElement(
+      React.Fragment,
+      null,
+      children,
+      React.createElement('span', { role: 'tooltip' }, content)
+    ),
   lightTheme: {},
   normalTheme: {},
   darkTheme: {},
@@ -77,8 +292,12 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     React.createElement('div', props, children),
   Card: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
-  Button: ({ children, ...props }: React.ComponentPropsWithoutRef<'button'>) =>
-    React.createElement('button', props, children),
+  Button: ({
+    children,
+    startIcon,
+    ...props
+  }: React.ComponentPropsWithoutRef<'button'> & { startIcon?: React.ReactNode }) =>
+    React.createElement('button', props, startIcon, children),
   Input: ({
     label,
     error,
@@ -122,8 +341,10 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   },
   TextArea: (props: React.ComponentPropsWithoutRef<'textarea'>) =>
     React.createElement('textarea', props),
-  Modal: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
-    React.createElement('div', props, children),
+  Modal: StubModal,
+  // Shared app-shell components: pass-through boundary, minimal 404.
+  ErrorBoundary: ({ children }: { children?: React.ReactNode }) => children,
+  NotFoundPage: () => React.createElement('h1', null, '404'),
   Spinner: () => React.createElement('div', { 'aria-label': 'loading' }),
   Skeleton: ({ width, height, radius, className, style, ...props }: Record<string, unknown>) =>
     React.createElement('div', {
@@ -412,7 +633,7 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   }: React.ComponentPropsWithoutRef<'footer'> & { extraLinks?: React.ReactNode }) =>
     React.createElement('footer', props, children, extraLinks),
   InstallPwaBanner: () => null,
-  // ADS C4-5: rendered by SanctionBannerHost; tests don't exercise sanctions.
+  // ADS C4-5: rendered by lib.auth SanctionBannerHost; tests don't exercise sanctions.
   SanctionBanner: () => null,
   SkipLink: ({
     href = '#main-content',

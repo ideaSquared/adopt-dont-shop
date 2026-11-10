@@ -1,12 +1,13 @@
 import { style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const formContainer = style({
-  padding: '2rem',
-  marginBottom: '2rem',
+  padding: vars.spacing['5'],
+  marginBottom: vars.spacing['5'],
 });
 
 export const formSection = style({
-  marginBottom: '2rem',
+  marginBottom: vars.spacing['5'],
   selectors: {
     '&:last-child': {
       marginBottom: '0',
@@ -15,33 +16,33 @@ export const formSection = style({
 });
 
 export const sectionTitle = style({
-  fontSize: '1.125rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.lg,
+  fontWeight: vars.typography.weight.semibold,
   color: '#1f2937',
-  margin: '0 0 1rem 0',
-  paddingBottom: '0.5rem',
+  margin: `0 0 ${vars.spacing['3']} 0`,
+  paddingBottom: vars.spacing['2'],
   borderBottom: '2px solid #e5e7eb',
 });
 
 export const formRow = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-  gap: '1.5rem',
-  marginBottom: '1.5rem',
+  gap: vars.spacing['4'],
+  marginBottom: vars.spacing['4'],
 });
 
 export const formGroup = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const buttonGroup = style({
   display: 'flex',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   justifyContent: 'flex-end',
-  marginTop: '2rem',
-  paddingTop: '1.5rem',
+  marginTop: vars.spacing['5'],
+  paddingTop: vars.spacing['4'],
   borderTop: '1px solid #e5e7eb',
 });
 

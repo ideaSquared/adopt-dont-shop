@@ -1,6 +1,30 @@
 import React from 'react';
+import {
+  Alert,
+  Button,
+  FormField,
+  SelectInput,
+  StatusBadge,
+  TextArea,
+} from '@adopt-dont-shop/lib.components';
+import type { StatusBadgeVariant } from '@adopt-dont-shop/lib.types';
+import { formatDate } from '@adopt-dont-shop/lib.utils';
 import type { ReferenceCheck } from '../../../types/applications';
 import * as styles from '../ApplicationReview.css';
+
+const REFERENCE_STATUS_VARIANTS: Record<string, StatusBadgeVariant> = {
+  verified: 'success',
+  contacted: 'info',
+  pending: 'warning',
+  failed: 'error',
+};
+
+const REFERENCE_STATUS_OPTIONS = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'contacted', label: 'Contacted' },
+  { value: 'verified', label: 'Verified' },
+  { value: 'failed', label: 'Failed' },
+];
 
 type ReferenceUpdateState = {
   status: string;
@@ -28,10 +52,10 @@ export const ReferenceChecks: React.FC<ReferenceChecksProps> = ({
   <div className={styles.section}>
     <h3 className={styles.sectionTitle}>Reference Checks</h3>
     {referencesError && (
-      <div className={styles.card} role="alert">
+      <Alert variant="error">
         <p>Failed to load reference checks.</p>
         <p>{referencesError}</p>
-      </div>
+      </Alert>
     )}
     {references.length === 0 ? (
       <div className={styles.card}>
@@ -41,12 +65,6 @@ export const ReferenceChecks: React.FC<ReferenceChecksProps> = ({
       references.map(reference => {
         const currentRefStatus = referenceUpdates[reference.id]?.status || reference.status;
         const currentNotes = referenceUpdates[reference.id]?.notes || reference.notes;
-        const refStatusVariant = (['verified', 'contacted', 'pending', 'failed'] as const).includes(
-          currentRefStatus as 'verified' | 'contacted' | 'pending' | 'failed'
-        )
-          ? (currentRefStatus as 'verified' | 'contacted' | 'pending' | 'failed')
-          : 'default';
-
         return (
           <div key={reference.id} className={styles.referenceCard}>
             <div className={styles.referenceHeader}>
@@ -55,17 +73,16 @@ export const ReferenceChecks: React.FC<ReferenceChecksProps> = ({
                 <p className={styles.referenceContact}>{reference.contactInfo}</p>
                 <p className={styles.referenceRelation}>Type: {reference.type}</p>
               </div>
-              <span className={styles.referenceStatus({ status: refStatusVariant })}>
-                {currentRefStatus}
-              </span>
+              <StatusBadge
+                variant={REFERENCE_STATUS_VARIANTS[currentRefStatus] ?? 'neutral'}
+                label={currentRefStatus}
+              />
             </div>
 
             {reference.completedAt && (
               <div className={styles.field}>
                 <span className={styles.fieldLabel}>Last Contacted</span>
-                <span className={styles.fieldValue}>
-                  {new Date(reference.completedAt).toLocaleDateString()}
-                </span>
+                <span className={styles.fieldValue}>{formatDate(reference.completedAt)}</span>
               </div>
             )}
 
@@ -79,53 +96,39 @@ export const ReferenceChecks: React.FC<ReferenceChecksProps> = ({
             {currentNotes && <div className={styles.referenceNotes}>{currentNotes}</div>}
 
             <div className={styles.referenceActions}>
-              <button
-                className={styles.button({ variant: 'secondary' })}
-                onClick={() => onToggleForm(reference.id)}
-              >
+              <Button variant="secondary" onClick={() => onToggleForm(reference.id)}>
                 {referenceUpdates[reference.id]?.showForm ? 'Cancel' : 'Update Status'}
-              </button>
+              </Button>
             </div>
 
             {referenceUpdates[reference.id]?.showForm && (
               <div className={styles.referenceForm}>
                 <div className={styles.formField}>
-                  <label className={styles.label} htmlFor={`ref-status-${reference.id}`}>
-                    Status
-                  </label>
-                  <select
-                    id={`ref-status-${reference.id}`}
-                    className={styles.statusSelect}
+                  <SelectInput
+                    label="Status"
                     value={referenceUpdates[reference.id]?.status || currentRefStatus}
-                    onChange={e => onUpdateField(reference.id, 'status', e.target.value)}
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="contacted">Contacted</option>
-                    <option value="verified">Verified</option>
-                    <option value="failed">Failed</option>
-                  </select>
-                </div>
-                <div className={styles.formField}>
-                  <label className={styles.label} htmlFor={`ref-notes-${reference.id}`}>
-                    Notes
-                  </label>
-                  <textarea
-                    id={`ref-notes-${reference.id}`}
-                    className={styles.notesInput}
-                    value={referenceUpdates[reference.id]?.notes || currentNotes}
-                    onChange={e => onUpdateField(reference.id, 'notes', e.target.value)}
-                    placeholder="Add notes about this reference check..."
+                    onChange={value =>
+                      onUpdateField(reference.id, 'status', typeof value === 'string' ? value : '')
+                    }
+                    options={REFERENCE_STATUS_OPTIONS}
+                    fullWidth
                   />
                 </div>
+                <div className={styles.formField}>
+                  <FormField label="Notes" htmlFor={`ref-notes-${reference.id}`}>
+                    <TextArea
+                      id={`ref-notes-${reference.id}`}
+                      value={referenceUpdates[reference.id]?.notes || currentNotes}
+                      onChange={e => onUpdateField(reference.id, 'notes', e.target.value)}
+                      placeholder="Add notes about this reference check..."
+                    />
+                  </FormField>
+                </div>
                 <div className={styles.buttonGroup}>
-                  <button
-                    className={styles.button({ variant: 'secondary' })}
-                    onClick={() => onToggleForm(reference.id)}
-                  >
+                  <Button variant="secondary" onClick={() => onToggleForm(reference.id)}>
                     Cancel
-                  </button>
-                  <button
-                    className={styles.button({ variant: 'primary' })}
+                  </Button>
+                  <Button
                     onClick={() =>
                       onUpdateReference(
                         reference.id,
@@ -135,7 +138,7 @@ export const ReferenceChecks: React.FC<ReferenceChecksProps> = ({
                     }
                   >
                     Update Reference
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}

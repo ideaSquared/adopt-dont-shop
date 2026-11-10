@@ -7,14 +7,14 @@ export const container = style({
   padding: '0.5rem 0.75rem',
   display: 'flex',
   flexWrap: 'wrap',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   background: vars.background.muted,
   borderRadius: vars.border.radius.sm,
   marginBottom: '0.75rem',
 });
 
 export const item = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });
 
 export const label = style({

@@ -51,9 +51,9 @@ describe('StaffOverview', () => {
       />
     );
 
-    expect(screen.getByText('Total Staff').previousSibling).toHaveTextContent('4');
-    expect(screen.getByText('Verified').previousSibling).toHaveTextContent('2');
-    expect(screen.getByText('Pending').previousSibling).toHaveTextContent('2');
+    expect(screen.getByText('Total Staff').nextSibling).toHaveTextContent('4');
+    expect(screen.getByText('Verified').nextSibling).toHaveTextContent('2');
+    expect(screen.getByText('Pending').nextSibling).toHaveTextContent('2');
     expect(screen.getByText('50% of staff members are verified')).toBeInTheDocument();
   });
 

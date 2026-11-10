@@ -2,6 +2,7 @@ import { test, expect } from '../../fixtures';
 import { dismissCookieBannerWhenShown } from '../../helpers/cookie-banner';
 import { uniqueText } from '../../helpers/factories';
 import { URLS } from '../../playwright.config';
+import { chooseSelectOption } from '../../helpers/radix-select';
 
 /**
  * An admin writes and publishes a blog post in Content Management, and
@@ -21,7 +22,11 @@ test.describe('publishing content in the admin app', () => {
     await dismissCookieBannerWhenShown(page);
     await page.getByRole('button', { name: 'New Content' }).click();
     await page.getByRole('textbox', { name: 'Title *' }).fill(title);
-    await page.getByRole('combobox', { name: 'Content Type' }).selectOption({ label: 'Blog Post' });
+    await chooseSelectOption(
+      page,
+      page.getByRole('combobox', { name: 'Content Type' }),
+      'Blog Post'
+    );
     await page.getByRole('textbox', { name: 'Content (HTML) *' }).fill(`<p>${body}</p>`);
     await page
       .getByRole('textbox', { name: 'Excerpt' })

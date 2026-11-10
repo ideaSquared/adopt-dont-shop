@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { EmptyState, Skeleton } from '@adopt-dont-shop/lib.components';
+import { formatCustomDate } from '@adopt-dont-shop/lib.utils';
 import * as styles from './AdoptionTrendsChart.css';
 
 interface DataPoint {
@@ -21,11 +23,11 @@ const AdoptionTrendsChart: React.FC<AdoptionTrendsChartProps> = ({
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
 
   if (loading) {
-    return <div className={styles.loadingSkeleton} style={{ height: `${height}px` }} />;
+    return <Skeleton width="100%" height={`${height}px`} />;
   }
 
   if (!data || data.length === 0) {
-    return <div className={styles.emptyState}>No trend data available</div>;
+    return <EmptyState title="No trend data available" size="sm" />;
   }
 
   const padding = { top: 20, right: 20, bottom: 40, left: 50 };
@@ -62,10 +64,7 @@ const AdoptionTrendsChart: React.FC<AdoptionTrendsChartProps> = ({
     Z
   `;
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
+  const formatDate = (dateString: string) => formatCustomDate(dateString, 'd MMM');
 
   const handlePointHover = (index: number, event: React.MouseEvent) => {
     setActivePoint(index);

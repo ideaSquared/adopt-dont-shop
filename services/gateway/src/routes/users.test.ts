@@ -1109,6 +1109,34 @@ describe('user permissions + role + bulk routes', () => {
     expect(grpcReq.status).toBe(AuthV1.UserStatus.USER_STATUS_SUSPENDED);
   });
 
+  // The admin app sends the shared BulkUserUpdateRequestSchema shape
+  // ({ userIds, updateData: { status }, reason }); the status must reach
+  // service.auth rather than being dropped.
+  it('POST /bulk-update reads the status from updateData', async () => {
+    auth.bulkUpdateUsersMock.mockResolvedValueOnce({
+      successCount: 1,
+      failedCount: 0,
+      results: [{ userId: 'a', success: true }],
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users/bulk-update',
+      headers: {
+        'x-user-id': 'svc-admin',
+        'x-user-roles': 'admin',
+        'content-type': 'application/json',
+      },
+      payload: { userIds: ['a'], updateData: { status: 'suspended' }, reason: 'spam' },
+    });
+    expect(res.statusCode).toBe(200);
+    const [grpcReq] = auth.bulkUpdateUsersMock.mock.calls[0] as [
+      { userIds: string[]; status: AuthV1.UserStatus; reason?: string },
+      Metadata,
+    ];
+    expect(grpcReq.status).toBe(AuthV1.UserStatus.USER_STATUS_SUSPENDED);
+    expect(grpcReq.reason).toBe('spam');
+  });
+
   // ADS-1323: userIds has no item cap — a single gRPC call carries the
   // whole (potentially unbounded) array into service.auth's own sequential
   // per-id fan-out.

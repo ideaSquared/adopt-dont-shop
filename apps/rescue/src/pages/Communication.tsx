@@ -2,11 +2,21 @@ import { useChat } from '@/contexts/ChatContext';
 import { useHasPermission } from '@adopt-dont-shop/lib.auth';
 import {
   ChatWindow,
+  ConnectionStatusBanner,
   ConversationList,
   type ConversationListFilter,
   type ConversationStatus,
 } from '@adopt-dont-shop/lib.chat';
-import { Button, ConfirmDialog, toast, useConfirm } from '@adopt-dont-shop/lib.components';
+import {
+  Alert,
+  Button,
+  ConfirmDialog,
+  PageHeader,
+  Spinner,
+  Tabs,
+  toast,
+  useConfirm,
+} from '@adopt-dont-shop/lib.components';
 import { CHAT_VIEW } from '@adopt-dont-shop/lib.permissions';
 import clsx from 'clsx';
 import { useEffect, useState } from 'react';
@@ -52,8 +62,14 @@ const persistFilter = (filter: 'active' | 'resolved'): void => {
 };
 
 function Communication() {
-  const { activeConversation, conversations, setActiveConversation, updateConversationStatus } =
-    useChat();
+  const {
+    activeConversation,
+    conversations,
+    setActiveConversation,
+    updateConversationStatus,
+    isLoading,
+    error,
+  } = useChat();
   // ADS-757: gate on both `allowed` AND `!isLoading` so the action buttons
   // don't flash hidden during the initial permission fetch.
   // ADS-1191: the backend's updateChatStatus gates on `chats.read` (+ rescue
@@ -151,69 +167,73 @@ function Communication() {
 
   const conversationListFilter: ConversationListFilter = filter;
 
+  const conversationView = error ? (
+    <Alert variant="error">Error loading chat: {error}</Alert>
+  ) : isLoading && conversations.length === 0 ? (
+    <div className={styles.loadingContainer}>
+      <Spinner />
+    </div>
+  ) : (
+    <div className={styles.chatContainer}>
+      {isMobile ? (
+        <div
+          className={clsx(
+            styles.mobileView,
+            showChat ? styles.mobileViewShowChat : styles.mobileViewHideChat
+          )}
+        >
+          <ConversationList filter={conversationListFilter} />
+          <ChatWindow />
+        </div>
+      ) : (
+        <>
+          <ConversationList filter={conversationListFilter} />
+          <ChatWindow />
+        </>
+      )}
+    </div>
+  );
+
+  // Both tabs show the same view, filtered by `filter`; only the active panel
+  // carries content so the chat UI is mounted once.
+  const filterTabs = [
+    { id: 'active', label: 'Active', content: filter === 'active' ? conversationView : null },
+    { id: 'resolved', label: 'Resolved', content: filter === 'resolved' ? conversationView : null },
+  ];
+
   return (
     <div className={styles.pageContainer}>
-      <div className={styles.pageHeader}>
-        <h1>Communication</h1>
-        <p>Manage conversations with potential adopters</p>
-        <div className={styles.toolbar} role="tablist" aria-label="Conversation filter">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={filter === 'active'}
-            className={clsx(styles.filterTab, filter === 'active' && styles.filterTabActive)}
-            onClick={() => handleFilterChange('active')}
-          >
-            Active
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={filter === 'resolved'}
-            className={clsx(styles.filterTab, filter === 'resolved' && styles.filterTabActive)}
-            onClick={() => handleFilterChange('resolved')}
-          >
-            Resolved
-          </button>
-          {activeConversation && canManageChat && (
-            <div className={styles.actionGroup}>
-              {isResolved ? (
-                <Button variant="secondary" size="sm" onClick={handleReopen} disabled={isUpdating}>
-                  Reopen
-                </Button>
-              ) : (
-                <Button
-                  variant="warning"
-                  size="sm"
-                  onClick={handleMarkResolved}
-                  disabled={isUpdating}
-                >
-                  Mark resolved
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="Communication"
+        description="Manage conversations with potential adopters"
+        actions={
+          activeConversation && canManageChat ? (
+            isResolved ? (
+              <Button variant="secondary" size="sm" onClick={handleReopen} disabled={isUpdating}>
+                Reopen
+              </Button>
+            ) : (
+              <Button
+                variant="warning"
+                size="sm"
+                onClick={handleMarkResolved}
+                disabled={isUpdating}
+              >
+                Mark resolved
+              </Button>
+            )
+          ) : undefined
+        }
+      />
 
-      <div className={styles.chatContainer}>
-        {isMobile ? (
-          <div
-            className={clsx(
-              styles.mobileView,
-              showChat ? styles.mobileViewShowChat : styles.mobileViewHideChat
-            )}
-          >
-            <ConversationList filter={conversationListFilter} />
-            <ChatWindow />
-          </div>
-        ) : (
-          <>
-            <ConversationList filter={conversationListFilter} />
-            <ChatWindow />
-          </>
-        )}
-      </div>
+      <ConnectionStatusBanner />
+
+      <Tabs
+        aria-label="Conversation filter"
+        tabs={filterTabs}
+        value={filter}
+        onChange={id => isFilterValue(id) && handleFilterChange(id)}
+      />
 
       <ConfirmDialog {...confirmProps} data-testid="mark-resolved-confirm" />
     </div>

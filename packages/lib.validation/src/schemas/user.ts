@@ -67,6 +67,18 @@ export const StrongPasswordSchema = z
   .regex(/[^a-zA-Z0-9]/, 'Password must contain a special character');
 
 /**
+ * The rule for setting a new password anywhere (registration, reset, change,
+ * invitation acceptance): the strong password policy, capped at 128 characters,
+ * the longest password the gateway and auth service accept. Forms, the gateway
+ * and the auth service all validate against this one schema.
+ */
+export const NEW_PASSWORD_MAX_LENGTH = 128;
+export const NewPasswordSchema = StrongPasswordSchema.max(
+  NEW_PASSWORD_MAX_LENGTH,
+  `Password must be at most ${NEW_PASSWORD_MAX_LENGTH} characters`
+);
+
+/**
  * Phone number — 10–20 digits after light normalization (whitespace and
  * separators stripped). Matches User.phoneNumber's isNullOrValidLength
  * validator. Full E.164 normalization is deferred to a libphonenumber

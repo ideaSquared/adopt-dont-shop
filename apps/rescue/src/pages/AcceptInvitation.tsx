@@ -1,7 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router';
-import clsx from 'clsx';
-import { FormField, Input } from '@adopt-dont-shop/lib.components';
+import React, { useState } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router';
+import {
+  NEW_PASSWORD_HINT,
+  NewPasswordSchema,
+  useOneTimeUrlToken,
+} from '@adopt-dont-shop/lib.auth';
+import { Alert, Button, FormField, Input, Spinner } from '@adopt-dont-shop/lib.components';
+import { PartyPopper } from 'lucide-react';
 import { invitationService } from '../services/libraryServices';
 import * as styles from './AcceptInvitation.css';
 
@@ -14,30 +20,15 @@ interface AcceptInvitationFormData {
 }
 
 const AcceptInvitation: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   // Capture the single-use invitation token ONCE, then strip it from the
   // address bar (ADS-1012) so it doesn't linger in browser history or Referer
   // headers — an invitation token also grants a role at a rescue. Held in
   // state so the URL rewrite doesn't pull it out from under the fetch/submit.
-  const [token] = useState(() => searchParams.get('token'));
+  const token = useOneTimeUrlToken();
 
-  useEffect(() => {
-    if (searchParams.has('token')) {
-      const next = new URLSearchParams(searchParams);
-      next.delete('token');
-      setSearchParams(next, { replace: true });
-    }
-  }, [searchParams, setSearchParams]);
-
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [invitationEmail, setInvitationEmail] = useState<string>('');
-  const [rescueName, setRescueName] = useState<string | null>(null);
-  const [invitedByName, setInvitedByName] = useState<string | null>(null);
-  const [role, setRole] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<AcceptInvitationFormData>({
     firstName: '',
@@ -49,33 +40,44 @@ const AcceptInvitation: React.FC = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    const fetchInvitationDetails = async () => {
-      if (!token) {
-        setError('Invalid invitation link. No token provided.');
-        setLoading(false);
-        return;
-      }
+  // The link is single-use: fetch the details once, never refetch or retry.
+  const detailsQuery = useQuery({
+    queryKey: ['invitations', 'details', token],
+    queryFn: () => invitationService.getInvitationDetails(token ?? ''),
+    enabled: Boolean(token),
+    staleTime: Infinity,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+  const details = detailsQuery.data ?? null;
+  const invitationEmail = details?.email ?? '';
+  const rescueName = details?.rescueName ?? null;
+  const invitedByName = details?.invitedByName ?? null;
+  const role = details?.role ?? null;
+  const loading = Boolean(token) && detailsQuery.isLoading;
 
-      try {
-        const details = await invitationService.getInvitationDetails(token);
-        if (details) {
-          setInvitationEmail(details.email);
-          setRescueName(details.rescueName ?? null);
-          setInvitedByName(details.invitedByName ?? null);
-          setRole(details.role ?? null);
-        } else {
-          setError('Invitation not found or has expired.');
-        }
-      } catch (err) {
-        setError('Failed to load invitation details. The link may be invalid or expired.');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const loadError = (() => {
+    if (!token) {
+      return 'Invalid invitation link. No token provided.';
+    }
+    if (detailsQuery.isError) {
+      return 'Failed to load invitation details. The link may be invalid or expired.';
+    }
+    if (detailsQuery.isSuccess && !details) {
+      return 'Invitation not found or has expired.';
+    }
+    return null;
+  })();
+  const error = submitError ?? loadError;
 
-    fetchInvitationDetails();
-  }, [token]);
+  const acceptMutation = useMutation({
+    // Call as a method: the service reads `this`, so it cannot be passed unbound.
+    mutationFn: (payload: Parameters<typeof invitationService.acceptInvitation>[0]) =>
+      invitationService.acceptInvitation(payload),
+    // Failures show in the page's own error alert.
+    onError: () => undefined,
+  });
+  const submitting = acceptMutation.isPending;
 
   const handleInputChange = (field: keyof AcceptInvitationFormData, value: string) => {
     setFormData(prev => ({
@@ -107,10 +109,13 @@ const AcceptInvitation: React.FC = () => {
       newErrors.lastName = 'Last name must be at least 2 characters';
     }
 
+    // The gateway and auth service enforce this same shared rule, so check it
+    // here first rather than letting the request come back as a 400.
+    const passwordCheck = NewPasswordSchema.safeParse(formData.password);
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
+    } else if (!passwordCheck.success) {
+      newErrors.password = passwordCheck.error.issues[0]?.message ?? NEW_PASSWORD_HINT;
     }
 
     if (!formData.confirmPassword) {
@@ -134,11 +139,10 @@ const AcceptInvitation: React.FC = () => {
       return;
     }
 
-    setSubmitting(true);
-    setError(null);
+    setSubmitError(null);
 
     try {
-      await invitationService.acceptInvitation({
+      await acceptMutation.mutateAsync({
         token,
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -148,11 +152,9 @@ const AcceptInvitation: React.FC = () => {
 
       setSuccess(true);
     } catch (err) {
-      setError(
+      setSubmitError(
         err instanceof Error ? err.message : 'Failed to accept invitation. Please try again.'
       );
-    } finally {
-      setSubmitting(false);
     }
   };
 
@@ -169,7 +171,7 @@ const AcceptInvitation: React.FC = () => {
             <p>Loading invitation details...</p>
           </div>
           <div className={styles.loadingContainer}>
-            <span className={styles.loadingSpinner} />
+            <Spinner label="Loading invitation details" />
           </div>
         </div>
       </div>
@@ -186,14 +188,16 @@ const AcceptInvitation: React.FC = () => {
           </div>
           <div className={styles.cardBody}>
             <div className={styles.successContainer}>
-              <div className={styles.successIcon}>🎉</div>
+              <div className={styles.successIcon}>
+                <PartyPopper size="1em" aria-hidden="true" />
+              </div>
               <h2>Account Created!</h2>
               <p>
                 We created your account. You can now log in to start working with your rescue team.
               </p>
-              <button className={styles.loginButton} onClick={handleGoToLogin}>
+              <Button variant="primary" onClick={handleGoToLogin}>
                 Go to Login
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -210,16 +214,12 @@ const AcceptInvitation: React.FC = () => {
             <p>Unable to process invitation</p>
           </div>
           <div className={styles.cardBody}>
-            <div className={styles.errorContainer} role="alert" aria-live="assertive">
-              <h3>⚠️ Error</h3>
-              <p>{error}</p>
-            </div>
-            <button
-              className={clsx(styles.loginButton, styles.loginButtonFull)}
-              onClick={handleGoToLogin}
-            >
+            <Alert variant="error" title="Error">
+              {error}
+            </Alert>
+            <Button variant="primary" isFullWidth onClick={handleGoToLogin}>
               Go to Homepage
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -256,10 +256,9 @@ const AcceptInvitation: React.FC = () => {
           </div>
 
           {error && (
-            <div className={styles.errorContainer} role="alert" aria-live="assertive">
-              <h3>⚠️ Error</h3>
-              <p>{error}</p>
-            </div>
+            <Alert variant="error" title="Error">
+              {error}
+            </Alert>
           )}
 
           <form onSubmit={handleSubmit} noValidate>
@@ -299,7 +298,7 @@ const AcceptInvitation: React.FC = () => {
               htmlFor="password"
               required
               error={errors.password}
-              description="Must be at least 8 characters"
+              description={NEW_PASSWORD_HINT}
             >
               <Input
                 id="password"
@@ -348,16 +347,9 @@ const AcceptInvitation: React.FC = () => {
               />
             </FormField>
 
-            <button className={styles.submitButton} type="submit" disabled={submitting}>
-              {submitting ? (
-                <>
-                  <span className={styles.loadingSpinner} />
-                  Creating Account...
-                </>
-              ) : (
-                'Create Account'
-              )}
-            </button>
+            <Button type="submit" variant="primary" isFullWidth isLoading={submitting}>
+              {submitting ? 'Creating Account...' : 'Create Account'}
+            </Button>
           </form>
         </div>
       </div>

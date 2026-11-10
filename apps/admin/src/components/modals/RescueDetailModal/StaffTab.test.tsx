@@ -86,7 +86,7 @@ describe('StaffTab', () => {
     await screen.findByText('No staff members yet. Invite your first team member!');
 
     fireEvent.click(screen.getByRole('button', { name: /invite staff/i }));
-    expect(screen.getByLabelText('Email Address *')).toBeInTheDocument();
+    expect(screen.getByLabelText('Email Address')).toBeInTheDocument();
   });
 
   it('hides the invite form when Cancel is clicked', async () => {
@@ -94,10 +94,10 @@ describe('StaffTab', () => {
     await screen.findByText('No staff members yet. Invite your first team member!');
 
     fireEvent.click(screen.getByRole('button', { name: /invite staff/i }));
-    expect(screen.getByLabelText('Email Address *')).toBeInTheDocument();
+    expect(screen.getByLabelText('Email Address')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(screen.queryByLabelText('Email Address *')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Email Address')).not.toBeInTheDocument();
   });
 
   it('calls inviteStaff with email and title when Send Invitation is clicked', async () => {
@@ -107,7 +107,7 @@ describe('StaffTab', () => {
     await screen.findByText('No staff members yet. Invite your first team member!');
 
     fireEvent.click(screen.getByRole('button', { name: /invite staff/i }));
-    fireEvent.change(screen.getByLabelText('Email Address *'), {
+    fireEvent.change(screen.getByLabelText('Email Address'), {
       target: { value: 'new@example.com' },
     });
     fireEvent.change(screen.getByLabelText('Job Title (Optional)'), {
@@ -121,5 +121,38 @@ describe('StaffTab', () => {
         title: 'Vet',
       });
     });
+  });
+
+  it('removes a staff member after confirmation', async () => {
+    const mockRemoveStaff = vi.mocked(rescueService.removeStaff);
+    mockRemoveStaff.mockResolvedValue(undefined);
+    mockGetStaff.mockResolvedValue({
+      data: [buildStaffMember()],
+      pagination: { page: 1, pages: 1, total: 1 },
+    });
+
+    render(<StaffTab rescueId='rescue-1' />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove staff member' }));
+
+    await waitFor(() => expect(mockRemoveStaff).toHaveBeenCalledWith('rescue-1', 'user-1'));
+  });
+
+  it('cancels a pending invitation', async () => {
+    const mockCancel = vi.mocked(rescueService.cancelInvitation);
+    mockCancel.mockResolvedValue(undefined);
+    mockGetInvitations.mockResolvedValue([buildInvitation()]);
+
+    render(<StaffTab rescueId='rescue-1' />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel invitation' }));
+
+    await waitFor(() => expect(mockCancel).toHaveBeenCalledWith('rescue-1', 1));
+  });
+
+  it('shows the error when staff cannot be loaded', async () => {
+    mockGetStaff.mockRejectedValue(new Error('Staff unavailable'));
+
+    render(<StaffTab rescueId='rescue-1' />);
+
+    expect(await screen.findByText('Staff unavailable')).toBeInTheDocument();
   });
 });

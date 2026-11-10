@@ -8,7 +8,7 @@ import {
   type BootstrapAdminInput,
 } from './bootstrap-admin-core.js';
 
-const PASSWORD = 'correct-horse-battery';
+const PASSWORD = 'CorrectHorse-Battery1!';
 
 const INPUT: BootstrapAdminInput = {
   email: 'ops@adoptdontshop.example',
@@ -110,10 +110,13 @@ describe('bootstrapSuperAdmin', () => {
     expect(written(queries, 'auth.users')).toHaveLength(0);
   });
 
-  it('rejects a password below the auth service policy', async () => {
+  it.each([
+    ['too short', 'short'],
+    ['long but weak', 'longbutweakpassword'],
+  ])('rejects a %s password below the auth service policy', async (_label, password) => {
     const { deps, queries } = makeDeps();
 
-    await expect(bootstrapSuperAdmin(deps, { ...INPUT, password: 'short' })).rejects.toMatchObject({
+    await expect(bootstrapSuperAdmin(deps, { ...INPUT, password })).rejects.toMatchObject({
       code: 'INVALID_ARGUMENT',
     });
     expect(queries).toHaveLength(0);

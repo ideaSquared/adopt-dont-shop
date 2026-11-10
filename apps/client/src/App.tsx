@@ -1,6 +1,7 @@
 import { ReactNode, lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
-import { Spinner } from '@adopt-dont-shop/lib.components';
+import { ErrorBoundary, NotFoundPage, Spinner } from '@adopt-dont-shop/lib.components';
+import { captureException } from '@adopt-dont-shop/lib.observability';
 import { useAuth, PermissionsProvider } from '@adopt-dont-shop/lib.auth';
 import { permissionsService } from '@/services/libraryServices';
 import { AnalyticsProvider } from '@/contexts/AnalyticsContext';
@@ -11,7 +12,6 @@ import { MatchAcknowledgementProvider } from '@/contexts/MatchAcknowledgementCon
 import { DevLoginPanel } from './components/dev/DevLoginPanel';
 import { AppShell } from './components/layout/AppShell';
 import { PublicAuthLayout } from './components/layout/PublicAuthLayout';
-import { ErrorBoundary } from './components/common/ErrorBoundary';
 // ADS-669: legal UI is non-critical to first paint — split it into the
 // `legal-lib` chunk via lazy imports so it loads in parallel with the
 // initial route rather than blocking the main entry bundle. The CookieBanner
@@ -105,9 +105,11 @@ const HelpPage = lazy(() => import('@/pages/HelpPage').then(m => ({ default: m.H
 const HelpArticlePage = lazy(() =>
   import('@/pages/HelpArticlePage').then(m => ({ default: m.HelpArticlePage }))
 );
-const NotFoundPage = lazy(() =>
-  import('@/pages/NotFoundPage').then(m => ({ default: m.NotFoundPage }))
-);
+const NOT_FOUND_SUGGESTIONS = [
+  { to: '/discover', label: 'Discover pets' },
+  { to: '/search', label: 'Search' },
+  { to: '/help', label: 'Get help' },
+];
 
 const PageLoader = () => (
   <div className={styles.pageLoader}>
@@ -118,7 +120,17 @@ const PageLoader = () => (
 // ADS-482: route-level ErrorBoundary so a crash in one risky route (chat,
 // discovery, application form, etc.) doesn't blank the whole app.
 const RouteBoundary = ({ name, children }: { name: string; children: ReactNode }) => (
-  <ErrorBoundary boundary={name}>{children}</ErrorBoundary>
+  <ErrorBoundary
+    onError={(error, errorInfo) =>
+      captureException(error, {
+        app: 'client',
+        boundary: name,
+        componentStack: errorInfo.componentStack,
+      })
+    }
+  >
+    {children}
+  </ErrorBoundary>
 );
 
 function App() {
@@ -215,7 +227,15 @@ function App() {
                       <Route path='/about' element={<AboutPage />} />
                       <Route path='/contact' element={<ContactPage />} />
                       {/* ADS-480: 404 catch-all */}
-                      <Route path='*' element={<NotFoundPage />} />
+                      <Route
+                        path='*'
+                        element={
+                          <NotFoundPage
+                            homeLabel='Take me home'
+                            suggestions={NOT_FOUND_SUGGESTIONS}
+                          />
+                        }
+                      />
                     </Route>
                   </Routes>
                 </Suspense>

@@ -132,6 +132,10 @@ describe('time helpers', () => {
       expect(typeof formatDate(now)).toBe('string');
       expect(formatDate(now)).toBe(formatDate(now.toISOString()));
     });
+
+    it('writes the date day-first with a 24-hour clock', () => {
+      expect(formatDate(new Date(2026, 3, 21, 14, 5))).toBe('21 Apr 2026, 14:05');
+    });
   });
 });
 

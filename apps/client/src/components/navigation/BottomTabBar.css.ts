@@ -53,7 +53,7 @@ export const tabLinkBase = style({
 });
 
 globalStyle(`${tabLinkBase} svg`, {
-  fontSize: '1.5rem',
+  fontSize: vars.typography.size['2xl'],
 });
 
 export const tabLink = recipe({

@@ -105,9 +105,29 @@ const PRINCIPAL: Principal = {
   permissions: ['notifications.read' as Permission],
 };
 
+const WEAK_PASSWORD = 'longbutweakpassword';
+
+const expectNothingWritten = (mocks: ReturnType<typeof makeMocks>): void => {
+  expect(mocks.hasherMock.hash).not.toHaveBeenCalled();
+  expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  expect(mocks.poolMock.connect).not.toHaveBeenCalled();
+  expect(mocks.clientMock.query).not.toHaveBeenCalled();
+};
+
+const expectStrongPasswordRejection = async (attempt: Promise<unknown>): Promise<void> => {
+  const error: unknown = await attempt.then(
+    () => undefined,
+    (e: unknown) => e
+  );
+  expect(error).toMatchObject({ code: 'INVALID_ARGUMENT' });
+  const message = error instanceof Error ? error.message : '';
+  expect(message).toMatch(/password/i);
+  expect(message).not.toContain(WEAK_PASSWORD);
+};
+
 const REGISTER_REQ = {
   email: 'new@example.com',
-  password: 'hunter22',
+  password: 'DevPassword123!',
   firstName: 'Jo',
   lastName: 'Bloggs',
   termsAccepted: true,
@@ -133,6 +153,13 @@ describe('register', () => {
     await expect(
       register(mocks.deps, null, { ...REGISTER_REQ, password: 'short' })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects a long but weak password and writes nothing', async () => {
+    await expectStrongPasswordRejection(
+      register(mocks.deps, null, { ...REGISTER_REQ, password: WEAK_PASSWORD })
+    );
+    expectNothingWritten(mocks);
   });
 
   it('rejects when terms / privacy not accepted', async () => {
@@ -172,7 +199,7 @@ describe('register', () => {
     expect(res).toEqual({ permissions: [] });
     expect(mocks.issuerMock.mint).not.toHaveBeenCalled();
 
-    expect(mocks.hasherMock.hash).toHaveBeenCalledWith('hunter22');
+    expect(mocks.hasherMock.hash).toHaveBeenCalledWith('DevPassword123!');
     const insertCall = realQueries(mocks.clientMock.query)[0];
     expect(insertCall[0]).toContain('INSERT INTO auth.users');
     expect(insertCall[0]).toContain("'pending_verification'");
@@ -203,7 +230,7 @@ describe('provisionInvitedUser', () => {
 
   const PROVISION_REQ = {
     email: 'invitee@example.com',
-    password: 'hunter22',
+    password: 'DevPassword123!',
     firstName: 'Jo',
     lastName: 'Bloggs',
   } as Parameters<typeof provisionInvitedUser>[2];
@@ -218,6 +245,13 @@ describe('provisionInvitedUser', () => {
     await expect(
       provisionInvitedUser(mocks.deps, null, { ...PROVISION_REQ, password: 'short' })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects a long but weak password and writes nothing', async () => {
+    await expectStrongPasswordRejection(
+      provisionInvitedUser(mocks.deps, null, { ...PROVISION_REQ, password: WEAK_PASSWORD })
+    );
+    expectNothingWritten(mocks);
   });
 
   it('rejects missing names', async () => {
@@ -306,6 +340,13 @@ describe('registerRescueOwner', () => {
     await expect(
       registerRescueOwner(mocks.deps, null, { ...OWNER_REQ, lastName: '' })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects a long but weak password and writes nothing', async () => {
+    await expectStrongPasswordRejection(
+      registerRescueOwner(mocks.deps, null, { ...OWNER_REQ, password: WEAK_PASSWORD })
+    );
+    expectNothingWritten(mocks);
   });
 
   it('answers an already-registered email like a fresh sign-up: no user, no error, no account created', async () => {
@@ -516,11 +557,18 @@ describe('resetPassword', () => {
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
+  it('rejects a long but weak password and writes nothing', async () => {
+    await expectStrongPasswordRejection(
+      resetPassword(mocks.deps, null, { resetToken: 'tok', newPassword: WEAK_PASSWORD })
+    );
+    expectNothingWritten(mocks);
+  });
+
   it('rejects when token does not match', async () => {
     mocks.hasherMock.hash.mockResolvedValueOnce('hash');
     mocks.clientScript([]);
     await expect(
-      resetPassword(mocks.deps, null, { resetToken: 'bad', newPassword: 'longenough' })
+      resetPassword(mocks.deps, null, { resetToken: 'bad', newPassword: 'DevPassword123!' })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
@@ -529,7 +577,7 @@ describe('resetPassword', () => {
     mocks.clientScript([userRowFixture()]);
     const res = await resetPassword(mocks.deps, null, {
       resetToken: 'tok',
-      newPassword: 'longenough',
+      newPassword: 'DevPassword123!',
     });
     expect(res.ok).toBe(true);
     const sql = realQueries(mocks.clientMock.query)[0][0] as string;
@@ -543,7 +591,7 @@ describe('resetPassword', () => {
     const rawToken = 'raw-reset-token';
     mocks.hasherMock.hash.mockResolvedValueOnce('hash');
     mocks.clientScript([userRowFixture()]);
-    await resetPassword(mocks.deps, null, { resetToken: rawToken, newPassword: 'longenough' });
+    await resetPassword(mocks.deps, null, { resetToken: rawToken, newPassword: 'DevPassword123!' });
     const queries = realQueries(mocks.clientMock.query);
     const params = queries[0][1] as unknown[];
     // $2 is the token parameter in the WHERE clause
@@ -554,7 +602,7 @@ describe('resetPassword', () => {
   it("revokes all of the user's refresh tokens (sessions) on reset", async () => {
     mocks.hasherMock.hash.mockResolvedValueOnce('hash');
     mocks.clientScript([userRowFixture()]);
-    await resetPassword(mocks.deps, null, { resetToken: 'tok', newPassword: 'longenough' });
+    await resetPassword(mocks.deps, null, { resetToken: 'tok', newPassword: 'DevPassword123!' });
     const revoke = realQueries(mocks.clientMock.query).find(
       q => /auth\.refresh_tokens/.test(String(q[0])) && /is_revoked = true/.test(String(q[0]))
     );
@@ -565,7 +613,7 @@ describe('resetPassword', () => {
   it('preserves 2FA state + backup codes on reset — an email-token reset must not disable the second factor (ADS-1163)', async () => {
     mocks.hasherMock.hash.mockResolvedValueOnce('hash');
     mocks.clientScript([userRowFixture({ two_factor_enabled: true })]);
-    await resetPassword(mocks.deps, null, { resetToken: 'tok', newPassword: 'longenough' });
+    await resetPassword(mocks.deps, null, { resetToken: 'tok', newPassword: 'DevPassword123!' });
     const sql = realQueries(mocks.clientMock.query)[0][0] as string;
     // Resetting the password from an inbox-delivered token must leave the
     // second factor intact — otherwise inbox compromise alone bypasses 2FA.
@@ -587,7 +635,7 @@ describe('redeemInvitation', () => {
 
   it('rejects a missing token', async () => {
     await expect(
-      redeemInvitation(mocks.deps, null, { invitationToken: '', newPassword: 'longenough' })
+      redeemInvitation(mocks.deps, null, { invitationToken: '', newPassword: 'DevPassword123!' })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
@@ -597,11 +645,18 @@ describe('redeemInvitation', () => {
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
+  it('rejects a long but weak password and writes nothing', async () => {
+    await expectStrongPasswordRejection(
+      redeemInvitation(mocks.deps, null, { invitationToken: 'tok', newPassword: WEAK_PASSWORD })
+    );
+    expectNothingWritten(mocks);
+  });
+
   it('rejects an invalid or expired invitation token', async () => {
     mocks.hasherMock.hash.mockResolvedValueOnce('hash');
     mocks.clientScript([]); // invitation UPDATE matches nothing
     await expect(
-      redeemInvitation(mocks.deps, null, { invitationToken: 'bad', newPassword: 'longenough' })
+      redeemInvitation(mocks.deps, null, { invitationToken: 'bad', newPassword: 'DevPassword123!' })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
@@ -611,7 +666,7 @@ describe('redeemInvitation', () => {
     mocks.clientScript([userRowFixture({ status: 'active', email_verified: true })]); // users UPDATE
     const res = await redeemInvitation(mocks.deps, null, {
       invitationToken: 'tok',
-      newPassword: 'longenough',
+      newPassword: 'DevPassword123!',
     });
     expect(res.user?.userId).toBe('usr-1');
     const queries = realQueries(mocks.clientMock.query);
@@ -628,7 +683,7 @@ describe('redeemInvitation', () => {
     mocks.clientScript([userRowFixture()]);
     await redeemInvitation(mocks.deps, null, {
       invitationToken: 'raw-token',
-      newPassword: 'longenough',
+      newPassword: 'DevPassword123!',
     });
     const queries = realQueries(mocks.clientMock.query);
     const params = queries[0][1] as unknown[];
@@ -646,8 +701,29 @@ describe('changePassword', () => {
 
   it('rejects unauthenticated', async () => {
     await expect(
-      changePassword(mocks.deps, null, { currentPassword: 'x', newPassword: 'longenough' })
+      changePassword(mocks.deps, null, { currentPassword: 'x', newPassword: 'DevPassword123!' })
     ).rejects.toBeInstanceOf(HandlerError);
+  });
+
+  it('rejects a long but weak new password and writes nothing', async () => {
+    await expectStrongPasswordRejection(
+      changePassword(mocks.deps, PRINCIPAL, {
+        currentPassword: 'right',
+        newPassword: WEAK_PASSWORD,
+      })
+    );
+    expectNothingWritten(mocks);
+  });
+
+  it('accepts a weak CURRENT password so legacy accounts can still change it', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ password: 'existing-hash' }] });
+    mocks.hasherMock.compare.mockResolvedValueOnce(true);
+    mocks.hasherMock.hash.mockResolvedValueOnce('new-hash');
+    const res = await changePassword(mocks.deps, PRINCIPAL, {
+      currentPassword: 'hunter22',
+      newPassword: 'DevPassword123!',
+    });
+    expect(res.ok).toBe(true);
   });
 
   it('rejects when current password is wrong', async () => {
@@ -656,7 +732,7 @@ describe('changePassword', () => {
     await expect(
       changePassword(mocks.deps, PRINCIPAL, {
         currentPassword: 'wrong',
-        newPassword: 'longenough',
+        newPassword: 'DevPassword123!',
       })
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   });
@@ -667,7 +743,7 @@ describe('changePassword', () => {
     mocks.hasherMock.hash.mockResolvedValueOnce('new-hash');
     const res = await changePassword(mocks.deps, PRINCIPAL, {
       currentPassword: 'right',
-      newPassword: 'longenough',
+      newPassword: 'DevPassword123!',
     });
     expect(res.ok).toBe(true);
     expect(realQueries(mocks.clientMock.query)[0][1]).toContain('new-hash');
@@ -683,7 +759,7 @@ describe('changePassword', () => {
     mocks.hasherMock.hash.mockResolvedValueOnce('new-hash');
     await changePassword(mocks.deps, PRINCIPAL, {
       currentPassword: 'right',
-      newPassword: 'longenough',
+      newPassword: 'DevPassword123!',
     });
     const revoke = realQueries(mocks.clientMock.query).find(
       q => /auth\.refresh_tokens/.test(String(q[0])) && /is_revoked = true/.test(String(q[0]))

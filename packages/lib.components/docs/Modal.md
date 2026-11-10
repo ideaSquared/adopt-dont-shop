@@ -38,3 +38,7 @@ is trapped within it (Tab/Shift+Tab cycle), and returns to the previously
 focused element on close. Escape closes it unless `closeOnEscape={false}`. The
 dialog is labelled by `title`; when using a custom `header`, ensure it still
 provides an accessible name.
+
+Modals stack: when one is open over another (nested inside it, or opened later
+alongside it), Escape closes only the top-most one, and the page stays
+scroll-locked until the last one closes.

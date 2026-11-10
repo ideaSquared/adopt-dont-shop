@@ -1,28 +1,24 @@
-import { globalStyle, style, keyframes } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
-
-const spin = keyframes({
-  '0%': { transform: 'rotate(0deg)' },
-  '100%': { transform: 'rotate(360deg)' },
-});
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const container = style({
   background: 'white',
-  borderRadius: '12px',
+  borderRadius: vars.border.radius.lg,
   boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
   overflow: 'hidden',
 });
 
 export const header = style({
-  padding: '1.5rem',
+  padding: vars.spacing['4'],
   borderBottom: '1px solid #e9ecef',
   background: '#f8f9fa',
 });
 
 globalStyle(`${header} h3`, {
-  margin: '0 0 0.5rem 0',
+  margin: `0 0 ${vars.spacing['2']} 0`,
   color: '#333',
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
   fontSize: '1.1rem',
 });
 
@@ -33,14 +29,14 @@ globalStyle(`${header} p`, {
 });
 
 export const invitationsList = style({
-  padding: '1rem',
+  padding: vars.spacing['3'],
 });
 
 export const invitationCard = recipe({
   base: {
     padding: '1.25rem',
-    borderRadius: '8px',
-    marginBottom: '1rem',
+    borderRadius: vars.border.radius.base,
+    marginBottom: vars.spacing['3'],
     transition: 'all 0.2s ease',
     selectors: {
       '&:last-child': {
@@ -73,7 +69,7 @@ export const invitationHeader = style({
   justifyContent: 'space-between',
   alignItems: 'flex-start',
   marginBottom: '0.75rem',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   '@media': {
     '(max-width: 640px)': {
       flexDirection: 'column',
@@ -86,24 +82,24 @@ export const invitationInfo = style({
 });
 
 export const email = style({
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
   color: '#333',
-  fontSize: '1rem',
-  marginBottom: '0.25rem',
+  fontSize: vars.typography.size.base,
+  marginBottom: vars.spacing['1'],
   wordBreak: 'break-all',
 });
 
 export const title = style({
   color: '#666',
   fontSize: '0.9rem',
-  marginBottom: '0.5rem',
+  marginBottom: vars.spacing['2'],
 });
 
 export const metaInfo = style({
   display: 'flex',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   flexWrap: 'wrap',
-  marginTop: '0.5rem',
+  marginTop: vars.spacing['2'],
 });
 
 export const metaItem = style({
@@ -111,39 +107,16 @@ export const metaItem = style({
   fontSize: '0.85rem',
   display: 'flex',
   alignItems: 'center',
-  gap: '0.25rem',
+  gap: vars.spacing['1'],
 });
 
 globalStyle(`${metaItem} strong`, {
   color: '#333',
 });
 
-export const statusBadge = recipe({
-  base: {
-    display: 'inline-block',
-    padding: '0.25rem 0.75rem',
-    borderRadius: '12px',
-    fontSize: '0.75rem',
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
-  variants: {
-    status: {
-      active: {
-        background: '#d1f4e0',
-        color: '#0a7b3e',
-      },
-      expiring: {
-        background: '#fff3cd',
-        color: '#856404',
-      },
-    },
-  },
-});
-
 export const actions = style({
   display: 'flex',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   alignItems: 'flex-start',
   '@media': {
     '(max-width: 640px)': {
@@ -153,58 +126,15 @@ export const actions = style({
   },
 });
 
-export const actionButton = recipe({
-  base: {
-    padding: '0.5rem 1rem',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '0.875rem',
-    fontWeight: '500',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    whiteSpace: 'nowrap',
-    ':disabled': {
-      opacity: 0.6,
-      cursor: 'not-allowed',
-    },
-  },
-  variants: {
-    variant: {
-      danger: {
-        background: '#dc3545',
-        color: 'white',
-        selectors: {
-          '&:hover:not(:disabled)': {
-            background: '#c82333',
-          },
-        },
-      },
-      default: {
-        background: '#f8f9fa',
-        color: '#495057',
-        border: '1px solid #dee2e6',
-        selectors: {
-          '&:hover:not(:disabled)': {
-            background: '#e9ecef',
-          },
-        },
-      },
-    },
-  },
-  defaultVariants: {
-    variant: 'default',
-  },
-});
-
 export const emptyState = style({
-  padding: '3rem 2rem',
+  padding: `${vars.spacing['6']} ${vars.spacing['5']}`,
   textAlign: 'center',
   color: '#666',
 });
 
 export const emptyIcon = style({
-  fontSize: '3rem',
-  marginBottom: '1rem',
+  fontSize: vars.typography.size['5xl'],
+  marginBottom: vars.spacing['3'],
 });
 
 export const emptyText = style({
@@ -213,21 +143,11 @@ export const emptyText = style({
 });
 
 globalStyle(`${emptyText} p`, {
-  margin: '0.5rem 0',
+  margin: `${vars.spacing['2']} 0`,
 });
 
 export const loadingContainer = style({
-  padding: '3rem 2rem',
+  padding: `${vars.spacing['6']} ${vars.spacing['5']}`,
   textAlign: 'center',
   color: '#666',
-});
-
-export const loadingSpinner = style({
-  width: '3rem',
-  height: '3rem',
-  border: '3px solid #e9ecef',
-  borderTop: '3px solid #1976d2',
-  borderRadius: '50%',
-  animation: `${spin} 1s linear infinite`,
-  margin: '0 auto 1rem',
 });

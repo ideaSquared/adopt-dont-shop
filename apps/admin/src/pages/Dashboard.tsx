@@ -1,7 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router';
-import clsx from 'clsx';
-import { Heading, Stack, Text } from '@adopt-dont-shop/lib.components';
+import { ClipboardList, Heart, House, PawPrint, UserPlus, Users } from 'lucide-react';
+import {
+  ErrorState,
+  Heading,
+  MetricCard,
+  PageHeader,
+  SkeletonCard,
+  Stack,
+} from '@adopt-dont-shop/lib.components';
 import { useReports } from '@adopt-dont-shop/lib.moderation';
 import { useTickets, formatRelativeTime } from '@adopt-dont-shop/lib.support-tickets';
 import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
@@ -19,14 +26,11 @@ const formatGrowthLabel = (current: number, previous: number, label: string): st
   return `${sign}${pct}% from last month`;
 };
 
-type MetricTone = 'positive' | 'neutral' | 'negative';
-
 type MetricDefinition = {
-  icon: string;
+  icon: React.ReactNode;
   label: string;
-  value: string;
+  value: number;
   change: string;
-  tone: MetricTone;
   href: string;
 };
 
@@ -69,55 +73,49 @@ const Dashboard: React.FC = () => {
   const metrics: MetricDefinition[] = data
     ? [
         {
-          icon: '👥',
+          icon: <Users size='1em' aria-hidden='true' />,
           label: 'Total Users',
-          value: formatNumber(data.users.total),
+          value: data.users.total,
           change: formatGrowthLabel(
             data.users.newThisMonth,
             0,
             `${formatNumber(data.users.newThisMonth)} new this month`
           ),
-          tone: data.users.newThisMonth >= 0 ? 'positive' : 'negative',
           href: '/users',
         },
         {
-          icon: '🏠',
+          icon: <House size='1em' aria-hidden='true' />,
           label: 'Active Rescues',
-          value: formatNumber(data.rescues.verified),
+          value: data.rescues.verified,
           change: `${formatNumber(data.rescues.pending)} pending verification`,
-          tone: 'neutral',
           href: '/rescues?status=verified',
         },
         {
-          icon: '🐾',
+          icon: <PawPrint size='1em' aria-hidden='true' />,
           label: 'Pets Listed',
-          value: formatNumber(data.pets.available),
+          value: data.pets.available,
           change: `${formatNumber(data.pets.total)} total pets`,
-          tone: 'positive',
           href: '/pets?status=available',
         },
         {
-          icon: '❤️',
+          icon: <Heart size='1em' aria-hidden='true' />,
           label: 'Adoptions (30d)',
-          value: formatNumber(data.pets.adopted),
+          value: data.pets.adopted,
           change: `${formatNumber(data.applications.approved)} applications approved`,
-          tone: data.pets.adopted > 0 ? 'positive' : 'neutral',
           href: '/pets?status=adopted',
         },
         {
-          icon: '📋',
+          icon: <ClipboardList size='1em' aria-hidden='true' />,
           label: 'Pending Applications',
-          value: formatNumber(data.applications.pending),
+          value: data.applications.pending,
           change: `${formatNumber(data.applications.total)} total this month`,
-          tone: 'neutral',
           href: '/applications?status=submitted',
         },
         {
-          icon: '🎫',
+          icon: <UserPlus size='1em' aria-hidden='true' />,
           label: 'New Users (30d)',
-          value: formatNumber(data.users.newThisMonth),
+          value: data.users.newThisMonth,
           change: `${formatNumber(data.users.active)} active users`,
-          tone: data.users.newThisMonth > 0 ? 'positive' : 'neutral',
           href: '/users',
         },
       ]
@@ -129,53 +127,39 @@ const Dashboard: React.FC = () => {
 
   return (
     <Stack spacing='xl' className={styles.dashboardContainer}>
-      <div className={styles.pageHeader}>
-        <Heading level='h1'>Admin Dashboard</Heading>
-        <Text>Welcome back! Here's what's happening across the platform today.</Text>
-      </div>
+      <PageHeader
+        title='Admin Dashboard'
+        description="Welcome back! Here's what's happening across the platform today."
+      />
 
       {isError && (
-        <div className={styles.errorBanner} role='alert'>
-          Failed to load dashboard metrics:{' '}
-          {error instanceof Error ? error.message : 'Unknown error'}
-        </div>
+        <ErrorState
+          size='sm'
+          title='Failed to load dashboard metrics'
+          message={error instanceof Error ? error.message : 'Unknown error'}
+        />
       )}
 
       <div className={styles.metricsGrid}>
         {isLoading
           ? Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className={styles.metricCard} aria-busy='true'>
-                <div className={styles.metricHeader}>
-                  <div className={clsx(styles.skeletonBlock, styles.skeletonIcon)} />
-                  <div className={clsx(styles.skeletonBlock, styles.skeletonLabel)} />
-                </div>
-                <div className={clsx(styles.skeletonBlock, styles.skeletonValue)} />
-                <div className={clsx(styles.skeletonBlock, styles.skeletonChange)} />
+              <div key={i} aria-busy='true'>
+                <SkeletonCard lines={2} />
               </div>
             ))
           : metrics.map(metric => (
               <Link
                 key={metric.label}
                 to={metric.href}
-                className={styles.metricCard}
+                className={styles.metricLink}
                 aria-label={`View ${metric.label}`}
               >
-                <div className={styles.metricHeader}>
-                  <span>{metric.icon}</span>
-                  <div className={styles.metricLabel}>{metric.label}</div>
-                </div>
-                <div className={styles.metricValue}>{metric.value}</div>
-                <div
-                  className={
-                    metric.tone === 'positive'
-                      ? styles.metricChangePositive
-                      : metric.tone === 'negative'
-                        ? styles.metricChangeNegative
-                        : styles.metricChangeNeutral
-                  }
-                >
-                  {metric.change}
-                </div>
+                <MetricCard
+                  icon={metric.icon}
+                  label={metric.label}
+                  value={metric.value}
+                  helperText={metric.change}
+                />
               </Link>
             ))}
       </div>

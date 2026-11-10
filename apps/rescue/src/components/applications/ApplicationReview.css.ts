@@ -1,89 +1,21 @@
-import { globalStyle, keyframes, style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 import { recipe } from '@vanilla-extract/recipes';
 
-const spin = keyframes({
-  '0%': { transform: 'rotate(0deg)' },
-  '100%': { transform: 'rotate(360deg)' },
-});
-
-export const overlay = style({
-  position: 'fixed',
-  inset: 0,
-  background: 'rgba(75, 85, 99, 0.5)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 50,
-});
-
-export const modal = style({
-  background: 'white',
-  borderRadius: '0.5rem',
-  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-  maxWidth: '72rem',
-  width: '100%',
-  margin: '1rem',
-  maxHeight: '90vh',
-  overflow: 'hidden',
-});
-
 export const loadingContainer = style({
-  background: 'white',
-  borderRadius: '0.5rem',
-  padding: '2rem',
+  padding: vars.spacing['4'],
   textAlign: 'center',
 });
 
-export const spinner = style({
-  display: 'inline-block',
-  width: '2rem',
-  height: '2rem',
-  border: '2px solid #e5e7eb',
-  borderTop: '2px solid #3b82f6',
-  borderRadius: '50%',
-  animation: `${spin} 1s linear infinite`,
-});
-
-export const loadingText = style({
-  marginTop: '0.5rem',
-  fontSize: '0.875rem',
-  color: '#6b7280',
-});
-
-export const errorContainer = style({
-  background: 'white',
-  borderRadius: '0.5rem',
-  padding: '2rem',
-  maxWidth: '28rem',
-});
-
-export const errorText = style({
-  color: '#ef4444',
-  marginBottom: '1rem',
-});
-
 export const errorMessage = style({
-  fontSize: '0.875rem',
-  color: '#374151',
-  marginBottom: '1rem',
-});
-
-export const closeButton = style({
-  padding: '0.5rem 1rem',
-  background: '#d1d5db',
-  color: '#374151',
-  borderRadius: '0.375rem',
-  border: 'none',
-  cursor: 'pointer',
-  transition: 'background-color 0.2s',
-  ':hover': {
-    background: '#9ca3af',
-  },
+  fontSize: vars.typography.size.sm,
+  color: vars.text.primary,
+  marginBottom: vars.spacing['4'],
 });
 
 export const header = style({
   background: '#f9fafb',
-  padding: '1.5rem',
+  padding: vars.spacing['4'],
   borderBottom: '1px solid #e5e7eb',
 });
 
@@ -91,7 +23,7 @@ export const headerContent = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   '@media': {
     // On narrow screens the title block and the action cluster no longer fit
     // side by side, so stack them to avoid horizontal overflow inside the modal.
@@ -107,17 +39,10 @@ export const headerLeft = style({
   flexDirection: 'column',
 });
 
-export const headerTitle = style({
-  fontSize: '1.125rem',
-  fontWeight: '600',
-  color: '#111827',
-  margin: 0,
-});
-
 export const headerSubtitle = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
-  margin: '0.25rem 0 0 0',
+  margin: `${vars.spacing['1']} 0 0 0`,
 });
 
 export const headerRight = style({
@@ -129,87 +54,27 @@ export const headerRight = style({
   flexWrap: 'wrap',
 });
 
-export const statusBadge = recipe({
-  base: {
-    display: 'inline-flex',
-    padding: '0.25rem 0.75rem',
-    fontSize: '0.75rem',
-    fontWeight: '600',
-    borderRadius: '9999px',
-  },
-  variants: {
-    status: {
-      submitted: { background: '#dbeafe', color: '#1e40af' },
-      approved: { background: '#dcfce7', color: '#166534' },
-      rejected: { background: '#fecaca', color: '#dc2626' },
-      withdrawn: { background: '#f3f4f6', color: '#374151' },
-      default: { background: '#f3f4f6', color: '#374151' },
-    },
-  },
-  defaultVariants: {
-    status: 'default',
-  },
-});
-
 export const stageBadge = style({
   display: 'inline-flex',
   alignItems: 'center',
   gap: '0.375rem',
   padding: '0.375rem 0.875rem',
-  fontSize: '0.875rem',
-  fontWeight: '600',
-  borderRadius: '9999px',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.semibold,
+  borderRadius: vars.border.radius.pill,
   color: 'white',
   boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
 });
 
-export const button = recipe({
-  base: {
-    padding: '0.5rem 1rem',
-    fontSize: '0.875rem',
-    borderRadius: '0.375rem',
-    border: 'none',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-  },
-  variants: {
-    variant: {
-      primary: {
-        background: '#3b82f6',
-        color: 'white',
-        ':hover': { background: '#2563eb' },
-        ':disabled': { background: '#9ca3af', cursor: 'not-allowed' },
-      },
-      secondary: {
-        background: '#f3f4f6',
-        color: '#374151',
-        ':hover': { background: '#e5e7eb' },
-        ':disabled': { opacity: 0.5, cursor: 'not-allowed' },
-      },
-      danger: {
-        background: '#ef4444',
-        color: 'white',
-        ':hover': { background: '#dc2626' },
-      },
-    },
-  },
-  defaultVariants: {
-    variant: 'secondary',
-  },
-});
-
 // Root of the shared Tabs component: the tablist stays pinned while the panels scroll.
-export const content = style({
-  overflowY: 'auto',
-  maxHeight: 'calc(90vh - 120px)',
-});
+export const content = style({});
 
 globalStyle(`${content} [role="tablist"]`, {
   position: 'sticky',
   top: 0,
   zIndex: 1,
-  background: 'white',
-  padding: '0 1.5rem',
+  background: vars.background.surface,
+  padding: `0 ${vars.spacing['4']}`,
   marginBottom: 0,
   // The four tabs don't fit across a phone-width modal; allow horizontal
   // scrolling so every tab stays reachable instead of overflowing/clipping.
@@ -221,24 +86,24 @@ globalStyle(`${content} [role="tablist"] > button`, {
 });
 
 globalStyle(`${content} [role="tabpanel"]`, {
-  padding: '1.5rem',
+  padding: vars.spacing['4'],
 });
 
 export const timelineContainer = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '1.5rem',
-  padding: '1rem 0',
+  gap: vars.spacing['4'],
+  padding: `${vars.spacing['3']} 0`,
 });
 
 export const timelineItem = style({
   display: 'flex',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   position: 'relative',
-  padding: '1rem',
+  padding: vars.spacing['3'],
   background: '#fafbfc',
   border: '1px solid #e1e5e9',
-  borderRadius: '0.5rem',
+  borderRadius: vars.border.radius.base,
   transition: 'all 0.2s ease',
   ':hover': {
     background: '#f6f8fa',
@@ -268,7 +133,7 @@ export const timelineIcon = recipe({
     justifyContent: 'center',
     position: 'relative',
     zIndex: 1,
-    fontSize: '1rem',
+    fontSize: vars.typography.size.base,
     border: '2px solid white',
     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
     color: 'white',
@@ -297,13 +162,13 @@ export const timelineHeader = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'flex-start',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   marginBottom: '0.75rem',
 });
 
 export const timelineTitle = style({
-  fontSize: '1rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.base,
+  fontWeight: vars.typography.weight.semibold,
   color: '#1f2937',
   margin: 0,
   flex: 1,
@@ -314,9 +179,9 @@ export const timelineTimestamp = style({
   color: '#6b7280',
   whiteSpace: 'nowrap',
   background: '#f3f4f6',
-  padding: '0.25rem 0.5rem',
-  borderRadius: '0.25rem',
-  fontWeight: '500',
+  padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
+  borderRadius: vars.border.radius.sm,
+  fontWeight: vars.typography.weight.medium,
 });
 
 export const timelineDescription = style({
@@ -330,17 +195,17 @@ export const timelineUser = style({
   fontSize: '0.8125rem',
   color: '#6b7280',
   fontStyle: 'italic',
-  padding: '0.25rem 0.5rem',
+  padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
   background: '#f9fafb',
-  borderRadius: '0.25rem',
+  borderRadius: vars.border.radius.sm,
   display: 'inline-block',
 });
 
 export const timelineData = style({
   background: '#f8fafc',
   border: '1px solid #e2e8f0',
-  borderRadius: '0.5rem',
-  padding: '1rem',
+  borderRadius: vars.border.radius.base,
+  padding: vars.spacing['3'],
   margin: '0.75rem 0',
   fontSize: '0.8125rem',
 });
@@ -348,7 +213,7 @@ export const timelineData = style({
 globalStyle(`${timelineData} strong`, {
   color: '#374151',
   display: 'block',
-  marginBottom: '0.5rem',
+  marginBottom: vars.spacing['2'],
 });
 
 globalStyle(`${timelineData} pre`, {
@@ -361,20 +226,20 @@ globalStyle(`${timelineData} pre`, {
 export const addEventForm = style({
   background: '#f8fafc',
   border: '1px solid #e2e8f0',
-  borderRadius: '0.75rem',
-  padding: '1.5rem',
-  marginBottom: '1.5rem',
+  borderRadius: vars.border.radius.lg,
+  padding: vars.spacing['4'],
+  marginBottom: vars.spacing['4'],
   boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
 });
 
 export const addEventTitle = style({
-  fontSize: '1rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.base,
+  fontWeight: vars.typography.weight.semibold,
   color: '#1e293b',
-  margin: '0 0 1rem 0',
+  margin: `0 0 ${vars.spacing['3']} 0`,
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   selectors: {
     '&::before': {
       content: "'✏️'",
@@ -385,8 +250,8 @@ export const addEventTitle = style({
 
 export const formRow = style({
   display: 'flex',
-  gap: '1rem',
-  marginBottom: '1rem',
+  gap: vars.spacing['3'],
+  marginBottom: vars.spacing['3'],
   '@media': {
     '(max-width: 640px)': {
       flexDirection: 'column',
@@ -399,116 +264,47 @@ export const formGroup = style({
   flex: 1,
 });
 
-export const formLabel = style({
-  display: 'block',
-  fontSize: '0.875rem',
-  fontWeight: '500',
-  color: '#374151',
-  marginBottom: '0.5rem',
-});
-
-export const formSelect = style({
-  width: '100%',
-  padding: '0.75rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '0.5rem',
-  fontSize: '0.875rem',
-  background: 'white',
-  transition: 'border-color 0.2s ease',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#3b82f6',
-    boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
-  },
-});
-
-export const formTextarea = style({
-  width: '100%',
-  padding: '0.75rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '0.5rem',
-  fontSize: '0.875rem',
-  minHeight: '5rem',
-  resize: 'vertical',
-  fontFamily: 'inherit',
-  transition: 'border-color 0.2s ease',
-  boxSizing: 'border-box',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#3b82f6',
-    boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
-  },
-  '::placeholder': {
-    color: '#9ca3af',
-  },
-});
-
 export const formActions = style({
   display: 'flex',
   gap: '0.75rem',
   justifyContent: 'flex-end',
-  marginTop: '1rem',
-});
-
-export const emptyTimeline = style({
-  textAlign: 'center',
-  padding: '3rem 2rem',
-  color: '#6b7280',
-  background: '#fafbfc',
-  border: '2px dashed #d1d5db',
-  borderRadius: '0.75rem',
-});
-
-globalStyle(`${emptyTimeline} p`, {
-  margin: '0 0 0.5rem 0',
-});
-
-globalStyle(`${emptyTimeline} p:first-child`, {
-  fontSize: '1.125rem',
-  fontWeight: '500',
-  color: '#4b5563',
-  marginBottom: '1rem',
-});
-
-globalStyle(`${emptyTimeline} p:last-child`, {
-  fontSize: '0.9375rem',
-  lineHeight: '1.5',
+  marginTop: vars.spacing['3'],
 });
 
 export const section = style({
-  marginBottom: '2rem',
+  marginBottom: vars.spacing['5'],
 });
 
 export const sectionHeader = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const sectionTitle = style({
-  fontSize: '1rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.base,
+  fontWeight: vars.typography.weight.semibold,
   color: '#111827',
-  margin: '0 0 1rem 0',
+  margin: `0 0 ${vars.spacing['3']} 0`,
 });
 
 export const grid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-  gap: '1.5rem',
+  gap: vars.spacing['4'],
 });
 
 export const card = style({
   background: '#f9fafb',
   border: '1px solid #e5e7eb',
-  borderRadius: '0.5rem',
-  padding: '1.5rem',
+  borderRadius: vars.border.radius.base,
+  padding: vars.spacing['4'],
 });
 
 export const cardTitle = style({
-  fontSize: '0.875rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.semibold,
   color: '#111827',
   margin: '0 0 0.75rem 0',
 });
@@ -517,220 +313,129 @@ export const field = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'start',
-  marginBottom: '0.5rem',
+  marginBottom: vars.spacing['2'],
 });
 
 export const fieldLabel = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
 });
 
 export const fieldValue = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#111827',
   textAlign: 'right',
   maxWidth: '60%',
 });
 
 export const fieldValueFullWidth = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#111827',
-  marginTop: '0.5rem',
+  marginTop: vars.spacing['2'],
   lineHeight: '1.5',
   whiteSpace: 'pre-wrap',
   wordWrap: 'break-word',
 });
 
 export const fieldVertical = style({
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const statusUpdateContainer = style({
   background: '#f9fafb',
   border: '1px solid #e5e7eb',
-  borderRadius: '0.5rem',
-  padding: '1.5rem',
-  margin: '1rem 0',
+  borderRadius: vars.border.radius.base,
+  padding: vars.spacing['4'],
+  margin: `${vars.spacing['3']} 0`,
 });
 
 export const formField = style({
-  marginBottom: '1rem',
-});
-
-export const label = style({
-  display: 'block',
-  fontSize: '0.875rem',
-  fontWeight: '500',
-  color: '#374151',
-  marginBottom: '0.25rem',
-});
-
-export const select = style({
-  width: '100%',
-  padding: '0.5rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '0.375rem',
-  fontSize: '0.875rem',
-  background: 'white',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#3b82f6',
-    boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
-  },
-});
-
-export const textArea = style({
-  width: '100%',
-  padding: '0.5rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '0.375rem',
-  fontSize: '0.875rem',
-  resize: 'vertical',
-  minHeight: '100px',
-  boxSizing: 'border-box',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#3b82f6',
-    boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
-  },
+  marginBottom: vars.spacing['3'],
 });
 
 export const referenceCard = style({
   background: 'white',
   border: '1px solid #e5e7eb',
-  borderRadius: '0.5rem',
-  padding: '1.5rem',
-  marginBottom: '1rem',
+  borderRadius: vars.border.radius.base,
+  padding: vars.spacing['4'],
+  marginBottom: vars.spacing['3'],
 });
 
 export const referenceHeader = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'start',
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const referenceInfo = style({});
 
 export const referenceName = style({
-  fontSize: '1rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.base,
+  fontWeight: vars.typography.weight.semibold,
   color: '#111827',
   margin: 0,
 });
 
 export const referenceContact = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
-  margin: '0.25rem 0',
+  margin: `${vars.spacing['1']} 0`,
 });
 
 export const referenceRelation = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
   margin: 0,
 });
 
-export const referenceStatus = recipe({
-  base: {
-    display: 'inline-flex',
-    padding: '0.25rem 0.5rem',
-    fontSize: '0.75rem',
-    fontWeight: '600',
-    borderRadius: '9999px',
-  },
-  variants: {
-    status: {
-      verified: { background: '#dcfce7', color: '#166534' },
-      contacted: { background: '#fef3c7', color: '#92400e' },
-      pending: { background: '#f3f4f6', color: '#374151' },
-      failed: { background: '#fecaca', color: '#dc2626' },
-      default: { background: '#f3f4f6', color: '#374151' },
-    },
-  },
-  defaultVariants: {
-    status: 'default',
-  },
-});
-
 export const referenceNotes = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#374151',
   background: '#f9fafb',
   borderRadius: '0.375rem',
   padding: '0.75rem',
-  marginTop: '1rem',
+  marginTop: vars.spacing['3'],
 });
 
 export const referenceActions = style({
   display: 'flex',
-  gap: '0.5rem',
-  marginTop: '1rem',
-});
-
-export const statusSelect = style({
-  padding: '0.375rem 0.5rem',
-  fontSize: '0.75rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '0.375rem',
-  background: 'white',
-  marginBottom: '0.5rem',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#3b82f6',
-    boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.1)',
-  },
-});
-
-export const notesInput = style({
-  width: '100%',
-  padding: '0.5rem',
-  fontSize: '0.875rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '0.375rem',
-  resize: 'vertical',
-  minHeight: '80px',
-  margin: '0.5rem 0',
-  boxSizing: 'border-box',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#3b82f6',
-    boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.1)',
-  },
+  gap: vars.spacing['2'],
+  marginTop: vars.spacing['3'],
 });
 
 export const referenceForm = style({
   background: '#f9fafb',
   borderRadius: '0.375rem',
-  padding: '1rem',
-  marginTop: '1rem',
+  padding: vars.spacing['3'],
+  marginTop: vars.spacing['3'],
   border: '1px solid #e5e7eb',
 });
 
 export const buttonGroup = style({
   display: 'flex',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   justifyContent: 'flex-end',
 });
 
 export const scheduleVisitForm = style({
   background: '#f8fafc',
   border: '1px solid #e2e8f0',
-  borderRadius: '0.75rem',
-  padding: '1.5rem',
-  marginBottom: '1.5rem',
+  borderRadius: vars.border.radius.lg,
+  padding: vars.spacing['4'],
+  marginBottom: vars.spacing['4'],
   boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
 });
 
 export const scheduleVisitTitle = style({
-  fontSize: '1rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.base,
+  fontWeight: vars.typography.weight.semibold,
   color: '#1e293b',
-  margin: '0 0 1rem 0',
+  margin: `0 0 ${vars.spacing['3']} 0`,
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   selectors: {
     '&::before': {
       content: "'🏠'",
@@ -739,53 +444,12 @@ export const scheduleVisitTitle = style({
   },
 });
 
-export const formInput = style({
-  width: '100%',
-  padding: '0.75rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '0.5rem',
-  fontSize: '0.875rem',
-  background: 'white',
-  transition: 'border-color 0.2s ease',
-  boxSizing: 'border-box',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#3b82f6',
-    boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
-  },
-});
-
-export const emptyVisits = style({
-  textAlign: 'center',
-  padding: '3rem 2rem',
-  color: '#6b7280',
-  background: '#fafbfc',
-  border: '2px dashed #d1d5db',
-  borderRadius: '0.75rem',
-});
-
-globalStyle(`${emptyVisits} p`, {
-  margin: '0 0 0.5rem 0',
-});
-
-globalStyle(`${emptyVisits} p:first-child`, {
-  fontSize: '1.125rem',
-  fontWeight: '500',
-  color: '#4b5563',
-  marginBottom: '1rem',
-});
-
-globalStyle(`${emptyVisits} p:last-child`, {
-  fontSize: '0.9375rem',
-  lineHeight: '1.5',
-});
-
 export const visitCard = style({
   background: 'white',
   border: '1px solid #e5e7eb',
-  borderRadius: '0.5rem',
-  padding: '1.5rem',
-  marginBottom: '1rem',
+  borderRadius: vars.border.radius.base,
+  padding: vars.spacing['4'],
+  marginBottom: vars.spacing['3'],
   boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
 });
 
@@ -793,175 +457,94 @@ export const visitHeader = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'start',
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const visitInfo = style({});
 
 export const visitDate = style({
-  fontSize: '1rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.base,
+  fontWeight: vars.typography.weight.semibold,
   color: '#111827',
   margin: 0,
 });
 
 export const visitTime = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
-  margin: '0.25rem 0',
+  margin: `${vars.spacing['1']} 0`,
 });
 
 export const visitStaff = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
   margin: 0,
 });
 
-export const visitStatus = recipe({
-  base: {
-    display: 'inline-flex',
-    padding: '0.25rem 0.75rem',
-    fontSize: '0.75rem',
-    fontWeight: '600',
-    borderRadius: '9999px',
-  },
-  variants: {
-    status: {
-      scheduled: { background: '#dbeafe', color: '#1e40af' },
-      in_progress: { background: '#fef3c7', color: '#92400e' },
-      completed: { background: '#dcfce7', color: '#166534' },
-      cancelled: { background: '#fecaca', color: '#dc2626' },
-      default: { background: '#f3f4f6', color: '#374151' },
-    },
-  },
-  defaultVariants: {
-    status: 'default',
-  },
-});
-
 export const visitNotes = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#374151',
   background: '#f9fafb',
   borderRadius: '0.375rem',
   padding: '0.75rem',
-  margin: '1rem 0',
+  margin: `${vars.spacing['3']} 0`,
 });
 
 globalStyle(`${visitNotes} strong`, {
   display: 'block',
-  marginBottom: '0.5rem',
+  marginBottom: vars.spacing['2'],
   color: '#1f2937',
 });
 
 export const visitCompletedInfo = style({
-  margin: '1rem 0',
-});
-
-export const visitOutcome = recipe({
-  base: {
-    display: 'inline-flex',
-    padding: '0.25rem 0.5rem',
-    fontSize: '0.75rem',
-    fontWeight: '600',
-    borderRadius: '9999px',
-  },
-  variants: {
-    outcome: {
-      approved: { background: '#dcfce7', color: '#166534' },
-      conditional: { background: '#fef3c7', color: '#92400e' },
-      rejected: { background: '#fecaca', color: '#dc2626' },
-      default: { background: '#f3f4f6', color: '#374151' },
-    },
-  },
-  defaultVariants: {
-    outcome: 'default',
-  },
+  margin: `${vars.spacing['3']} 0`,
 });
 
 export const visitActions = style({
   display: 'flex',
-  gap: '0.5rem',
-  marginTop: '1rem',
+  gap: vars.spacing['2'],
+  marginTop: vars.spacing['3'],
   flexWrap: 'wrap',
 });
 
 export const rescheduleForm = style({
   background: '#fef3c7',
   border: '1px solid #fbbf24',
-  borderRadius: '0.5rem',
-  padding: '1rem',
-  marginTop: '1rem',
+  borderRadius: vars.border.radius.base,
+  padding: vars.spacing['3'],
+  marginTop: vars.spacing['3'],
 });
 
 export const rescheduleTitle = style({
-  fontSize: '0.875rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.semibold,
   color: '#92400e',
-  margin: '0 0 1rem 0',
+  margin: `0 0 ${vars.spacing['3']} 0`,
 });
 
 export const completeVisitForm = style({
   background: '#ecfdf5',
   border: '1px solid #10b981',
-  borderRadius: '0.5rem',
-  padding: '1rem',
-  marginTop: '1rem',
+  borderRadius: vars.border.radius.base,
+  padding: vars.spacing['3'],
+  marginTop: vars.spacing['3'],
 });
 
 export const completeVisitTitle = style({
-  fontSize: '0.875rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.semibold,
   color: '#047857',
-  margin: '0 0 1rem 0',
-});
-
-export const visitDetailsModal = style({
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  background: 'rgba(0, 0, 0, 0.5)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 1000,
-});
-
-export const visitDetailsContent = style({
-  background: 'white',
-  borderRadius: '0.5rem',
-  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
-  maxWidth: '600px',
-  width: '90%',
-  maxHeight: '80vh',
-  overflowY: 'auto',
-});
-
-export const visitDetailsHeader = style({
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  padding: '1rem',
-  borderBottom: '1px solid #e5e7eb',
-});
-
-globalStyle(`${visitDetailsHeader} h4`, {
-  margin: 0,
-  fontSize: '1rem',
-  fontWeight: '600',
-  color: '#111827',
+  margin: `0 0 ${vars.spacing['3']} 0`,
 });
 
 export const noStatusOptionsText = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: '#6b7280',
-  marginTop: '0.25rem',
+  marginTop: vars.spacing['1'],
 });
 
 export const statusChangeBlock = style({
-  marginTop: '0.5rem',
+  marginTop: vars.spacing['2'],
 });
 
 export const oldStatusText = style({
@@ -974,8 +557,4 @@ export const newStatusText = style({
 
 export const notesText = style({
   color: '#6b7280',
-});
-
-export const visitDetailsBody = style({
-  padding: '1rem',
 });

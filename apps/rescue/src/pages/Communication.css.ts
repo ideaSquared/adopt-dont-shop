@@ -10,7 +10,7 @@ export const pageContainer = style({
 });
 
 export const pageHeader = style({
-  padding: '1.5rem 2rem',
+  padding: `${vars.spacing['4']} ${vars.spacing['5']}`,
   background: vars.background.surface,
   borderBottom: `1px solid ${vars.border.color.default}`,
   '@media': {
@@ -22,16 +22,16 @@ export const pageHeader = style({
 
 globalStyle(`${pageHeader} h1`, {
   margin: 0,
-  fontSize: '1.875rem',
-  fontWeight: 700,
+  fontSize: vars.typography.size['3xl'],
+  fontWeight: vars.typography.weight.bold,
   color: vars.text.primary,
   letterSpacing: '-0.025em',
 });
 
 globalStyle(`${pageHeader} p`, {
-  margin: '0.5rem 0 0 0',
+  margin: `${vars.spacing['2']} 0 0 0`,
   color: vars.text.tertiary,
-  fontSize: '1rem',
+  fontSize: vars.typography.size.base,
 });
 
 export const chatContainer = style({
@@ -93,44 +93,10 @@ globalStyle(`${mobileViewHideChat} > :last-child`, {
   },
 });
 
-export const toolbar = style({
+export const loadingContainer = style({
+  flex: 1,
   display: 'flex',
+  justifyContent: 'center',
   alignItems: 'center',
-  gap: '0.5rem',
-  marginTop: '1rem',
-  flexWrap: 'wrap',
-});
-
-export const filterTab = style({
-  padding: '0.375rem 0.875rem',
-  borderRadius: '9999px',
-  border: `1px solid ${vars.border.color.muted}`,
   background: vars.background.surface,
-  color: vars.text.secondary,
-  fontWeight: 500,
-  fontSize: '0.875rem',
-  cursor: 'pointer',
-  selectors: {
-    '&:hover': {
-      background: vars.background.muted,
-    },
-  },
-});
-
-export const filterTabActive = style({
-  background: vars.colors.infoHover,
-  borderColor: vars.colors.infoHover,
-  color: vars.background.surface,
-  selectors: {
-    '&:hover': {
-      background: vars.colors.infoActive,
-    },
-  },
-});
-
-export const actionGroup = style({
-  marginLeft: 'auto',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.5rem',
 });

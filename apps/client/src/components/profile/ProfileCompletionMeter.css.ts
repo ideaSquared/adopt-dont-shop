@@ -1,14 +1,15 @@
 import { style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const meter = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   padding: '0.75rem 1rem',
   background: '#ffffff',
   border: '1px solid #dee2e6',
-  borderRadius: '12px',
-  margin: '0 0 1rem 0',
+  borderRadius: vars.border.radius.lg,
+  margin: `0 0 ${vars.spacing['3']} 0`,
 });
 
 export const header = style({
@@ -18,17 +19,17 @@ export const header = style({
 });
 
 export const headerLabel = style({
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
   color: '#333',
 });
 
 export const dismissButton = style({
   background: 'transparent',
   border: 'none',
-  fontSize: '1.25rem',
+  fontSize: vars.typography.size.xl,
   color: '#6c757d',
   cursor: 'pointer',
-  padding: '0 0.25rem',
+  padding: `0 ${vars.spacing['1']}`,
   lineHeight: 1,
   ':hover': { color: '#333' },
 });
@@ -36,7 +37,7 @@ export const dismissButton = style({
 export const segments = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 const segmentBase = {
@@ -44,10 +45,10 @@ const segmentBase = {
   flexDirection: 'column' as const,
   alignItems: 'flex-start' as const,
   padding: '0.5rem 0.75rem',
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
   textDecoration: 'none',
-  fontSize: '0.875rem',
-  fontWeight: 500,
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.medium,
   transition: 'background 120ms ease',
 };
 
@@ -67,11 +68,11 @@ export const segmentTodo = style({
 });
 
 export const segmentLabel = style({
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
 });
 
 export const segmentStatus = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   opacity: 0.8,
 });
 
@@ -79,11 +80,11 @@ export const celebration = style({
   display: 'flex',
   alignItems: 'center',
   gap: '0.75rem',
-  padding: '1rem',
+  padding: vars.spacing['3'],
   background: 'linear-gradient(135deg, #4ecdc4 0%, #45b7b8 100%)',
   color: 'white',
-  borderRadius: '12px',
-  margin: '0 0 1rem 0',
+  borderRadius: vars.border.radius.lg,
+  margin: `0 0 ${vars.spacing['3']} 0`,
 });
 
 export const celebrationIcon = style({
@@ -96,8 +97,8 @@ export const celebrationBody = style({
 
 export const celebrationTitle = style({
   fontSize: '1.1rem',
-  fontWeight: 700,
-  margin: '0 0 0.25rem 0',
+  fontWeight: vars.typography.weight.bold,
+  margin: `0 0 ${vars.spacing['1']} 0`,
 });
 
 export const celebrationSubtitle = style({
@@ -110,8 +111,8 @@ export const celebrationClose = style({
   background: 'transparent',
   border: 'none',
   color: 'white',
-  fontSize: '1.5rem',
+  fontSize: vars.typography.size['2xl'],
   cursor: 'pointer',
-  padding: '0 0.5rem',
+  padding: `0 ${vars.spacing['2']}`,
   lineHeight: 1,
 });
