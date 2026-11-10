@@ -23,16 +23,16 @@ export const fullWidthRow = style({
 export const confirmRow = style({
   width: '100%',
   display: 'flex',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   alignItems: 'center',
-  paddingTop: '0.5rem',
+  paddingTop: vars.spacing['2'],
   borderTop: `1px solid ${vars.border.color.default}`,
-  marginTop: '0.5rem',
+  marginTop: vars.spacing['2'],
   flexWrap: 'wrap',
 });
 
 export const reasonInput = style({
   flex: 1,
   minWidth: '12rem',
-  padding: '0.25rem 0.5rem',
+  padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
 });

@@ -1,5 +1,6 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 // ADS-646: small banner above the form explaining that only the name is
 // required up-front. Keeps the form approachable for new staff without
@@ -9,17 +10,17 @@ export const minimalFieldsHint = style({
   border: '1px solid #bfdbfe',
   color: '#1e40af',
   padding: '0.75rem 1rem',
-  borderRadius: '0.5rem',
+  borderRadius: vars.border.radius.base,
   marginBottom: '1.25rem',
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   lineHeight: 1.5,
 });
 
 export const formGrid = style({
   display: 'grid',
   gridTemplateColumns: '1fr 1fr',
-  gap: '1rem',
-  marginBottom: '1.5rem',
+  gap: vars.spacing['3'],
+  marginBottom: vars.spacing['4'],
   '@media': {
     '(max-width: 768px)': {
       gridTemplateColumns: '1fr',
@@ -42,15 +43,15 @@ export const formGroup = recipe({
 
 globalStyle(`${formGroup.classNames.base} .error`, {
   color: '#ef4444',
-  fontSize: '0.75rem',
-  marginTop: '0.25rem',
+  fontSize: vars.typography.size.xs,
+  marginTop: vars.spacing['1'],
 });
 
 globalStyle(`${formGroup.classNames.base} label`, {
   display: 'block',
-  marginBottom: '0.5rem',
-  fontWeight: '500',
-  fontSize: '0.875rem',
+  marginBottom: vars.spacing['2'],
+  fontWeight: vars.typography.weight.medium,
+  fontSize: vars.typography.size.sm,
   color: '#111827',
 });
 
@@ -60,8 +61,8 @@ globalStyle(
     width: '100%',
     padding: '0.75rem',
     border: '1px solid #d1d5db',
-    borderRadius: '4px',
-    fontSize: '0.875rem',
+    borderRadius: vars.border.radius.sm,
+    fontSize: vars.typography.size.sm,
     fontFamily: 'inherit',
   }
 );
@@ -74,8 +75,8 @@ globalStyle(`${formGroup.classNames.base} textarea`, {
 export const checkboxGroup = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
-  marginTop: '0.5rem',
+  gap: vars.spacing['2'],
+  marginTop: vars.spacing['2'],
 });
 
 globalStyle(`${checkboxGroup} input[type="checkbox"]`, {
@@ -89,10 +90,10 @@ globalStyle(`${checkboxGroup} label`, {
 
 export const modalActions = style({
   display: 'flex',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   justifyContent: 'flex-end',
-  marginTop: '2rem',
-  paddingTop: '1rem',
+  marginTop: vars.spacing['5'],
+  paddingTop: vars.spacing['3'],
   borderTop: '1px solid #e5e7eb',
   '@media': {
     '(max-width: 768px)': {
@@ -103,7 +104,7 @@ export const modalActions = style({
 
 export const submitError = style({
   color: '#ef4444',
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const currencyInputWrapper = style({
@@ -116,7 +117,7 @@ export const currencyAdornment = style({
   top: '50%',
   transform: 'translateY(-50%)',
   color: '#6b7280',
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   pointerEvents: 'none',
 });
 
@@ -127,27 +128,27 @@ globalStyle(`${currencyInputWrapper} input`, {
 // ── Image uploader (ADS-574) ─────────────────────────────────────────────────
 
 export const imageHelper = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: '#6b7280',
-  marginTop: '0.5rem',
+  marginTop: vars.spacing['2'],
 });
 
 export const imageList = style({
   listStyle: 'none',
-  margin: '1rem 0 0 0',
+  margin: `${vars.spacing['3']} 0 0 0`,
   padding: 0,
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const imageItem = style({
   display: 'flex',
   alignItems: 'center',
   gap: '0.75rem',
-  padding: '0.5rem',
+  padding: vars.spacing['2'],
   border: '1px solid #e5e7eb',
-  borderRadius: '4px',
+  borderRadius: vars.border.radius.sm,
   background: '#fff',
 });
 
@@ -162,14 +163,14 @@ export const imageThumb = style({
   width: '56px',
   height: '56px',
   objectFit: 'cover',
-  borderRadius: '4px',
+  borderRadius: vars.border.radius.sm,
   border: '1px solid #d1d5db',
 });
 
 export const imageThumbPlaceholder = style({
   width: '56px',
   height: '56px',
-  borderRadius: '4px',
+  borderRadius: vars.border.radius.sm,
   background: '#f3f4f6',
   border: '1px dashed #d1d5db',
 });
@@ -182,7 +183,7 @@ export const primaryBadge = style({
   background: '#2563eb',
   color: '#fff',
   fontSize: '0.625rem',
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
   padding: '0.125rem 0.375rem',
   borderRadius: '999px',
   whiteSpace: 'nowrap',
@@ -197,7 +198,7 @@ export const imageMeta = style({
 });
 
 export const imageFilename = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#111827',
   whiteSpace: 'nowrap',
   overflow: 'hidden',
@@ -205,26 +206,26 @@ export const imageFilename = style({
 });
 
 export const imageStatus = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: '#6b7280',
 });
 
 export const imageStatusError = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: '#ef4444',
 });
 
 export const imageActions = style({
   display: 'flex',
-  gap: '0.25rem',
+  gap: vars.spacing['1'],
 });
 
 globalStyle(`${imageActions} button`, {
-  fontSize: '0.75rem',
-  padding: '0.25rem 0.5rem',
+  fontSize: vars.typography.size.xs,
+  padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
   border: '1px solid #d1d5db',
   background: '#fff',
-  borderRadius: '4px',
+  borderRadius: vars.border.radius.sm,
   cursor: 'pointer',
 });
 

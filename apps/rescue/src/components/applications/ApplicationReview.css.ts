@@ -15,7 +15,7 @@ export const errorMessage = style({
 
 export const header = style({
   background: '#f9fafb',
-  padding: '1.5rem',
+  padding: vars.spacing['4'],
   borderBottom: '1px solid #e5e7eb',
 });
 
@@ -23,7 +23,7 @@ export const headerContent = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   '@media': {
     // On narrow screens the title block and the action cluster no longer fit
     // side by side, so stack them to avoid horizontal overflow inside the modal.
@@ -40,9 +40,9 @@ export const headerLeft = style({
 });
 
 export const headerSubtitle = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
-  margin: '0.25rem 0 0 0',
+  margin: `${vars.spacing['1']} 0 0 0`,
 });
 
 export const headerRight = style({
@@ -59,9 +59,9 @@ export const stageBadge = style({
   alignItems: 'center',
   gap: '0.375rem',
   padding: '0.375rem 0.875rem',
-  fontSize: '0.875rem',
-  fontWeight: '600',
-  borderRadius: '9999px',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.semibold,
+  borderRadius: vars.border.radius.pill,
   color: 'white',
   boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
 });
@@ -74,7 +74,7 @@ globalStyle(`${content} [role="tablist"]`, {
   top: 0,
   zIndex: 1,
   background: vars.background.surface,
-  padding: '0 1.5rem',
+  padding: `0 ${vars.spacing['4']}`,
   marginBottom: 0,
   // The four tabs don't fit across a phone-width modal; allow horizontal
   // scrolling so every tab stays reachable instead of overflowing/clipping.
@@ -86,24 +86,24 @@ globalStyle(`${content} [role="tablist"] > button`, {
 });
 
 globalStyle(`${content} [role="tabpanel"]`, {
-  padding: '1.5rem',
+  padding: vars.spacing['4'],
 });
 
 export const timelineContainer = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '1.5rem',
-  padding: '1rem 0',
+  gap: vars.spacing['4'],
+  padding: `${vars.spacing['3']} 0`,
 });
 
 export const timelineItem = style({
   display: 'flex',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   position: 'relative',
-  padding: '1rem',
+  padding: vars.spacing['3'],
   background: '#fafbfc',
   border: '1px solid #e1e5e9',
-  borderRadius: '0.5rem',
+  borderRadius: vars.border.radius.base,
   transition: 'all 0.2s ease',
   ':hover': {
     background: '#f6f8fa',
@@ -133,7 +133,7 @@ export const timelineIcon = recipe({
     justifyContent: 'center',
     position: 'relative',
     zIndex: 1,
-    fontSize: '1rem',
+    fontSize: vars.typography.size.base,
     border: '2px solid white',
     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
     color: 'white',
@@ -162,13 +162,13 @@ export const timelineHeader = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'flex-start',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   marginBottom: '0.75rem',
 });
 
 export const timelineTitle = style({
-  fontSize: '1rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.base,
+  fontWeight: vars.typography.weight.semibold,
   color: '#1f2937',
   margin: 0,
   flex: 1,
@@ -179,9 +179,9 @@ export const timelineTimestamp = style({
   color: '#6b7280',
   whiteSpace: 'nowrap',
   background: '#f3f4f6',
-  padding: '0.25rem 0.5rem',
-  borderRadius: '0.25rem',
-  fontWeight: '500',
+  padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
+  borderRadius: vars.border.radius.sm,
+  fontWeight: vars.typography.weight.medium,
 });
 
 export const timelineDescription = style({
@@ -195,17 +195,17 @@ export const timelineUser = style({
   fontSize: '0.8125rem',
   color: '#6b7280',
   fontStyle: 'italic',
-  padding: '0.25rem 0.5rem',
+  padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
   background: '#f9fafb',
-  borderRadius: '0.25rem',
+  borderRadius: vars.border.radius.sm,
   display: 'inline-block',
 });
 
 export const timelineData = style({
   background: '#f8fafc',
   border: '1px solid #e2e8f0',
-  borderRadius: '0.5rem',
-  padding: '1rem',
+  borderRadius: vars.border.radius.base,
+  padding: vars.spacing['3'],
   margin: '0.75rem 0',
   fontSize: '0.8125rem',
 });
@@ -213,7 +213,7 @@ export const timelineData = style({
 globalStyle(`${timelineData} strong`, {
   color: '#374151',
   display: 'block',
-  marginBottom: '0.5rem',
+  marginBottom: vars.spacing['2'],
 });
 
 globalStyle(`${timelineData} pre`, {
@@ -226,20 +226,20 @@ globalStyle(`${timelineData} pre`, {
 export const addEventForm = style({
   background: '#f8fafc',
   border: '1px solid #e2e8f0',
-  borderRadius: '0.75rem',
-  padding: '1.5rem',
-  marginBottom: '1.5rem',
+  borderRadius: vars.border.radius.lg,
+  padding: vars.spacing['4'],
+  marginBottom: vars.spacing['4'],
   boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
 });
 
 export const addEventTitle = style({
-  fontSize: '1rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.base,
+  fontWeight: vars.typography.weight.semibold,
   color: '#1e293b',
-  margin: '0 0 1rem 0',
+  margin: `0 0 ${vars.spacing['3']} 0`,
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   selectors: {
     '&::before': {
       content: "'✏️'",
@@ -250,8 +250,8 @@ export const addEventTitle = style({
 
 export const formRow = style({
   display: 'flex',
-  gap: '1rem',
-  marginBottom: '1rem',
+  gap: vars.spacing['3'],
+  marginBottom: vars.spacing['3'],
   '@media': {
     '(max-width: 640px)': {
       flexDirection: 'column',
@@ -268,43 +268,43 @@ export const formActions = style({
   display: 'flex',
   gap: '0.75rem',
   justifyContent: 'flex-end',
-  marginTop: '1rem',
+  marginTop: vars.spacing['3'],
 });
 
 export const section = style({
-  marginBottom: '2rem',
+  marginBottom: vars.spacing['5'],
 });
 
 export const sectionHeader = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const sectionTitle = style({
-  fontSize: '1rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.base,
+  fontWeight: vars.typography.weight.semibold,
   color: '#111827',
-  margin: '0 0 1rem 0',
+  margin: `0 0 ${vars.spacing['3']} 0`,
 });
 
 export const grid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-  gap: '1.5rem',
+  gap: vars.spacing['4'],
 });
 
 export const card = style({
   background: '#f9fafb',
   border: '1px solid #e5e7eb',
-  borderRadius: '0.5rem',
-  padding: '1.5rem',
+  borderRadius: vars.border.radius.base,
+  padding: vars.spacing['4'],
 });
 
 export const cardTitle = style({
-  fontSize: '0.875rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.semibold,
   color: '#111827',
   margin: '0 0 0.75rem 0',
 });
@@ -313,129 +313,129 @@ export const field = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'start',
-  marginBottom: '0.5rem',
+  marginBottom: vars.spacing['2'],
 });
 
 export const fieldLabel = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
 });
 
 export const fieldValue = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#111827',
   textAlign: 'right',
   maxWidth: '60%',
 });
 
 export const fieldValueFullWidth = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#111827',
-  marginTop: '0.5rem',
+  marginTop: vars.spacing['2'],
   lineHeight: '1.5',
   whiteSpace: 'pre-wrap',
   wordWrap: 'break-word',
 });
 
 export const fieldVertical = style({
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const statusUpdateContainer = style({
   background: '#f9fafb',
   border: '1px solid #e5e7eb',
-  borderRadius: '0.5rem',
-  padding: '1.5rem',
-  margin: '1rem 0',
+  borderRadius: vars.border.radius.base,
+  padding: vars.spacing['4'],
+  margin: `${vars.spacing['3']} 0`,
 });
 
 export const formField = style({
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const referenceCard = style({
   background: 'white',
   border: '1px solid #e5e7eb',
-  borderRadius: '0.5rem',
-  padding: '1.5rem',
-  marginBottom: '1rem',
+  borderRadius: vars.border.radius.base,
+  padding: vars.spacing['4'],
+  marginBottom: vars.spacing['3'],
 });
 
 export const referenceHeader = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'start',
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const referenceInfo = style({});
 
 export const referenceName = style({
-  fontSize: '1rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.base,
+  fontWeight: vars.typography.weight.semibold,
   color: '#111827',
   margin: 0,
 });
 
 export const referenceContact = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
-  margin: '0.25rem 0',
+  margin: `${vars.spacing['1']} 0`,
 });
 
 export const referenceRelation = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
   margin: 0,
 });
 
 export const referenceNotes = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#374151',
   background: '#f9fafb',
   borderRadius: '0.375rem',
   padding: '0.75rem',
-  marginTop: '1rem',
+  marginTop: vars.spacing['3'],
 });
 
 export const referenceActions = style({
   display: 'flex',
-  gap: '0.5rem',
-  marginTop: '1rem',
+  gap: vars.spacing['2'],
+  marginTop: vars.spacing['3'],
 });
 
 export const referenceForm = style({
   background: '#f9fafb',
   borderRadius: '0.375rem',
-  padding: '1rem',
-  marginTop: '1rem',
+  padding: vars.spacing['3'],
+  marginTop: vars.spacing['3'],
   border: '1px solid #e5e7eb',
 });
 
 export const buttonGroup = style({
   display: 'flex',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   justifyContent: 'flex-end',
 });
 
 export const scheduleVisitForm = style({
   background: '#f8fafc',
   border: '1px solid #e2e8f0',
-  borderRadius: '0.75rem',
-  padding: '1.5rem',
-  marginBottom: '1.5rem',
+  borderRadius: vars.border.radius.lg,
+  padding: vars.spacing['4'],
+  marginBottom: vars.spacing['4'],
   boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
 });
 
 export const scheduleVisitTitle = style({
-  fontSize: '1rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.base,
+  fontWeight: vars.typography.weight.semibold,
   color: '#1e293b',
-  margin: '0 0 1rem 0',
+  margin: `0 0 ${vars.spacing['3']} 0`,
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   selectors: {
     '&::before': {
       content: "'🏠'",
@@ -447,9 +447,9 @@ export const scheduleVisitTitle = style({
 export const visitCard = style({
   background: 'white',
   border: '1px solid #e5e7eb',
-  borderRadius: '0.5rem',
-  padding: '1.5rem',
-  marginBottom: '1rem',
+  borderRadius: vars.border.radius.base,
+  padding: vars.spacing['4'],
+  marginBottom: vars.spacing['3'],
   boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
 });
 
@@ -457,94 +457,94 @@ export const visitHeader = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'start',
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const visitInfo = style({});
 
 export const visitDate = style({
-  fontSize: '1rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.base,
+  fontWeight: vars.typography.weight.semibold,
   color: '#111827',
   margin: 0,
 });
 
 export const visitTime = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
-  margin: '0.25rem 0',
+  margin: `${vars.spacing['1']} 0`,
 });
 
 export const visitStaff = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
   margin: 0,
 });
 
 export const visitNotes = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#374151',
   background: '#f9fafb',
   borderRadius: '0.375rem',
   padding: '0.75rem',
-  margin: '1rem 0',
+  margin: `${vars.spacing['3']} 0`,
 });
 
 globalStyle(`${visitNotes} strong`, {
   display: 'block',
-  marginBottom: '0.5rem',
+  marginBottom: vars.spacing['2'],
   color: '#1f2937',
 });
 
 export const visitCompletedInfo = style({
-  margin: '1rem 0',
+  margin: `${vars.spacing['3']} 0`,
 });
 
 export const visitActions = style({
   display: 'flex',
-  gap: '0.5rem',
-  marginTop: '1rem',
+  gap: vars.spacing['2'],
+  marginTop: vars.spacing['3'],
   flexWrap: 'wrap',
 });
 
 export const rescheduleForm = style({
   background: '#fef3c7',
   border: '1px solid #fbbf24',
-  borderRadius: '0.5rem',
-  padding: '1rem',
-  marginTop: '1rem',
+  borderRadius: vars.border.radius.base,
+  padding: vars.spacing['3'],
+  marginTop: vars.spacing['3'],
 });
 
 export const rescheduleTitle = style({
-  fontSize: '0.875rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.semibold,
   color: '#92400e',
-  margin: '0 0 1rem 0',
+  margin: `0 0 ${vars.spacing['3']} 0`,
 });
 
 export const completeVisitForm = style({
   background: '#ecfdf5',
   border: '1px solid #10b981',
-  borderRadius: '0.5rem',
-  padding: '1rem',
-  marginTop: '1rem',
+  borderRadius: vars.border.radius.base,
+  padding: vars.spacing['3'],
+  marginTop: vars.spacing['3'],
 });
 
 export const completeVisitTitle = style({
-  fontSize: '0.875rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.semibold,
   color: '#047857',
-  margin: '0 0 1rem 0',
+  margin: `0 0 ${vars.spacing['3']} 0`,
 });
 
 export const noStatusOptionsText = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: '#6b7280',
-  marginTop: '0.25rem',
+  marginTop: vars.spacing['1'],
 });
 
 export const statusChangeBlock = style({
-  marginTop: '0.5rem',
+  marginTop: vars.spacing['2'],
 });
 
 export const oldStatusText = style({

@@ -26,7 +26,7 @@ export const placeholderImage = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  fontSize: '3rem',
+  fontSize: vars.typography.size['5xl'],
   color: '#9ca3af',
   background: 'linear-gradient(135deg, #f9fafb, #f3f4f6)',
 });
@@ -49,7 +49,7 @@ export const selectCheckboxLabel = style({
   width: '1.75rem',
   height: '1.75rem',
   background: 'rgba(255, 255, 255, 0.9)',
-  borderRadius: '0.25rem',
+  borderRadius: vars.border.radius.sm,
   border: '1px solid #d1d5db',
   cursor: 'pointer',
 });
@@ -84,11 +84,11 @@ export const inlineStatusSrOnly = style({
 export const inlineStatusSelect = style({
   width: '100%',
   height: '32px',
-  padding: '0 0.5rem',
+  padding: `0 ${vars.spacing['2']}`,
   borderRadius: '0.375rem',
   border: '1px solid #d1d5db',
   background: 'white',
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#111827',
   cursor: 'pointer',
 });
@@ -98,41 +98,41 @@ export const petContent = style({
 });
 
 export const petHeader = style({
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 globalStyle(`${petHeader} .pet-info`, {
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
   margin: 0,
 });
 
 globalStyle(`${petHeader} h3`, {
-  fontSize: '1.25rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.xl,
+  fontWeight: vars.typography.weight.semibold,
   color: '#111827',
-  margin: '0 0 0.25rem 0',
+  margin: `0 0 ${vars.spacing['1']} 0`,
   lineHeight: '1.2',
 });
 
 export const petDetails = style({
   display: 'grid',
   gridTemplateColumns: '1fr 1fr',
-  gap: '0.5rem',
-  marginBottom: '1rem',
-  fontSize: '0.875rem',
+  gap: vars.spacing['2'],
+  marginBottom: vars.spacing['3'],
+  fontSize: vars.typography.size.sm,
 });
 
 globalStyle(`${petDetails} .detail-item`, {
   display: 'flex',
   justifyContent: 'space-between',
-  padding: '0.25rem 0',
+  padding: `${vars.spacing['1']} 0`,
   borderBottom: '1px solid #f3f4f6',
 });
 
 globalStyle(`${petDetails} .detail-item .label`, {
   color: '#6b7280',
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
 });
 
 globalStyle(`${petDetails} .detail-item .value`, {
@@ -140,11 +140,11 @@ globalStyle(`${petDetails} .detail-item .value`, {
 });
 
 export const petDescription = style({
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 globalStyle(`${petDescription} p`, {
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
   lineHeight: '1.4',
   margin: 0,
@@ -156,13 +156,13 @@ globalStyle(`${petDescription} p`, {
 
 export const petActions = style({
   display: 'flex',
-  gap: '0.5rem',
-  marginTop: '1rem',
+  gap: vars.spacing['2'],
+  marginTop: vars.spacing['3'],
 });
 
 globalStyle(`${petActions} button`, {
   flex: 1,
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });
 
 export const statusLink = style({
@@ -182,6 +182,6 @@ export const dangerText = style({
 });
 
 export const deleteWarning = style({
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
   color: '#666',
 });

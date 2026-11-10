@@ -1,12 +1,13 @@
 import { style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const chartContainer = style({
   width: '100%',
   height: '100%',
   display: 'flex',
   flexDirection: 'column',
-  gap: '1.5rem',
+  gap: vars.spacing['4'],
 });
 
 export const donutContainer = style({
@@ -49,15 +50,15 @@ export const centerLabel = style({
 
 export const centerValue = style({
   fontSize: '2rem',
-  fontWeight: '700',
+  fontWeight: vars.typography.weight.bold,
   color: '#111827',
   lineHeight: '1',
 });
 
 export const centerText = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
-  marginTop: '0.25rem',
+  marginTop: vars.spacing['1'],
 });
 
 export const legend = style({
@@ -72,7 +73,7 @@ export const legendItem = recipe({
     alignItems: 'center',
     gap: '0.75rem',
     padding: '0.75rem',
-    borderRadius: '8px',
+    borderRadius: vars.border.radius.base,
     cursor: 'pointer',
     transition: 'all 0.2s ease',
     ':hover': {
@@ -103,8 +104,8 @@ export const legendLabel = style({
 });
 
 export const legendName = style({
-  fontSize: '0.875rem',
-  fontWeight: '500',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.medium,
   color: '#111827',
   whiteSpace: 'nowrap',
   overflow: 'hidden',
@@ -114,13 +115,13 @@ export const legendName = style({
 export const legendValue = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
-  fontSize: '0.75rem',
+  gap: vars.spacing['2'],
+  fontSize: vars.typography.size.xs,
   color: '#6b7280',
   marginTop: '0.125rem',
 });
 
 export const percentage = style({
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
   color: '#111827',
 });

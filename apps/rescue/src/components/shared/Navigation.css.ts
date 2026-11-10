@@ -16,7 +16,7 @@ export const mobileBar = style({
       display: 'flex',
       alignItems: 'center',
       gap: '0.75rem',
-      padding: '0.5rem 1rem',
+      padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
       position: 'sticky',
       top: 0,
       zIndex: 1000,
@@ -41,7 +41,7 @@ export const mobileMenuButton = style({
 export const userInfo = style({
   display: 'flex',
   alignItems: 'center',
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const userAvatar = style({
@@ -55,12 +55,12 @@ export const userDetails = style({
 });
 
 export const userName = style({
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
   fontSize: '0.9rem',
 });
 
 export const userRole = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   opacity: 0.8,
 });
 

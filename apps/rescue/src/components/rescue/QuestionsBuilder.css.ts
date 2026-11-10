@@ -1,22 +1,23 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const container = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '1.5rem',
+  gap: vars.spacing['4'],
 });
 
 export const sectionHeader = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 globalStyle(`${sectionHeader} h2`, {
-  fontSize: '1.25rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.xl,
+  fontWeight: vars.typography.weight.semibold,
   color: '#1f2937',
   margin: '0',
 });
@@ -24,7 +25,7 @@ globalStyle(`${sectionHeader} h2`, {
 export const questionCard = recipe({
   base: {
     padding: '1rem 1.25rem',
-    marginBottom: '0.5rem',
+    marginBottom: vars.spacing['2'],
   },
   variants: {
     isCore: {
@@ -48,7 +49,7 @@ export const questionHeader = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'flex-start',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const questionText = style({
@@ -56,9 +57,9 @@ export const questionText = style({
 });
 
 globalStyle(`${questionText} p`, {
-  margin: '0 0 0.25rem 0',
+  margin: `0 0 ${vars.spacing['1']} 0`,
   fontSize: '0.9375rem',
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
   color: '#111827',
 });
 
@@ -69,9 +70,9 @@ globalStyle(`${questionText} span`, {
 
 export const questionMeta = style({
   display: 'flex',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   flexWrap: 'wrap',
-  marginTop: '0.5rem',
+  marginTop: vars.spacing['2'],
 });
 
 export const badge = recipe({
@@ -79,9 +80,9 @@ export const badge = recipe({
     display: 'inline-flex',
     alignItems: 'center',
     padding: '0.125rem 0.5rem',
-    borderRadius: '9999px',
-    fontSize: '0.75rem',
-    fontWeight: '500',
+    borderRadius: vars.border.radius.pill,
+    fontSize: vars.typography.size.xs,
+    fontWeight: vars.typography.weight.medium,
   },
   variants: {
     variant: {
@@ -100,7 +101,7 @@ export const badge = recipe({
 
 export const actionButtons = style({
   display: 'flex',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   alignItems: 'center',
   flexShrink: 0,
 });
@@ -112,37 +113,37 @@ export const orderControls = style({
 });
 
 export const categorySection = style({
-  marginBottom: '2rem',
+  marginBottom: vars.spacing['5'],
 });
 
 globalStyle(`${categorySection} h3`, {
-  fontSize: '1rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.base,
+  fontWeight: vars.typography.weight.semibold,
   color: '#374151',
   margin: '0 0 0.75rem 0',
-  paddingBottom: '0.5rem',
+  paddingBottom: vars.spacing['2'],
   borderBottom: '2px solid #e5e7eb',
 });
 
 export const emptyCategory = style({
-  padding: '1rem',
+  padding: vars.spacing['3'],
   textAlign: 'center',
   color: '#9ca3af',
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   background: '#f9fafb',
   border: '1px dashed #d1d5db',
-  borderRadius: '0.5rem',
+  borderRadius: vars.border.radius.base,
 });
 
 export const formContainer = style({
-  padding: '1.5rem',
-  marginBottom: '1.5rem',
+  padding: vars.spacing['4'],
+  marginBottom: vars.spacing['4'],
   border: '2px solid #3b82f6',
 });
 
 export const formTitle = style({
   fontSize: '1.0625rem',
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
   color: '#1f2937',
   margin: '0 0 1.25rem 0',
 });
@@ -150,8 +151,8 @@ export const formTitle = style({
 export const formGrid = style({
   display: 'grid',
   gridTemplateColumns: '1fr 1fr',
-  gap: '1rem',
-  marginBottom: '1rem',
+  gap: vars.spacing['3'],
+  marginBottom: vars.spacing['3'],
   '@media': {
     '(max-width: 640px)': {
       gridTemplateColumns: '1fr',
@@ -173,8 +174,8 @@ export const formGroupFullWidth = style({
 });
 
 export const label = style({
-  fontSize: '0.875rem',
-  fontWeight: '500',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.medium,
   color: '#374151',
 });
 
@@ -182,7 +183,7 @@ export const select = style({
   padding: '0.5rem 0.75rem',
   border: '1px solid #d1d5db',
   borderRadius: '0.375rem',
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#1f2937',
   outline: 'none',
   background: 'white',
@@ -195,8 +196,8 @@ export const select = style({
 export const checkboxLabel = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
-  fontSize: '0.875rem',
+  gap: vars.spacing['2'],
+  fontSize: vars.typography.size.sm,
   color: '#374151',
   cursor: 'pointer',
 });
@@ -205,18 +206,18 @@ export const formActions = style({
   display: 'flex',
   justifyContent: 'flex-end',
   gap: '0.75rem',
-  marginTop: '1rem',
-  paddingTop: '1rem',
+  marginTop: vars.spacing['3'],
+  paddingTop: vars.spacing['3'],
   borderTop: '1px solid #e5e7eb',
 });
 
 export const templatesSection = style({
-  marginBottom: '1.5rem',
+  marginBottom: vars.spacing['4'],
 });
 
 globalStyle(`${templatesSection} h4`, {
-  fontSize: '0.875rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.semibold,
   color: '#374151',
   margin: '0 0 0.75rem 0',
 });
@@ -224,18 +225,18 @@ globalStyle(`${templatesSection} h4`, {
 export const templateGrid = style({
   display: 'flex',
   flexWrap: 'wrap',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const helpText = style({
   fontSize: '0.8125rem',
   color: '#6b7280',
-  margin: '0.25rem 0 0 0',
+  margin: `${vars.spacing['1']} 0 0 0`,
 });
 
 export const loadingState = style({
   textAlign: 'center',
-  padding: '3rem',
+  padding: vars.spacing['6'],
   color: '#6b7280',
 });
 

@@ -1,20 +1,21 @@
 import { style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const statusFilterContainer = style({
   display: 'flex',
   flexWrap: 'wrap',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   marginBottom: 0,
 });
 
 export const statusCount = recipe({
   base: {
-    marginLeft: '0.5rem',
+    marginLeft: vars.spacing['2'],
     padding: '0.125rem 0.375rem',
-    borderRadius: '12px',
-    fontSize: '0.75rem',
-    fontWeight: '500',
+    borderRadius: vars.border.radius.lg,
+    fontSize: vars.typography.size.xs,
+    fontWeight: vars.typography.weight.medium,
   },
   variants: {
     active: {

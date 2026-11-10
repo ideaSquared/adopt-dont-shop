@@ -10,7 +10,7 @@ export const pageContainer = style({
 });
 
 export const pageHeader = style({
-  padding: '1.5rem 2rem',
+  padding: `${vars.spacing['4']} ${vars.spacing['5']}`,
   background: vars.background.surface,
   borderBottom: `1px solid ${vars.border.color.default}`,
   '@media': {
@@ -22,16 +22,16 @@ export const pageHeader = style({
 
 globalStyle(`${pageHeader} h1`, {
   margin: 0,
-  fontSize: '1.875rem',
-  fontWeight: 700,
+  fontSize: vars.typography.size['3xl'],
+  fontWeight: vars.typography.weight.bold,
   color: vars.text.primary,
   letterSpacing: '-0.025em',
 });
 
 globalStyle(`${pageHeader} p`, {
-  margin: '0.5rem 0 0 0',
+  margin: `${vars.spacing['2']} 0 0 0`,
   color: vars.text.tertiary,
-  fontSize: '1rem',
+  fontSize: vars.typography.size.base,
 });
 
 export const chatContainer = style({

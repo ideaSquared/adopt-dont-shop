@@ -1,10 +1,11 @@
 import { style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const cardContainer = style({
   background: '#f8fafc',
   border: '2px solid #e9ecef',
-  borderRadius: '12px',
-  padding: '1.5rem',
+  borderRadius: vars.border.radius.lg,
+  padding: vars.spacing['4'],
   transition: 'all 0.2s ease',
   ':hover': {
     borderColor: '#1976d2',
@@ -15,8 +16,8 @@ export const cardContainer = style({
 export const cardHeader = style({
   display: 'flex',
   alignItems: 'flex-start',
-  gap: '1rem',
-  marginBottom: '1rem',
+  gap: vars.spacing['3'],
+  marginBottom: vars.spacing['3'],
 });
 
 export const staffInfo = style({
@@ -24,22 +25,22 @@ export const staffInfo = style({
 });
 
 export const staffName = style({
-  margin: '0 0 0.25rem 0',
-  fontSize: '1.125rem',
-  fontWeight: '600',
+  margin: `0 0 ${vars.spacing['1']} 0`,
+  fontSize: vars.typography.size.lg,
+  fontWeight: vars.typography.weight.semibold,
   color: '#333',
 });
 
 export const staffTitle = style({
-  margin: '0 0 0.25rem 0',
+  margin: `0 0 ${vars.spacing['1']} 0`,
   color: '#666',
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
 });
 
 export const staffEmail = style({
   margin: '0',
   color: '#888',
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });
 
 export const staffStatus = style({
@@ -47,24 +48,24 @@ export const staffStatus = style({
 });
 
 export const cardBody = style({
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const staffDetails = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const detailItem = style({
   display: 'flex',
   justifyContent: 'space-between',
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });
 
 export const detailLabel = style({
   color: '#666',
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
 });
 
 export const detailValue = style({
@@ -76,6 +77,6 @@ export const cardActions = style({
   display: 'flex',
   gap: '0.75rem',
   justifyContent: 'flex-end',
-  paddingTop: '1rem',
+  paddingTop: vars.spacing['3'],
   borderTop: '1px solid #e9ecef',
 });

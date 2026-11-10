@@ -2,11 +2,11 @@ import { style } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const pageContainer = style({
-  padding: '1.5rem',
+  padding: vars.spacing['4'],
 });
 
 export const filterRow = style({
-  margin: '1rem 0',
+  margin: `${vars.spacing['3']} 0`,
 });
 
 export const skeletonStack = style({
@@ -17,11 +17,11 @@ export const skeletonStack = style({
 
 export const modalForm = style({
   display: 'grid',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const modalActions = style({
   display: 'flex',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
   justifyContent: 'flex-end',
 });

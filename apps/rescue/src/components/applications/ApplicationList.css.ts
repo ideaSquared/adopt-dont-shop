@@ -1,42 +1,43 @@
 import { style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const container = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const statsSection = style({
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const filtersSection = style({
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const header = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const headerLeft = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '1rem',
+  gap: vars.spacing['3'],
 });
 
 export const headerRight = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const title = style({
-  fontSize: '1.125rem',
-  fontWeight: '600',
+  fontSize: vars.typography.size.lg,
+  fontWeight: vars.typography.weight.semibold,
   color: '#111827',
   margin: 0,
 });
@@ -63,13 +64,13 @@ export const applicantInfo = style({
 });
 
 export const applicantName = style({
-  fontSize: '0.875rem',
-  fontWeight: '500',
+  fontSize: vars.typography.size.sm,
+  fontWeight: vars.typography.weight.medium,
   color: '#111827',
 });
 
 export const applicantEmail = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
 });
 
@@ -79,19 +80,19 @@ export const petInfo = style({
 });
 
 export const petName = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#111827',
 });
 
 export const petDetails = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
 });
 
 export const progressIndicators = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '0.25rem',
+  gap: vars.spacing['1'],
   minWidth: '200px',
 });
 
@@ -175,15 +176,15 @@ export const progressStep = recipe({
 });
 
 export const progressLabel = style({
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   color: '#6b7280',
-  marginLeft: '0.5rem',
+  marginLeft: vars.spacing['2'],
   whiteSpace: 'nowrap',
 });
 
 export const actionsContainer = style({
   display: 'flex',
-  gap: '0.25rem',
+  gap: vars.spacing['1'],
   alignItems: 'center',
 });
 

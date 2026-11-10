@@ -28,10 +28,10 @@ export const mainColumn = style({
 export const mainContent = style({
   flex: 1,
   overflow: 'auto',
-  padding: '2rem',
+  padding: vars.spacing['5'],
   '@media': {
     [MOBILE]: {
-      padding: '1rem',
+      padding: vars.spacing['3'],
     },
   },
 });

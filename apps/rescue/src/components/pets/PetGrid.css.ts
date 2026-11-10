@@ -1,9 +1,10 @@
 import { globalStyle, style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const gridContainer = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   marginBottom: 0,
   marginTop: 0,
   '@media': {
@@ -19,7 +20,7 @@ export const gridContainer = style({
 });
 
 export const emptyState = style({
-  padding: '3rem',
+  padding: vars.spacing['6'],
   textAlign: 'center',
   gridColumn: '1 / -1',
 });
@@ -35,8 +36,8 @@ export const emptyStateActions = style({
 });
 
 export const emptyStateCsvHint = style({
-  marginTop: '1rem',
-  fontSize: '0.875rem',
+  marginTop: vars.spacing['3'],
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
 });
 
@@ -46,29 +47,29 @@ export const emptyStateCsvLink = style({
 });
 
 globalStyle(`${emptyState} .empty-icon`, {
-  fontSize: '3rem',
-  marginBottom: '1rem',
+  fontSize: vars.typography.size['5xl'],
+  marginBottom: vars.spacing['3'],
 });
 
 globalStyle(`${emptyState} h3`, {
-  marginBottom: '0.5rem',
+  marginBottom: vars.spacing['2'],
   color: '#111827',
 });
 
 globalStyle(`${emptyState} p`, {
   color: '#6b7280',
-  marginBottom: '1.5rem',
+  marginBottom: vars.spacing['4'],
 });
 
 export const loadingGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   marginBottom: 0,
   '@media': {
     '(min-width: 1024px)': {
       gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-      gap: '1.5rem',
+      gap: vars.spacing['4'],
     },
   },
 });
@@ -77,13 +78,13 @@ export const paginationContainer = style({
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
-  gap: '1rem',
-  marginTop: '2rem',
-  padding: '1rem',
+  gap: vars.spacing['3'],
+  marginTop: vars.spacing['5'],
+  padding: vars.spacing['3'],
   '@media': {
     '(max-width: 768px)': {
       flexWrap: 'wrap',
-      gap: '0.5rem',
+      gap: vars.spacing['2'],
     },
   },
 });
@@ -91,7 +92,7 @@ export const paginationContainer = style({
 export const pageButton = style({
   minWidth: '40px',
   height: '40px',
-  padding: '0.5rem',
+  padding: vars.spacing['2'],
 });
 
 export const pageButtonCurrent = style({
@@ -100,7 +101,7 @@ export const pageButtonCurrent = style({
 });
 
 export const pageCounter = style({
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   color: '#6b7280',
   whiteSpace: 'nowrap',
 });

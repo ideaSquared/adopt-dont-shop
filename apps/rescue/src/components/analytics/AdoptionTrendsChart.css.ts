@@ -4,7 +4,7 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const chartContainer = style({
   width: '100%',
-  padding: '1rem 0',
+  padding: `${vars.spacing['3']} 0`,
 });
 
 export const svgContainer = style({
@@ -20,13 +20,13 @@ export const gridLine = style({
 
 export const gridLabel = style({
   fill: vars.text.tertiary,
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   fontFamily: 'inherit',
 });
 
 export const axisLabel = style({
   fill: vars.text.secondary,
-  fontSize: '0.75rem',
+  fontSize: vars.typography.size.xs,
   fontFamily: 'inherit',
 });
 
@@ -69,7 +69,7 @@ export const tooltipContainer = style({
   color: 'white',
   padding: '0.5rem 0.75rem',
   borderRadius: '6px',
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
   whiteSpace: 'nowrap',
   pointerEvents: 'none',
   zIndex: 10,
@@ -89,13 +89,13 @@ export const tooltipContainer = style({
 });
 
 export const tooltipDate = style({
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
   marginBottom: '0.125rem',
 });
 
 export const tooltipValue = style({
   color: vars.colors.primaryBorderSubtle,
-  fontWeight: '500',
+  fontWeight: vars.typography.weight.medium,
 });
 
 export const chartWrapper = style({

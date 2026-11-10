@@ -3,8 +3,8 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const pageContainer = style({
   maxWidth: '720px',
-  margin: '2rem auto',
-  padding: '0 1rem',
+  margin: `${vars.spacing['5']} auto`,
+  padding: `0 ${vars.spacing['3']}`,
 });
 
 export const card = style({
@@ -20,7 +20,7 @@ export const stepper = style({
 
 export const stepTitle = style({
   fontSize: vars.typography.size['2xl'],
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
   marginBottom: vars.spacing['4'],
 });
@@ -73,7 +73,7 @@ export const reviewSection = style({
 });
 
 export const reviewLabel = style({
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
   fontSize: vars.typography.size.sm,
 });
@@ -90,7 +90,7 @@ export const successContainer = style({
 
 export const successTitle = style({
   fontSize: vars.typography.size['2xl'],
-  fontWeight: 600,
+  fontWeight: vars.typography.weight.semibold,
   color: vars.colors.success,
   marginBottom: vars.spacing['3'],
 });

@@ -1,17 +1,18 @@
 import { style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const container = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '16px',
-  padding: '24px',
+  gap: vars.spacing['3'],
+  padding: vars.spacing['4'],
 });
 
 export const formGrid = style({
   display: 'grid',
   gridTemplateColumns: '1fr 1fr',
-  gap: '16px',
+  gap: vars.spacing['3'],
   padding: '12px',
   background: '#f9fafb',
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.base,
 });
