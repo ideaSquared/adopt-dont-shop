@@ -248,4 +248,95 @@ describe('Modal', () => {
       expect(closeButton).toHaveFocus();
     });
   });
+
+  describe('stacked modals', () => {
+    type StackedProps = {
+      innerOpen: boolean;
+      onCloseOuter: () => void;
+      onCloseInner: () => void;
+    };
+
+    const Stacked = ({ innerOpen, onCloseOuter, onCloseInner }: StackedProps) => (
+      <Modal isOpen={true} onClose={onCloseOuter} title='Outer'>
+        <p>Outer content</p>
+        <Modal isOpen={innerOpen} onClose={onCloseInner} title='Inner'>
+          <p>Inner content</p>
+        </Modal>
+      </Modal>
+    );
+
+    it('closes only the top-most modal when escape is pressed on the document', () => {
+      const onCloseOuter = vi.fn();
+      const onCloseInner = vi.fn();
+      render(<Stacked innerOpen={true} onCloseOuter={onCloseOuter} onCloseInner={onCloseInner} />);
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      expect(onCloseInner).toHaveBeenCalledTimes(1);
+      expect(onCloseOuter).not.toHaveBeenCalled();
+    });
+
+    it('closes only the top-most modal when escape is pressed inside it', () => {
+      const onCloseOuter = vi.fn();
+      const onCloseInner = vi.fn();
+      render(<Stacked innerOpen={true} onCloseOuter={onCloseOuter} onCloseInner={onCloseInner} />);
+
+      fireEvent.keyDown(screen.getByText('Inner content'), { key: 'Escape' });
+
+      expect(onCloseInner).toHaveBeenCalled();
+      expect(onCloseOuter).not.toHaveBeenCalled();
+    });
+
+    it('lets escape close the outer modal once the inner one has closed', () => {
+      const onCloseOuter = vi.fn();
+      const onCloseInner = vi.fn();
+      const { rerender } = render(
+        <Stacked innerOpen={true} onCloseOuter={onCloseOuter} onCloseInner={onCloseInner} />
+      );
+
+      rerender(
+        <Stacked innerOpen={false} onCloseOuter={onCloseOuter} onCloseInner={onCloseInner} />
+      );
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      expect(onCloseOuter).toHaveBeenCalledTimes(1);
+      expect(onCloseInner).not.toHaveBeenCalled();
+    });
+
+    it('closes the most recently opened of two sibling modals first', () => {
+      const onCloseFirst = vi.fn();
+      const onCloseSecond = vi.fn();
+      const Siblings = ({ secondOpen }: { secondOpen: boolean }) => (
+        <>
+          <Modal isOpen={true} onClose={onCloseFirst} title='First'>
+            <p>First content</p>
+          </Modal>
+          <Modal isOpen={secondOpen} onClose={onCloseSecond} title='Second'>
+            <p>Second content</p>
+          </Modal>
+        </>
+      );
+      const { rerender } = render(<Siblings secondOpen={false} />);
+      rerender(<Siblings secondOpen={true} />);
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      expect(onCloseSecond).toHaveBeenCalledTimes(1);
+      expect(onCloseFirst).not.toHaveBeenCalled();
+    });
+
+    it('keeps the page scroll locked while the outer modal is still open', () => {
+      const onCloseOuter = vi.fn();
+      const onCloseInner = vi.fn();
+      const { rerender } = render(
+        <Stacked innerOpen={true} onCloseOuter={onCloseOuter} onCloseInner={onCloseInner} />
+      );
+
+      rerender(
+        <Stacked innerOpen={false} onCloseOuter={onCloseOuter} onCloseInner={onCloseInner} />
+      );
+
+      expect(document.body.style.overflow).toBe('hidden');
+    });
+  });
 });
