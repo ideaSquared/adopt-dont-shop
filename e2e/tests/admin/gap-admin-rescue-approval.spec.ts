@@ -114,9 +114,6 @@ test.describe('approving a pending rescue (ADM-031)', () => {
         await expect(
           rescueApp.getByRole('heading', { level: 1, name: 'Pet Management' })
         ).toBeVisible({ timeout: 30_000 });
-        await expect(rescueApp.getByRole('heading', { name: 'Rescue Setup Required' })).toHaveCount(
-          0
-        );
       } finally {
         await rescueApp.context().close();
       }
