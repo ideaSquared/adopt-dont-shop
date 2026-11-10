@@ -295,8 +295,9 @@ export const deleteDemoRescue = async (
     await call('pets.Delete', { petId }, { permissions: [PETS_DELETE, PETS_MANAGE_ANY], rescueId });
   }, Promise.resolve());
 
-  await call('rescue.Delete', { rescueId }, { permissions: [ADMIN_SECURITY_MANAGE] });
-
+  // Accounts are deactivated before the rescue is deleted: deactivation is
+  // idempotent, so if any step fails the command can simply be re-run, and the
+  // rescue (with its staff list) is still there to find them.
   await demoUserIds.reduce<Promise<void>>(async (prev, userId) => {
     await prev;
     await call(
@@ -305,6 +306,8 @@ export const deleteDemoRescue = async (
       { permissions: [ADMIN_USERS_DEACTIVATE] }
     );
   }, Promise.resolve());
+
+  await call('rescue.Delete', { rescueId }, { permissions: [ADMIN_SECURITY_MANAGE] });
 
   return { rescueId, deletedPetIds: petIds, deactivatedUserIds: demoUserIds };
 };

@@ -271,8 +271,8 @@ describe('demo delete-rescue', () => {
       'pets.List',
       'pets.Delete',
       'pets.Delete',
-      'rescue.Delete',
       'auth.DeactivateUser',
+      'rescue.Delete',
     ]);
     const headersOf = (rpc: string) => h.grpc.calls.find(c => c.rpc === rpc)?.headers ?? {};
     expect(headersOf('pets.Delete')['x-user-permissions']).toBe('pets.delete,pets.manage:any');
@@ -280,6 +280,21 @@ describe('demo delete-rescue', () => {
     expect(headersOf('rescue.Delete')['x-user-permissions']).toBe('admin.security.manage');
     expect(headersOf('auth.DeactivateUser')['x-user-permissions']).toBe('admin.users.deactivate');
     expect(requestOf(h, 'auth.DeactivateUser')).toMatchObject({ userId: OWNER_ID });
+  });
+
+  it('leaves the rescue in place when deactivating an account fails, so a re-run can finish', async () => {
+    const script = deleteScript({ [OWNER_ID]: DEMO_EMAIL });
+    const h = await setup({
+      grpc: (call: GrpcCall): unknown => {
+        if (call.method.rpc === 'auth.DeactivateUser') {
+          throw Object.assign(new Error('auth unavailable'), { code: 14 });
+        }
+        return script(call);
+      },
+    });
+    const res = await h.previewThenExecute('demo.DeleteRescue', { rescueId: RESCUE_ID });
+    expect(errorOf(res).code).not.toBe('OK');
+    expect(h.grpc.calls.map(c => c.rpc)).not.toContain('rescue.Delete');
   });
 
   it('is refused in prod', async () => {
