@@ -34,7 +34,7 @@ export const useSearchPets = ({
   const searchFilters: PetSearchFilters = {
     ...filters,
     ...(trimmedQuery && { search: trimmedQuery }),
-    ...(coordinates && coordinates),
+    ...coordinates,
   };
 
   return useQuery({
