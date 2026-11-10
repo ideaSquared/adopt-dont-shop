@@ -97,12 +97,33 @@ eval "$(pnpm --silent ops completion zsh)"                  # then: ads-ops pets
 ```bash
 pnpm ops demo create-rescue -e staging --pet-count 5        # preview, then confirm
 pnpm ops demo delete-rescue <rescueId> -e staging
+pnpm ops demo create-adopter -e staging --first-name Ada
+pnpm ops demo delete-adopter <userId> -e staging
+pnpm ops demo create-pets <rescueId> -e staging --count 10  # sample pets for any verified rescue
+pnpm ops demo delete-pets <rescueId> -e staging
 ```
 
 `create-rescue` makes a verified rescue, an active owner login (a generated `demo-…@example.com`
 address and password, printed once in the result) and up to 10 sample pets. Sign in to the rescue
 app with that login. `delete-rescue` removes the pets and the rescue and deactivates the demo
-owner; it refuses any rescue `create-rescue` did not make. Both are refused in prod.
+owner; it refuses any rescue `create-rescue` did not make. `create-pets` adds 1 to 25 (default 5)
+available sample pets, tagged `demo`, to any existing verified rescue; `delete-pets` deletes only the
+pets in that rescue carrying the `demo` tag. All four are refused in prod.
+
+`create-adopter` makes a verified, active adopter (generated `demo-…@example.com` login, password
+printed once) that can sign in to the client app straight away. `delete-adopter` deactivates it
+(there is no user soft-delete RPC) and refuses any account without a demo address.
+
+```bash
+pnpm ops demo create-application <rescueId> -e staging --stage under_review
+pnpm ops demo delete-application <applicationId> --rescue-id <rescueId> -e staging
+```
+
+`create-application` makes a demo adopter (login printed once, like the owner above) and a
+submitted application from them for one of the rescue's available pets (or `--pet-id`). `--stage`
+moves it on: `under_review`, `home_visit_scheduled`, `home_visit_completed`, `approved` or
+`rejected`. `delete-application` withdraws it and deactivates the adopter; it refuses an
+application whose adopter is not a generated `demo-…@example.com` account.
 
 How flags are built from the proto request message:
 
