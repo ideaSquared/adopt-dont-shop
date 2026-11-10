@@ -30,8 +30,13 @@ vi.mock('../services/libraryServices', () => ({
   petService: { getPetById: getPetByIdMock },
 }));
 
+// GET /auth/me does not carry the rescue id; it comes from the staff membership.
+vi.mock('../services/staffService', () => ({
+  staffService: { getMyRescueId: vi.fn().mockResolvedValue('rescue-1') },
+}));
+
 vi.mock('@adopt-dont-shop/lib.auth', () => ({
-  useAuth: () => ({ user: { userId: 'staff-1', rescueId: 'rescue-1' }, refreshUser: vi.fn() }),
+  useAuth: () => ({ user: { userId: 'staff-1' }, refreshUser: vi.fn() }),
 }));
 
 vi.mock('@adopt-dont-shop/lib.api', async () => {
@@ -117,6 +122,12 @@ describe('PetManagement deep link', () => {
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
     expect(screen.queryByRole('dialog', { name: 'Pet form' })).not.toBeInTheDocument();
     expect(getPetByIdMock).not.toHaveBeenCalled();
+  });
+
+  it('enables CSV import once the rescue id is known from the staff membership', async () => {
+    renderAt('/pets');
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Import CSV' })).toBeEnabled());
   });
 
   it('shows the rescue statistics from the dashboard endpoint', async () => {

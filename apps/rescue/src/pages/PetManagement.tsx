@@ -30,6 +30,7 @@ import PetStatusFilter from '../components/pets/PetStatusFilter.tsx';
 import PetCsvImportModal from '../components/pets/PetCsvImportModal.tsx';
 import PetBulkActionBar, { type PetBulkAction } from '../components/pets/PetBulkActionBar.tsx';
 import { usePet } from '../hooks/usePet';
+import { useMyRescueId } from '../hooks/useMyRescueId';
 import * as styles from './PetManagement.css';
 
 type PetStats = {
@@ -69,6 +70,7 @@ const PetManagement: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, refreshUser } = useAuth();
+  const rescueId = useMyRescueId();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Filter state is driven by URL search params so refresh/back preserves it.
@@ -421,11 +423,7 @@ const PetManagement: React.FC = () => {
           description="Manage your rescue's pet inventory, medical records, and adoption status."
           actions={
             <div className={styles.headerActions}>
-              <Button
-                variant="outline"
-                onClick={() => setShowCsvImport(true)}
-                disabled={!user?.rescueId}
-              >
+              <Button variant="outline" onClick={() => setShowCsvImport(true)} disabled={!rescueId}>
                 Import CSV
               </Button>
               <Button variant="primary" onClick={() => setShowAddModal(true)}>
@@ -536,7 +534,7 @@ const PetManagement: React.FC = () => {
             onDeletePet={handleDeletePet}
             selectedPetIds={selectedPetIds}
             onToggleSelectPet={handleToggleSelectPet}
-            onOpenCsvImport={user?.rescueId ? () => setShowCsvImport(true) : undefined}
+            onOpenCsvImport={rescueId ? () => setShowCsvImport(true) : undefined}
             onAddPet={() => setShowAddModal(true)}
             pagination={{
               currentPage,
@@ -550,10 +548,10 @@ const PetManagement: React.FC = () => {
       </div>
 
       {/* CSV Import Modal (ADS-133) */}
-      {showCsvImport && user?.rescueId && (
+      {showCsvImport && rescueId && (
         <PetCsvImportModal
           isOpen={showCsvImport}
-          rescueId={user.rescueId}
+          rescueId={rescueId}
           onClose={() => setShowCsvImport(false)}
           onImported={refreshPets}
         />
