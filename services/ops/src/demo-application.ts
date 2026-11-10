@@ -3,8 +3,6 @@ import { z } from 'zod';
 import {
   ADMIN_USERS_DEACTIVATE,
   ADMIN_USERS_READ,
-  ADMIN_USERS_SEARCH,
-  ADMIN_USERS_UPDATE,
   APPLICATIONS_APPROVE,
   APPLICATIONS_CREATE,
   APPLICATIONS_PROCESS,
@@ -15,15 +13,7 @@ import {
   type Permission,
 } from '@adopt-dont-shop/lib.types';
 
-import {
-  ALPHANUMERIC,
-  arrayAt,
-  DEMO_EMAIL_PATTERN,
-  generatePassword,
-  objectAt,
-  randomString,
-  str,
-} from './demo-rescue.js';
+import { arrayAt, DEMO_EMAIL_PATTERN, objectAt, str } from './demo-rescue.js';
 import { OpsError } from './errors.js';
 import type { CallDownstream, DownstreamStep, JsonObject } from './registry.js';
 import { createDemoAdopter } from './demo-accounts.js';
