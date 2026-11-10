@@ -6,6 +6,7 @@ import { petService } from '../services/libraryServices';
 import { useStaff } from '../hooks/useStaff';
 import type { Pet } from '@adopt-dont-shop/lib.pets';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
+import { staffService } from '../services/staffService';
 import {
   Alert,
   Button,
@@ -45,7 +46,13 @@ const loadAllPets = async (rescueId: string): Promise<Pet[]> => {
 
 const FosterCoordination: React.FC = () => {
   const { user } = useAuth();
-  const rescueId = user?.rescueId ?? null;
+  // GET /auth/me does not return the rescue id; it comes from the staff membership.
+  const rescueQuery = useQuery({
+    queryKey: ['foster', 'rescue-id', user?.userId],
+    queryFn: () => staffService.getMyRescueId(),
+    enabled: Boolean(user?.userId),
+  });
+  const rescueId = rescueQuery.data ?? null;
   const queryClient = useQueryClient();
   const { confirm, confirmProps } = useConfirm();
   // ADS-644: cross-linking. When deep-linked from a pet card we scope the

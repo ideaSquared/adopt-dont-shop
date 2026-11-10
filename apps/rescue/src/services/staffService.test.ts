@@ -26,6 +26,21 @@ describe('RescueStaffService', () => {
     vi.resetAllMocks();
   });
 
+  describe('getMyRescueId', () => {
+    it('reads the rescue id from the current user staff membership', async () => {
+      apiServiceMock.get.mockResolvedValue({ success: true, data: { rescueId: 'r1' } });
+
+      await expect(service.getMyRescueId()).resolves.toBe('r1');
+      expect(apiServiceMock.get).toHaveBeenCalledWith('/api/v1/staff/me');
+    });
+
+    it('returns null when the membership carries no rescue id', async () => {
+      apiServiceMock.get.mockResolvedValue({ success: true, data: {} });
+
+      await expect(service.getMyRescueId()).resolves.toBeNull();
+    });
+  });
+
   describe('getRescueStaff', () => {
     it('uses the gateway staffMemberId as the member id', async () => {
       apiServiceMock.get.mockResolvedValue({

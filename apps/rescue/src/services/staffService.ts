@@ -52,6 +52,17 @@ export class RescueStaffService {
   }
 
   /**
+   * The rescue the current user belongs to, from their staff membership.
+   * GET /auth/me does not return it; the rescue service is the source of truth.
+   */
+  async getMyRescueId(): Promise<string | null> {
+    const response = await this.apiService.get<{ data?: { rescueId?: string } }>(
+      '/api/v1/staff/me'
+    );
+    return response.data?.rescueId || null;
+  }
+
+  /**
    * Get staff members for the current user's rescue
    */
   async getRescueStaff(): Promise<StaffMember[]> {
