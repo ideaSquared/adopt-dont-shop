@@ -359,14 +359,14 @@ const IpRulesTab: React.FC<IpRulesTabProps> = ({ initialIp = '' }) => {
   const [label, setLabel] = useState('');
   const { confirm, confirmProps } = useConfirm();
 
-  const rules: IpRule[] = rulesQuery.data ?? [];
   const visibleRules = useMemo(() => {
+    const rules: IpRule[] = rulesQuery.data ?? [];
     const needle = ipFilter.trim().toLowerCase();
     if (!needle) {
       return rules;
     }
     return rules.filter(r => r.cidr.toLowerCase().includes(needle));
-  }, [rules, ipFilter]);
+  }, [rulesQuery.data, ipFilter]);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
