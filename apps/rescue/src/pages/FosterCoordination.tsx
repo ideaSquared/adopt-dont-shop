@@ -19,6 +19,7 @@ import {
   ConfirmDialog,
   SkeletonCard,
   DataTable,
+  ErrorState,
   type DataTableColumn,
 } from '@adopt-dont-shop/lib.components';
 import { formatDate } from '@adopt-dont-shop/lib.utils';
@@ -29,19 +30,16 @@ const NO_PETS: Pet[] = [];
 // Cap the pet picker's page fetches so it is populated without unbounded parallel requests.
 const MAX_PET_PAGES = 10;
 
+// Errors propagate so the query exposes a failed state instead of an empty list.
 const loadAllPets = async (rescueId: string): Promise<Pet[]> => {
-  try {
-    const first = await petService.getPetsByRescue(rescueId, 1);
-    const cappedPages = Math.min(first.pagination.totalPages, MAX_PET_PAGES);
-    const remaining = await Promise.all(
-      Array.from({ length: Math.max(cappedPages - 1, 0) }, (_, i) =>
-        petService.getPetsByRescue(rescueId, i + 2)
-      )
-    );
-    return [...first.data, ...remaining.flatMap(page => page.data)];
-  } catch {
-    return [];
-  }
+  const first = await petService.getPetsByRescue(rescueId, 1);
+  const cappedPages = Math.min(first.pagination.totalPages, MAX_PET_PAGES);
+  const remaining = await Promise.all(
+    Array.from({ length: Math.max(cappedPages - 1, 0) }, (_, i) =>
+      petService.getPetsByRescue(rescueId, i + 2)
+    )
+  );
+  return [...first.data, ...remaining.flatMap(page => page.data)];
 };
 
 const FosterCoordination: React.FC = () => {
@@ -95,6 +93,14 @@ const FosterCoordination: React.FC = () => {
     enabled: rescueId !== null,
   });
   const pets = petsQuery.data ?? NO_PETS;
+  const petsLoadError = petsQuery.isError
+    ? petsQuery.error instanceof Error
+      ? petsQuery.error.message
+      : 'Please try again.'
+    : null;
+  const retryPets = () => {
+    petsQuery.refetch();
+  };
   const { staff } = useStaff();
 
   const invalidatePlacements = () =>
@@ -249,6 +255,14 @@ const FosterCoordination: React.FC = () => {
       />
 
       {error && <Alert variant="error">{error}</Alert>}
+      {petsLoadError && !showCreate && (
+        <ErrorState
+          size="sm"
+          title="Unable to load pets"
+          message={`Pet names may show as ids until this is resolved. ${petsLoadError}`}
+          onRetry={retryPets}
+        />
+      )}
 
       <div className={styles.filterRow}>
         <FormField label="Filter:" htmlFor="foster-status-filter">
@@ -283,6 +297,14 @@ const FosterCoordination: React.FC = () => {
         <form onSubmit={handleCreate} className={styles.modalForm}>
           <FormField label="Pet" htmlFor="foster-pet">
             <>
+              {petsLoadError && (
+                <ErrorState
+                  size="sm"
+                  title="Unable to load pets"
+                  message={petsLoadError}
+                  onRetry={retryPets}
+                />
+              )}
               <Input
                 type="text"
                 aria-label="Search pets by name or breed"
@@ -298,11 +320,15 @@ const FosterCoordination: React.FC = () => {
                 aria-required={true}
               >
                 <option value="">
-                  {pets.length === 0
-                    ? 'Loading pets...'
-                    : filteredPets.length === 0
-                      ? 'No pets match your search'
-                      : `Select a pet (${filteredPets.length} of ${pets.length})`}
+                  {petsQuery.isError
+                    ? 'Failed to load pets'
+                    : petsQuery.isPending
+                      ? 'Loading pets...'
+                      : pets.length === 0
+                        ? 'No pets in your rescue'
+                        : filteredPets.length === 0
+                          ? 'No pets match your search'
+                          : `Select a pet (${filteredPets.length} of ${pets.length})`}
                 </option>
                 {filteredPets.map(pet => (
                   <option key={pet.pet_id} value={pet.pet_id}>

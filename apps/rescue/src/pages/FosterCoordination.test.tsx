@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import FosterCoordination from './FosterCoordination';
@@ -131,6 +131,48 @@ describe('FosterCoordination', () => {
     });
     expect(screen.getByRole('option', { name: /Whiskers/ })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: /Ada Lovelace/ })).toBeInTheDocument();
+  });
+
+  it('shows an error with a retry in the picker when the pets fetch fails, distinct from loading', async () => {
+    mockedPet.getPetsByRescue.mockRejectedValueOnce(new Error('pets down'));
+    renderAt('/foster');
+    fireEvent.click(screen.getByRole('button', { name: 'New Placement' }));
+
+    const dialog = screen.getByRole('dialog');
+    expect(await within(dialog).findByText('Unable to load pets')).toBeInTheDocument();
+    expect(within(dialog).queryByText('Loading pets...')).not.toBeInTheDocument();
+    expect(within(dialog).getByRole('option', { name: 'Failed to load pets' })).toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Try again' }));
+
+    expect(await within(dialog).findByRole('option', { name: /Buddy/ })).toBeInTheDocument();
+    expect(within(dialog).queryByText('Unable to load pets')).not.toBeInTheDocument();
+  });
+
+  it('tells the user on the page that pet names could not be loaded, and retry works', async () => {
+    mockedPet.getPetsByRescue.mockRejectedValueOnce(new Error('pets down'));
+    renderAt('/foster');
+
+    expect(await screen.findByText('Unable to load pets')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await waitFor(() => {
+      expect(screen.queryByText('Unable to load pets')).not.toBeInTheDocument();
+    });
+  });
+
+  it('shows "No pets" rather than loading or an error when the rescue has none', async () => {
+    mockedPet.getPetsByRescue.mockResolvedValue({
+      data: [],
+      pagination: { page: 1, limit: 20, total: 0, totalPages: 1, hasNext: false, hasPrev: false },
+    });
+    renderAt('/foster');
+    fireEvent.click(screen.getByRole('button', { name: 'New Placement' }));
+
+    expect(
+      await screen.findByRole('option', { name: 'No pets in your rescue' })
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Unable to load pets')).not.toBeInTheDocument();
+    expect(screen.queryByText('Loading pets...')).not.toBeInTheDocument();
   });
 
   it('looks pets up under the rescue from the staff membership and names them in the list', async () => {
