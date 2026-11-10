@@ -14,7 +14,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // Fake timers must be active before the module's singleton constructor runs.
 vi.useFakeTimers();
 
+const toastError = vi.fn();
+vi.mock('@adopt-dont-shop/lib.components', () => ({
+  toast: { error: (message: string) => toastError(message) },
+}));
+
 import {
+  MAX_QUEUE_AGE_MS,
+  MAX_SYNC_ATTEMPTS,
   offlineManager,
   isCurrentlyOnline,
   getConnectionQuality,
@@ -29,10 +36,8 @@ beforeEach(() => {
   vi.spyOn(console, 'warn').mockImplementation(() => {});
   localStorage.clear();
   offlineManager.setSyncCallback(null);
-  // Drain any queue left over from a prior test by reading + removing.
-  const state = offlineManager.getCurrentState();
-  state.pendingMessages.forEach(m => offlineManager.removeQueuedMessage(m.id));
-  state.pendingActions.forEach(a => offlineManager.removeQueuedAction(a.id));
+  offlineManager.clearQueues();
+  offlineManager.setCurrentUser('user-a');
 });
 
 afterEach(() => {
@@ -187,5 +192,165 @@ describe('convenience helpers', () => {
 
     const queued = offlineManager.getCurrentState().pendingMessages.find(m => m.id === id);
     expect(queued?.content).toBe('helper');
+  });
+});
+
+describe('user scoping', () => {
+  it('does not queue messages when nobody is signed in', () => {
+    offlineManager.setCurrentUser(null);
+
+    offlineManager.queueMessage('conv-1', 'anonymous');
+
+    expect(offlineManager.getCurrentState().pendingMessages).toHaveLength(0);
+    expect(JSON.parse(localStorage.getItem('offline_pending_messages') ?? '[]')).toHaveLength(0);
+  });
+
+  it('does not deliver user A queued items to user B', async () => {
+    const syncCallback = vi.fn().mockResolvedValue(undefined);
+    offlineManager.setSyncCallback(syncCallback);
+    offlineManager.queueMessage('conv-1', 'secret from A');
+    offlineManager.queueAction('mark_read', 'conv-1');
+
+    offlineManager.setCurrentUser('user-b');
+    await offlineManager.forceSync();
+
+    expect(syncCallback).not.toHaveBeenCalled();
+    const state = offlineManager.getCurrentState();
+    expect(state.pendingMessages).toHaveLength(0);
+    expect(state.pendingActions).toHaveLength(0);
+    expect(localStorage.getItem('offline_pending_messages')).not.toContain('secret from A');
+  });
+
+  it('keeps the queue when the same user is set again', () => {
+    offlineManager.queueMessage('conv-1', 'mine');
+
+    offlineManager.setCurrentUser('user-a');
+
+    expect(offlineManager.getCurrentState().pendingMessages).toHaveLength(1);
+  });
+
+  it('clears both queues and storage on logout', () => {
+    offlineManager.queueMessage('conv-1', 'unsent');
+    offlineManager.queueAction('mark_read', 'conv-1');
+
+    offlineManager.clearQueues();
+
+    const state = offlineManager.getCurrentState();
+    expect(state.pendingMessages).toHaveLength(0);
+    expect(state.pendingActions).toHaveLength(0);
+    expect(localStorage.getItem('offline_pending_messages')).toBe('[]');
+    expect(localStorage.getItem('offline_pending_actions')).toBe('[]');
+  });
+
+  it('clears the queue when the session ends without an explicit logout (user becomes null)', () => {
+    offlineManager.queueMessage('conv-1', 'unsent');
+
+    offlineManager.setCurrentUser(null);
+
+    expect(offlineManager.getCurrentState().pendingMessages).toHaveLength(0);
+    expect(localStorage.getItem('offline_pending_messages')).toBe('[]');
+  });
+});
+
+describe('bounded retries', () => {
+  it('drops a message after the maximum number of failed syncs and tells the user', async () => {
+    offlineManager.setSyncCallback(vi.fn().mockResolvedValue(undefined)); // delivers nothing
+    offlineManager.queueMessage('conv-1', 'never sends');
+
+    for (let i = 0; i < MAX_SYNC_ATTEMPTS - 1; i++) {
+      await offlineManager.forceSync();
+    }
+    expect(offlineManager.getCurrentState().pendingMessages).toHaveLength(1);
+    expect(toastError).not.toHaveBeenCalled();
+
+    await offlineManager.forceSync();
+
+    expect(offlineManager.getCurrentState().pendingMessages).toHaveLength(0);
+    expect(toastError).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not retry a dropped message on later periodic syncs', async () => {
+    const syncCallback = vi.fn().mockResolvedValue(undefined);
+    offlineManager.setSyncCallback(syncCallback);
+    offlineManager.queueMessage('conv-1', 'never sends');
+
+    for (let i = 0; i < MAX_SYNC_ATTEMPTS; i++) {
+      await offlineManager.forceSync();
+    }
+    syncCallback.mockClear();
+    await vi.advanceTimersByTimeAsync(5 * 30000);
+
+    expect(syncCallback).not.toHaveBeenCalled();
+  });
+
+  it('counts a rejected sync callback as a failed attempt', async () => {
+    offlineManager.setSyncCallback(vi.fn().mockRejectedValue(new Error('offline')));
+    offlineManager.queueMessage('conv-1', 'fails');
+
+    for (let i = 0; i < MAX_SYNC_ATTEMPTS; i++) {
+      await offlineManager.forceSync();
+    }
+
+    expect(offlineManager.getCurrentState().pendingMessages).toHaveLength(0);
+  });
+
+  it('drops a message older than the maximum age instead of sending it', async () => {
+    const syncCallback = vi.fn().mockResolvedValue(undefined);
+    offlineManager.setSyncCallback(syncCallback);
+    offlineManager.queueMessage('conv-1', 'stale');
+
+    vi.setSystemTime(Date.now() + MAX_QUEUE_AGE_MS + 1000);
+    await offlineManager.forceSync();
+
+    expect(syncCallback).not.toHaveBeenCalled();
+    expect(offlineManager.getCurrentState().pendingMessages).toHaveLength(0);
+    expect(toastError).toHaveBeenCalledTimes(1);
+  });
+
+  it('flushes a normal offline-then-online queue for the same user in order', async () => {
+    const sent: string[] = [];
+    offlineManager.setSyncCallback(async messages => {
+      for (const message of messages) {
+        sent.push(message.content);
+        offlineManager.removeQueuedMessage(message.id);
+      }
+    });
+    offlineManager.queueMessage('conv-1', 'first');
+    offlineManager.queueMessage('conv-1', 'second');
+    offlineManager.queueMessage('conv-2', 'third');
+
+    await offlineManager.forceSync();
+
+    expect(sent).toEqual(['first', 'second', 'third']);
+    expect(offlineManager.getCurrentState().pendingMessages).toHaveLength(0);
+    expect(toastError).not.toHaveBeenCalled();
+  });
+});
+
+describe('legacy persisted items', () => {
+  it('discards stored items that have no owner and never sends them', async () => {
+    localStorage.setItem(
+      'offline_pending_messages',
+      JSON.stringify([
+        {
+          id: 'old',
+          conversationId: 'c',
+          content: 'legacy',
+          messageType: 'text',
+          timestamp: Date.now(),
+        },
+      ])
+    );
+    vi.resetModules();
+    const { offlineManager: fresh } = await import('./offlineManager');
+    const syncCallback = vi.fn().mockResolvedValue(undefined);
+    fresh.setSyncCallback(syncCallback);
+    fresh.setCurrentUser('user-a');
+
+    await fresh.forceSync();
+
+    expect(fresh.getCurrentState().pendingMessages).toHaveLength(0);
+    expect(syncCallback).not.toHaveBeenCalled();
+    fresh.cleanup();
   });
 });

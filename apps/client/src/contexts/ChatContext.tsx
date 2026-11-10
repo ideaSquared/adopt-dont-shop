@@ -5,7 +5,7 @@
  * and offlineManager.
  */
 
-import { useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, type ReactNode } from 'react';
 import {
   ChatProvider as LibChatProvider,
   useChat as useLibChat,
@@ -82,9 +82,20 @@ const buildOfflineAdapter = (): OfflineAdapter => {
 };
 
 export function ChatProvider({ children }: { children: ReactNode }) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isInitializing } = useAuth();
   const { checkGate, logEvent } = useStatsig();
   const offlineAdapter = useMemo(() => buildOfflineAdapter(), []);
+
+  // Scope the offline queue to the signed-in user. Runs on every user change,
+  // including the null of a logout or a session-expiry sign-out, but not while
+  // the session is still rehydrating (a returning user keeps their queue).
+  const userId = user?.userId ?? null;
+  useEffect(() => {
+    if (isInitializing) {
+      return;
+    }
+    offlineManager.setCurrentUser(userId);
+  }, [userId, isInitializing]);
 
   const featureFlags = useMemo<FeatureFlagsAdapter>(
     () => ({
