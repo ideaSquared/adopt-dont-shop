@@ -546,10 +546,10 @@ export async function login(
     throw new HandlerError('UNAUTHENTICATED', 'invalid credentials');
   }
 
-  // The password is correct — only now is it safe to reveal account state
-  // (ADS-966). A locked/suspended/deactivated account still can't log in,
-  // but the distinct message is reserved for someone who has already
-  // proven they know the password.
+  // The password is correct. A locked account still can't log in and answers
+  // exactly like a wrong password; suspended/deactivated accounts get a
+  // distinct message, reserved for someone who has proven they know the
+  // password (ADS-966).
   if (user.locked_until && user.locked_until > new Date()) {
     loginCounter.inc({ outcome: 'account_locked' });
     await publishLoginActionTaken(deps, {
@@ -560,7 +560,10 @@ export async function login(
       ipAddress: req.ipAddress,
       userAgent: req.userAgent,
     });
-    throw new HandlerError('PERMISSION_DENIED', 'account is temporarily locked');
+    // Identical to the wrong-password response: while locked, a correct
+    // password must not be distinguishable from a wrong one, or the lock
+    // would still let an attacker keep guessing.
+    throw new HandlerError('UNAUTHENTICATED', 'invalid credentials');
   }
   // A timed suspension that has ended no longer blocks sign-in: lift it now
   // (audited) so a missed scheduled job can never keep someone out past their
@@ -838,10 +841,10 @@ export async function refreshToken(
     `SELECT jti FROM auth.revoked_tokens WHERE jti = $1`,
     [claims.jti]
   );
-  if (denied.rows.length > 0) {
-    tokenRefreshCounter.inc({ outcome: 'token_revoked' });
-    throw new HandlerError('UNAUTHENTICATED', 'refresh token revoked');
-  }
+  // A denylisted jti is NOT rejected here: rotation denylists the old jti in
+  // the same transaction that revokes its row, so a replay of a rotated token
+  // is denylisted AND has a revoked row. Rejecting early would make reuse
+  // detection unreachable; the check below folds the denylist in instead.
 
   // Confirm the persisted refresh row is still active. A row is active
   // only when BOTH revocation columns agree: `revoked_at` (set by the
@@ -854,21 +857,31 @@ export async function refreshToken(
     `SELECT * FROM auth.refresh_tokens WHERE token_hash = $1`,
     [incomingTokenHash]
   );
-  if (stored.rows.length === 0 || stored.rows[0].revoked_at !== null || stored.rows[0].is_revoked) {
+  if (
+    denied.rows.length > 0 ||
+    stored.rows.length === 0 ||
+    stored.rows[0].revoked_at !== null ||
+    stored.rows[0].is_revoked
+  ) {
     tokenRefreshCounter.inc({ outcome: 'token_revoked' });
     // When a revoked token row exists, it was either already rotated (reuse
     // attack) or explicitly revoked. Either way, revoking the entire family
-    // is safe: it kicks the attacker's live tokens and is a no-op if the
-    // family was already fully revoked at logout. (ADS-913)
+    // is safe: it kicks the attacker's live tokens. If the family was already
+    // fully revoked (nothing left to kick), this is a plain rejection: no
+    // watermark bump and no event, so replays cannot keep invalidating the
+    // user's later logins. (ADS-913)
     if (stored.rows.length > 0) {
       const reuseFamily = stored.rows[0].family_id;
-      await withTransaction(deps, async ({ client, publish }) => {
-        await client.query(
+      const revokedActiveTokens = await withTransaction(deps, async ({ client, publish }) => {
+        const familyRevoke = await client.query(
           `UPDATE auth.refresh_tokens
            SET is_revoked = true, revoked_at = now(), updated_at = now()
            WHERE family_id = $1 AND is_revoked = false`,
           [reuseFamily]
         );
+        if ((familyRevoke.rowCount ?? 0) === 0) {
+          return false;
+        }
         await client.query(
           `UPDATE auth.users SET tokens_valid_from = now(), updated_at = now() WHERE user_id = $1`,
           [claims.sub]
@@ -878,8 +891,11 @@ export async function refreshToken(
           id: `auth.tokenReuseDetected.${claims.jti}`,
           payload: { userId: claims.sub, familyId: reuseFamily, jti: claims.jti },
         });
+        return true;
       });
-      tokenRefreshCounter.inc({ outcome: 'family_revoked_on_reuse' });
+      if (revokedActiveTokens) {
+        tokenRefreshCounter.inc({ outcome: 'family_revoked_on_reuse' });
+      }
     }
     throw new HandlerError('UNAUTHENTICATED', 'refresh token revoked');
   }

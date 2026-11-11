@@ -20,6 +20,8 @@ const baseConfig: ApplicationsConfig = {
   databaseUrl: 'postgres://test',
   schema: 'applications',
   natsUrl: 'nats://localhost:4222',
+  petsGrpcUrl: 'service-pets:6003',
+  applicationDraftPurge: { intervalMs: 24 * 60 * 60 * 1000, batchSize: 500 },
 };
 
 describe('createServer — health endpoint', () => {

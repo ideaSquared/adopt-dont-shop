@@ -474,6 +474,18 @@ describe('verifyEmail', () => {
       verifyEmail(mocks.deps, null, { verificationToken: 'expired' })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
+
+  it('only activates accounts still pending verification, never suspended or deactivated ones', async () => {
+    // The DB matches no row for a suspended/deactivated owner of the token.
+    mocks.clientScript([]);
+    await expect(
+      verifyEmail(mocks.deps, null, { verificationToken: 'suspended-users-token' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+
+    const sql = realQueries(mocks.clientMock.query)[0][0] as string;
+    expect(sql).toContain("status IN ('pending_verification', 'active')");
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
 });
 
 describe('resendVerification', () => {
@@ -488,6 +500,74 @@ describe('resendVerification', () => {
     const res = await resendVerification(mocks.deps, null, { email: 'whoever@example.com' });
     expect(res.ok).toBe(true);
   });
+
+  it('issues no token for accounts that are not pending verification, with the same response', async () => {
+    mocks.clientScript([]); // suspended/deactivated owner: no row matches
+    const res = await resendVerification(mocks.deps, null, { email: 'suspended@example.com' });
+    expect(res.ok).toBe(true);
+
+    const sql = realQueries(mocks.clientMock.query)[0][0] as string;
+    expect(sql).toContain("status IN ('pending_verification', 'active')");
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+});
+
+// A one-row stand-in for auth.users: applies the status list the handler's
+// UPDATE ... WHERE clause asks for, so the tests describe which accounts the
+// handlers act on rather than the exact SQL text.
+function userTableFor(status: string) {
+  const allowedStatuses = (sql: string): string[] => {
+    const list = /status IN \(([^)]*)\)/.exec(sql)?.[1];
+    if (list) {
+      return [...list.matchAll(/'(\w+)'/g)].map(m => m[1]);
+    }
+    const single = /(?:AND|WHERE) status = '(\w+)'/.exec(sql)?.[1];
+    return single ? [single] : [];
+  };
+  return async (sql: string): Promise<{ rows: unknown[] }> => {
+    if (!sql.includes('UPDATE auth.users')) {
+      return { rows: [] };
+    }
+    return allowedStatuses(sql).includes(status)
+      ? { rows: [userRowFixture({ status })] }
+      : { rows: [] };
+  };
+}
+
+// Admin reactivation (admin-handlers) and suspension expiry (suspension-expiry)
+// both put an unverified user back to 'active' without touching email_verified.
+const RECOVERY_PATHS = ['admin reactivation', 'suspension expiry'] as const;
+
+describe('verification for unverified users restored by recovery paths', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => vi.resetAllMocks());
+
+  it.each(RECOVERY_PATHS)('accepts a valid verification token after %s', async () => {
+    mocks.clientMock.query.mockImplementation(userTableFor('active'));
+    await verifyEmail(mocks.deps, null, { verificationToken: 'tok' });
+    expect(mocks.natsMock.publish).toHaveBeenCalled();
+  });
+
+  it.each(RECOVERY_PATHS)('issues a replacement verification token after %s', async () => {
+    mocks.clientMock.query.mockImplementation(userTableFor('active'));
+    await resendVerification(mocks.deps, null, { email: 'a@example.com' });
+    expect(mocks.natsMock.publish).toHaveBeenCalled();
+  });
+
+  it.each(['suspended', 'deactivated'])(
+    'still neither verifies nor re-tokens a %s account',
+    async status => {
+      mocks.clientMock.query.mockImplementation(userTableFor(status));
+      await expect(
+        verifyEmail(mocks.deps, null, { verificationToken: 'tok' })
+      ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+      await resendVerification(mocks.deps, null, { email: 'a@example.com' });
+      expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+    }
+  );
 });
 
 describe('forgotPassword', () => {

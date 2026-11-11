@@ -106,7 +106,7 @@ const messageRowFixture = (overrides: Record<string, unknown> = {}) => ({
 function makeMocks() {
   const clientScript: Array<{ rows: unknown[] }> = [];
   const client = {
-    query: vi.fn(async (sql: string) => {
+    query: vi.fn(async (sql: string, _params?: unknown[]) => {
       const op = sql.trim().split(/\s+/)[0].toUpperCase();
       if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
         return { rows: [] };
@@ -128,7 +128,11 @@ function makeMocks() {
   const poolScript: Array<{ rows: unknown[] }> = [];
   const pool = {
     connect: vi.fn().mockResolvedValue(client),
-    query: vi.fn(async () => poolScript.shift() ?? { rows: [] }),
+    // The inline outbox DELETE runs on the pool after commit (withTransaction releases
+    // its client first). It is infrastructure, so answer it without consuming the script.
+    query: vi.fn(async (sql: string, _params?: unknown[]) =>
+      /event_outbox/i.test(sql) ? { rows: [], rowCount: 0 } : (poolScript.shift() ?? { rows: [] })
+    ),
   };
   const natsPublish = vi.fn();
   // JetStream publish routes to the same spy so existing publish assertions
@@ -162,6 +166,7 @@ const realClientQueries = (mocks: ReturnType<typeof makeMocks>): string[] =>
 const BASE_OPEN: OpenChatRequest = {
   applicationId: 'app-1',
   otherUserId: 'usr-rescue',
+  rescueId: '',
 };
 
 // The rescue that owns application app-1 in the stubbed cross-service
@@ -439,6 +444,7 @@ describe('openChat', () => {
 const BASE_SEND: SendMessageRequest = {
   chatId: 'chat-1',
   body: 'Hello!',
+  attachments: [],
 };
 
 describe('sendMessage', () => {
@@ -453,6 +459,15 @@ describe('sendMessage', () => {
   it('rejects empty body', async () => {
     await expect(
       sendMessage(mocks.deps, ADOPTER_PRINCIPAL, { ...BASE_SEND, body: '   ' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('treats a request with no attachments field as having none', async () => {
+    // Wire decoding always supplies attachments: []; in-process callers may omit the
+    // field, and the handler defaults it. The cast reproduces that omission.
+    const withoutAttachments = { chatId: 'chat-1', body: '   ' } as unknown as SendMessageRequest;
+    await expect(
+      sendMessage(mocks.deps, ADOPTER_PRINCIPAL, withoutAttachments)
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
@@ -581,7 +596,7 @@ describe('sendMessage', () => {
       { url: 'https://cdn/y.png' },
     ]);
     // The INSERT persisted the request attachments as a JSON string (param $5).
-    const insert = mocks.clientMock.query.mock.calls.find(([q]: [string]) =>
+    const insert = mocks.clientMock.query.mock.calls.find(([q]) =>
       String(q).includes('INSERT INTO messages')
     ) as [string, unknown[]];
     expect(JSON.parse(insert[1][4] as string)).toEqual([
@@ -1740,6 +1755,7 @@ describe('deleteChat', () => {
 
 describe('updateChatStatus', () => {
   const LOCKED = ChatV1.ChatStatus.CHAT_STATUS_LOCKED;
+  const ACTIVE = ChatV1.ChatStatus.CHAT_STATUS_ACTIVE;
   let mocks: ReturnType<typeof makeMocks>;
   beforeEach(() => {
     mocks = makeMocks();
@@ -1816,6 +1832,29 @@ describe('updateChatStatus', () => {
     expect(res.chat?.status).toBe(LOCKED);
     expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('chat.statusChanged');
+  });
+
+  it('gives a status that flips back and forth a fresh event id each time', async () => {
+    // JetStream drops a repeated Nats-Msg-Id inside its dedupe window, so
+    // locking, unlocking and locking again must not reuse an id.
+    const flip = async (from: string, to: string, status: ChatV1.ChatStatus): Promise<void> => {
+      mocks.poolMock.query.mockResolvedValueOnce({ rows: [chatRowFixture({ status: from })] });
+      mocks.clientScript.push({ rows: [chatRowFixture({ status: to })] });
+      mocks.clientScript.push({ rows: [{ participant_id: 'usr-adopter' }] });
+      mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ participant_id: 'usr-adopter' }] });
+      mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+      await updateChatStatus(mocks.deps, MODERATOR_PRINCIPAL, { chatId: 'chat-1', status });
+    };
+
+    await flip('active', 'locked', LOCKED);
+    await flip('locked', 'active', ACTIVE);
+    await flip('active', 'locked', LOCKED);
+
+    const msgIds = (
+      mocks.natsMock.publish.mock.calls as Array<[string, Uint8Array, { msgID?: string }?]>
+    ).map(call => call[2]?.msgID);
+    expect(msgIds).toHaveLength(3);
+    expect(new Set(msgIds).size).toBe(3);
   });
 });
 

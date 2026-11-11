@@ -22,6 +22,7 @@ import {
 } from '../domain/index.js';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
+import { applicationActionTaken, type ApplicationAudit } from './audit.js';
 import { appendEvents, ConcurrencyError, loadAggregate, projectReadModel } from './event-store.js';
 
 export type PublishEnvelope = { type: string; id: string; payload: unknown };
@@ -190,7 +191,8 @@ export async function runCommand(
   command: ApplicationCommand,
   actorUserId: string,
   publishFor: (state: ApplicationState) => PublishEnvelope | null,
-  authorize?: Authorize
+  authorize?: Authorize,
+  auditFor?: (state: ApplicationState) => ApplicationAudit
 ): Promise<ApplicationState> {
   return withTransaction(deps, async ({ client, publish }) => {
     const state = await loadAggregate(client, aggregateId);
@@ -239,6 +241,11 @@ export async function runCommand(
     await projectReadModel(client, nextState);
 
     publishWithVersionedId(publish, publishFor, nextState);
+
+    if (auditFor !== undefined) {
+      const key = `${aggregateId}:${nextState.version}`;
+      publish(applicationActionTaken(aggregateId, key, auditFor(nextState)));
+    }
 
     return nextState;
   });

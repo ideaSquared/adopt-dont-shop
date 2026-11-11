@@ -3,8 +3,21 @@
  * Handles offline message queuing, connection monitoring, and sync capabilities
  */
 
+import { toast } from '@adopt-dont-shop/lib.components';
+
+/** A queued item is dropped after this many failed sync attempts. */
+export const MAX_SYNC_ATTEMPTS = 5;
+/** A queued item is dropped once it is older than this. */
+export const MAX_QUEUE_AGE_MS = 24 * 60 * 60 * 1000;
+
+const MESSAGES_KEY = 'offline_pending_messages';
+const ACTIONS_KEY = 'offline_pending_actions';
+
 export interface QueuedMessage {
   id: string;
+  /** Owner of the item. Items without one (legacy format) are discarded on load. */
+  userId: string;
+  attempts: number;
   conversationId: string;
   content: string;
   messageType: string;
@@ -13,6 +26,8 @@ export interface QueuedMessage {
 
 export interface QueuedAction {
   id: string;
+  userId: string;
+  attempts: number;
   type: 'mark_read' | 'typing_start' | 'typing_stop';
   conversationId: string;
   timestamp: number;
@@ -25,7 +40,15 @@ export interface OfflineState {
   pendingActions: QueuedAction[];
 }
 
-type SyncCallback = (messages: QueuedMessage[], actions: QueuedAction[]) => Promise<void>;
+/**
+ * `isStillCurrent` turns false as soon as the signed-in user changes. A callback that issues one
+ * request per item must check it immediately before each request and stop once it is false.
+ */
+type SyncCallback = (
+  messages: QueuedMessage[],
+  actions: QueuedAction[],
+  isStillCurrent: () => boolean
+) => Promise<void>;
 type OfflineStateChangeListener = (state: OfflineState) => void;
 
 class OfflineManager {
@@ -33,6 +56,9 @@ class OfflineManager {
   private connectionQuality: 'good' | 'poor' | 'offline' = 'good';
   private pendingMessages: QueuedMessage[] = [];
   private pendingActions: QueuedAction[] = [];
+  private currentUserId: string | null = null;
+  // Bumped whenever the signed-in user changes, so a sync started for the previous user can tell.
+  private identityGeneration = 0;
   private syncCallback: SyncCallback | null = null;
   private listeners: OfflineStateChangeListener[] = [];
   private syncInterval: ReturnType<typeof setInterval> | null = null;
@@ -76,25 +102,39 @@ class OfflineManager {
 
   private loadPersistedData() {
     try {
-      const savedMessages = localStorage.getItem('offline_pending_messages');
-      const savedActions = localStorage.getItem('offline_pending_actions');
+      const savedMessages = localStorage.getItem(MESSAGES_KEY);
+      const savedActions = localStorage.getItem(ACTIONS_KEY);
 
       if (savedMessages) {
-        this.pendingMessages = JSON.parse(savedMessages);
+        this.pendingMessages = this.keepOwned(JSON.parse(savedMessages));
       }
 
       if (savedActions) {
-        this.pendingActions = JSON.parse(savedActions);
+        this.pendingActions = this.keepOwned(JSON.parse(savedActions));
       }
     } catch (error) {
       console.error('Failed to load persisted offline data:', error);
     }
   }
 
+  // Legacy items (no userId) and malformed entries are discarded.
+  private keepOwned<T extends { userId: string }>(items: unknown): T[] {
+    if (!Array.isArray(items)) {
+      return [];
+    }
+    return items.filter(
+      (item): item is T =>
+        typeof item === 'object' &&
+        item !== null &&
+        typeof (item as { userId?: unknown }).userId === 'string' &&
+        (item as { userId: string }).userId.length > 0
+    );
+  }
+
   private persistData() {
     try {
-      localStorage.setItem('offline_pending_messages', JSON.stringify(this.pendingMessages));
-      localStorage.setItem('offline_pending_actions', JSON.stringify(this.pendingActions));
+      localStorage.setItem(MESSAGES_KEY, JSON.stringify(this.pendingMessages));
+      localStorage.setItem(ACTIONS_KEY, JSON.stringify(this.pendingActions));
     } catch (error) {
       console.error('Failed to persist offline data:', error);
     }
@@ -117,15 +157,71 @@ class OfflineManager {
     });
   }
 
+  private dropExpired() {
+    const cutoff = Date.now() - MAX_QUEUE_AGE_MS;
+    const messages = this.pendingMessages.filter(m => m.timestamp >= cutoff);
+    const actions = this.pendingActions.filter(a => a.timestamp >= cutoff);
+    const droppedMessages = this.pendingMessages.length - messages.length;
+    if (droppedMessages === 0 && actions.length === this.pendingActions.length) {
+      return;
+    }
+    this.pendingMessages = messages;
+    this.pendingActions = actions;
+    this.persistData();
+    this.notifyListeners();
+    this.reportDroppedMessages(droppedMessages);
+  }
+
+  private reportDroppedMessages(count: number) {
+    if (count > 0) {
+      toast.error(`${count} queued message${count === 1 ? '' : 's'} could not be sent.`);
+    }
+  }
+
+  // The sync callback removes items it delivered, so anything from the snapshot
+  // that is still queued failed this round.
+  private recordFailedAttempts(messages: QueuedMessage[], actions: QueuedAction[]) {
+    const failedMessageIds = new Set(
+      messages.filter(m => this.pendingMessages.some(p => p.id === m.id)).map(m => m.id)
+    );
+    const failedActionIds = new Set(
+      actions.filter(a => this.pendingActions.some(p => p.id === a.id)).map(a => a.id)
+    );
+    if (failedMessageIds.size === 0 && failedActionIds.size === 0) {
+      return;
+    }
+    const bump = <T extends { id: string; attempts: number }>(items: T[], ids: Set<string>) =>
+      items
+        .map(item => (ids.has(item.id) ? { ...item, attempts: item.attempts + 1 } : item))
+        .filter(item => item.attempts < MAX_SYNC_ATTEMPTS);
+    const before = this.pendingMessages.length;
+    this.pendingMessages = bump(this.pendingMessages, failedMessageIds);
+    this.pendingActions = bump(this.pendingActions, failedActionIds);
+    this.persistData();
+    this.notifyListeners();
+    this.reportDroppedMessages(before - this.pendingMessages.length);
+  }
+
   private async trySync() {
-    if (!this.syncCallback || (!this.pendingMessages.length && !this.pendingActions.length)) {
+    if (!this.currentUserId || !this.syncCallback) {
+      return;
+    }
+    const generation = this.identityGeneration;
+    const isStillCurrent = () => this.identityGeneration === generation;
+    this.dropExpired();
+    if (!this.pendingMessages.length && !this.pendingActions.length) {
       return;
     }
 
+    const messages = [...this.pendingMessages];
+    const actions = [...this.pendingActions];
     try {
-      await this.syncCallback([...this.pendingMessages], [...this.pendingActions]);
+      await this.syncCallback(messages, actions, isStillCurrent);
     } catch (error) {
       console.error('Sync failed:', error);
+    }
+    if (isStillCurrent()) {
+      this.recordFailedAttempts(messages, actions);
     }
   }
 
@@ -134,10 +230,37 @@ class OfflineManager {
     this.syncCallback = callback;
   }
 
+  /**
+   * Scope the queues to the signed-in user. Items owned by anyone else are
+   * discarded; pass null when signed out to clear everything.
+   */
+  setCurrentUser(userId: string | null) {
+    if (userId !== this.currentUserId) {
+      this.identityGeneration += 1;
+    }
+    this.currentUserId = userId;
+    this.pendingMessages = this.pendingMessages.filter(m => m.userId === userId);
+    this.pendingActions = this.pendingActions.filter(a => a.userId === userId);
+    this.persistData();
+    this.notifyListeners();
+    if (userId) {
+      this.dropExpired();
+    }
+  }
+
+  clearQueues() {
+    this.setCurrentUser(null);
+  }
+
   queueMessage(conversationId: string, content: string, messageType: string = 'text'): string {
     const id = `offline_msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    if (!this.currentUserId) {
+      return id; // Nobody to own the message; never persist it.
+    }
     const message: QueuedMessage = {
       id,
+      userId: this.currentUserId,
+      attempts: 0,
       conversationId,
       content,
       messageType,
@@ -153,8 +276,13 @@ class OfflineManager {
 
   queueAction(type: QueuedAction['type'], conversationId: string): string {
     const id = `offline_action_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    if (!this.currentUserId) {
+      return id;
+    }
     const action: QueuedAction = {
       id,
+      userId: this.currentUserId,
+      attempts: 0,
       type,
       conversationId,
       timestamp: Date.now(),

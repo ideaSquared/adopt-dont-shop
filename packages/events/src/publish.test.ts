@@ -11,6 +11,8 @@ function makeMocks() {
   };
   const pool = {
     connect: vi.fn().mockResolvedValue(client),
+    // The post-commit DELETE runs on the pool, not the (already released) client.
+    query: vi.fn().mockResolvedValue({ rows: [] }),
   };
   // The JetStream client returns a PubAck from publish(). We capture the
   // subject + decoded payload so the assertions stay payload-shaped rather
@@ -133,11 +135,32 @@ describe('withTransaction', () => {
     expect(mocks.clientMock.query).toHaveBeenCalledWith('COMMIT');
     expect(mocks.clientMock.query).not.toHaveBeenCalledWith('ROLLBACK');
     // ...and the row is left in the outbox (never DELETEd) for the relay.
-    const deleted = mocks.clientMock.query.mock.calls.some(([sql]: [string]) =>
+    const deleted = mocks.clientMock.query.mock.calls.some(([sql]) =>
       String(sql).includes('DELETE FROM event_outbox')
     );
     expect(deleted).toBe(false);
     expect(mocks.clientMock.release).toHaveBeenCalledTimes(1);
+  });
+
+  it('releases the pooled connection before the inline publish, so a slow NATS cannot exhaust the pool', async () => {
+    let releasedAtPublish: boolean | undefined;
+    mocks.jsPublish.mockImplementationOnce(async () => {
+      releasedAtPublish = mocks.clientMock.release.mock.calls.length === 1;
+      return { stream: 'DOMAIN_EVENTS', seq: 1, duplicate: false };
+    });
+
+    await withTransaction({ pool: mocks.pool, nats: mocks.nats }, async ({ publish }) => {
+      publish({ type: 'pets.created', id: 'evt-1', payload: {} });
+    });
+
+    expect(releasedAtPublish).toBe(true);
+    // Released exactly once overall (no double release in the finally block).
+    expect(mocks.clientMock.release).toHaveBeenCalledTimes(1);
+    // The published row is still cleared, via the pool.
+    const deleteOnPool = mocks.poolMock.query.mock.calls.some(([sql]) =>
+      String(sql).includes('DELETE FROM event_outbox')
+    );
+    expect(deleteOnPool).toBe(true);
   });
 
   it('stages events into the outbox inside the transaction (INSERT before COMMIT)', async () => {

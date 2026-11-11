@@ -109,7 +109,7 @@ const messageRowFixture = (overrides: Record<string, unknown> = {}) => ({
 function makeMocks() {
   const clientScript: Array<{ rows: unknown[] }> = [];
   const client = {
-    query: vi.fn(async (sql: string) => {
+    query: vi.fn(async (sql: string, _params?: unknown[]) => {
       const op = sql.trim().split(/\s+/)[0].toUpperCase();
       if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
         return { rows: [] };
@@ -131,7 +131,7 @@ function makeMocks() {
   const poolScript: Array<{ rows: unknown[] }> = [];
   const pool = {
     connect: vi.fn().mockResolvedValue(client),
-    query: vi.fn(async () => poolScript.shift() ?? { rows: [] }),
+    query: vi.fn(async (_sql: string, _params?: unknown[]) => poolScript.shift() ?? { rows: [] }),
   };
   const natsPublish = vi.fn();
   const nats = { publish: natsPublish, jetstream: () => ({ publish: natsPublish }) };
@@ -160,7 +160,7 @@ describe('handler argument validation', () => {
   });
 
   it('openChat rejects a missing other_user_id', async () => {
-    const req: OpenChatRequest = { applicationId: 'app-1', otherUserId: '' };
+    const req: OpenChatRequest = { applicationId: 'app-1', otherUserId: '', rescueId: '' };
     await expect(makeOpenChatWithStubs()(mocks.deps, ADOPTER_PRINCIPAL, req)).rejects.toMatchObject(
       {
         code: 'INVALID_ARGUMENT',
@@ -169,7 +169,7 @@ describe('handler argument validation', () => {
   });
 
   it('sendMessage rejects a missing chat_id', async () => {
-    const req: SendMessageRequest = { chatId: '', body: 'hi' };
+    const req: SendMessageRequest = { chatId: '', body: 'hi', attachments: [] };
     await expect(sendMessage(mocks.deps, ADOPTER_PRINCIPAL, req)).rejects.toMatchObject({
       code: 'INVALID_ARGUMENT',
     });
@@ -356,7 +356,7 @@ describe('post-commit INTERNAL guards', () => {
     mocks.clientScript.push({ rows: [] }); // SELECT participants
 
     await expect(
-      sendMessage(mocks.deps, ADOPTER_PRINCIPAL, { chatId: 'chat-1', body: 'hi' })
+      sendMessage(mocks.deps, ADOPTER_PRINCIPAL, { chatId: 'chat-1', body: 'hi', attachments: [] })
     ).rejects.toMatchObject({ code: 'INTERNAL' });
   });
 
@@ -418,6 +418,7 @@ describe('openChat insert guard', () => {
       makeOpenChatWithStubs()(mocks.deps, ADOPTER_PRINCIPAL, {
         applicationId: 'app-1',
         otherUserId: 'usr-rescue',
+        rescueId: '',
       })
     ).rejects.toMatchObject({ code: 'INTERNAL' });
   });

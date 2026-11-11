@@ -149,12 +149,35 @@ function makeMocks() {
       ],
     }),
   };
+  // withTransaction's inline outbox DELETE runs on the pool after commit. It is
+  // infrastructure, so answer it without consuming the scripted business rows.
+  const handlerPool = {
+    ...pool,
+    query: (sql: string, ...args: unknown[]) =>
+      /event_outbox/i.test(sql)
+        ? Promise.resolve({ rows: [], rowCount: 0 })
+        : pool.query(sql, ...args),
+  };
   const deps: HandlerDeps = {
-    pool: pool as unknown as Pool,
+    pool: handlerPool as unknown as Pool,
     nats: nats as unknown as NatsConnection,
     rescueClient: rescueClient as unknown as RescueClient,
   };
   return { deps, poolMock: pool, clientMock: client, natsMock: nats, rescueClient };
+}
+
+// The decoded `{ id, payload }` envelopes published on `subject`.
+function publishedOn(mocks: ReturnType<typeof makeMocks>, subject: string) {
+  const decoder = new TextDecoder();
+  return mocks.natsMock.publish.mock.calls
+    .filter(([s]) => s === subject)
+    .map(
+      ([, data]) =>
+        JSON.parse(decoder.decode(data as Uint8Array)) as {
+          id: string;
+          payload: Record<string, unknown>;
+        }
+    );
 }
 
 const BASE_CREATE: CreatePetRequest = {
@@ -258,8 +281,8 @@ describe('createPet', () => {
     mocks.natsMock.publish.mockImplementation(() => order.push('NATS_PUBLISH'));
 
     const res = await createPet(mocks.deps, STAFF, BASE_CREATE);
-    expect(res.pet.name).toBe('Rex');
-    expect(res.pet.status).toBe(PetsV1.PetStatus.PET_STATUS_AVAILABLE);
+    expect(res.pet?.name).toBe('Rex');
+    expect(res.pet?.status).toBe(PetsV1.PetStatus.PET_STATUS_AVAILABLE);
     expect(order).toEqual(['BEGIN', 'INSERT', 'COMMIT', 'NATS_PUBLISH']);
   });
 
@@ -283,7 +306,7 @@ describe('createPet', () => {
   it('super_admin can create for any rescue', async () => {
     mocks.clientMock.query.mockResolvedValue({ rows: [petRow()] });
     const res = await createPet(mocks.deps, SUPER_ADMIN, BASE_CREATE);
-    expect(res.pet.petId).toBe('pet-1');
+    expect(res.pet?.petId).toBe('pet-1');
   });
 
   it('persists the extra_json blob (image_urls + good_with_*) on insert (ADS-1155)', async () => {
@@ -309,7 +332,7 @@ describe('createPet', () => {
     expect(insertSql).toMatch(/extra_json/);
     expect(insertParams.some(p => typeof p === 'string' && p.includes('image_urls'))).toBe(true);
     // …and it round-trips back through the response.
-    const extra = JSON.parse(res.pet.extraJson) as Record<string, unknown>;
+    const extra = JSON.parse(res.pet?.extraJson ?? '') as Record<string, unknown>;
     expect(extra.image_urls).toEqual(['/x.jpg']);
     expect(extra.good_with_children).toBe(true);
   });
@@ -465,10 +488,10 @@ describe('getPet', () => {
   it('returns the pet for any pets.read holder (adopter browse)', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
     const res = await getPet(mocks.deps, ADOPTER, { petId: 'pet-1' });
-    expect(res.pet.name).toBe('Rex');
+    expect(res.pet?.name).toBe('Rex');
     // temperament + extra surfaced as JSON strings
-    expect(JSON.parse(res.pet.temperamentJson)).toEqual(['friendly']);
-    expect(JSON.parse(res.pet.extraJson)).toMatchObject({ goodWithChildren: true });
+    expect(JSON.parse(res.pet?.temperamentJson ?? '')).toEqual(['friendly']);
+    expect(JSON.parse(res.pet?.extraJson ?? '')).toMatchObject({ goodWithChildren: true });
   });
 
   it('NOT_FOUND when missing/soft-deleted', async () => {
@@ -483,7 +506,7 @@ describe('getPet', () => {
       rows: [petRow({ medical_notes: 'allergic to chicken', behavioral_notes: 'shy' })],
     });
     const res = await getPet(mocks.deps, ADOPTER, { petId: 'pet-1' });
-    const extra = JSON.parse(res.pet.extraJson) as Record<string, unknown>;
+    const extra = JSON.parse(res.pet?.extraJson ?? '') as Record<string, unknown>;
     expect(extra.medicalNotes).toBeUndefined();
     expect(extra.behavioralNotes).toBeUndefined();
   });
@@ -493,7 +516,7 @@ describe('getPet', () => {
       rows: [petRow({ medical_notes: 'allergic to chicken', behavioral_notes: 'shy' })],
     });
     const res = await getPet(mocks.deps, STAFF, { petId: 'pet-1' });
-    const extra = JSON.parse(res.pet.extraJson) as Record<string, unknown>;
+    const extra = JSON.parse(res.pet?.extraJson ?? '') as Record<string, unknown>;
     expect(extra.medicalNotes).toBe('allergic to chicken');
     expect(extra.behavioralNotes).toBe('shy');
   });
@@ -517,8 +540,8 @@ describe('getPet', () => {
       rows: [petRow({ medical_notes: 'sensitive', behavioral_notes: 'sensitive' })],
     });
     const res = await getPet(mocks.deps, null, { petId: 'pet-1' });
-    expect(res.pet.name).toBe('Rex');
-    const extra = JSON.parse(res.pet.extraJson) as Record<string, unknown>;
+    expect(res.pet?.name).toBe('Rex');
+    const extra = JSON.parse(res.pet?.extraJson ?? '') as Record<string, unknown>;
     expect(extra.medicalNotes).toBeUndefined();
     expect(extra.behavioralNotes).toBeUndefined();
   });
@@ -533,7 +556,7 @@ describe('getPet', () => {
   it('lets rescue staff of the pet rescue view a terminal-status pet', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ status: 'adopted' })] });
     const res = await getPet(mocks.deps, STAFF, { petId: 'pet-1' });
-    expect(res.pet.status).toBe(PetsV1.PetStatus.PET_STATUS_ADOPTED);
+    expect(res.pet?.status).toBe(PetsV1.PetStatus.PET_STATUS_ADOPTED);
   });
 
   it('hides another rescue staff’s terminal pet (treats them as non-privileged)', async () => {
@@ -551,7 +574,7 @@ describe('getPet', () => {
       ],
     });
     const res = await getPet(mocks.deps, ADOPTER, { petId: 'pet-1' });
-    const extra = JSON.parse(res.pet.extraJson) as Record<string, unknown>;
+    const extra = JSON.parse(res.pet?.extraJson ?? '') as Record<string, unknown>;
     expect(extra.image_urls).toEqual(['https://cdn/a.jpg']);
     expect(extra.good_with_children).toBe(true);
   });
@@ -561,7 +584,7 @@ describe('getPet', () => {
       rows: [petRow({ extra_json: { medical_notes: 'secret', medicalNotes: 'secret' } })],
     });
     const res = await getPet(mocks.deps, ADOPTER, { petId: 'pet-1' });
-    const extra = JSON.parse(res.pet.extraJson) as Record<string, unknown>;
+    const extra = JSON.parse(res.pet?.extraJson ?? '') as Record<string, unknown>;
     expect(extra.medical_notes).toBeUndefined();
     expect(extra.medicalNotes).toBeUndefined();
   });
@@ -996,13 +1019,13 @@ describe('updatePet', () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ rescue_id: null })] });
     mocks.clientMock.query.mockResolvedValue({ rows: [petRow({ rescue_id: null, name: 'x' })] });
     const res = await updatePet(mocks.deps, SUPER_ADMIN, { petId: 'pet-1', name: 'x' } as never);
-    expect(res.pet.name).toBe('x');
+    expect(res.pet?.name).toBe('x');
   });
 
   it('no-ops (returns current row, no write) when no fields supplied', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
     const res = await updatePet(mocks.deps, STAFF, { petId: 'pet-1' } as never);
-    expect(res.pet.name).toBe('Rex');
+    expect(res.pet?.name).toBe('Rex');
     expect(mocks.clientMock.query).not.toHaveBeenCalled();
   });
 
@@ -1023,7 +1046,7 @@ describe('updatePet', () => {
       archived: true,
     } as never);
 
-    expect(res.pet.archived).toBe(true);
+    expect(res.pet?.archived).toBe(true);
     expect(updateSql).toMatch(/archived = \$1/);
   });
 
@@ -1050,7 +1073,7 @@ describe('updatePet', () => {
       featured: true,
     } as never);
 
-    expect(res.pet.featured).toBe(true);
+    expect(res.pet?.featured).toBe(true);
     expect(updateSql).toMatch(/featured = \$1/);
   });
 
@@ -1068,7 +1091,7 @@ describe('updatePet', () => {
     mocks.natsMock.publish.mockImplementation(() => order.push('NATS_PUBLISH'));
 
     const res = await updatePet(mocks.deps, STAFF, { petId: 'pet-1', name: 'Rexy' } as never);
-    expect(res.pet.name).toBe('Rexy');
+    expect(res.pet?.name).toBe('Rexy');
     expect(order).toEqual(['BEGIN', 'UPDATE', 'COMMIT', 'NATS_PUBLISH']);
     // calls[0] is the transaction's own BEGIN; the UPDATE is calls[1].
     const updateSql = mocks.clientMock.query.mock.calls[1][0] as string;
@@ -1147,7 +1170,7 @@ describe('updatePet', () => {
     expect(order).toEqual(['BEGIN', 'UPDATE', 'COMMIT', 'NATS_PUBLISH']);
     const updateSql = mocks.clientMock.query.mock.calls[1][0] as string;
     expect(updateSql).toMatch(/extra_json = \$1::jsonb/);
-    const extra = JSON.parse(res.pet.extraJson) as Record<string, unknown>;
+    const extra = JSON.parse(res.pet?.extraJson ?? '') as Record<string, unknown>;
     expect(extra.image_urls).toEqual(['/a.jpg']);
   });
 
@@ -1176,7 +1199,7 @@ describe('updatePet', () => {
         breedName: 'Domestic Shorthair',
       } as never);
 
-      expect(res.pet.breedId).toBe(BREED_ID);
+      expect(res.pet?.breedId).toBe(BREED_ID);
       expect(mocks.poolMock.query).toHaveBeenLastCalledWith(
         expect.stringContaining('pets.breeds'),
         ['cat', 'Domestic Shorthair']
@@ -1231,7 +1254,7 @@ describe('updatePet', () => {
           breedName: 'lab CROSS',
         } as never);
 
-        expect(res.pet.name).toBe('Rexy');
+        expect(res.pet?.name).toBe('Rexy');
         const updateSql = mocks.clientMock.query.mock.calls[1][0] as string;
         const setClause = updateSql.slice(0, updateSql.indexOf('WHERE'));
         expect(setClause).not.toMatch(/breed_id/);
@@ -1378,12 +1401,79 @@ describe('updatePetStatus', () => {
       reason: 'application opened',
     } as never);
 
-    expect(res.pet.status).toBe(PetsV1.PetStatus.PET_STATUS_PENDING);
-    expect(res.transition.fromStatus).toBe(PetsV1.PetStatus.PET_STATUS_AVAILABLE);
-    expect(res.transition.toStatus).toBe(PetsV1.PetStatus.PET_STATUS_PENDING);
+    expect(res.pet?.status).toBe(PetsV1.PetStatus.PET_STATUS_PENDING);
+    expect(res.transition?.fromStatus).toBe(PetsV1.PetStatus.PET_STATUS_AVAILABLE);
+    expect(res.transition?.toStatus).toBe(PetsV1.PetStatus.PET_STATUS_PENDING);
     // BEGIN → SELECT … FOR UPDATE (lock + re-validate) → INSERT transition →
     // UPDATE pet → COMMIT → publish
-    expect(order).toEqual(['BEGIN', 'SELECT', 'INSERT', 'UPDATE', 'COMMIT', 'NATS_PUBLISH']);
+    // statusChanged + actionTaken, both after COMMIT
+    expect(order).toEqual([
+      'BEGIN',
+      'SELECT',
+      'INSERT',
+      'UPDATE',
+      'COMMIT',
+      'NATS_PUBLISH',
+      'NATS_PUBLISH',
+    ]);
+  });
+
+  it('audits the transition as pets.actionTaken with a per-transition id', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ status: 'available' })] });
+    mocks.clientMock.query.mockImplementation(async (sql: string) =>
+      /FOR UPDATE/.test(sql)
+        ? { rows: [petRow({ status: 'available' })] }
+        : { rows: [petRow({ status: 'pending' })] }
+    );
+
+    const res = await updatePetStatus(mocks.deps, STAFF, {
+      petId: 'pet-1',
+      toStatus: PetsV1.PetStatus.PET_STATUS_PENDING,
+      reason: 'application opened',
+    } as never);
+
+    const [event] = publishedOn(mocks, 'pets.actionTaken');
+    expect(event.id).toBe(`pets.actionTaken.updateStatus.pet-1.${res.transition?.transitionId}`);
+    expect(event.payload).toMatchObject({
+      eventId: expect.stringMatching(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+      ),
+      service: 'service.pets',
+      subject: 'pets.actionTaken',
+      aggregateType: 'pet',
+      aggregateId: 'pet-1',
+      actorUserId: STAFF.userId,
+      action: 'updateStatus',
+      outcome: 'success',
+      payload: {
+        rescueId: RESCUE_ID,
+        fromStatus: 'available',
+        toStatus: 'pending',
+        reason: 'application opened',
+      },
+    });
+  });
+
+  it('does not audit when the transaction rolls back', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ status: 'available' })] });
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (/FOR UPDATE/.test(sql)) {
+        return { rows: [petRow({ status: 'available' })] };
+      }
+      if (/UPDATE pets\.pets/.test(sql)) {
+        throw new Error('boom');
+      }
+      return { rows: [] };
+    });
+
+    await expect(
+      updatePetStatus(mocks.deps, STAFF, {
+        petId: 'pet-1',
+        toStatus: PetsV1.PetStatus.PET_STATUS_PENDING,
+      } as never)
+    ).rejects.toThrow('boom');
+
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 
   it('PERMISSION_DENIED for staff at a different rescue', async () => {
@@ -1466,10 +1556,56 @@ describe('deletePet', () => {
 
     const res = await deletePet(mocks.deps, STAFF, { petId: 'pet-1' });
     expect(res.deleted).toBe(true);
-    expect(order).toEqual(['BEGIN', 'UPDATE', 'COMMIT', 'NATS_PUBLISH']);
+    // pets.deleted + pets.actionTaken, both after COMMIT
+    expect(order).toEqual(['BEGIN', 'UPDATE', 'COMMIT', 'NATS_PUBLISH', 'NATS_PUBLISH']);
     // calls[0] is the transaction's own BEGIN; the UPDATE is calls[1].
     const sql = mocks.clientMock.query.mock.calls[1][0] as string;
     expect(sql).toMatch(/deleted_at = now\(\)/);
+  });
+
+  it('audits the delete as pets.actionTaken, unique per occurrence', async () => {
+    mocks.poolMock.query.mockResolvedValue({ rows: [petRow()] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+
+    await deletePet(mocks.deps, STAFF, { petId: 'pet-1' });
+    await deletePet(mocks.deps, STAFF, { petId: 'pet-1' });
+
+    const [first, second] = publishedOn(mocks, 'pets.actionTaken');
+    expect(first.payload).toMatchObject({
+      eventId: expect.stringMatching(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+      ),
+      service: 'service.pets',
+      aggregateType: 'pet',
+      aggregateId: 'pet-1',
+      actorUserId: STAFF.userId,
+      action: 'delete',
+      outcome: 'success',
+      payload: { rescueId: RESCUE_ID },
+    });
+    expect(first.id).not.toBe(second.id);
+  });
+
+  it('does not audit when the transaction rolls back', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (/deleted_at = now\(\)/.test(sql)) {
+        throw new Error('boom');
+      }
+      return { rows: [] };
+    });
+
+    await expect(deletePet(mocks.deps, STAFF, { petId: 'pet-1' })).rejects.toThrow('boom');
+
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('does not audit a delete refused for lack of permission', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
+    await expect(deletePet(mocks.deps, OTHER_STAFF, { petId: 'pet-1' })).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 
   it('PERMISSION_DENIED when the rescue that owns the pet is no longer verified', async () => {
@@ -2090,7 +2226,9 @@ describe('getPetFacets', () => {
       roles: ['adopter'],
       permissions: [],
     };
-    await expect(getPetFacets(mocks.deps, noPerms, {})).rejects.toMatchObject({
+    await expect(
+      getPetFacets(mocks.deps, noPerms, PetsV1.GetPetFacetsRequest.fromPartial({}))
+    ).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
     });
     expect(mocks.poolMock.query).not.toHaveBeenCalled();
@@ -2102,7 +2240,9 @@ describe('getPetFacets', () => {
   // getPetStats' stricter rule.
   it('allows an adopter with no rescue scope (mirrors listPets, not getPetStats)', async () => {
     emptyFacetRows();
-    await expect(getPetFacets(mocks.deps, ADOPTER, {})).resolves.toEqual({
+    await expect(
+      getPetFacets(mocks.deps, ADOPTER, PetsV1.GetPetFacetsRequest.fromPartial({}))
+    ).resolves.toEqual({
       facets: [
         { name: 'status', values: [] },
         { name: 'type', values: [] },
@@ -2113,7 +2253,7 @@ describe('getPetFacets', () => {
 
   it('scopes a public/adopter caller to visible statuses + non-archived pets', async () => {
     emptyFacetRows();
-    await getPetFacets(mocks.deps, ADOPTER, {});
+    await getPetFacets(mocks.deps, ADOPTER, PetsV1.GetPetFacetsRequest.fromPartial({}));
 
     const [statusSql, statusParams] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
     expect(statusSql).toMatch(/status NOT IN/);
@@ -2123,7 +2263,11 @@ describe('getPetFacets', () => {
 
   it('pins rescue staff to their own rescue, ignoring rescue_id_filter', async () => {
     emptyFacetRows();
-    await getPetFacets(mocks.deps, STAFF, { rescueIdFilter: 'rsc-other' });
+    await getPetFacets(
+      mocks.deps,
+      STAFF,
+      PetsV1.GetPetFacetsRequest.fromPartial({ rescueIdFilter: 'rsc-other' })
+    );
 
     for (const call of mocks.poolMock.query.mock.calls) {
       const [, params] = call as [string, unknown[]];
@@ -2138,7 +2282,11 @@ describe('getPetFacets', () => {
       permissions: ['pets.read' as Permission, 'pets.read:any' as Permission],
     };
     emptyFacetRows();
-    await getPetFacets(mocks.deps, adminAny, { rescueIdFilter: 'rsc-target' });
+    await getPetFacets(
+      mocks.deps,
+      adminAny,
+      PetsV1.GetPetFacetsRequest.fromPartial({ rescueIdFilter: 'rsc-target' })
+    );
 
     for (const call of mocks.poolMock.query.mock.calls) {
       const [, params] = call as [string, unknown[]];
@@ -2180,7 +2328,7 @@ describe('getPetFacets', () => {
       .mockResolvedValueOnce({ rows: [{ value: 'dog', count: '8' }] })
       .mockResolvedValueOnce({ rows: [{ value: 'medium', count: '5' }] });
 
-    const res = await getPetFacets(mocks.deps, STAFF, {});
+    const res = await getPetFacets(mocks.deps, STAFF, PetsV1.GetPetFacetsRequest.fromPartial({}));
 
     expect(res.facets).toEqual([
       {

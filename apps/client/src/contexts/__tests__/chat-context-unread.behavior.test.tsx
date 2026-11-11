@@ -38,6 +38,7 @@ let seededConversations: Conversation[] = [];
 vi.mock('@/services', () => ({
   chatService: {
     connect: vi.fn(),
+    clearMessageQueue: vi.fn(),
     disconnect: vi.fn(),
     getConversations: vi.fn(async () => seededConversations),
     getMessages: vi.fn(async () => ({ data: [] })),
@@ -72,7 +73,7 @@ vi.mock('@/services', () => ({
 vi.mock('@/utils/offlineManager', () => ({
   isCurrentlyOnline: () => true,
   getConnectionQuality: () => 'excellent',
-  offlineManager: { setSyncCallback: vi.fn(), forceSync: vi.fn() },
+  offlineManager: { setSyncCallback: vi.fn(), forceSync: vi.fn(), setCurrentUser: vi.fn() },
   onOfflineStateChange: vi.fn(),
   removeOfflineStateListener: vi.fn(),
   queueMessageForOffline: vi.fn(() => 'tmp-id'),

@@ -85,6 +85,7 @@
         "helpers/**",
         "tsconfig*.json",
         "package.json",
+        "$TURBO_ROOT$/vitest-globals.d.ts",
         "$TURBO_ROOT$/tsconfig.base.json",
         "$TURBO_ROOT$/tsconfig.lib.base.json",
         "$TURBO_ROOT$/tsconfig.service.base.json",

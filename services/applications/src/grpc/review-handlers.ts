@@ -281,7 +281,12 @@ export async function approve(
         approvedBy: principal.userId,
       },
     }),
-    s => requireRescueScope(principal, APPLICATIONS_APPROVE, s)
+    s => requireRescueScope(principal, APPLICATIONS_APPROVE, s),
+    s => ({
+      action: 'approve',
+      actorUserId: principal.userId,
+      details: { adopterId: s.adopterId, petId: s.petId, rescueId: s.rescueId },
+    })
   );
 
   return { application: stateToProto(state) };
@@ -324,7 +329,17 @@ export async function reject(
         reason: req.reason,
       },
     }),
-    s => requireRescueScope(principal, APPLICATIONS_REJECT, s)
+    s => requireRescueScope(principal, APPLICATIONS_REJECT, s),
+    s => ({
+      action: 'reject',
+      actorUserId: principal.userId,
+      details: {
+        adopterId: s.adopterId,
+        petId: s.petId,
+        rescueId: s.rescueId,
+        reason: req.reason,
+      },
+    })
   );
 
   return { application: stateToProto(state) };
@@ -367,7 +382,17 @@ export async function withdraw(
         withdrawnBy: principal.userId,
       },
     }),
-    s => requireOwnerOrRescueScope(principal, APPLICATIONS_UPDATE, s)
+    s => requireOwnerOrRescueScope(principal, APPLICATIONS_UPDATE, s),
+    s => ({
+      action: 'withdraw',
+      actorUserId: principal.userId,
+      details: {
+        adopterId: s.adopterId,
+        petId: s.petId,
+        rescueId: s.rescueId,
+        reason: req.reason ?? null,
+      },
+    })
   );
 
   return { application: stateToProto(state) };

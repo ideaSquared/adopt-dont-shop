@@ -11,6 +11,7 @@ import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router';
 import App from './App';
+import { offlineManager } from './utils/offlineManager';
 import { StatsigWrapper } from './contexts/StatsigContext';
 
 // ADS-594: promote deferred font stylesheet via CSSOM so the non-blocking
@@ -71,7 +72,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <AuthProvider
           allowedUserTypes={['adopter']}
           appType='client'
-          onLogout={() => queryClient.clear()}
+          onLogout={() => {
+            queryClient.clear();
+            offlineManager.clearQueues();
+          }}
         >
           <StatsigWrapper>
             <ThemeProvider>

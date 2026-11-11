@@ -5,7 +5,7 @@
  * and offlineManager.
  */
 
-import { useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, type ReactNode } from 'react';
 import {
   ChatProvider as LibChatProvider,
   useChat as useLibChat,
@@ -69,12 +69,22 @@ const buildOfflineAdapter = (): OfflineAdapter => {
         offlineManager.setSyncCallback(null);
         return;
       }
-      offlineManager.setSyncCallback(async (messages, actions) =>
-        callback(
-          messages.map(m => ({ id: m.id, conversationId: m.conversationId, content: m.content })),
-          actions.map(a => ({ id: a.id, type: a.type, conversationId: a.conversationId }))
-        )
-      );
+      // Hand lib.chat one item at a time so ownership can be re-checked before every request:
+      // a user switch mid-sync must not send the rest of the previous user's snapshot.
+      offlineManager.setSyncCallback(async (messages, actions, isStillCurrent) => {
+        for (const m of messages) {
+          if (!isStillCurrent()) {
+            return;
+          }
+          await callback([{ id: m.id, conversationId: m.conversationId, content: m.content }], []);
+        }
+        for (const a of actions) {
+          if (!isStillCurrent()) {
+            return;
+          }
+          await callback([], [{ id: a.id, type: a.type, conversationId: a.conversationId }]);
+        }
+      });
     },
     removeQueuedMessage: (id: string) => offlineManager.removeQueuedMessage(id),
     removeQueuedAction: (id: string) => offlineManager.removeQueuedAction(id),
@@ -82,9 +92,24 @@ const buildOfflineAdapter = (): OfflineAdapter => {
 };
 
 export function ChatProvider({ children }: { children: ReactNode }) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isInitializing } = useAuth();
   const { checkGate, logEvent } = useStatsig();
   const offlineAdapter = useMemo(() => buildOfflineAdapter(), []);
+
+  // Scope the offline queue to the signed-in user. Runs on every user change,
+  // including the null of a logout or a session-expiry sign-out, but not while
+  // the session is still rehydrating (a returning user keeps their queue).
+  // ChatService keeps its own disconnected-send queue across disconnect(); drop it too so the
+  // next user's socket cannot flush the previous user's messages. This effect runs after
+  // lib.chat's connect effect, but the socket 'connect' that flushes is asynchronous.
+  const userId = user?.userId ?? null;
+  useEffect(() => {
+    if (isInitializing) {
+      return;
+    }
+    offlineManager.setCurrentUser(userId);
+    chatService.clearMessageQueue();
+  }, [userId, isInitializing]);
 
   const featureFlags = useMemo<FeatureFlagsAdapter>(
     () => ({

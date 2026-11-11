@@ -100,6 +100,7 @@ import {
   type PetSizeDb,
   type PetAgeGroupDb,
 } from './enum-map.js';
+import { petActionTaken } from './audit.js';
 import { escapeLikePattern } from './escape-like.js';
 import type { RescueClient } from './rescue-client.js';
 import { isLegalTransition } from './status-machine.js';
@@ -976,6 +977,19 @@ export async function updatePetStatus(
         reason: req.reason ?? null,
       },
     });
+    publish(
+      petActionTaken(transitionId, {
+        action: 'updateStatus',
+        petId: req.petId,
+        actorUserId: principal.userId,
+        details: {
+          rescueId: existing.rescue_id,
+          fromStatus,
+          toStatus,
+          reason: req.reason ?? null,
+        },
+      })
+    );
   });
 
   if (!updated) {
@@ -1024,6 +1038,14 @@ export async function deletePet(
       id: `pets.deleted.${req.petId}`,
       payload: { petId: req.petId, rescueId: existing.rescue_id },
     });
+    publish(
+      petActionTaken(randomUUID(), {
+        action: 'delete',
+        petId: req.petId,
+        actorUserId: principal.userId,
+        details: { rescueId: existing.rescue_id },
+      })
+    );
   });
 
   return { deleted: true };

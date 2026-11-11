@@ -36,7 +36,11 @@ Every image line in `docker-compose.prod.yml` resolves as
 `${SERVICE_<NAME>_TAG:-${DEPLOY_SHA}}` — a fleet-wide `DEPLOY_SHA` unless a
 per-service `SERVICE_*_TAG` override is set. Production also pushes `:latest` to
 the same digest, but **rollback always targets an immutable SHA**, never
-`:latest`. (The `sha-…` / `vX.Y.Z` tags on Docker Hub come from
+`:latest`. The three `app-*` frontend images are baked per environment, so
+their tag is `<40-char git SHA>-production` (`-staging` on staging); the
+compose file appends the suffix, `APP_*_TAG` overrides stay a bare SHA. A SHA
+never deployed to this environment with that scheme has no frontend image, and
+`rollback.yml` fails up front saying so. (The `sha-…` / `vX.Y.Z` tags on Docker Hub come from
 `release.yml` and are **not** what prod pulls — ignore them here.)
 
 ```bash

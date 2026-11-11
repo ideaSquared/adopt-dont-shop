@@ -1604,7 +1604,7 @@ export async function updateChatStatus(
 
     publish({
       type: 'chat.statusChanged',
-      id: `chat.statusChanged.${req.chatId}.${nextStatus}`,
+      id: `chat.statusChanged.${req.chatId}.${nextStatus}.${randomUUID()}`,
       payload: {
         chatId: req.chatId,
         status: nextStatus,

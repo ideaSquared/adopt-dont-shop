@@ -25,7 +25,20 @@ Delivery is then two-phase:
   (process died in the commit→publish window, or JetStream was unreachable) and
   deletes them on ack. This is the durability guarantee, and doubles as the
   reconciliation job. A row is deleted on successful publish, so the table is a
-  self-cleaning queue, not an append-only log.
+  self-cleaning queue, not an append-only log. A row that cannot publish (payload
+  over NATS `max_payload`, subject outside the stream) does not block later rows:
+  after `MAX_OUTBOX_ATTEMPTS` (10) row-attributable failures it is quarantined,
+  i.e. skipped by the claim query and kept in the table for manual triage, with an
+  error log and `events_outbox_quarantined_total`. A failure only counts toward
+  quarantine when another row published in the same sweep, so a NATS outage never
+  quarantines healthy rows.
+  Quarantine is marked explicitly: `last_error` gets the prefix `QUARANTINED: `
+  and the claim query skips rows carrying it (the raw `attempts` count is not
+  used, as it also counted NATS-outage failures before quarantine existed). To
+  release a row once its cause is fixed, clear the marker:
+  `UPDATE event_outbox SET last_error = NULL, attempts = 0 WHERE outbox_id = '…'`
+  (use the service's own schema). Quarantined rows still count in
+  `events_outbox_pending`.
 
 Each event-publishing service adds a migration that creates `event_outbox` in
 its own schema (re-exporting the DDL from
@@ -80,7 +93,9 @@ names.
 Retry budget: a parseable but persistently-failing message is `nak()`'d with
 exponential backoff (`min(30s, 1s · 2^(attempt-1))`) up to `MAX_DELIVER = 7`,
 then parked in the dead-letter stream `DOMAIN_EVENTS_DLQ` (subjects `dlq.>`,
-14-day retention) and `term()`'d. The main stream keeps a 7-day `max_age` and a
+14-day retention) and `term()`'d. The dead-letter publish is retried 3 times;
+if it still fails the message is not `term()`'d, the failure is logged at error
+and the consume loop carries on (the message stays in the main stream). The main stream keeps a 7-day `max_age` and a
 2-minute `Nats-Msg-Id` duplicate window — far shorter than retention, so
 redelivery-safety rests on **consumer idempotency** (`claimEvent` /
 `processed_events`), not on the broker dedup. See

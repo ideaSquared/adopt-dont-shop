@@ -47,5 +47,11 @@ target "apps" {
   args = {
     APP_NAME = app
   }
-  tags = ["${IMAGE_PREFIX}/app-${app}:${TAG}"]
+  # docker-compose.prod.yml pulls the frontends as app-*:<DEPLOY_SHA>-production (the
+  # environment suffix keeps staging and production bundles apart), so tag the
+  # smoke build that way too. The plain tag is kept for `docker run` convenience.
+  tags = [
+    "${IMAGE_PREFIX}/app-${app}:${TAG}",
+    "${IMAGE_PREFIX}/app-${app}:${TAG}-production",
+  ]
 }

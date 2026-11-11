@@ -680,3 +680,59 @@ describe('escalateSupportTicket', () => {
     expect(query.mock.calls[1][1]).toEqual([null, null, 'tkt-1']);
   });
 });
+
+// JetStream drops a message whose Nats-Msg-Id repeats inside its dedupe
+// window, across subjects. Each logical event on a ticket needs its own id.
+describe('ticket event ids', () => {
+  const publishedId = (deps: HandlerDeps): unknown => {
+    const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
+    return (publish.mock.calls[0][0] as { id: unknown }).id;
+  };
+
+  const openOnce = async (): Promise<unknown> => {
+    const { deps } = makeDeps([{ rows: [ticketRow()] }]);
+    await openSupportTicket(deps, makePrincipal({ permissions: [] }), VALID_OPEN);
+    return publishedId(deps);
+  };
+
+  const assignOnce = async (): Promise<unknown> => {
+    const { deps } = makeDeps([
+      { rows: [{ ticket_id: 'tkt-1' }] },
+      { rows: [ticketRow({ assigned_to: 'staff-2' })] },
+    ]);
+    await assignSupportTicket(deps, makePrincipal(), { ticketId: 'tkt-1', assignedTo: 'staff-2' });
+    return publishedId(deps);
+  };
+
+  const updateOnce = async (): Promise<unknown> => {
+    const { deps } = makeDeps([
+      { rows: [{ ticket_id: 'tkt-1' }] },
+      { rows: [ticketRow({ status: 'resolved' })] },
+    ]);
+    await updateSupportTicket(deps, makePrincipal(), {
+      ticketId: 'tkt-1',
+      status: ModerationV1.SupportTicketStatus.SUPPORT_TICKET_STATUS_RESOLVED,
+    } as UpdateSupportTicketRequest);
+    return publishedId(deps);
+  };
+
+  const escalateOnce = async (): Promise<unknown> => {
+    const { deps } = makeDeps([
+      { rows: [{ ticket_id: 'tkt-1' }] },
+      { rows: [ticketRow({ status: 'escalated' })] },
+    ]);
+    await escalateSupportTicket(deps, makePrincipal(), {
+      ticketId: 'tkt-1',
+    } as EscalateSupportTicketRequest);
+    return publishedId(deps);
+  };
+
+  it('gives opened, assigned, updated and escalated events on one ticket distinct ids', async () => {
+    const ids = [await openOnce(), await assignOnce(), await updateOnce(), await escalateOnce()];
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('gives two updates of the same ticket distinct ids', async () => {
+    expect(await updateOnce()).not.toBe(await updateOnce());
+  });
+});

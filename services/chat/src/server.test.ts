@@ -20,6 +20,9 @@ const baseConfig: ChatConfig = {
   databaseUrl: 'postgres://test',
   schema: 'chat',
   natsUrl: 'nats://localhost:4222',
+  applicationsGrpcUrl: 'service-applications:6005',
+  rescueGrpcUrl: 'service-rescue:6004',
+  petsGrpcUrl: 'service-pets:6003',
 };
 
 describe('createServer — health endpoint', () => {

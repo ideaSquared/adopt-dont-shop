@@ -664,18 +664,21 @@ services:
       <<: *hc-service-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:4100/health/ready']
 
+  # Frontend images are baked per environment (VITE_* build args), so the tag is
+  # <sha>-staging — never the bare <sha>. deploy.yml / rollback.yml produce, verify and
+  # pull exactly this tag. APP_*_TAG overrides stay a bare 40-char SHA.
   app-client:
-    image: ghcr.io/ideasquared/adopt-dont-shop/app-client:${APP_CLIENT_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}
+    image: ghcr.io/ideasquared/adopt-dont-shop/app-client:${APP_CLIENT_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}-staging
     container_name: ads_staging_client
     <<: *app-common
 
   app-admin:
-    image: ghcr.io/ideasquared/adopt-dont-shop/app-admin:${APP_ADMIN_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}
+    image: ghcr.io/ideasquared/adopt-dont-shop/app-admin:${APP_ADMIN_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}-staging
     container_name: ads_staging_admin
     <<: *app-common
 
   app-rescue:
-    image: ghcr.io/ideasquared/adopt-dont-shop/app-rescue:${APP_RESCUE_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}
+    image: ghcr.io/ideasquared/adopt-dont-shop/app-rescue:${APP_RESCUE_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}-staging
     container_name: ads_staging_rescue
     <<: *app-common
 

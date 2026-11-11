@@ -52,7 +52,7 @@ const enquiryRow = (overrides: Record<string, unknown> = {}) => ({
 function makeMocks() {
   const clientScript: Array<{ rows: unknown[] }> = [];
   const client = {
-    query: vi.fn(async (sql: string) => {
+    query: vi.fn(async (sql: string, _params?: unknown[]) => {
       const op = sql.trim().split(/\s+/)[0].toUpperCase();
       if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK' || /event_outbox/i.test(sql)) {
         return { rows: [] };
@@ -68,7 +68,11 @@ function makeMocks() {
   const poolScript: Array<{ rows: unknown[] }> = [];
   const pool = {
     connect: vi.fn().mockResolvedValue(client),
-    query: vi.fn(async () => poolScript.shift() ?? { rows: [] }),
+    // The inline outbox DELETE runs on the pool after commit (withTransaction releases
+    // its client first). It is infrastructure, so answer it without consuming the script.
+    query: vi.fn(async (sql: string, _params?: unknown[]) =>
+      /event_outbox/i.test(sql) ? { rows: [], rowCount: 0 } : (poolScript.shift() ?? { rows: [] })
+    ),
   };
   const publish = vi.fn();
   const nats = { publish, jetstream: () => ({ publish }) };

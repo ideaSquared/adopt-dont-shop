@@ -197,7 +197,7 @@ export async function openSupportTicket(
 
     publish({
       type: 'moderation.ticketOpened',
-      id: ticketId,
+      id: `moderation.ticketOpened.${ticketId}`,
       payload: {
         ticketId,
         userId: userId ?? null,
@@ -527,7 +527,7 @@ export async function assignSupportTicket(
 
     publish({
       type: 'moderation.ticketAssigned',
-      id: req.ticketId,
+      id: `moderation.ticketAssigned.${req.ticketId}.${randomUUID()}`,
       payload: {
         ticketId: req.ticketId,
         assignedTo: req.assignedTo,
@@ -599,7 +599,7 @@ export async function updateSupportTicket(
 
     publish({
       type: 'moderation.ticketUpdated',
-      id: `${req.ticketId}.${Date.now()}`,
+      id: `moderation.ticketUpdated.${req.ticketId}.${randomUUID()}`,
       payload: {
         ticketId: req.ticketId,
         updatedBy: principal.userId,
@@ -662,7 +662,7 @@ export async function escalateSupportTicket(
 
     publish({
       type: 'moderation.ticketEscalated',
-      id: req.ticketId,
+      id: `moderation.ticketEscalated.${req.ticketId}.${randomUUID()}`,
       payload: {
         ticketId: req.ticketId,
         escalatedBy: principal.userId,

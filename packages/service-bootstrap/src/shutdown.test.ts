@@ -1,16 +1,22 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { runServiceShutdown, withShutdownDeadline } from './shutdown.js';
+import { runServiceShutdown, withShutdownDeadline, type ShutdownDeps } from './shutdown.js';
+
+// Fastify's close() is overloaded (promise and callback forms) and the sequencer
+// only awaits the promise form, so a plain async mock needs one cast to fit the type.
+function fakeHttpServer(close: () => Promise<unknown>) {
+  return { close: vi.fn(close) } as unknown as ShutdownDeps['httpServer'] & {
+    close: ReturnType<typeof vi.fn>;
+  };
+}
 
 describe('runServiceShutdown — shutdown sequencing', () => {
   it('calls close → grpc shutdown → nats drain → pool end in order', async () => {
     const order: string[] = [];
 
-    const httpServer = {
-      close: vi.fn(async () => {
-        order.push('http');
-      }),
-    };
+    const httpServer = fakeHttpServer(async () => {
+      order.push('http');
+    });
     const grpc = {
       shutdown: vi.fn(async () => {
         order.push('grpc');
@@ -35,11 +41,9 @@ describe('runServiceShutdown — shutdown sequencing', () => {
   it('continues through remaining steps when http close throws', async () => {
     const order: string[] = [];
 
-    const httpServer = {
-      close: vi.fn(async () => {
-        throw new Error('already closed');
-      }),
-    };
+    const httpServer = fakeHttpServer(async () => {
+      throw new Error('already closed');
+    });
     const grpc = {
       shutdown: vi.fn(async () => {
         order.push('grpc');
@@ -64,11 +68,9 @@ describe('runServiceShutdown — shutdown sequencing', () => {
   it('continues through remaining steps when grpc shutdown throws', async () => {
     const order: string[] = [];
 
-    const httpServer = {
-      close: vi.fn(async () => {
-        order.push('http');
-      }),
-    };
+    const httpServer = fakeHttpServer(async () => {
+      order.push('http');
+    });
     const grpc = {
       shutdown: vi.fn(async () => {
         throw new Error('grpc timeout');
@@ -93,11 +95,9 @@ describe('runServiceShutdown — shutdown sequencing', () => {
   it('works with only some dependencies provided (all optional)', async () => {
     const order: string[] = [];
 
-    const httpServer = {
-      close: vi.fn(async () => {
-        order.push('http');
-      }),
-    };
+    const httpServer = fakeHttpServer(async () => {
+      order.push('http');
+    });
 
     // no grpc, nats, pool
     await runServiceShutdown({ httpServer, logger: makeLogger() });
@@ -106,9 +106,7 @@ describe('runServiceShutdown — shutdown sequencing', () => {
   });
 
   it('does not double-close http when httpClosed flag is set', async () => {
-    const httpServer = {
-      close: vi.fn(async () => undefined),
-    };
+    const httpServer = fakeHttpServer(async () => undefined);
 
     // First call
     await runServiceShutdown({ httpServer, logger: makeLogger() });
@@ -145,7 +143,7 @@ describe('runServiceShutdown — overall deadline (timeoutMs)', () => {
     vi.useFakeTimers();
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
 
-    const httpServer = { close: vi.fn(async () => undefined) };
+    const httpServer = fakeHttpServer(async () => undefined);
 
     const p = runServiceShutdown({ httpServer, logger: makeLogger(), timeoutMs: 25_000 });
     await vi.runAllTimersAsync();
@@ -160,7 +158,7 @@ describe('runServiceShutdown — overall deadline (timeoutMs)', () => {
     const logger = makeLogger();
 
     // http.close never resolves — simulates a hung step.
-    const httpServer = { close: vi.fn(() => new Promise<void>(() => undefined)) };
+    const httpServer = fakeHttpServer(() => new Promise<void>(() => undefined));
 
     const p = runServiceShutdown({ httpServer, logger, timeoutMs: 25_000 });
     // Advance past the deadline.
@@ -184,7 +182,7 @@ describe('runServiceShutdown — overall deadline (timeoutMs)', () => {
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
     const logger = makeLogger();
 
-    const httpServer = { close: vi.fn(async () => undefined) };
+    const httpServer = fakeHttpServer(async () => undefined);
     // grpc.shutdown hangs.
     const grpc = { shutdown: vi.fn(() => new Promise<void>(() => undefined)) };
 
@@ -204,7 +202,7 @@ describe('runServiceShutdown — overall deadline (timeoutMs)', () => {
     vi.useFakeTimers();
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
 
-    const httpServer = { close: vi.fn(async () => undefined) };
+    const httpServer = fakeHttpServer(async () => undefined);
 
     // Should complete fast without hitting the default 25 000 ms deadline.
     const p = runServiceShutdown({ httpServer, logger: makeLogger() });
@@ -219,11 +217,9 @@ describe('runServiceShutdown — overall deadline (timeoutMs)', () => {
     vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
     const order: string[] = [];
 
-    const httpServer = {
-      close: vi.fn(async () => {
-        order.push('http');
-      }),
-    };
+    const httpServer = fakeHttpServer(async () => {
+      order.push('http');
+    });
     const grpc = {
       shutdown: vi.fn(async () => {
         order.push('grpc');

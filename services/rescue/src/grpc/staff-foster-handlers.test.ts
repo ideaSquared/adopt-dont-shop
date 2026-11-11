@@ -40,7 +40,7 @@ const STAFF: Principal = {
 
 const STAFF_MANAGER: Principal = {
   userId: 'usr-admin' as UserId,
-  roles: ['rescue_admin'],
+  roles: ['rescue_staff'],
   permissions: [
     'staff.create' as Permission,
     'staff.update' as Permission,
@@ -94,6 +94,20 @@ function makeMocks() {
     nats: nats as unknown as NatsConnection,
   };
   return { deps, poolMock: pool, clientMock: client, clientScript: c.push, natsMock: nats };
+}
+
+// The decoded `{ id, payload }` envelopes published on `subject`.
+function publishedOn(mocks: ReturnType<typeof makeMocks>, subject: string) {
+  const decoder = new TextDecoder();
+  return mocks.natsMock.publish.mock.calls
+    .filter(([s]) => s === subject)
+    .map(
+      ([, data]) =>
+        JSON.parse(decoder.decode(data as Uint8Array)) as {
+          id: string;
+          payload: Record<string, unknown>;
+        }
+    );
 }
 
 const staffRow = (overrides: Record<string, unknown> = {}) => ({
@@ -264,6 +278,40 @@ describe('createStaffMember', () => {
     expect(res.staffMember?.isVerified).toBe(true);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('rescue.staffMemberCreated');
   });
+
+  it('audits the addition as rescue.actionTaken', async () => {
+    mocks.clientScript([]);
+    mocks.clientScript([staffRow({ user_id: 'usr-new' })]);
+
+    await createStaffMember(mocks.deps, STAFF_MANAGER, baseReq);
+
+    const [event] = publishedOn(mocks, 'rescue.actionTaken');
+    expect(event.payload).toMatchObject({
+      eventId: expect.stringMatching(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+      ),
+      service: 'service.rescue',
+      subject: 'rescue.actionTaken',
+      aggregateType: 'staff_member',
+      actorUserId: STAFF_MANAGER.userId,
+      action: 'create',
+      outcome: 'success',
+      payload: { rescueId: RESCUE_ID, userId: baseReq.userId },
+    });
+  });
+
+  it('does not audit when the insert fails', async () => {
+    mocks.clientScript([]);
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (/INSERT INTO rescue\.staff_members/.test(sql)) {
+        throw new Error('boom');
+      }
+      return { rows: [] };
+    });
+
+    await expect(createStaffMember(mocks.deps, STAFF_MANAGER, baseReq)).rejects.toThrow('boom');
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
 });
 
 // --- UpdateStaffMember ------------------------------------------------
@@ -310,6 +358,56 @@ describe('updateStaffMember', () => {
     expect(res.staffMember?.title).toBe('Lead Volunteer');
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('rescue.staffMemberUpdated');
   });
+
+  it('gives each update its own message ids so repeat updates are not de-duped', async () => {
+    mocks.clientScript([staffRow()]);
+    mocks.clientScript([staffRow({ title: 'Lead Volunteer', version: 1 })]);
+    await updateStaffMember(mocks.deps, STAFF_MANAGER, baseReq);
+    mocks.clientScript([staffRow()]);
+    mocks.clientScript([staffRow({ title: 'Lead Volunteer', version: 2 })]);
+    await updateStaffMember(mocks.deps, STAFF_MANAGER, baseReq);
+
+    const ids = (subject: string) => publishedOn(mocks, subject).map(e => e.id);
+    expect(new Set(ids('rescue.actionTaken')).size).toBe(2);
+    const msgIds = mocks.natsMock.publish.mock.calls
+      .filter(([s]) => s === 'rescue.staffMemberUpdated')
+      .map(([, , opts]) => (opts as { msgID?: string }).msgID);
+    expect(new Set(msgIds).size).toBe(2);
+  });
+
+  it('audits the update as rescue.actionTaken', async () => {
+    mocks.clientScript([staffRow()]);
+    mocks.clientScript([staffRow({ title: 'Lead Volunteer', version: 4 })]);
+
+    await updateStaffMember(mocks.deps, STAFF_MANAGER, baseReq);
+
+    const [event] = publishedOn(mocks, 'rescue.actionTaken');
+    expect(event.id).toBe('rescue.actionTaken.update.stf-1.4');
+    expect(event.payload).toMatchObject({
+      eventId: expect.stringMatching(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+      ),
+      aggregateType: 'staff_member',
+      aggregateId: 'stf-1',
+      actorUserId: STAFF_MANAGER.userId,
+      action: 'update',
+      outcome: 'success',
+      payload: { rescueId: RESCUE_ID, userId: 'usr-staff', title: 'Lead Volunteer' },
+    });
+  });
+
+  it('does not audit when the update fails', async () => {
+    mocks.clientScript([staffRow()]);
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (/UPDATE rescue\.staff_members/.test(sql)) {
+        throw new Error('boom');
+      }
+      return { rows: [staffRow()] };
+    });
+
+    await expect(updateStaffMember(mocks.deps, STAFF_MANAGER, baseReq)).rejects.toThrow('boom');
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
 });
 
 // --- RemoveStaffMember ------------------------------------------------
@@ -355,6 +453,38 @@ describe('removeStaffMember', () => {
 
     expect(res.removed).toBe(true);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('rescue.staffMemberRemoved');
+  });
+
+  it('audits the removal as rescue.actionTaken', async () => {
+    mocks.clientScript([staffRow()]);
+    mocks.clientScript([]);
+
+    await removeStaffMember(mocks.deps, STAFF_MANAGER, baseReq);
+
+    const [event] = publishedOn(mocks, 'rescue.actionTaken');
+    expect(event.payload).toMatchObject({
+      eventId: expect.stringMatching(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+      ),
+      aggregateType: 'staff_member',
+      aggregateId: 'stf-1',
+      actorUserId: STAFF_MANAGER.userId,
+      action: 'remove',
+      outcome: 'success',
+      payload: { rescueId: RESCUE_ID, userId: 'usr-staff' },
+    });
+  });
+
+  it('does not audit when the removal fails', async () => {
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (/SET deleted_at = now\(\)/.test(sql)) {
+        throw new Error('boom');
+      }
+      return { rows: [staffRow()] };
+    });
+
+    await expect(removeStaffMember(mocks.deps, STAFF_MANAGER, baseReq)).rejects.toThrow('boom');
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 
   it('platform admin (admin.security.manage) can remove without staff.delete', async () => {
@@ -453,9 +583,10 @@ describe('cancelRescueInvitation', () => {
     const res = await cancelRescueInvitation(mocks.deps, ADMIN, baseReq);
 
     expect(res.cancelled).toBe(true);
-    const [sql, params] = mocks.clientMock.query.mock.calls.find(
-      ([s]: [string]) => typeof s === 'string' && s.includes('DELETE FROM rescue.invitations')
-    );
+    const [sql, params] =
+      mocks.clientMock.query.mock.calls.find(
+        ([s]) => typeof s === 'string' && s.includes('DELETE FROM rescue.invitations')
+      ) ?? [];
     expect(String(sql)).toContain('used = false');
     expect(params).toEqual(['inv-1', RESCUE_ID]);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('rescue.staffInvitationCancelled');

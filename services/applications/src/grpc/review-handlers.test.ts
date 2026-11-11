@@ -123,7 +123,7 @@ describe('startReview', () => {
   it('transitions submitted → under_review + publishes reviewStarted', async () => {
     const { deps } = makeDeps(submittedStream());
     const res = await startReview(deps, makePrincipal(), { applicationId: 'app-1', note: 'go' });
-    expect(res.application.status).toBe(
+    expect(res.application?.status).toBe(
       ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_UNDER_REVIEW
     );
     expect(publishOf(deps).mock.calls[0][0]).toMatchObject({ type: 'applications.reviewStarted' });
@@ -144,7 +144,7 @@ describe('scheduleHomeVisit', () => {
       applicationId: 'app-1',
       scheduledAt: '2026-06-10T14:00:00.000Z',
     });
-    expect(res.application.status).toBe(
+    expect(res.application?.status).toBe(
       ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_HOME_VISIT_SCHEDULED
     );
     expect(publishOf(deps).mock.calls[0][0]).toMatchObject({
@@ -234,10 +234,10 @@ describe('completeHomeVisit', () => {
       outcome: ApplicationsV1.HomeVisitOutcome.HOME_VISIT_OUTCOME_PASSED,
       notes: 'great fit',
     });
-    expect(res.application.status).toBe(
+    expect(res.application?.status).toBe(
       ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_HOME_VISIT_COMPLETED
     );
-    expect(res.application.homeVisitOutcome).toBe(
+    expect(res.application?.homeVisitOutcome).toBe(
       ApplicationsV1.HomeVisitOutcome.HOME_VISIT_OUTCOME_PASSED
     );
   });
@@ -270,7 +270,7 @@ describe('approve', () => {
   it('transitions home_visit_completed → approved + publishes approved', async () => {
     const { deps } = makeDeps(decidableStream());
     const res = await approve(deps, makePrincipal(), { applicationId: 'app-1', notes: 'ok' });
-    expect(res.application.status).toBe(
+    expect(res.application?.status).toBe(
       ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_APPROVED
     );
     expect(publishOf(deps).mock.calls[0][0]).toMatchObject({ type: 'applications.approved' });
@@ -281,8 +281,8 @@ describe('approve', () => {
   it('stamps actioned_at with the approved event’s own timestamp', async () => {
     const { deps, query } = makeDeps(decidableStream());
     const res = await approve(deps, makePrincipal(), { applicationId: 'app-1', notes: 'ok' });
-    expect(res.application.decidedAt).toBeTruthy();
-    expect(actionedAtParam(query)).toBe(res.application.decidedAt);
+    expect(res.application?.decidedAt).toBeTruthy();
+    expect(actionedAtParam(query)).toBe(res.application?.decidedAt);
   });
 });
 
@@ -300,10 +300,10 @@ describe('reject', () => {
       applicationId: 'app-1',
       reason: 'home unsuitable',
     });
-    expect(res.application.status).toBe(
+    expect(res.application?.status).toBe(
       ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_REJECTED
     );
-    expect(res.application.rejectionReason).toBe('home unsuitable');
+    expect(res.application?.rejectionReason).toBe('home unsuitable');
     expect(publishOf(deps).mock.calls[0][0]).toMatchObject({ type: 'applications.rejected' });
   });
 
@@ -323,7 +323,7 @@ describe('withdraw', () => {
       applicationId: 'app-1',
       reason: 'found another pet',
     });
-    expect(res.application.status).toBe(
+    expect(res.application?.status).toBe(
       ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_WITHDRAWN
     );
     expect(publishOf(deps).mock.calls[0][0]).toMatchObject({ type: 'applications.withdrawn' });
@@ -445,7 +445,7 @@ describe('idempotent no-op does not project or publish (ADS-1166)', () => {
 
     const res = await startReview(deps, makePrincipal(), { applicationId: 'app-1' });
 
-    expect(res.application.status).toBe(
+    expect(res.application?.status).toBe(
       ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_UNDER_REVIEW
     );
     // No phantom event published.
@@ -479,7 +479,7 @@ describe('markAdopted', () => {
       ev('approved', 6, { actorUserId: 'staff-1', notes: null }),
     ]);
     const res = await markAdopted(deps, makePrincipal(), { applicationId: 'app-1' });
-    expect(res.application.status).toBe(
+    expect(res.application?.status).toBe(
       ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_ADOPTED
     );
     expect(publishOf(deps).mock.calls[0][0]).toMatchObject({ type: 'applications.adopted' });
@@ -493,8 +493,8 @@ describe('markAdopted', () => {
       ev('approved', 6, { actorUserId: 'staff-1', notes: null }),
     ]);
     const res = await markAdopted(deps, makePrincipal(), { applicationId: 'app-1' });
-    expect(res.application.adoptedAt).toBeTruthy();
-    expect(res.application.adoptedAt).not.toBe(res.application.decidedAt);
-    expect(actionedAtParam(query)).toBe(res.application.adoptedAt);
+    expect(res.application?.adoptedAt).toBeTruthy();
+    expect(res.application?.adoptedAt).not.toBe(res.application?.decidedAt);
+    expect(actionedAtParam(query)).toBe(res.application?.adoptedAt);
   });
 });

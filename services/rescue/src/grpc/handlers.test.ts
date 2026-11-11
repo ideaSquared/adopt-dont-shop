@@ -125,6 +125,20 @@ function makeMocks() {
   return { deps, poolMock: pool, clientMock: client, natsMock: nats };
 }
 
+// The decoded `{ id, payload }` envelopes published on `subject`.
+function publishedOn(mocks: ReturnType<typeof makeMocks>, subject: string) {
+  const decoder = new TextDecoder();
+  return mocks.natsMock.publish.mock.calls
+    .filter(([s]) => s === subject)
+    .map(
+      ([, data]) =>
+        JSON.parse(decoder.decode(data as Uint8Array)) as {
+          id: string;
+          payload: Record<string, unknown>;
+        }
+    );
+}
+
 const BASE_CREATE: CreateRescueRequest = {
   name: 'Pawsome',
   email: 'hi@p.example',
@@ -190,8 +204,8 @@ describe('createRescue', () => {
     mocks.natsMock.publish.mockImplementation(() => order.push('NATS_PUBLISH'));
 
     const res = await createRescue(mocks.deps, ADMIN, BASE_CREATE);
-    expect(res.rescue.name).toBe('Pawsome');
-    expect(res.rescue.status).toBe(RescueV1.RescueStatus.RESCUE_STATUS_PENDING);
+    expect(res.rescue?.name).toBe('Pawsome');
+    expect(res.rescue?.status).toBe(RescueV1.RescueStatus.RESCUE_STATUS_PENDING);
     expect(order).toEqual(['BEGIN', 'INSERT', 'COMMIT', 'NATS_PUBLISH']);
   });
 });
@@ -282,7 +296,7 @@ describe('rescue coordinates', () => {
 
     const res = await createRescue({ ...mocks.deps, geocode }, ADMIN, BASE_CREATE);
 
-    expect(res.rescue.name).toBe('Pawsome');
+    expect(res.rescue?.name).toBe('Pawsome');
     const insert = mocks.clientMock.query.mock.calls.find(([sql]) =>
       String(sql).includes('INSERT INTO rescue.rescues')
     );
@@ -407,7 +421,7 @@ describe('getRescue', () => {
   it('returns the rescue for any rescues.read holder', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow()] });
     const res = await getRescue(mocks.deps, ADOPTER, { rescueId: 'rsc-1' });
-    expect(res.rescue.rescueId).toBe('rsc-1');
+    expect(res.rescue?.rescueId).toBe('rsc-1');
   });
 
   it('NOT_FOUND when missing/soft-deleted', async () => {
@@ -422,8 +436,8 @@ describe('getRescue', () => {
   it('serves a verified rescue (masked) to a caller without rescues.read', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ status: 'verified' })] });
     const res = await getRescue(mocks.deps, PUBLIC_ADOPTER, { rescueId: 'rsc-1' });
-    expect(res.rescue.rescueId).toBe('rsc-1');
-    expect(res.rescue.status).toBe(RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED);
+    expect(res.rescue?.rescueId).toBe('rsc-1');
+    expect(res.rescue?.status).toBe(RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED);
   });
 
   it('NOT_FOUND (existence not leaked) for a non-verified rescue to a caller without rescues.read', async () => {
@@ -436,8 +450,8 @@ describe('getRescue', () => {
   it('lets a rescues.read holder fetch a non-verified rescue', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ status: 'pending' })] });
     const res = await getRescue(mocks.deps, STAFF, { rescueId: 'rsc-1' });
-    expect(res.rescue.rescueId).toBe('rsc-1');
-    expect(res.rescue.status).toBe(RescueV1.RescueStatus.RESCUE_STATUS_PENDING);
+    expect(res.rescue?.rescueId).toBe('rsc-1');
+    expect(res.rescue?.status).toBe(RescueV1.RescueStatus.RESCUE_STATUS_PENDING);
   });
 
   // --- ADS-1168: anonymous (logged-out) visitors ---
@@ -454,14 +468,14 @@ describe('getRescue', () => {
     });
     const res = await getRescue(mocks.deps, null, { rescueId: 'rsc-1' });
     // Basic public details are visible…
-    expect(res.rescue.name).toBe('Pawsome');
-    expect(res.rescue.city).toBe('London');
+    expect(res.rescue?.name).toBe('Pawsome');
+    expect(res.rescue?.city).toBe('London');
     // …but sensitive contact / registration fields are masked for anonymous.
-    expect(res.rescue.email).toBe('');
-    expect(res.rescue.contactEmail).toBeUndefined();
-    expect(res.rescue.phone).toBeUndefined();
-    expect(res.rescue.address).toBe('');
-    expect(res.rescue.companiesHouseNumber).toBeUndefined();
+    expect(res.rescue?.email).toBe('');
+    expect(res.rescue?.contactEmail).toBeUndefined();
+    expect(res.rescue?.phone).toBeUndefined();
+    expect(res.rescue?.address).toBe('');
+    expect(res.rescue?.companiesHouseNumber).toBeUndefined();
   });
 
   it('NOT_FOUND (existence not leaked) for a non-verified rescue to an anonymous visitor', async () => {
@@ -492,8 +506,8 @@ describe('field-level permission enforcement (ADS-1037)', () => {
       rows: [rescueRow({ companies_house_number: '12345678', settings: { adoptionPolicies: {} } })],
     });
     const res = await getRescue(mocks.deps, ADOPTER, { rescueId: 'rsc-1' });
-    expect(res.rescue.companiesHouseNumber).toBeUndefined();
-    expect(res.rescue.settingsJson).toBe('');
+    expect(res.rescue?.companiesHouseNumber).toBeUndefined();
+    expect(res.rescue?.settingsJson).toBe('');
   });
 
   it('getRescue keeps companiesHouseNumber and settingsJson visible to admin (read/write access)', async () => {
@@ -501,8 +515,8 @@ describe('field-level permission enforcement (ADS-1037)', () => {
       rows: [rescueRow({ companies_house_number: '12345678', settings: { adoptionPolicies: {} } })],
     });
     const res = await getRescue(mocks.deps, ADMIN, { rescueId: 'rsc-1' });
-    expect(res.rescue.companiesHouseNumber).toBe('12345678');
-    expect(JSON.parse(res.rescue.settingsJson)).toEqual({ adoptionPolicies: {} });
+    expect(res.rescue?.companiesHouseNumber).toBe('12345678');
+    expect(JSON.parse(res.rescue?.settingsJson ?? '')).toEqual({ adoptionPolicies: {} });
   });
 
   it("getRescue hides plan and version from an adopter (configured 'none' for that role)", async () => {
@@ -511,8 +525,8 @@ describe('field-level permission enforcement (ADS-1037)', () => {
     });
     const res = await getRescue(mocks.deps, ADOPTER, { rescueId: 'rsc-1' });
     // adopter.plan / adopter.version are configured 'none' — masked.
-    expect(res.rescue.plan).toBe('');
-    expect(res.rescue.version).toBeUndefined();
+    expect(res.rescue?.plan).toBe('');
+    expect(res.rescue?.version).toBeUndefined();
   });
 
   it('listRescues masks every row in the page the same way as getRescue', async () => {
@@ -581,7 +595,7 @@ describe('field-level permission enforcement (ADS-1037)', () => {
       rescueId: 'rsc-1',
       name: 'Pawsome 2',
     } as never);
-    expect(res.rescue.name).toBe('Pawsome 2');
+    expect(res.rescue?.name).toBe('Pawsome 2');
   });
 
   it("updateRescue masks the response the same way Get/List do — Update can't be used to read back a field the role can't see (write success path)", async () => {
@@ -598,8 +612,8 @@ describe('field-level permission enforcement (ADS-1037)', () => {
       rescueId: 'rsc-1',
       name: 'Pawsome 2',
     } as never);
-    expect(res.rescue.name).toBe('Pawsome 2');
-    expect(res.rescue.verifiedBy).toBeUndefined();
+    expect(res.rescue?.name).toBe('Pawsome 2');
+    expect(res.rescue?.verifiedBy).toBeUndefined();
   });
 
   it('updateRescue masks the response on the no-op path too (no fields supplied)', async () => {
@@ -609,7 +623,7 @@ describe('field-level permission enforcement (ADS-1037)', () => {
 
     const res = await updateRescue(mocks.deps, STAFF, { rescueId: 'rsc-1' } as never);
     expect(mocks.clientMock.query).not.toHaveBeenCalled();
-    expect(res.rescue.verifiedBy).toBeUndefined();
+    expect(res.rescue?.verifiedBy).toBeUndefined();
   });
 });
 
@@ -882,7 +896,7 @@ describe('updateRescue', () => {
   it('no-ops when no fields supplied', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow()] });
     const res = await updateRescue(mocks.deps, STAFF, { rescueId: 'rsc-1' } as never);
-    expect(res.rescue.name).toBe('Pawsome');
+    expect(res.rescue?.name).toBe('Pawsome');
     expect(mocks.clientMock.query).not.toHaveBeenCalled();
   });
 
@@ -901,7 +915,7 @@ describe('updateRescue', () => {
       rescueId: 'rsc-1',
       name: 'Pawsome 2',
     } as never);
-    expect(res.rescue.name).toBe('Pawsome 2');
+    expect(res.rescue?.name).toBe('Pawsome 2');
     expect(order).toEqual(['BEGIN', 'UPDATE', 'COMMIT', 'NATS_PUBLISH']);
     // calls[0] is the wrapper's BEGIN; the UPDATE is calls[1].
     const sql = mocks.clientMock.query.mock.calls[1][0] as string;
@@ -918,7 +932,7 @@ describe('updateRescue', () => {
       email: 'new@pawsome.org',
     } as never);
 
-    expect(res.rescue.email).toBe('new@pawsome.org');
+    expect(res.rescue?.email).toBe('new@pawsome.org');
     const updateCall = mocks.clientMock.query.mock.calls.find(
       c => typeof c[0] === 'string' && c[0].includes('UPDATE rescue.rescues')
     );
@@ -1009,6 +1023,13 @@ describe('verifyRescue', () => {
     vi.resetAllMocks();
   });
 
+  // The in-transaction `SELECT status ... FOR UPDATE` answers with the locked
+  // status; every other client query (the UPDATE) answers with the written row.
+  const answerClient = (lockedStatus: string, written: ReturnType<typeof rescueRow>) =>
+    mocks.clientMock.query.mockImplementation(async (sql: string) =>
+      /FOR UPDATE/.test(sql) ? { rows: [{ status: lockedStatus }] } : { rows: [written] }
+    );
+
   it('PERMISSION_DENIED for non-admin', async () => {
     await expect(
       verifyRescue(mocks.deps, STAFF, {
@@ -1036,6 +1057,7 @@ describe('verifyRescue', () => {
       // event_outbox INSERT/DELETE are withTransaction's outbox plumbing —
       // not part of the handler's own query sequence, so keep them out of `order`.
       if (!sql.includes('event_outbox')) order.push(sql.trim().split(/\s+/)[0]);
+      if (/FOR UPDATE/.test(sql)) return { rows: [{ status: 'pending' }] };
       return { rows: [rescueRow({ status: 'verified' })] };
     });
     mocks.natsMock.publish.mockImplementation((subject: string) => {
@@ -1049,9 +1071,69 @@ describe('verifyRescue', () => {
       verificationSource: RescueV1.RescueVerificationSource.RESCUE_VERIFICATION_SOURCE_MANUAL,
     } as never);
 
-    expect(res.rescue.status).toBe(RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED);
-    expect(order).toEqual(['BEGIN', 'UPDATE', 'COMMIT', 'NATS_PUBLISH']);
-    expect(publishedSubjects).toEqual(['rescue.verified']);
+    expect(res.rescue?.status).toBe(RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED);
+    expect(order).toEqual(['BEGIN', 'SELECT', 'UPDATE', 'COMMIT', 'NATS_PUBLISH', 'NATS_PUBLISH']);
+    expect(publishedSubjects).toEqual(['rescue.verified', 'rescue.actionTaken']);
+  });
+
+  it('audits a verification as rescue.actionTaken, versioned by the row', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ status: 'pending' })] });
+    answerClient('pending', rescueRow({ status: 'verified', version: 7 }));
+
+    await verifyRescue(mocks.deps, ADMIN, {
+      rescueId: 'rsc-1',
+      toStatus: RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED,
+      verificationSource: RescueV1.RescueVerificationSource.RESCUE_VERIFICATION_SOURCE_MANUAL,
+    } as never);
+
+    const [event] = publishedOn(mocks, 'rescue.actionTaken');
+    expect(event.id).toBe('rescue.actionTaken.verify.rsc-1.7');
+    expect(event.payload).toMatchObject({
+      eventId: expect.stringMatching(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+      ),
+      aggregateType: 'rescue',
+      aggregateId: 'rsc-1',
+      actorUserId: ADMIN.userId,
+      action: 'verify',
+      outcome: 'success',
+      payload: { fromStatus: 'pending', toStatus: 'verified', verificationSource: 'manual' },
+    });
+  });
+
+  it('audits a rejection with its reason', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ status: 'pending' })] });
+    answerClient('pending', rescueRow({ status: 'rejected', version: 2 }));
+
+    await verifyRescue(mocks.deps, ADMIN, {
+      rescueId: 'rsc-1',
+      toStatus: RescueV1.RescueStatus.RESCUE_STATUS_REJECTED,
+      failureReason: 'no charity number',
+    } as never);
+
+    const [event] = publishedOn(mocks, 'rescue.actionTaken');
+    expect(event.payload).toMatchObject({
+      action: 'reject',
+      payload: { toStatus: 'rejected', reason: 'no charity number' },
+    });
+  });
+
+  it('does not audit when the verification rolls back', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ status: 'pending' })] });
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (/UPDATE rescue\.rescues/.test(sql)) {
+        throw new Error('boom');
+      }
+      return { rows: [{ status: 'pending' }] };
+    });
+
+    await expect(
+      verifyRescue(mocks.deps, ADMIN, {
+        rescueId: 'rsc-1',
+        toStatus: RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED,
+      } as never)
+    ).rejects.toThrow('boom');
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 
   it('INVALID_ARGUMENT when rejecting without a failure reason', async () => {
@@ -1069,7 +1151,7 @@ describe('verifyRescue', () => {
   it('publishes rescue.rejected when transitioning pending → rejected with a reason', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ status: 'pending' })] });
     const publishedSubjects: string[] = [];
-    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow({ status: 'rejected' })] });
+    answerClient('pending', rescueRow({ status: 'rejected' }));
     mocks.natsMock.publish.mockImplementation((subject: string) => publishedSubjects.push(subject));
 
     await verifyRescue(mocks.deps, ADMIN, {
@@ -1078,7 +1160,60 @@ describe('verifyRescue', () => {
       failureReason: 'no proof of charity registration',
     } as never);
 
-    expect(publishedSubjects).toEqual(['rescue.rejected']);
+    expect(publishedSubjects).toEqual(['rescue.rejected', 'rescue.actionTaken']);
+  });
+
+  it('audits fromStatus from the locked row, not the stale pre-transaction read', async () => {
+    // Between our read (pending) and our lock the rescue was verified then suspended
+    // elsewhere; suspended -> verified is legal, so the write proceeds and must
+    // record suspended as the from-status.
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ status: 'pending' })] });
+    answerClient('suspended', rescueRow({ status: 'verified', version: 3 }));
+
+    await verifyRescue(mocks.deps, ADMIN, {
+      rescueId: 'rsc-1',
+      toStatus: RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED,
+    } as never);
+
+    const [event] = publishedOn(mocks, 'rescue.actionTaken');
+    expect(event.payload).toMatchObject({
+      payload: { fromStatus: 'suspended', toStatus: 'verified' },
+    });
+    const [verified] = publishedOn(mocks, 'rescue.verified');
+    expect(verified.payload).toMatchObject({ fromStatus: 'suspended' });
+  });
+
+  it('rejects a transition no longer legal against the locked status and publishes nothing', async () => {
+    // Stale read says pending (reject is legal); the locked row is already verified.
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ status: 'pending' })] });
+    answerClient('verified', rescueRow({ status: 'rejected' }));
+
+    await expect(
+      verifyRescue(mocks.deps, ADMIN, {
+        rescueId: 'rsc-1',
+        toStatus: RescueV1.RescueStatus.RESCUE_STATUS_REJECTED,
+        failureReason: 'too late',
+      } as never)
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+
+    const wrote = mocks.clientMock.query.mock.calls.some(([sql]) =>
+      /UPDATE rescue\.rescues/.test(sql as string)
+    );
+    expect(wrote).toBe(false);
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('NOT_FOUND when the rescue disappears before the lock is taken', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ status: 'pending' })] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+
+    await expect(
+      verifyRescue(mocks.deps, ADMIN, {
+        rescueId: 'rsc-1',
+        toStatus: RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED,
+      } as never)
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 });
 
@@ -1127,9 +1262,9 @@ describe('deleteRescue', () => {
       reason: 'duplicate listing',
     } as never);
 
-    expect(res.rescue.rescueId).toBe('rsc-1');
-    expect(order).toEqual(['BEGIN', 'UPDATE', 'COMMIT', 'NATS_PUBLISH']);
-    expect(publishedSubjects).toEqual(['rescue.deleted']);
+    expect(res.rescue?.rescueId).toBe('rsc-1');
+    expect(order).toEqual(['BEGIN', 'UPDATE', 'COMMIT', 'NATS_PUBLISH', 'NATS_PUBLISH']);
+    expect(publishedSubjects).toEqual(['rescue.deleted', 'rescue.actionTaken']);
     // The UPDATE only matches a not-yet-deleted row and stamps deleted_at.
     const sql = mocks.clientMock.query.mock.calls[1][0] as string;
     expect(sql).toMatch(/deleted_at = now\(\)/);
@@ -1140,13 +1275,48 @@ describe('deleteRescue', () => {
     mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow()] });
     let msgID: string | undefined;
     mocks.natsMock.publish.mockImplementation(
-      (_subject: string, _data: unknown, opts: { msgID?: string }) => {
-        msgID = opts.msgID;
+      (subject: string, _data: unknown, opts: { msgID?: string }) => {
+        if (subject === 'rescue.deleted') {
+          msgID = opts.msgID;
+        }
       }
     );
 
     await deleteRescue(mocks.deps, ADMIN, { rescueId: 'rsc-1' } as never);
     expect(msgID).toBe('rescue.deleted.rsc-1');
+  });
+
+  it('audits the delete as rescue.actionTaken', async () => {
+    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow()] });
+
+    await deleteRescue(mocks.deps, ADMIN, { rescueId: 'rsc-1', reason: 'duplicate listing' });
+
+    const [event] = publishedOn(mocks, 'rescue.actionTaken');
+    expect(event.payload).toMatchObject({
+      eventId: expect.stringMatching(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+      ),
+      service: 'service.rescue',
+      subject: 'rescue.actionTaken',
+      aggregateType: 'rescue',
+      aggregateId: 'rsc-1',
+      actorUserId: ADMIN.userId,
+      action: 'delete',
+      outcome: 'success',
+      payload: { reason: 'duplicate listing' },
+    });
+  });
+
+  it('does not audit when the delete rolls back', async () => {
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (/deleted_at = now\(\)/.test(sql)) {
+        throw new Error('boom');
+      }
+      return { rows: [] };
+    });
+
+    await expect(deleteRescue(mocks.deps, ADMIN, { rescueId: 'rsc-1' })).rejects.toThrow('boom');
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 
   it('NOT_FOUND when the rescue is missing or already soft-deleted (no publish)', async () => {
@@ -1235,7 +1405,7 @@ describe('inviteStaff', () => {
       title: 'Volunteer',
     } as never);
 
-    expect(res.invitation.invitationId).toBe('inv-1');
+    expect(res.invitation?.invitationId).toBe('inv-1');
     expect(res.token).toMatch(/^[0-9a-f]{64}$/);
     expect(order).toEqual(['BEGIN', 'INSERT', 'COMMIT', 'NATS_PUBLISH']);
   });
@@ -1279,7 +1449,7 @@ describe('inviteStaff', () => {
     expect(insertSql).toMatch(/token_hash = EXCLUDED\.token_hash/i);
     expect(insertSql).toMatch(/expiration = EXCLUDED\.expiration/i);
     // The returned invitation carries the EXISTING row's id (no duplicate).
-    expect(res.invitation.invitationId).toBe('inv-existing');
+    expect(res.invitation?.invitationId).toBe('inv-existing');
   });
 
   it('keys the published event on the persisted invitation id and carries the raw token for the invite email', async () => {
@@ -1475,7 +1645,7 @@ describe('updateRescuePlan', () => {
       planExpiresAt: '2027-01-01T00:00:00.000Z',
     } as never);
 
-    expect(res.rescue.plan).toBe('professional');
+    expect(res.rescue?.plan).toBe('professional');
     expect(order).toEqual(['BEGIN', 'UPDATE', 'COMMIT', 'NATS_PUBLISH']);
     expect(publishedSubjects).toEqual(['rescue.planUpdated']);
     // The UPDATE binds the parsed expiry as a Date, not the raw string.
@@ -1534,10 +1704,10 @@ describe('getRescueStatistics', () => {
 
     const res = await getRescueStatistics(mocks.deps, STAFF, { rescueId: 'rsc-1' } as never);
 
-    expect(res.statistics.staffCount).toBe(4);
-    expect(res.statistics.totalPets).toBe(0);
-    expect(res.statistics.totalApplications).toBe(0);
-    expect(res.statistics.averageTimeToAdoption).toBe(0);
+    expect(res.statistics?.staffCount).toBe(4);
+    expect(res.statistics?.totalPets).toBe(0);
+    expect(res.statistics?.totalApplications).toBe(0);
+    expect(res.statistics?.averageTimeToAdoption).toBe(0);
   });
 
   it('PERMISSION_DENIED (cross-tenant IDOR) for staff at a different rescue (ADS-1338)', async () => {
@@ -1555,7 +1725,7 @@ describe('getRescueStatistics', () => {
 
     const res = await getRescueStatistics(mocks.deps, ADMIN, { rescueId: 'rsc-1' } as never);
 
-    expect(res.statistics.staffCount).toBe(4);
+    expect(res.statistics?.staffCount).toBe(4);
   });
 });
 

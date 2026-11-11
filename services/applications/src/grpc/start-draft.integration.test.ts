@@ -61,8 +61,8 @@ describe.skipIf(!process.env.DATABASE_URL)('startDraft (real Postgres)', () => {
       const first = await startDraft(deps, adopter, { adopterId: adopter.userId, petId });
       const retry = await startDraft(deps, adopter, { adopterId: adopter.userId, petId });
 
-      expect(retry.application.applicationId).toBe(first.application.applicationId);
-      expect(retry.application.version).toBe(first.application.version);
+      expect(retry.application?.applicationId).toBe(first.application?.applicationId);
+      expect(retry.application?.version).toBe(first.application?.version);
       expect(await countRows(pool, 'applications')).toBe(1);
       expect(await countRows(pool, 'application_events')).toBe(1);
     });
@@ -77,14 +77,14 @@ describe.skipIf(!process.env.DATABASE_URL)('startDraft (real Postgres)', () => {
       await startDraft(deps, adopter, { adopterId: adopter.userId, petId });
       const resumed = await startDraft(deps, adopter, { adopterId: adopter.userId, petId });
       const submitted = await submitDraft(deps, adopter, {
-        applicationId: resumed.application.applicationId,
-        expectedVersion: resumed.application.version,
+        applicationId: resumed.application?.applicationId ?? '',
+        expectedVersion: resumed.application?.version ?? 0,
       });
 
-      expect(submitted.application.applicationId).toBe(resumed.application.applicationId);
+      expect(submitted.application?.applicationId).toBe(resumed.application?.applicationId);
       const { rows } = await pool.query<{ status: string }>(
         `SELECT status FROM applications WHERE application_id = $1`,
-        [resumed.application.applicationId]
+        [resumed.application?.applicationId]
       );
       expect(rows).toEqual([{ status: 'submitted' }]);
     });
@@ -98,8 +98,8 @@ describe.skipIf(!process.env.DATABASE_URL)('startDraft (real Postgres)', () => {
 
       const draft = await startDraft(deps, adopter, { adopterId: adopter.userId, petId });
       await submitDraft(deps, adopter, {
-        applicationId: draft.application.applicationId,
-        expectedVersion: draft.application.version,
+        applicationId: draft.application?.applicationId ?? '',
+        expectedVersion: draft.application?.version ?? 0,
       });
 
       await expect(
@@ -119,8 +119,8 @@ describe.skipIf(!process.env.DATABASE_URL)('startDraft (real Postgres)', () => {
       const aliceDraft = await startDraft(deps, alice, { adopterId: alice.userId, petId });
       const bobDraft = await startDraft(deps, bob, { adopterId: bob.userId, petId });
 
-      expect(bobDraft.application.applicationId).not.toBe(aliceDraft.application.applicationId);
-      expect(bobDraft.application.adopterId).toBe(bob.userId);
+      expect(bobDraft.application?.applicationId).not.toBe(aliceDraft.application?.applicationId);
+      expect(bobDraft.application?.adopterId).toBe(bob.userId);
     });
   });
 });

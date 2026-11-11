@@ -149,14 +149,6 @@ type DetailsChange =
   | { kind: 'timeline-event'; event: string; description: string; data?: Record<string, unknown> }
   | { kind: 'stage'; action: StageAction; notes?: string };
 
-const CHANGE_FAILURE: Record<DetailsChange['kind'], string> = {
-  reference: 'Failed to update reference check',
-  'schedule-visit': 'Failed to schedule home visit',
-  'update-visit': 'Failed to update home visit',
-  'timeline-event': 'Failed to add timeline event',
-  stage: 'Failed to transition application stage',
-};
-
 type Settled<T> = { value: T; error: string | null };
 
 const settle = async <T>(
@@ -258,11 +250,11 @@ export const useApplicationDetails = (applicationId: string | null) => {
       queryClient.invalidateQueries({
         queryKey: ['applications', 'rescue-details', applicationId],
       }),
-    // Failures are surfaced through `error` (and rethrown for stage changes),
-    // so opt out of the app-wide generic mutation-failure toast.
+    // Every caller handles a failed change itself (the rejection propagates to
+    // it), so opt out of the app-wide generic mutation-failure toast.
     onError: () => undefined,
   });
-  const { mutateAsync, error: mutationError, variables } = mutation;
+  const { mutateAsync } = mutation;
 
   const run = useCallback(
     async (change: DetailsChange) => {
@@ -274,32 +266,27 @@ export const useApplicationDetails = (applicationId: string | null) => {
     [applicationId, mutateAsync]
   );
 
-  const runQuietly = useCallback(
-    (change: DetailsChange) => run(change).catch(() => undefined),
+  const updateReferenceCheck = useCallback(
+    (referenceId: string, status: string, notes?: string) =>
+      run({ kind: 'reference', referenceId, status, notes }),
     [run]
   );
 
-  const updateReferenceCheck = useCallback(
-    (referenceId: string, status: string, notes?: string) =>
-      runQuietly({ kind: 'reference', referenceId, status, notes }),
-    [runQuietly]
-  );
-
   const scheduleHomeVisit = useCallback(
-    (visitData: HomeVisitInput) => runQuietly({ kind: 'schedule-visit', visitData }),
-    [runQuietly]
+    (visitData: HomeVisitInput) => run({ kind: 'schedule-visit', visitData }),
+    [run]
   );
 
   const updateHomeVisit = useCallback(
     (visitId: string, updateData: Partial<HomeVisit>) =>
-      runQuietly({ kind: 'update-visit', visitId, updateData }),
-    [runQuietly]
+      run({ kind: 'update-visit', visitId, updateData }),
+    [run]
   );
 
   const addTimelineEvent = useCallback(
     (event: string, description: string, data?: Record<string, unknown>) =>
-      runQuietly({ kind: 'timeline-event', event, description, data }),
-    [runQuietly]
+      run({ kind: 'timeline-event', event, description, data }),
+    [run]
   );
 
   // Re-throws on failure so the modal can handle the error itself
@@ -326,13 +313,12 @@ export const useApplicationDetails = (applicationId: string | null) => {
     timelineError: bundle?.timelineError ?? null,
     referencesError: bundle?.referencesError ?? null,
     homeVisitsError: bundle?.homeVisitsError ?? null,
-    loading: applicationId !== null && query.isFetching,
-    error:
-      errorOrNull(query.error, 'Failed to fetch application details') ??
-      errorOrNull(
-        mutationError,
-        variables ? CHANGE_FAILURE[variables.kind] : 'Failed to update application'
-      ),
+    // Only the first load blocks the review; refetches after a save run in the
+    // background so the open review keeps its tab and unsaved input.
+    loading: applicationId !== null && query.isLoading,
+    // Only a failure to LOAD the application is a load error. A failed change
+    // rejects to its caller instead.
+    error: errorOrNull(query.error, 'Failed to fetch application details'),
     updateReferenceCheck,
     scheduleHomeVisit,
     updateHomeVisit,
