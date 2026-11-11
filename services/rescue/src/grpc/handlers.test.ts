@@ -371,10 +371,14 @@ describe('getRescueLocations', () => {
     vi.resetAllMocks();
   });
 
-  it('PERMISSION_DENIED without rescues.read', async () => {
-    await expect(
-      getRescueLocations(mocks.deps, PUBLIC_ADOPTER, { rescueIds: [ID_A] })
-    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  it('resolves locations for a caller without rescues.read (ADS-1473)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ rescue_id: ID_A, latitude: 51.5, longitude: -0.12 }],
+    });
+
+    const res = await getRescueLocations(mocks.deps, PUBLIC_ADOPTER, { rescueIds: [ID_A] });
+
+    expect(res.locations).toEqual([{ rescueId: ID_A, latitude: 51.5, longitude: -0.12 }]);
   });
 
   it('returns coordinates for verified, geocoded rescues only', async () => {
@@ -390,6 +394,16 @@ describe('getRescueLocations', () => {
     const [sql, params] = mocks.poolMock.query.mock.calls[0];
     expect(sql).toMatch(/status = 'verified'/);
     expect(params).toEqual([[ID_A]]);
+  });
+
+  it('never resolves a non-verified rescue, regardless of caller permission', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+
+    const res = await getRescueLocations(mocks.deps, PUBLIC_ADOPTER, { rescueIds: [ID_A] });
+
+    expect(res.locations).toEqual([]);
+    const [sql] = mocks.poolMock.query.mock.calls[0];
+    expect(sql).toMatch(/status = 'verified'/);
   });
 
   it('skips the query when no valid ids are supplied', async () => {

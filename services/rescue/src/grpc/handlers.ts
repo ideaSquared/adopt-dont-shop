@@ -520,14 +520,15 @@ export async function getRescueNames(
 const MAX_LOCATION_IDS = 100;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// Same visibility as getRescue/getRescueNames (ADS-1168): the query below
+// only ever resolves verified, geocoded rescues, so there's no privileged
+// branch to gate — any authenticated caller (including adopters, who lack
+// rescues.read) may resolve locations for the pets they're browsing.
 export async function getRescueLocations(
   deps: HandlerDeps,
-  principal: Principal,
+  _principal: Principal,
   req: GetRescueLocationsRequest
 ): Promise<GetRescueLocationsResponse> {
-  if (!hasPermission(principal, RESCUES_READ)) {
-    throw new HandlerError('PERMISSION_DENIED', `'${RESCUES_READ}' required`);
-  }
   const rescueIds = [...new Set(req.rescueIds)];
   if (rescueIds.length > MAX_LOCATION_IDS) {
     throw new HandlerError('INVALID_ARGUMENT', `at most ${MAX_LOCATION_IDS} rescue_ids`);
