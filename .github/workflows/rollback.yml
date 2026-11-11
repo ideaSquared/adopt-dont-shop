@@ -85,7 +85,7 @@ jobs:
               *) tag="$SHA" ;;
             esac
             if ! digest=$(docker buildx imagetools inspect "$IMAGE_PREFIX/$image:$tag" --format '{{.Manifest.Digest}}' 2>/dev/null); then
-              echo "::error::$image:$tag does not exist in GHCR. Frontend images are built per environment; $SHA has no $ENVIRONMENT build (it predates environment-qualified tags, or was only deployed to the other environment). Re-deploy it with deploy.yml to $ENVIRONMENT instead of rolling back."
+              echo "::error::$image:$tag does not exist in GHCR. Frontend images are built per environment; $SHA has no $ENVIRONMENT build (it predates environment-qualified tags, or was only deployed to the other environment). deploy.yml cannot rebuild an old SHA (it only builds the current main HEAD). Roll back to a SHA that already has an app-*:<sha>-$ENVIRONMENT image in GHCR, or push a new commit to main that restores the code you want and deploy that with deploy.yml."
               exit 1
             fi
             cosign verify \
