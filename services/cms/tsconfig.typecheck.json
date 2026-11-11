@@ -1,0 +1,15 @@
+{
+  // Program behind `pnpm type-check`: the service source and its tests. Kept apart
+  // from tsconfig.json because that file drives the build, whose rootDir/outDir must
+  // stay src -> dist and which must not emit tests. rootDir is the repo root only
+  // because vitest-globals.d.ts lives there; nothing is emitted.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "../..",
+    "incremental": false,
+    "tsBuildInfoFile": null
+  },
+  "include": ["src/**/*", "../../vitest-globals.d.ts"],
+  "exclude": ["node_modules", "dist"]
+}

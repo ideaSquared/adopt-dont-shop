@@ -51,7 +51,7 @@ const NO_PERMS: Principal = {
 function makeMocks() {
   const clientScript: Array<{ rows: unknown[]; rowCount?: number }> = [];
   const client = {
-    query: vi.fn(async (sql: string) => {
+    query: vi.fn(async (sql: string, _params?: unknown[]) => {
       const op = sql.trim().split(/\s+/)[0].toUpperCase();
       // Treat outbox framework queries (transactional-outbox INSERT/DELETE that
       // withTransaction now runs) like BEGIN/COMMIT/ROLLBACK: transparent, no
@@ -70,7 +70,9 @@ function makeMocks() {
   const poolScript: Array<{ rows: unknown[]; rowCount?: number }> = [];
   const pool = {
     connect: vi.fn().mockResolvedValue(client),
-    query: vi.fn(async () => poolScript.shift() ?? { rows: [], rowCount: 0 }),
+    query: vi.fn(
+      async (_sql?: string, _params?: unknown[]) => poolScript.shift() ?? { rows: [], rowCount: 0 }
+    ),
   };
   const natsPublish = vi.fn();
   const nats = { publish: natsPublish, jetstream: () => ({ publish: natsPublish }) };
@@ -261,7 +263,7 @@ describe('createContent validation + error propagation', () => {
   });
 
   it('rethrows a non-unique-violation DB error unchanged', async () => {
-    mocks.clientMock.query = vi.fn(async (sql: string) => {
+    mocks.clientMock.query = vi.fn(async (sql: string, _params?: unknown[]) => {
       const op = sql.trim().split(/\s+/)[0].toUpperCase();
       if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
         return { rows: [], rowCount: 0 };
@@ -290,13 +292,17 @@ describe('updateContent optional field setters', () => {
 
   it('refuses callers without cms.content.update', async () => {
     await expect(
-      updateContent(mocks.deps, NO_PERMS, { contentId: 'c-1', setMetaKeywords: false })
+      updateContent(mocks.deps, NO_PERMS, {
+        contentId: 'c-1',
+        metaKeywords: [],
+        setMetaKeywords: false,
+      })
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   });
 
   it('rejects an empty content_id', async () => {
     await expect(
-      updateContent(mocks.deps, ADMIN, { contentId: '', setMetaKeywords: false })
+      updateContent(mocks.deps, ADMIN, { contentId: '', metaKeywords: [], setMetaKeywords: false })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
@@ -321,7 +327,12 @@ describe('updateContent optional field setters', () => {
     mocks.clientScript.push({ rows: [contentRow()] }); // SELECT FOR UPDATE
     mocks.clientScript.push({ rows: [] }); // UPDATE returns nothing
     await expect(
-      updateContent(mocks.deps, ADMIN, { contentId: 'c-1', title: 'Bye', setMetaKeywords: false })
+      updateContent(mocks.deps, ADMIN, {
+        contentId: 'c-1',
+        title: 'Bye',
+        metaKeywords: [],
+        setMetaKeywords: false,
+      })
     ).rejects.toMatchObject({ code: 'INTERNAL' });
   });
 });

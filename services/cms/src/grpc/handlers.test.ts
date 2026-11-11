@@ -54,7 +54,7 @@ const NO_PERMS: Principal = {
 function makeMocks() {
   const clientScript: Array<{ rows: unknown[]; rowCount?: number }> = [];
   const client = {
-    query: vi.fn(async (sql: string) => {
+    query: vi.fn(async (sql: string, _params?: unknown[]) => {
       const op = sql.trim().split(/\s+/)[0].toUpperCase();
       // Treat outbox framework queries (transactional-outbox INSERT/DELETE that
       // withTransaction now runs) like BEGIN/COMMIT/ROLLBACK: transparent, no
@@ -73,7 +73,9 @@ function makeMocks() {
   const poolScript: Array<{ rows: unknown[]; rowCount?: number }> = [];
   const pool = {
     connect: vi.fn().mockResolvedValue(client),
-    query: vi.fn(async () => poolScript.shift() ?? { rows: [], rowCount: 0 }),
+    query: vi.fn(
+      async (_sql?: string, _params?: unknown[]) => poolScript.shift() ?? { rows: [], rowCount: 0 }
+    ),
   };
   const natsPublish = vi.fn();
   // JetStream publish routes to the same spy so existing publish assertions
@@ -436,7 +438,7 @@ describe('createContent', () => {
   });
 
   it('translates unique_violation into ALREADY_EXISTS', async () => {
-    mocks.clientMock.query = vi.fn(async (sql: string) => {
+    mocks.clientMock.query = vi.fn(async (sql: string, _params?: unknown[]) => {
       const op = sql.trim().split(/\s+/)[0].toUpperCase();
       if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
         return { rows: [], rowCount: 0 };
@@ -580,6 +582,7 @@ describe('updateContent', () => {
       contentId: 'c-1',
       title: 'Bye',
       changeNote: 'fix typo',
+      metaKeywords: [],
       setMetaKeywords: false,
     });
     expect(res.content?.currentVersion).toBe(2);
@@ -594,6 +597,7 @@ describe('updateContent', () => {
     await updateContent(mocks.deps, ADMIN, {
       contentId: 'c-1',
       metaTitle: 'New SEO title',
+      metaKeywords: [],
       setMetaKeywords: false,
     });
     const updateCall = mocks.clientMock.query.mock.calls.find(c => /^UPDATE/i.test(String(c[0])));
@@ -605,6 +609,7 @@ describe('updateContent', () => {
     await expect(
       updateContent(mocks.deps, ADMIN, {
         contentId: 'c-x',
+        metaKeywords: [],
         setMetaKeywords: false,
       })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
@@ -612,7 +617,7 @@ describe('updateContent', () => {
 
   it('translates a slug collision on update into ALREADY_EXISTS', async () => {
     mocks.clientScript.push({ rows: [contentRow()] }); // SELECT FOR UPDATE
-    mocks.clientMock.query = vi.fn(async (sql: string) => {
+    mocks.clientMock.query = vi.fn(async (sql: string, _params?: unknown[]) => {
       const op = sql.trim().split(/\s+/)[0].toUpperCase();
       if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
         return { rows: [], rowCount: 0 };
@@ -628,6 +633,7 @@ describe('updateContent', () => {
       updateContent(mocks.deps, ADMIN, {
         contentId: 'c-1',
         slug: 'taken',
+        metaKeywords: [],
         setMetaKeywords: false,
       })
     ).rejects.toMatchObject({ code: 'ALREADY_EXISTS' });
@@ -639,6 +645,7 @@ describe('updateContent', () => {
       updateContent(mocks.deps, ADMIN, {
         contentId: 'c-1',
         slug: 'Not Valid',
+        metaKeywords: [],
         setMetaKeywords: false,
       })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
@@ -650,6 +657,7 @@ describe('updateContent', () => {
       updateContent(mocks.deps, ADMIN, {
         contentId: 'c-1',
         featuredImageUrl: 'javascript:alert(1)',
+        metaKeywords: [],
         setMetaKeywords: false,
       })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
@@ -659,6 +667,7 @@ describe('updateContent', () => {
       updateContent(mocks.deps, ADMIN, {
         contentId: 'c-1',
         featuredImageUrl: 'https://evil.example.com/a.jpg',
+        metaKeywords: [],
         setMetaKeywords: false,
       })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
@@ -672,6 +681,7 @@ describe('updateContent', () => {
     const res = await updateContent(mocks.deps, ADMIN, {
       contentId: 'c-1',
       featuredImageUrl: '/images/hero.jpg',
+      metaKeywords: [],
       setMetaKeywords: false,
     });
     expect(res.content?.featuredImageUrl).toBe('/images/hero.jpg');
@@ -683,6 +693,7 @@ describe('updateContent', () => {
     await updateContent(mocks.deps, ADMIN, {
       contentId: 'c-1',
       content: '<p>Safe</p><script>alert(1)</script><img src="x" onerror="alert(1)">',
+      metaKeywords: [],
       setMetaKeywords: false,
     });
     const updateCall = mocks.clientMock.query.mock.calls.find(c => /^UPDATE/i.test(String(c[0])));
