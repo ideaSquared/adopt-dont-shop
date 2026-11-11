@@ -9,6 +9,14 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tsconfig.base.json",
+        "$TURBO_ROOT$/tsconfig.lib.base.json",
+        "$TURBO_ROOT$/tsconfig.service.base.json",
+        "$TURBO_ROOT$/tsconfig.cjs.base.json",
+        "$TURBO_ROOT$/vite.shared.config.ts"
+      ],
       "outputs": ["dist/**", "build/**", ".next/**", "!.next/cache/**"],
       "env": ["NODE_ENV", "VITE_*"]
     },
@@ -61,6 +69,7 @@
         "fixtures/**",
         "helpers/**",
         "*.config.{js,ts,mjs}",
+        "$TURBO_ROOT$/eslint.config.js",
         "$TURBO_ROOT$/packages/eslint-config-base/index.js",
         "$TURBO_ROOT$/packages/eslint-config-node/index.js",
         "$TURBO_ROOT$/packages/eslint-config-react/index.js"
