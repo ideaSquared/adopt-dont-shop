@@ -19,7 +19,11 @@ const PAGES: ReadonlyArray<{ path: string; heading: RegExp; content: RegExp }> =
   { path: '/about', heading: /about adopt don't shop/i, content: /connects rescue organizations/i },
   { path: '/blog', heading: /^blog$/i, content: /news, stories, and updates/i },
   { path: '/help', heading: /^help center$/i, content: /answers to common questions/i },
-  { path: '/contact', heading: /^contact us$/i, content: /for general enquiries/i },
+  {
+    path: '/contact',
+    heading: /^contact us$/i,
+    content: /questions about your account or the platform/i,
+  },
 ];
 
 test.describe('public pages', () => {
