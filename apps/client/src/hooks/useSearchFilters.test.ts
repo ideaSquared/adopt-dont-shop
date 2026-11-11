@@ -159,13 +159,15 @@ describe('useSearchFilters inside a router', () => {
     expect(result.current.search).toBe('');
   });
 
-  it('does not navigate when a deep link already holds the filters', () => {
+  it.each([
+    '?type=dog&sortBy=name&sortOrder=asc',
+    // Links shared before the default sort was dropped from the URL.
+    '?type=dog&sortBy=createdAt&sortOrder=desc',
+    // Same filters, different parameter order.
+    '?sortOrder=asc&sortBy=name&type=dog',
+  ])('does not navigate when opening the deep link %s', search => {
     const wrapper = ({ children }: { children: ReactNode }) =>
-      createElement(
-        MemoryRouter,
-        { initialEntries: ['/search?type=dog&sortBy=name&sortOrder=asc'] },
-        children
-      );
+      createElement(MemoryRouter, { initialEntries: [`/search${search}`] }, children);
 
     const { result } = renderHook(
       () => {
@@ -177,7 +179,7 @@ describe('useSearchFilters inside a router', () => {
     );
 
     expect(result.current.key).toBe('default');
-    expect(result.current.search).toBe('?type=dog&sortBy=name&sortOrder=asc');
+    expect(result.current.search).toBe(search);
   });
 
   it('keeps the history stack flat: Back leaves the page after mount and filter changes', () => {

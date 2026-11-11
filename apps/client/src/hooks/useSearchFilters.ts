@@ -42,13 +42,23 @@ export const useSearchFilters = (
   // it out of the effect's dependencies: the page can stay mounted while the
   // next route loads, and a re-run then writes these params onto the old URL.
   const setSearchParamsRef = useRef(setSearchParams);
-  const searchParamsRef = useRef(searchParams);
   useEffect(() => {
     setSearchParamsRef.current = setSearchParams;
-    searchParamsRef.current = searchParams;
   });
 
+  // The state the page opened with. Until the visitor edits a filter or the
+  // query, the URL already describes it, so there is nothing to write.
+  const initialFiltersRef = useRef(filters);
+  const initialSearchQueryRef = useRef(searchQuery);
+
   useEffect(() => {
+    // Write only after an edit. A write on mount can land after the visitor
+    // has already clicked away (the page commits during the next navigation)
+    // and would drag them back to /search.
+    if (filters === initialFiltersRef.current && searchQuery === initialSearchQueryRef.current) {
+      return;
+    }
+
     const params = new URLSearchParams();
 
     if (searchQuery) {
@@ -86,13 +96,6 @@ export const useSearchFilters = (
     }
     if (filters.sortOrder && !isDefaultSort) {
       params.set('sortOrder', filters.sortOrder);
-    }
-
-    // Write only when the URL would change. A write on mount can land after the
-    // visitor has already clicked away (the page commits during the next
-    // navigation) and would drag them back to /search.
-    if (params.toString() === searchParamsRef.current.toString()) {
-      return;
     }
 
     // Replace, don't push: filter state is not a navigation, so it must not
