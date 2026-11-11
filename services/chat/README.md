@@ -76,16 +76,16 @@ application) is a shared rescue inbox: any staff member of the pet's rescue
 counts as a participant, `ListChats` lists the rescue's enquiries to its staff,
 and their messages fan out to all of that rescue's staff.
 
-| RPC                                                              | Permission                                                                                                     |
-| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `OpenChat`                                                       | `chats.create`                                                                                                 |
-| `OpenPetEnquiry` (one per adopter and pet; reopening returns it) | `chats.create`                                                                                                 |
-| `SendMessage` / `React`                                          | `messages.create` + participant                                                                                |
-| `ListMessages` / `MarkRead` / `GetChatUnreadCount` / `GetChat`   | `chats.read` + participant                                                                                     |
-| `ListChats` / `SearchChats` / `SearchMessages`                   | `chats.read` (results limited to the caller's own chats)                                                       |
-| `DeleteChat` / `UpdateChatStatus`                                | `chats.update` within the chat's own rescue, or `chat.moderate:any` (default: rescue_staff / moderator, admin) |
-| `GetChatStats`                                                   | `chats.read` + `chat.moderate:any` (cross-chat admin dashboard)                                                |
-| `DeleteMessage`                                                  | sender, or `chat.message.delete:any`                                                                           |
+| RPC                                                              | Permission                                                                                                                       |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `OpenChat`                                                       | `chats.create`                                                                                                                   |
+| `OpenPetEnquiry` (one per adopter and pet; reopening returns it) | `chats.create`                                                                                                                   |
+| `SendMessage` / `React`                                          | `messages.create` + participant                                                                                                  |
+| `ListMessages` / `MarkRead` / `GetChatUnreadCount` / `GetChat`   | `chats.read` + participant                                                                                                       |
+| `ListChats` / `SearchChats` / `SearchMessages`                   | `chats.read` (results limited to the caller's own chats)                                                                         |
+| `DeleteChat` / `UpdateChatStatus`                                | `chats.read`, plus `chats.update` within the chat's own rescue or `chat.moderate:any` (default: rescue_staff / moderator, admin) |
+| `GetChatStats`                                                   | `chats.read` + `chat.moderate:any` (cross-chat admin dashboard)                                                                  |
+| `DeleteMessage`                                                  | sender, or `chat.message.delete:any`                                                                                             |
 
 Schema (`chat`): `chats` (anchored to an application, or to a pet for an
 enquiry), `chat_participants`
