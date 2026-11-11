@@ -93,18 +93,6 @@
     },
     "clean": {
       "cache": false
-    },
-    "test:e2e": {
-      "cache": false,
-      "dependsOn": ["^build"],
-      "env": [
-        "CI",
-        "E2E_API_URL",
-        "E2E_CLIENT_URL",
-        "E2E_ADMIN_URL",
-        "E2E_RESCUE_URL",
-        "E2E_RUN_ID"
-      ]
     }
   }
 }
