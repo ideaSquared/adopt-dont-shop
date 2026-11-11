@@ -37,7 +37,7 @@
     "lint:fix": "eslint src --fix",
     "format": "prettier --write \"src/*.ts\"",
     "format:check": "prettier --check \"src/*.ts\"",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --noEmit -p tsconfig.typecheck.json",
     "check:fresh": "node scripts/check-generated-fresh.mjs"
   },
   "dependencies": {

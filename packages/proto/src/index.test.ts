@@ -428,6 +428,7 @@ describe('@adopt-dont-shop/proto', () => {
         contactPerson: 'Alex',
         status: RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED,
         settingsJson: '{}',
+        plan: 'free',
         createdAt: '2026-06-01T00:00:00Z',
         updatedAt: '2026-06-01T00:00:00Z',
       };
@@ -577,6 +578,8 @@ describe('@adopt-dont-shop/proto', () => {
         chatId: 'c-1',
         applicationId: 'app-1',
         participantUserIds: ['usr-1', 'usr-2'],
+        status: ChatV1.ChatStatus.CHAT_STATUS_ACTIVE,
+        rescueId: 'rsc-1',
         createdAt: '2026-06-01T00:00:00Z',
         updatedAt: '2026-06-01T00:00:00Z',
       };
