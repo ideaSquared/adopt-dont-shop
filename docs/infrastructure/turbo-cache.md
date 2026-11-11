@@ -68,11 +68,13 @@ builds keep working after a rotation as long as the new token is in place.
 
 ## Task inputs and shared config
 
-A task's cache key hashes its declared `inputs` plus `globalDependencies` — not
-every file a task happens to read. Root-level config therefore only busts a task
-if `turbo.json` names it. Today:
+A task's cache key hashes its declared `inputs`, `globalDependencies` and the
+hashes of the tasks it `dependsOn` — not every file a task happens to read.
+Root-level config therefore only busts a task directly if `turbo.json` names it
+(it can also bust a task indirectly, see below). The table lists the **direct**
+inputs. Today:
 
-| Root file                                                                        | Busts                                          |
+| Root file                                                                        | Direct input of                                |
 | -------------------------------------------------------------------------------- | ---------------------------------------------- |
 | `tsconfig.base.json`                                                             | `build`, `test`, `test:coverage`, `type-check` |
 | `tsconfig.lib.base.json`, `tsconfig.service.base.json`, `tsconfig.cjs.base.json` | `build`, `type-check`                          |
@@ -82,6 +84,14 @@ if `turbo.json` names it. Today:
 | `eslint.config.js` (root)                                                        | `lint`                                         |
 | `packages/eslint-config-{base,node,react}/index.js`                              | `lint`                                         |
 | `.prettierrc`, `.prettierignore`, `.editorconfig`, `.env.*local`                 | every task (`globalDependencies`)              |
+
+**Indirect invalidation.** `build`, `test`, `test:coverage` and `type-check` all
+depend on `^build` (the `build` of the packages a package depends on), so their
+hash includes those packages' `build` hashes. A change to any direct input of
+`build` (a tsconfig base, `vite.shared.config.ts`) therefore also changes the
+hashes of `test`, `test:coverage` and `type-check` in every package that has a
+dependency, even where the table does not list those tasks for that file.
+`lint` has no `dependsOn`, so only its direct inputs affect it.
 
 `build` compiles with the root tsconfig bases and (for the apps) `vite.shared.config.ts`,
 so it lists them; without that, editing one would replay a stale `dist/` from the
@@ -104,7 +114,10 @@ tasks that read it, not every task.
 
 To check a change, record `pnpm exec turbo run <task> --filter=<pkg> --dry=json`
 (the `hash` field), edit the file, and confirm the hash moves; an edit to an
-unrelated file such as a `docs/*.md` must leave it unchanged.
+unrelated file such as a `docs/*.md` must leave it unchanged. Expect downstream
+tasks (`test`, `test:coverage`, `type-check`) to move too when a `build` input
+changes, for packages that depend on another workspace package (see Indirect
+invalidation above).
 
 ## Troubleshooting
 
