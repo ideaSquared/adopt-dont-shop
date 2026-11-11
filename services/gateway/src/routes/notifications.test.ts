@@ -14,6 +14,7 @@ import {
 import type { NotificationsClient } from '../grpc-clients/notifications-client.js';
 
 import { registerNotificationsRoutes } from './notifications.js';
+import { stubClient } from '../../test/helpers/stub-client.js';
 
 // --- Fixtures -------------------------------------------------------
 
@@ -62,7 +63,23 @@ function makeClient(): NotificationsClient & {
   const updateNotificationPreferencesMock = vi.fn();
   const cleanupExpiredNotificationsMock = vi.fn();
   const previewEmailTemplateMock = vi.fn();
-  return {
+  return stubClient<
+    NotificationsClient & {
+      createMock: ReturnType<typeof vi.fn>;
+      listMock: ReturnType<typeof vi.fn>;
+      dismissMock: ReturnType<typeof vi.fn>;
+      getNotificationMock: ReturnType<typeof vi.fn>;
+      getUnreadCountMock: ReturnType<typeof vi.fn>;
+      markAllReadMock: ReturnType<typeof vi.fn>;
+      markReadMock: ReturnType<typeof vi.fn>;
+      deleteNotificationMock: ReturnType<typeof vi.fn>;
+      bulkCreateNotificationsMock: ReturnType<typeof vi.fn>;
+      getNotificationPreferencesMock: ReturnType<typeof vi.fn>;
+      updateNotificationPreferencesMock: ReturnType<typeof vi.fn>;
+      cleanupExpiredNotificationsMock: ReturnType<typeof vi.fn>;
+      previewEmailTemplateMock: ReturnType<typeof vi.fn>;
+    }
+  >({
     create: createMock,
     list: listMock,
     dismiss: dismissMock,
@@ -90,7 +107,7 @@ function makeClient(): NotificationsClient & {
     updateNotificationPreferencesMock,
     cleanupExpiredNotificationsMock,
     previewEmailTemplateMock,
-  };
+  });
 }
 
 async function buildApp(client: NotificationsClient): Promise<FastifyInstance> {

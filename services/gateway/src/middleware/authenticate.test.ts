@@ -9,6 +9,7 @@ import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
 import { __TEST_INFRA_PUBLIC_PREFIXES, registerAuthenticate } from './authenticate.js';
+import { stubClient } from '../../test/helpers/stub-client.js';
 
 const quietLogger = {
   info: () => undefined,
@@ -110,10 +111,10 @@ function makeRescueClient(impl: () => Promise<unknown>): {
 
 function makeAuthClient(): { client: AuthClient; validateMock: ReturnType<typeof vi.fn> } {
   const validateMock = vi.fn();
-  const client: AuthClient = {
+  const client = stubClient<AuthClient>({
     validateToken: validateMock,
     close: vi.fn(),
-  };
+  });
   return { client, validateMock };
 }
 

@@ -17,6 +17,7 @@ import type { AuthClient } from '../grpc-clients/auth-client.js';
 
 import { registerAuthRoutes } from './auth.js';
 import { createEmailRateLimiter } from './email-rate-limiter.js';
+import { stubClient } from '../../test/helpers/stub-client.js';
 
 function makeClient(): {
   client: AuthClient;
@@ -57,7 +58,7 @@ function makeClient(): {
   const disableTwoFactorMock = vi.fn();
   const regenerateBackupCodesMock = vi.fn();
   const updateAccountMock = vi.fn();
-  const client: AuthClient = {
+  const client = stubClient<AuthClient>({
     login: loginMock,
     logout: logoutMock,
     refreshToken: refreshMock,
@@ -77,7 +78,7 @@ function makeClient(): {
     regenerateBackupCodes: regenerateBackupCodesMock,
     updateAccount: updateAccountMock,
     close: vi.fn(),
-  };
+  });
   return {
     client,
     loginMock,
@@ -127,6 +128,9 @@ const LOGIN_RES: LoginResponse = {
     refreshExpiresAt: '2026-07-05T18:00:00Z',
   },
   permissions: ['pets.read'],
+  twoFactorRequired: false,
+  emailVerificationRequired: false,
+  backupCodesExhausted: false,
 };
 
 const REGISTER_RES: RegisterResponse = {

@@ -14,6 +14,7 @@ import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { NotificationsClient } from '../grpc-clients/notifications-client.js';
 
 import { registerUsersRoutes } from './users.js';
+import { stubClient } from '../../test/helpers/stub-client.js';
 
 // --- Fixtures -------------------------------------------------------
 
@@ -49,14 +50,16 @@ const ME_FIXTURE: AuthV1.GetMeResponse = {
     email: 'user@example.com',
     firstName: 'Jane',
     lastName: 'Doe',
-    role: AuthV1.UserRole.USER_ROLE_ADOPTER,
+    userType: AuthV1.UserRole.USER_ROLE_ADOPTER,
     status: AuthV1.UserStatus.USER_STATUS_ACTIVE,
     emailVerified: true,
+    phoneVerified: false,
     twoFactorEnabled: false,
-    permissions: [],
     createdAt: '2026-06-01T00:00:00Z',
     updatedAt: '2026-06-01T00:00:00Z',
-  } as unknown as AuthV1.User,
+  },
+  roles: [AuthV1.UserRole.USER_ROLE_ADOPTER],
+  permissions: [],
 };
 
 // --- Mocks ----------------------------------------------------------
@@ -93,7 +96,25 @@ function makeAuthClient(): AuthClient & {
   const getUserPermissionsMock = vi.fn();
   const bulkUpdateUsersMock = vi.fn();
   const adminResetPasswordMock = vi.fn();
-  return {
+  return stubClient<
+    AuthClient & {
+      getMeMock: ReturnType<typeof vi.fn>;
+      updateAccountMock: ReturnType<typeof vi.fn>;
+      getPrivacyPreferencesMock: ReturnType<typeof vi.fn>;
+      updatePrivacyPreferencesMock: ReturnType<typeof vi.fn>;
+      resetPrivacyPreferencesMock: ReturnType<typeof vi.fn>;
+      searchUsersMock: ReturnType<typeof vi.fn>;
+      adminGetUserMock: ReturnType<typeof vi.fn>;
+      adminCreateUserMock: ReturnType<typeof vi.fn>;
+      adminUpdateUserMock: ReturnType<typeof vi.fn>;
+      deactivateUserMock: ReturnType<typeof vi.fn>;
+      reactivateUserMock: ReturnType<typeof vi.fn>;
+      getUserStatisticsMock: ReturnType<typeof vi.fn>;
+      getUserPermissionsMock: ReturnType<typeof vi.fn>;
+      bulkUpdateUsersMock: ReturnType<typeof vi.fn>;
+      adminResetPasswordMock: ReturnType<typeof vi.fn>;
+    }
+  >({
     getMe: getMeMock,
     updateAccount: updateAccountMock,
     getPrivacyPreferences: getPrivacyPreferencesMock,
@@ -138,7 +159,7 @@ function makeAuthClient(): AuthClient & {
     getUserPermissionsMock,
     bulkUpdateUsersMock,
     adminResetPasswordMock,
-  };
+  });
 }
 
 function makeNotifClient(): NotificationsClient & {
@@ -149,7 +170,13 @@ function makeNotifClient(): NotificationsClient & {
   const getNotificationPreferencesMock = vi.fn();
   const updateNotificationPreferencesMock = vi.fn();
   const resetNotificationPreferencesMock = vi.fn();
-  return {
+  return stubClient<
+    NotificationsClient & {
+      getNotificationPreferencesMock: ReturnType<typeof vi.fn>;
+      updateNotificationPreferencesMock: ReturnType<typeof vi.fn>;
+      resetNotificationPreferencesMock: ReturnType<typeof vi.fn>;
+    }
+  >({
     getNotificationPreferences: getNotificationPreferencesMock,
     updateNotificationPreferences: updateNotificationPreferencesMock,
     resetNotificationPreferences: resetNotificationPreferencesMock,
@@ -167,7 +194,7 @@ function makeNotifClient(): NotificationsClient & {
     getNotificationPreferencesMock,
     updateNotificationPreferencesMock,
     resetNotificationPreferencesMock,
-  };
+  });
 }
 
 async function buildApp(auth: AuthClient, notif: NotificationsClient): Promise<FastifyInstance> {

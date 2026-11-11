@@ -14,6 +14,7 @@ import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { PetsClient } from '../grpc-clients/pets-client.js';
 
 import { registerAuditRoutes } from './audit.js';
+import { stubClient } from '../../test/helpers/stub-client.js';
 
 function makeClient(): {
   client: AuditClient;
@@ -22,11 +23,11 @@ function makeClient(): {
 } {
   const queryMock = vi.fn();
   const getByTargetMock = vi.fn();
-  const client: AuditClient = {
+  const client = stubClient<AuditClient>({
     query: queryMock,
     getByTarget: getByTargetMock,
     close: vi.fn(),
-  };
+  });
   return { client, queryMock, getByTargetMock };
 }
 

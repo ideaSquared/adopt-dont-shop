@@ -12,6 +12,7 @@ import {
 import type { NotificationsClient } from '../grpc-clients/notifications-client.js';
 
 import { registerDevicesRoutes } from './devices.js';
+import { stubClient } from '../../test/helpers/stub-client.js';
 
 const TOKEN_FIXTURE = {
   tokenId: 'dt-1',
@@ -32,7 +33,13 @@ function makeClient(): NotificationsClient & {
   const registerDeviceTokenMock = vi.fn();
   const unregisterDeviceTokenMock = vi.fn();
   const listDeviceTokensMock = vi.fn();
-  return {
+  return stubClient<
+    NotificationsClient & {
+      registerDeviceTokenMock: ReturnType<typeof vi.fn>;
+      unregisterDeviceTokenMock: ReturnType<typeof vi.fn>;
+      listDeviceTokensMock: ReturnType<typeof vi.fn>;
+    }
+  >({
     // Other methods are unused by these routes but the type requires them.
     create: vi.fn(),
     list: vi.fn(),
@@ -44,7 +51,7 @@ function makeClient(): NotificationsClient & {
     registerDeviceTokenMock,
     unregisterDeviceTokenMock,
     listDeviceTokensMock,
-  };
+  });
 }
 
 async function buildApp(client: NotificationsClient): Promise<FastifyInstance> {

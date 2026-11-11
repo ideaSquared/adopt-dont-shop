@@ -8,27 +8,28 @@ import type { ChatClient } from '../grpc-clients/chat-client.js';
 import type { PetsClient } from '../grpc-clients/pets-client.js';
 
 import { registerSearchRoutes } from './search.js';
+import { stubClient } from '../../test/helpers/stub-client.js';
 
 // --- Mock factories ---------------------------------------------------
 
 function makeChatClient(): ChatClient & { searchMessagesMock: ReturnType<typeof vi.fn> } {
   const searchMessagesMock = vi.fn();
-  return {
+  return stubClient<ChatClient & { searchMessagesMock: ReturnType<typeof vi.fn> }>({
     searchMessages: searchMessagesMock,
     close: vi.fn(),
     searchMessagesMock,
-  } as ChatClient & { searchMessagesMock: ReturnType<typeof vi.fn> };
+  });
 }
 
 function makePetsClient(): PetsClient & {
   getSearchSuggestionsMock: ReturnType<typeof vi.fn>;
 } {
   const getSearchSuggestionsMock = vi.fn();
-  return {
+  return stubClient<PetsClient & { getSearchSuggestionsMock: ReturnType<typeof vi.fn> }>({
     getSearchSuggestions: getSearchSuggestionsMock,
     close: vi.fn(),
     getSearchSuggestionsMock,
-  } as PetsClient & { getSearchSuggestionsMock: ReturnType<typeof vi.fn> };
+  });
 }
 
 async function buildApp(chatClient: ChatClient, petsClient: PetsClient): Promise<FastifyInstance> {

@@ -16,6 +16,7 @@ import {
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
 import { registerRescueRoutes } from './rescue.js';
+import { stubClient } from '../../test/helpers/stub-client.js';
 
 function makeClient(): {
   client: RescueClient;
@@ -42,7 +43,7 @@ function makeClient(): {
   const updateQuestionMock = vi.fn();
   const reorderQuestionsMock = vi.fn();
   const deleteQuestionMock = vi.fn();
-  const client: RescueClient = {
+  const client = stubClient<RescueClient>({
     create: createMock,
     get: getMock,
     list: listMock,
@@ -63,7 +64,7 @@ function makeClient(): {
     reorderApplicationQuestions: reorderQuestionsMock,
     deleteApplicationQuestion: deleteQuestionMock,
     close: vi.fn(),
-  };
+  });
   return {
     client,
     createMock,
@@ -97,6 +98,7 @@ const RESCUE_FIXTURE: Rescue = {
   contactPerson: 'Alex',
   status: RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED,
   settingsJson: '{}',
+  plan: 'free',
   createdAt: '2026-06-01T00:00:00Z',
   updatedAt: '2026-06-01T00:00:00Z',
 };

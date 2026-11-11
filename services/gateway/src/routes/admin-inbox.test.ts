@@ -58,7 +58,7 @@ const TICKET = {
   userEmail: 'reporter@example.com',
   status: ModerationV1.SupportTicketStatus.SUPPORT_TICKET_STATUS_OPEN,
   priority: ModerationV1.SupportTicketPriority.SUPPORT_TICKET_PRIORITY_LOW,
-  category: ModerationV1.SupportTicketCategory.SUPPORT_TICKET_CATEGORY_GENERAL_INQUIRY,
+  category: ModerationV1.SupportTicketCategory.SUPPORT_TICKET_CATEGORY_GENERAL_QUESTION,
   subject: 'Cannot log in',
   description: 'Login fails',
   assignedTo: 'mod-1',

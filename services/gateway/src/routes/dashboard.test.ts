@@ -9,6 +9,7 @@ import type { PetsClient } from '../grpc-clients/pets-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
 import { registerDashboardRoutes } from './dashboard.js';
+import { stubClient } from '../../test/helpers/stub-client.js';
 
 // --- Fixtures -------------------------------------------------------
 
@@ -83,7 +84,9 @@ function makePetsClient(): PetsClient & {
 } {
   const getStatsMock = vi.fn();
   const listMock = vi.fn();
-  return {
+  return stubClient<
+    PetsClient & { getStatsMock: ReturnType<typeof vi.fn>; listMock: ReturnType<typeof vi.fn> }
+  >({
     create: vi.fn(),
     get: vi.fn(),
     list: listMock,
@@ -94,7 +97,7 @@ function makePetsClient(): PetsClient & {
     close: vi.fn(),
     getStatsMock,
     listMock,
-  };
+  });
 }
 
 function makeApplicationsClient(): ApplicationsClient & {
@@ -103,7 +106,12 @@ function makeApplicationsClient(): ApplicationsClient & {
 } {
   const getStatsMock = vi.fn();
   const listMock = vi.fn();
-  return {
+  return stubClient<
+    ApplicationsClient & {
+      getStatsMock: ReturnType<typeof vi.fn>;
+      listMock: ReturnType<typeof vi.fn>;
+    }
+  >({
     startDraft: vi.fn(),
     saveDraftAnswers: vi.fn(),
     submitDraft: vi.fn(),
@@ -123,17 +131,14 @@ function makeApplicationsClient(): ApplicationsClient & {
     close: vi.fn(),
     getStatsMock,
     listMock,
-  } as ApplicationsClient & {
-    getStatsMock: ReturnType<typeof vi.fn>;
-    listMock: ReturnType<typeof vi.fn>;
-  };
+  });
 }
 
 function makeRescueClient(): RescueClient & {
   listStaffMembersMock: ReturnType<typeof vi.fn>;
 } {
   const listStaffMembersMock = vi.fn();
-  return {
+  return stubClient<RescueClient & { listStaffMembersMock: ReturnType<typeof vi.fn> }>({
     create: vi.fn(),
     get: vi.fn(),
     list: vi.fn(),
@@ -149,7 +154,7 @@ function makeRescueClient(): RescueClient & {
     getInvitationByToken: vi.fn(),
     close: vi.fn(),
     listStaffMembersMock,
-  } as RescueClient & { listStaffMembersMock: ReturnType<typeof vi.fn> };
+  });
 }
 
 async function buildApp(
