@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
-const connectMock = vi.fn(async () => ({ id: 'fake-connection' }));
+const connectMock = vi.fn(async (_options?: unknown) => ({ id: 'fake-connection' }));
 
 vi.mock('nats', () => ({
-  connect: (...args: unknown[]) => connectMock(...args),
+  connect: (options?: unknown) => connectMock(options),
 }));
 
 import {
