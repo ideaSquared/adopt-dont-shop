@@ -889,7 +889,9 @@ describe('audit trail (cms.actionTaken)', () => {
 
     const [event] = publishedOn('cms.actionTaken');
     expect(event.payload).toMatchObject({
-      eventId: event.id,
+      eventId: expect.stringMatching(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+      ),
       service: 'service.cms',
       subject: 'cms.actionTaken',
       aggregateType: 'content',
@@ -921,7 +923,9 @@ describe('audit trail (cms.actionTaken)', () => {
 
     const [event] = publishedOn('cms.actionTaken');
     expect(event.payload).toMatchObject({
-      eventId: event.id,
+      eventId: expect.stringMatching(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+      ),
       aggregateType: 'content',
       aggregateId: 'c-1',
       actorUserId: ADMIN.userId,

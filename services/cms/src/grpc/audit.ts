@@ -12,7 +12,7 @@ export type ContentAudit = {
   details: Record<string, unknown>;
 };
 
-// The id is the JetStream Nats-Msg-Id AND the audit row's primary key, so it
+// The id is the JetStream Nats-Msg-Id (the de-dup key), so it
 // carries a fresh uuid: the same content can be published, unpublished and
 // published again, and each of those is its own logical event.
 export function contentActionTaken(audit: ContentAudit) {
@@ -21,7 +21,10 @@ export function contentActionTaken(audit: ContentAudit) {
     type: 'cms.actionTaken',
     id,
     payload: {
-      eventId: id,
+      // audit.audit_events.event_id is a uuid PK, so it cannot be the namespaced envelope
+      // id above (that one is the JetStream de-dup key). Generated once at staging time
+      // and stored in the outbox row, so relay retries reuse the same value.
+      eventId: randomUUID(),
       service: 'service.cms',
       subject: 'cms.actionTaken',
       aggregateType: 'content',

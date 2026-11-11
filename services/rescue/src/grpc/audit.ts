@@ -2,6 +2,7 @@
 // Published as `rescue.actionTaken` from inside withTransaction, so it only
 // fires on commit; service.audit's `*.actionTaken` subscriber persists it. The
 // payload mirrors AuditEventPayload (services/audit/src/nats/event-types.ts).
+import { randomUUID } from 'node:crypto';
 
 export type RescueAudit = {
   aggregateType: 'rescue' | 'staff_member';
@@ -12,15 +13,18 @@ export type RescueAudit = {
 };
 
 // `occurrence` is the per-event component of the id (a row version, or a
-// fresh uuid). The id is the JetStream Nats-Msg-Id AND the audit row's primary
-// key, so it must never be reused by a different logical event.
+// fresh uuid). The id is the JetStream Nats-Msg-Id (the de-dup key), so it must
+// never be reused by a different logical event.
 export function rescueActionTaken(occurrence: string, audit: RescueAudit) {
   const id = `rescue.actionTaken.${audit.action}.${audit.aggregateId}.${occurrence}`;
   return {
     type: 'rescue.actionTaken',
     id,
     payload: {
-      eventId: id,
+      // audit.audit_events.event_id is a uuid PK, so it cannot be the namespaced envelope
+      // id above (that one is the JetStream de-dup key). Generated once at staging time
+      // and stored in the outbox row, so relay retries reuse the same value.
+      eventId: randomUUID(),
       service: 'service.rescue',
       subject: 'rescue.actionTaken',
       aggregateType: audit.aggregateType,

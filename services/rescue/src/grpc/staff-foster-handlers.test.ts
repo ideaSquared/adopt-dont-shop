@@ -287,7 +287,9 @@ describe('createStaffMember', () => {
 
     const [event] = publishedOn(mocks, 'rescue.actionTaken');
     expect(event.payload).toMatchObject({
-      eventId: event.id,
+      eventId: expect.stringMatching(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+      ),
       service: 'service.rescue',
       subject: 'rescue.actionTaken',
       aggregateType: 'staff_member',
@@ -382,7 +384,9 @@ describe('updateStaffMember', () => {
     const [event] = publishedOn(mocks, 'rescue.actionTaken');
     expect(event.id).toBe('rescue.actionTaken.update.stf-1.4');
     expect(event.payload).toMatchObject({
-      eventId: event.id,
+      eventId: expect.stringMatching(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+      ),
       aggregateType: 'staff_member',
       aggregateId: 'stf-1',
       actorUserId: STAFF_MANAGER.userId,
@@ -459,7 +463,9 @@ describe('removeStaffMember', () => {
 
     const [event] = publishedOn(mocks, 'rescue.actionTaken');
     expect(event.payload).toMatchObject({
-      eventId: event.id,
+      eventId: expect.stringMatching(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+      ),
       aggregateType: 'staff_member',
       aggregateId: 'stf-1',
       actorUserId: STAFF_MANAGER.userId,

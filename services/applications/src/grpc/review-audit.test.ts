@@ -84,7 +84,9 @@ describe('application review audit trail', () => {
     const events = auditEvents(nats);
     expect(events).toHaveLength(1);
     expect(events[0].payload).toMatchObject({
-      eventId: events[0].id,
+      eventId: expect.stringMatching(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+      ),
       service: 'service.applications',
       subject: 'applications.actionTaken',
       aggregateType: 'application',

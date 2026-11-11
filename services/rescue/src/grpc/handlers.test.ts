@@ -1083,7 +1083,9 @@ describe('verifyRescue', () => {
     const [event] = publishedOn(mocks, 'rescue.actionTaken');
     expect(event.id).toBe('rescue.actionTaken.verify.rsc-1.7');
     expect(event.payload).toMatchObject({
-      eventId: event.id,
+      eventId: expect.stringMatching(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+      ),
       aggregateType: 'rescue',
       aggregateId: 'rsc-1',
       actorUserId: ADMIN.userId,
@@ -1234,7 +1236,9 @@ describe('deleteRescue', () => {
 
     const [event] = publishedOn(mocks, 'rescue.actionTaken');
     expect(event.payload).toMatchObject({
-      eventId: event.id,
+      eventId: expect.stringMatching(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+      ),
       service: 'service.rescue',
       subject: 'rescue.actionTaken',
       aggregateType: 'rescue',
