@@ -23,5 +23,5 @@ export const buttonGroup = style({
   gap: '0.75rem',
   justifyContent: 'flex-end',
   paddingTop: vars.spacing['3'],
-  borderTop: '1px solid #e5e7eb',
+  borderTop: `1px solid ${vars.border.color.muted}`,
 });

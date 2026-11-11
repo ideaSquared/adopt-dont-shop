@@ -51,6 +51,25 @@ describe('LegalPage', () => {
     expect(screen.queryByText('Maintainer note.')).not.toBeInTheDocument();
   });
 
+  it("shows the title once when the document opens with its own '#' heading", async () => {
+    useLegalDocumentMock.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        version: '2026-05-10-v1',
+        contentType: 'text/markdown',
+        content: '# Terms of Service\n\nBody text.',
+      },
+    });
+    getStaticPageMock.mockRejectedValue(new Error('404'));
+
+    renderWithProviders(<LegalPage slug='terms' />);
+
+    expect(await screen.findByText('Body text.', { exact: false })).toBeInTheDocument();
+    // The document opens with its own heading; the title must not appear twice.
+    expect(screen.getAllByRole('heading', { name: 'Terms of Service' })).toHaveLength(1);
+  });
+
   it('prefers a CMS override page over the versioned document when one exists', async () => {
     useLegalDocumentMock.mockReturnValue({
       isLoading: false,

@@ -6,6 +6,7 @@ import { SafeHtml } from '@/components/SafeHtml';
 import { LegalDocumentView } from '@/components/legal/LegalDocumentView';
 import { LEGAL_DOCUMENT_TITLES } from '@/components/legal/legal-documents';
 import { cmsPublicService } from '@/services/cmsService';
+import * as styles from './LegalPage.css';
 
 type LegalPageProps = {
   slug: 'terms' | 'privacy';
@@ -41,7 +42,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ slug }) => {
     return (
       <Container>
         <PageHeader title={cmsOverrideQuery.data.title} />
-        <SafeHtml html={cmsOverrideQuery.data.content} />
+        <SafeHtml className={styles.legalContent} html={cmsOverrideQuery.data.content} />
       </Container>
     );
   }

@@ -107,7 +107,7 @@ export const lastMessageCell = style({
 });
 
 export const noMessagesPlaceholder = style({
-  color: '#9ca3af',
+  color: vars.text.tertiary,
   fontStyle: 'italic',
 });
 
@@ -119,5 +119,5 @@ export const participantsList = style({
 
 export const participantMore = style({
   fontSize: vars.typography.size.xs,
-  color: '#9ca3af',
+  color: vars.text.tertiary,
 });

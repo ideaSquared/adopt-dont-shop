@@ -48,23 +48,37 @@ vi.mock('@/components/ui/SwipeFloatingButton', () => ({
 }));
 
 vi.mock('@/components/onboarding/SwipeOnboarding', () => ({
-  SwipeOnboarding: () => null,
+  SwipeOnboarding: () => <div data-testid='swipe-onboarding' />,
 }));
 
-const renderShell = () =>
+const renderShell = (path = '/') =>
   render(
     <QueryClientProvider client={new QueryClient()}>
       <ThemeProvider>
-        <MemoryRouter initialEntries={['/']}>
+        <MemoryRouter initialEntries={[path]}>
           <Routes>
             <Route element={<AppShell />}>
               <Route path='/' element={<div>Home</div>} />
+              <Route path='/privacy' element={<div>Privacy</div>} />
+              <Route path='/terms' element={<div>Terms</div>} />
             </Route>
           </Routes>
         </MemoryRouter>
       </ThemeProvider>
     </QueryClientProvider>
   );
+
+describe('AppShell swipe onboarding', () => {
+  it('offers the swipe onboarding on browsing pages', () => {
+    renderShell('/');
+    expect(screen.getByTestId('swipe-onboarding')).toBeInTheDocument();
+  });
+
+  it.each(['/privacy', '/terms'])('keeps the swipe onboarding off %s', path => {
+    renderShell(path);
+    expect(screen.queryByTestId('swipe-onboarding')).not.toBeInTheDocument();
+  });
+});
 
 describe('AppShell', () => {
   beforeEach(() => {

@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import { createElement, type ReactNode } from 'react';
+import { MemoryRouter, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { useSearchFilters } from './useSearchFilters';
 
 const mockSetSearchParams = vi.fn();
@@ -107,5 +109,33 @@ describe('useSearchFilters', () => {
     expect(result.current.filters.type).toBeFalsy();
     expect(result.current.filters.page).toBe(1);
     expect(result.current.searchQuery).toBe('');
+  });
+});
+
+describe('useSearchFilters inside a router', () => {
+  it('does not write its filters into the URL again when the location changes', () => {
+    // The search page stays mounted while the next lazy route loads, so the
+    // hook is still alive when the location changes.
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(MemoryRouter, { initialEntries: ['/search'] }, children);
+
+    const { result } = renderHook(
+      () => {
+        const [searchParams, setSearchParams] = useSearchParams();
+        useSearchFilters(searchParams, setSearchParams);
+        return { location: useLocation(), navigate: useNavigate() };
+      },
+      { wrapper }
+    );
+    expect(result.current.location.pathname).toBe('/search');
+    expect(result.current.location.search).toBe('?sortBy=createdAt&sortOrder=desc');
+
+    act(() => {
+      result.current.navigate('/favorites');
+    });
+
+    // Its filter params must not be written onto the page that was navigated to.
+    expect(result.current.location.pathname).toBe('/favorites');
+    expect(result.current.location.search).toBe('');
   });
 });

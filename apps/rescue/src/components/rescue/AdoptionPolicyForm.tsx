@@ -179,7 +179,7 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
 
           {formData.requireReferences && (
             <div className={styles.formRow}>
-              <div className={styles.formGroup}>
+              <div className={`${styles.formGroup} ${styles.narrowField}`}>
                 <FormField label="Minimum Number of References" htmlFor="policy-min-references">
                   <Input
                     id="policy-min-references"
@@ -193,16 +193,16 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
                   />
                 </FormField>
               </div>
+            </div>
+          )}
 
-              <div className={styles.formGroup}>
-                <div className={styles.checkboxWrapper}>
-                  <CheckboxInput
-                    label="Require veterinarian reference"
-                    checked={formData.requireVeterinarianReference}
-                    onChange={e => handleChange('requireVeterinarianReference', e.target.checked)}
-                  />
-                </div>
-              </div>
+          {formData.requireReferences && (
+            <div className={styles.checkboxWrapper}>
+              <CheckboxInput
+                label="Require veterinarian reference"
+                checked={formData.requireVeterinarianReference}
+                onChange={e => handleChange('requireVeterinarianReference', e.target.checked)}
+              />
             </div>
           )}
         </div>

@@ -1,10 +1,11 @@
 import { style } from '@vanilla-extract/css';
+import { vars } from '../../styles/theme.css';
 
 export const card = style({
   display: 'flex',
   flexDirection: 'column',
-  background: 'var(--color-surface, #fff)',
-  border: '1px solid var(--color-border, #e5e7eb)',
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '8px',
   padding: '16px',
   height: '100%',
@@ -21,22 +22,22 @@ export const icon = style({
   borderRadius: '8px',
   fontSize: '20px',
   marginBottom: '8px',
-  color: 'var(--color-text-muted, #6b7280)',
-  background: 'var(--color-surface-muted, #f3f4f6)',
+  color: vars.text.tertiary,
+  background: vars.background.muted,
 });
 
 export const label = style({
   fontSize: '12px',
   textTransform: 'uppercase',
   letterSpacing: '0.04em',
-  color: 'var(--color-text-muted, #6b7280)',
+  color: vars.text.tertiary,
   margin: 0,
 });
 
 export const value = style({
   fontSize: '28px',
   fontWeight: 700,
-  color: 'var(--color-text, #111827)',
+  color: vars.text.primary,
   margin: '4px 0',
 });
 
@@ -47,5 +48,5 @@ export const delta = style({
 
 export const helper = style({
   fontSize: '12px',
-  color: 'var(--color-text-muted, #6b7280)',
+  color: vars.text.tertiary,
 });

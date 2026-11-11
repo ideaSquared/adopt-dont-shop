@@ -14,7 +14,7 @@ export const chatTitle = style({
   margin: '0',
   fontSize: vars.typography.size.xl,
   fontWeight: vars.typography.weight.semibold,
-  color: '#111827',
+  color: vars.text.primary,
   display: 'flex',
   alignItems: 'center',
   gap: vars.spacing['2'],
@@ -22,7 +22,7 @@ export const chatTitle = style({
 
 export const chatId = style({
   fontSize: vars.typography.size.sm,
-  color: '#6b7280',
+  color: vars.text.tertiary,
   fontFamily: "'Courier New', monospace",
 });
 
@@ -64,11 +64,11 @@ export const messageHeader = style({
 
 export const messageSender = style({
   fontWeight: vars.typography.weight.semibold,
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 export const messageTime = style({
-  color: '#9ca3af',
+  color: vars.text.tertiary,
 });
 
 export const messageBody = recipe({
@@ -88,8 +88,8 @@ export const messageBody = recipe({
         color: '#991b1b',
       },
       false: {
-        background: '#f3f4f6',
-        color: '#111827',
+        background: vars.background.muted,
+        color: vars.text.primary,
       },
     },
   },
@@ -110,14 +110,14 @@ export const actionButton = style({
   justifyContent: 'center',
   width: '28px',
   height: '28px',
-  border: '1px solid #e5e7eb',
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '6px',
-  background: '#ffffff',
-  color: '#6b7280',
+  background: vars.background.surface,
+  color: vars.text.tertiary,
   cursor: 'pointer',
   transition: 'all 0.2s ease',
   ':hover': {
-    background: '#f9fafb',
+    background: vars.background.muted,
     color: '#ef4444',
     borderColor: '#fecaca',
   },
@@ -138,22 +138,22 @@ export const participantCard = style({
   alignItems: 'center',
   gap: vars.spacing['3'],
   padding: vars.spacing['3'],
-  border: '1px solid #e5e7eb',
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: vars.border.radius.base,
-  background: '#ffffff',
+  background: vars.background.surface,
 });
 
 export const participantAvatar = style({
   width: '40px',
   height: '40px',
   borderRadius: '50%',
-  background: '#e5e7eb',
+  background: vars.background.muted,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   fontSize: vars.typography.size.base,
   fontWeight: vars.typography.weight.semibold,
-  color: '#6b7280',
+  color: vars.text.tertiary,
   flexShrink: '0',
 });
 
@@ -166,13 +166,13 @@ export const participantInfo = style({
 
 export const participantName = style({
   fontWeight: vars.typography.weight.semibold,
-  color: '#111827',
+  color: vars.text.primary,
   fontSize: vars.typography.size.sm,
 });
 
 export const participantRole = style({
   fontSize: vars.typography.size.xs,
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const detailGrid = style({
@@ -200,7 +200,7 @@ export const detailLabel = style({
   fontWeight: vars.typography.weight.semibold,
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 globalStyle(`${detailLabel} svg`, {
@@ -209,7 +209,7 @@ globalStyle(`${detailLabel} svg`, {
 
 export const detailValue = style({
   fontSize: vars.typography.size.sm,
-  color: '#111827',
+  color: vars.text.primary,
   fontWeight: vars.typography.weight.medium,
 });
 
@@ -217,7 +217,7 @@ export const actionBar = style({
   display: 'flex',
   gap: '0.75rem',
   paddingTop: vars.spacing['4'],
-  borderTop: '1px solid #e5e7eb',
+  borderTop: `1px solid ${vars.border.color.muted}`,
   flexWrap: 'wrap',
 });
 
@@ -228,7 +228,7 @@ export const emptyState = style({
   justifyContent: 'center',
   gap: vars.spacing['3'],
   padding: vars.spacing['6'],
-  color: '#9ca3af',
+  color: vars.text.tertiary,
   textAlign: 'center',
 });
 
@@ -241,7 +241,7 @@ export const loadingState = style({
   alignItems: 'center',
   justifyContent: 'center',
   padding: vars.spacing['6'],
-  color: '#9ca3af',
+  color: vars.text.tertiary,
 });
 
 export const headerBadgeRow = style({
@@ -268,7 +268,7 @@ export const loadMoreWrapper = style({
 export const moderationHelpText = style({
   marginTop: vars.spacing['2'],
   fontSize: vars.typography.size.sm,
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const reportList = style({
@@ -279,9 +279,9 @@ export const reportList = style({
 export const reportCard = style({
   padding: '0.75rem',
   marginBottom: vars.spacing['2'],
-  backgroundColor: '#f9fafb',
+  backgroundColor: vars.background.muted,
   borderRadius: '0.375rem',
-  border: '1px solid #e5e7eb',
+  border: `1px solid ${vars.border.color.muted}`,
 });
 
 export const reportCardHeader = style({
@@ -296,19 +296,19 @@ export const reportCategoryLabel = style({
 
 export const reportDescription = style({
   fontSize: vars.typography.size.sm,
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const reportMeta = style({
   fontSize: vars.typography.size.xs,
-  color: '#9ca3af',
+  color: vars.text.tertiary,
   marginTop: vars.spacing['1'],
 });
 
 export const noReportsMessage = style({
   padding: vars.spacing['3'],
   textAlign: 'center',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const moderationLink = style({
@@ -323,7 +323,7 @@ export const moderationLink = style({
 export const participantHelpText = style({
   marginBottom: vars.spacing['2'],
   fontSize: vars.typography.size.sm,
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const moderationParticipantList = style({
@@ -334,7 +334,7 @@ export const moderationParticipantList = style({
 export const participantRow = style({
   padding: vars.spacing['2'],
   marginBottom: vars.spacing['1'],
-  backgroundColor: '#f9fafb',
+  backgroundColor: vars.background.muted,
   borderRadius: vars.border.radius.sm,
   display: 'flex',
   justifyContent: 'space-between',

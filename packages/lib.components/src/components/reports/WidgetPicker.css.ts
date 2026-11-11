@@ -1,4 +1,5 @@
 import { style } from '@vanilla-extract/css';
+import { vars } from '../../styles/theme.css';
 
 export const overlay = style({
   position: 'fixed',
@@ -11,7 +12,7 @@ export const overlay = style({
 });
 
 export const panel = style({
-  background: 'var(--color-surface, #fff)',
+  background: vars.background.surface,
   borderRadius: '12px',
   padding: '20px',
   width: 'min(640px, 90vw)',
@@ -35,9 +36,9 @@ export const presetButton = style({
   alignItems: 'flex-start',
   textAlign: 'left',
   padding: '12px',
-  border: '1px solid var(--color-border, #e5e7eb)',
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '8px',
-  background: 'var(--color-surface, #fff)',
+  background: vars.background.surface,
   cursor: 'pointer',
   width: '100%',
 });
@@ -48,7 +49,7 @@ export const presetLabel = style({
 
 export const presetDescription = style({
   fontSize: '12px',
-  color: 'var(--color-text-muted, #6b7280)',
+  color: vars.text.tertiary,
   marginTop: '4px',
 });
 

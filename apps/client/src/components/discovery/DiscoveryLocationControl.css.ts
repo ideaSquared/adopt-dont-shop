@@ -5,7 +5,6 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 export const container = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: vars.spacing['2'],
   padding: '0.75rem 1rem',
   borderRadius: vars.border.radius.lg,
   background: vars.background.surface,
@@ -28,8 +27,11 @@ export const hint = style({
 export const status = recipe({
   base: {
     fontSize: '0.9rem',
-    // Keeps the layout steady while the live region is empty.
-    minHeight: '1.25rem',
+    // The live region stays in the DOM (so updates are announced) but takes no
+    // space until it has something to say.
+    selectors: {
+      '&:not(:empty)': { marginTop: vars.spacing['2'] },
+    },
   },
   variants: {
     variant: {

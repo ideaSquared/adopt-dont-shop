@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { type PetSearchFilters } from '@/services';
 import { isKnownSortBy, isKnownSortOrder } from '../pages/searchOptions';
 
@@ -34,6 +34,14 @@ export const useSearchFilters = (
   });
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+
+  // react-router hands out a new setSearchParams on every location change. Keep
+  // it out of the effect's dependencies: the page can stay mounted while the
+  // next route loads, and a re-run then writes these params onto the old URL.
+  const setSearchParamsRef = useRef(setSearchParams);
+  useEffect(() => {
+    setSearchParamsRef.current = setSearchParams;
+  });
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -72,8 +80,8 @@ export const useSearchFilters = (
       params.set('sortOrder', filters.sortOrder);
     }
 
-    setSearchParams(params);
-  }, [filters, searchQuery, setSearchParams]);
+    setSearchParamsRef.current(params);
+  }, [filters, searchQuery]);
 
   const handleFilterChange = (field: keyof PetSearchFilters, value: string) => {
     const coerced = field === 'maxDistance' ? (value ? parseInt(value, 10) : undefined) : value;

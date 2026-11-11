@@ -17,7 +17,7 @@ export const section = style({
 export const sectionTitle = style({
   fontSize: vars.typography.size.base,
   fontWeight: vars.typography.weight.semibold,
-  color: '#111827',
+  color: vars.text.primary,
   margin: `0 0 ${vars.spacing['3']} 0`,
 });
 
@@ -36,7 +36,7 @@ export const infoItem = style({
 export const infoLabel = style({
   fontSize: '0.8125rem',
   fontWeight: vars.typography.weight.medium,
-  color: '#6b7280',
+  color: vars.text.tertiary,
   display: 'flex',
   alignItems: 'center',
   gap: vars.spacing['2'],
@@ -44,7 +44,7 @@ export const infoLabel = style({
 
 export const infoValue = style({
   fontSize: '0.9375rem',
-  color: '#111827',
+  color: vars.text.primary,
   wordBreak: 'break-word',
 });
 
@@ -55,8 +55,8 @@ export const statsGrid = style({
 });
 
 export const statCard = style({
-  background: '#f9fafb',
-  border: '1px solid #e5e7eb',
+  background: vars.background.muted,
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: vars.border.radius.lg,
   padding: '1.25rem',
   display: 'flex',
@@ -66,14 +66,14 @@ export const statCard = style({
 
 export const statLabel = style({
   fontSize: '0.8125rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   fontWeight: vars.typography.weight.medium,
 });
 
 export const statValue = style({
   fontSize: vars.typography.size['3xl'],
   fontWeight: vars.typography.weight.bold,
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 export const loadingSpinner = style({
@@ -81,7 +81,7 @@ export const loadingSpinner = style({
   alignItems: 'center',
   justifyContent: 'center',
   padding: vars.spacing['6'],
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const errorMessage = style({
@@ -104,11 +104,11 @@ export const staffCard = style({
   justifyContent: 'space-between',
   alignItems: 'center',
   padding: vars.spacing['3'],
-  border: '1px solid #e5e7eb',
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: vars.border.radius.base,
-  background: '#ffffff',
+  background: vars.background.surface,
   ':hover': {
-    background: '#f9fafb',
+    background: vars.background.muted,
   },
 });
 
@@ -121,7 +121,7 @@ export const staffInfo = style({
 
 export const staffName = style({
   fontWeight: vars.typography.weight.semibold,
-  color: '#111827',
+  color: vars.text.primary,
   fontSize: '0.9375rem',
   overflow: 'hidden',
   textOverflow: 'ellipsis',
@@ -131,7 +131,7 @@ export const staffName = style({
 
 export const staffEmail = style({
   fontSize: '0.8125rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const staffMeta = style({
@@ -139,7 +139,7 @@ export const staffMeta = style({
   alignItems: 'center',
   gap: vars.spacing['2'],
   fontSize: vars.typography.size.xs,
-  color: '#9ca3af',
+  color: vars.text.tertiary,
 });
 
 export const staffActions = style({
@@ -152,9 +152,9 @@ export const inviteForm = style({
   flexDirection: 'column',
   gap: vars.spacing['3'],
   padding: '1.25rem',
-  border: '1px solid #e5e7eb',
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: vars.border.radius.base,
-  background: '#f9fafb',
+  background: vars.background.muted,
   marginBottom: vars.spacing['4'],
 });
 
@@ -185,7 +185,7 @@ export const invitationCard = style({
   padding: vars.spacing['3'],
   border: '1px solid #fef3c7',
   borderRadius: vars.border.radius.base,
-  background: '#fffbeb',
+  background: `${vars.background.surface}beb`,
   marginBottom: '0.75rem',
 });
 
@@ -205,7 +205,7 @@ export const inviteFormSpacing = style({
 export const planSectionTitle = style({
   margin: `0 0 ${vars.spacing['3']}`,
   fontSize: '0.9375rem',
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 export const staffSectionHeader = style({
@@ -221,7 +221,7 @@ export const userPlusIcon = style({
 export const staffSectionSubtitle = style({
   margin: 0,
   fontSize: '0.9375rem',
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 export const skeletonStaffList = style({
@@ -302,7 +302,7 @@ export const actionGroupLabel = style({
   fontWeight: vars.typography.weight.semibold,
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const actionButtonIcon = style({
@@ -318,12 +318,12 @@ export const closeButton = style({
   minHeight: '44px',
   border: 'none',
   borderRadius: vars.border.radius.base,
-  background: '#f3f4f6',
-  color: '#6b7280',
+  background: vars.background.muted,
+  color: vars.text.tertiary,
   cursor: 'pointer',
   transition: 'all 0.2s ease',
   ':hover': {
-    background: '#e5e7eb',
-    color: '#111827',
+    background: vars.background.muted,
+    color: vars.text.primary,
   },
 });

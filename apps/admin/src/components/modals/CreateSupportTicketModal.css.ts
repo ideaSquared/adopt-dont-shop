@@ -9,8 +9,8 @@ export const form = style({
 
 export const recipientInfo = style({
   padding: vars.spacing['3'],
-  background: '#f9fafb',
-  border: '1px solid #e5e7eb',
+  background: vars.background.muted,
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: vars.border.radius.base,
   display: 'flex',
   flexDirection: 'column',
@@ -22,18 +22,18 @@ export const recipientLabel = style({
   fontWeight: vars.typography.weight.semibold,
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const recipientName = style({
   fontSize: vars.typography.size.sm,
   fontWeight: vars.typography.weight.semibold,
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 export const recipientEmail = style({
   fontSize: '0.8125rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const buttonGroup = style({
@@ -41,7 +41,7 @@ export const buttonGroup = style({
   gap: '0.75rem',
   justifyContent: 'flex-end',
   paddingTop: vars.spacing['3'],
-  borderTop: '1px solid #e5e7eb',
+  borderTop: `1px solid ${vars.border.color.muted}`,
 });
 
 export const formRow = style({

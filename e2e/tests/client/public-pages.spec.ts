@@ -44,11 +44,11 @@ test.describe('public pages', () => {
   }
 
   for (const path of ['/terms', '/privacy']) {
-    // Known bug: the published legal text still carries the maintainer notes
-    // ("Source of truth ...", "Placeholder copy - must be reviewed by legal
-    // counsel"). test.fail() goes red the day the copy is cleaned up, at which
-    // point this should become a plain test().
-    test.fail(`${path} shows no placeholder or maintainer text`, async ({ page }) => {
+    // The legal pages used to show the maintainer notes ("Source of truth ...",
+    // "Placeholder copy - must be reviewed by legal counsel"), which this test
+    // tracked as a known bug with test.fail(). The redesigned pages (#1658) no
+    // longer render them, so it is a plain test now.
+    test(`${path} shows no placeholder or maintainer text`, async ({ page }) => {
       await page.goto(path);
       const main = page.getByRole('main');
       await expect(main.getByRole('heading').first()).toBeVisible();
