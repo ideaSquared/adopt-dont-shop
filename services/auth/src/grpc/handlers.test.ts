@@ -1466,6 +1466,89 @@ describe('refreshToken', () => {
     });
   });
 
+  describe('replay of a rotated token (idempotent reuse handling)', () => {
+    // Stateful stand-in for the DB: the family-wide revoke reports how many
+    // active rows it flipped, then none are left.
+    const setupReplay = (activeFamilyRows: number) => {
+      let active = activeFamilyRows;
+      const watermarkStamps: unknown[][] = [];
+      mocks.issuerMock.verifyRefresh.mockResolvedValue({
+        sub: 'usr-victim',
+        jti: 'old-jti',
+        iat: 0,
+        exp: 9_000_000_000,
+      });
+      mocks.poolMock.query.mockImplementation(async (sql: string) => {
+        if (sql.includes('revoked_tokens')) {
+          return { rows: [{ jti: 'old-jti' }] }; // rotation denylisted the old jti
+        }
+        if (sql.includes('FROM auth.refresh_tokens')) {
+          return {
+            rows: [
+              {
+                token_hash: 'h',
+                user_id: 'usr-victim',
+                revoked_at: new Date(),
+                is_revoked: true,
+                family_id: 'fam-1',
+              },
+            ],
+          };
+        }
+        return { rows: [], rowCount: 0 };
+      });
+      mocks.clientMock.query.mockImplementation(async (sql: string, params: unknown[] = []) => {
+        if (sql.includes('tokens_valid_from')) {
+          watermarkStamps.push(params);
+          return { rows: [], rowCount: 1 };
+        }
+        if (sql.includes('family_id = $1')) {
+          const rowCount = active;
+          active = 0;
+          return { rows: [], rowCount };
+        }
+        return { rows: [], rowCount: 1 };
+      });
+      return { watermarkStamps };
+    };
+
+    const replay = () =>
+      refreshToken(mocks.deps, null, { refreshToken: 'old-tok' }).catch((e: unknown) => e);
+
+    it('revokes the family, stamps the watermark and emits the event while the family still has an active token', async () => {
+      const { watermarkStamps } = setupReplay(1); // thief rotated first: active head exists
+
+      await expect(replay()).resolves.toMatchObject({ code: 'UNAUTHENTICATED' });
+
+      expect(watermarkStamps).toHaveLength(1);
+      expect(mocks.natsMock.publish).toHaveBeenCalledWith(
+        'auth.tokenReuseDetected',
+        expect.any(Uint8Array),
+        expect.any(Object)
+      );
+    });
+
+    it('rejects a replay against an already fully revoked family without stamping the watermark or emitting an event', async () => {
+      const { watermarkStamps } = setupReplay(0);
+
+      await expect(replay()).resolves.toMatchObject({ code: 'UNAUTHENTICATED' });
+
+      expect(watermarkStamps).toHaveLength(0);
+      expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+    });
+
+    it('does not keep advancing the watermark when the same old token is replayed repeatedly', async () => {
+      const { watermarkStamps } = setupReplay(1);
+
+      await replay();
+      await replay();
+      await replay();
+
+      expect(watermarkStamps).toHaveLength(1);
+      expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('ADS-913: revokes family and stamps tokens_valid_from on concurrent reuse (path 2)', async () => {
     mocks.issuerMock.verifyRefresh.mockResolvedValueOnce({
       sub: 'usr-conc',

@@ -866,17 +866,22 @@ export async function refreshToken(
     tokenRefreshCounter.inc({ outcome: 'token_revoked' });
     // When a revoked token row exists, it was either already rotated (reuse
     // attack) or explicitly revoked. Either way, revoking the entire family
-    // is safe: it kicks the attacker's live tokens and is a no-op if the
-    // family was already fully revoked at logout. (ADS-913)
+    // is safe: it kicks the attacker's live tokens. If the family was already
+    // fully revoked (nothing left to kick), this is a plain rejection: no
+    // watermark bump and no event, so replays cannot keep invalidating the
+    // user's later logins. (ADS-913)
     if (stored.rows.length > 0) {
       const reuseFamily = stored.rows[0].family_id;
-      await withTransaction(deps, async ({ client, publish }) => {
-        await client.query(
+      const revokedActiveTokens = await withTransaction(deps, async ({ client, publish }) => {
+        const familyRevoke = await client.query(
           `UPDATE auth.refresh_tokens
            SET is_revoked = true, revoked_at = now(), updated_at = now()
            WHERE family_id = $1 AND is_revoked = false`,
           [reuseFamily]
         );
+        if ((familyRevoke.rowCount ?? 0) === 0) {
+          return false;
+        }
         await client.query(
           `UPDATE auth.users SET tokens_valid_from = now(), updated_at = now() WHERE user_id = $1`,
           [claims.sub]
@@ -886,8 +891,11 @@ export async function refreshToken(
           id: `auth.tokenReuseDetected.${claims.jti}`,
           payload: { userId: claims.sub, familyId: reuseFamily, jti: claims.jti },
         });
+        return true;
       });
-      tokenRefreshCounter.inc({ outcome: 'family_revoked_on_reuse' });
+      if (revokedActiveTokens) {
+        tokenRefreshCounter.inc({ outcome: 'family_revoked_on_reuse' });
+      }
     }
     throw new HandlerError('UNAUTHENTICATED', 'refresh token revoked');
   }
