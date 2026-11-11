@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { isSafeImageUrl as sharedIsSafeImageUrl } from '@adopt-dont-shop/service-bootstrap';
 import { isSafeImageUrl } from './image-url.js';
 
 describe('isSafeImageUrl', () => {
@@ -26,5 +27,37 @@ describe('isSafeImageUrl', () => {
     expect(isSafeImageUrl('https://bucket.s3.eu-west-2.amazonaws.com/a.jpg')).toBe(true);
     expect(isSafeImageUrl('https://other.example.com/a.jpg')).toBe(false);
     expect(isSafeImageUrl('http://cdn.example.com/a.jpg')).toBe(false);
+  });
+
+  it.each([
+    ['backslash', '/\\evil.example/a.png'],
+    ['tab', '/\t/evil.example'],
+    ['newline', '/\n/evil.example'],
+    ['carriage return', '/\r/evil.example'],
+    ['leading backslash-slash', '\\/evil.example/a.png'],
+    ['userinfo', 'https://cdn.example.com@evil.example/a.png'],
+  ])('rejects the off-origin bypass via %s', (_label, candidate) => {
+    vi.stubEnv('CLOUDFRONT_DOMAIN', 'cdn.example.com');
+    expect(isSafeImageUrl(candidate)).toBe(false);
+  });
+
+  it('agrees with the shared policy on every case', () => {
+    vi.stubEnv('CLOUDFRONT_DOMAIN', 'cdn.example.com');
+    const candidates = [
+      '/uploads/pets/a.jpg',
+      '/%5Cevil.example/a.png',
+      '/\\evil.example/a.png',
+      '/\t/evil.example',
+      '//evil.example/a.png',
+      '//placeholder.invalid/a.png',
+      '///placeholder.invalid/a.png',
+      'https://cdn.example.com/a.jpg',
+      'https://evil.example/a.jpg',
+      'javascript:alert(1)',
+      'a.jpg',
+    ];
+    candidates.forEach(candidate =>
+      expect(isSafeImageUrl(candidate)).toBe(sharedIsSafeImageUrl(candidate, process.env))
+    );
   });
 });

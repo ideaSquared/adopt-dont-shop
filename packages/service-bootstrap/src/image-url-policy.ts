@@ -19,10 +19,34 @@ export function allowedImageHosts(env: NodeJS.ProcessEnv = process.env): Set<str
   return hosts;
 }
 
+// Browsers parse with the WHATWG URL algorithm: it drops ASCII tab/LF/CR from
+// anywhere in the input and treats `\` as `/` for https. So `/\evil.example`
+// or `/<TAB>/evil.example` start with a single `/` yet resolve off-origin.
+// Control characters and backslashes have no place in an image URL; reject them
+// outright, then decide relative paths by actually resolving them.
+const UNSAFE_CHARACTERS = /[\u0000-\u001f\u007f\\]/;
+const PLACEHOLDER_ORIGIN = 'https://placeholder.invalid';
+
+const isSameOriginPath = (value: string): boolean => {
+  // `//host/...` is protocol-relative: it names a host, so it is never a path on
+  // this origin. Rejecting it here (not just by comparing origins below) matters
+  // because it would resolve against the placeholder origin to the placeholder
+  // host itself and look same-origin, while on a real page it points elsewhere.
+  if (!value.startsWith('/') || value.startsWith('//')) {
+    return false;
+  }
+  try {
+    return new URL(value, PLACEHOLDER_ORIGIN).origin === PLACEHOLDER_ORIGIN;
+  } catch {
+    return false;
+  }
+};
+
 export function isSafeImageUrl(value: string, env: NodeJS.ProcessEnv = process.env): boolean {
-  // `//host/...` is protocol-relative — browsers resolve it off-origin, so
-  // it's excluded from the same-origin relative-path allowance below.
-  if (value.startsWith('/') && !value.startsWith('//')) {
+  if (UNSAFE_CHARACTERS.test(value)) {
+    return false;
+  }
+  if (isSameOriginPath(value)) {
     return true;
   }
   let parsed: URL;
