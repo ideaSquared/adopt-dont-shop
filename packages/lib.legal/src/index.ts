@@ -26,6 +26,8 @@ export type {
 // Versioned legal document rendering (ADS-1326)
 export { useLegalDocument } from './hooks/useLegalDocument';
 export { renderLegalMarkdown } from './utils/render-legal-markdown';
+export { parseLegalDocument } from './utils/parse-legal-document';
+export type { LegalSection, ParsedLegalDocument } from './utils/parse-legal-document';
 
 // Cookie banner storage + sign-in attach
 export {

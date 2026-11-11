@@ -1,19 +1,20 @@
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { renderWithProviders, screen } from '../test-utils';
 
-const { useLegalDocumentMock, renderLegalMarkdownMock } = vi.hoisted(() => ({
-  useLegalDocumentMock: vi.fn(),
-  renderLegalMarkdownMock: vi.fn((markdown: string) => `<p>${markdown}</p>`),
-}));
+const { useLegalDocumentMock } = vi.hoisted(() => ({ useLegalDocumentMock: vi.fn() }));
 
-vi.mock('@adopt-dont-shop/lib.legal', () => ({
+vi.mock('@adopt-dont-shop/lib.legal', async importOriginal => ({
+  ...(await importOriginal<typeof import('@adopt-dont-shop/lib.legal')>()),
   useLegalDocument: useLegalDocumentMock,
-  renderLegalMarkdown: renderLegalMarkdownMock,
 }));
 
 import { CookiesPage } from './CookiesPage';
 
 describe('CookiesPage', () => {
+  beforeEach(() => {
+    window.scrollTo = vi.fn();
+  });
+
   it('shows a loading state while the cookies document is fetching', () => {
     useLegalDocumentMock.mockReturnValue({ isLoading: true, isError: false, data: undefined });
 
@@ -33,7 +34,6 @@ describe('CookiesPage', () => {
 
     expect(screen.getByRole('heading', { name: 'Cookie Policy' })).toBeInTheDocument();
     expect(screen.getByText('We use cookies.')).toBeInTheDocument();
-    expect(renderLegalMarkdownMock).toHaveBeenCalledWith('We use cookies.');
   });
 
   it('shows a fallback message when the document fails to load', () => {
