@@ -1,4 +1,3 @@
-import React from 'react';
 import { renderHook, act } from '@testing-library/react';
 import { MemoryRouter, useSearchParams } from 'react-router';
 import { describe, it, expect } from 'vitest';

@@ -1,6 +1,5 @@
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
-import React from 'react';
 import { ReportRenderer, type ReportRendererWidget } from './ReportRenderer';
 
 // Stub chart primitives so tests don't depend on canvas / recharts internals

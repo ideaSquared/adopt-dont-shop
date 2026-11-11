@@ -36,7 +36,7 @@
     "dev:server": "vite --port 3010 --mode development",
     "build": "rimraf dist && vite build && tsc -p tsconfig.build.json && vite build --config vite.theme.config.ts",
     "build:types": "tsc --emitDeclarationOnly",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --noEmit -p tsconfig.typecheck.json",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
