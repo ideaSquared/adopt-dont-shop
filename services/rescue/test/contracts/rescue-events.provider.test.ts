@@ -68,10 +68,15 @@ function rescueRow(overrides: Record<string, unknown> = {}) {
 }
 
 // The pool answers reads with `poolRow`; the transaction client answers every
-// write (and withTransaction's outbox plumbing) with `clientRow`.
+// write (and withTransaction's outbox plumbing) with `clientRow`, except the
+// `SELECT ... FOR UPDATE` row lock, which sees the row as it was before the write.
 function makeDeps(poolRow: unknown, clientRow: unknown) {
   const client = {
-    query: vi.fn().mockResolvedValue({ rows: [clientRow], rowCount: 1 }),
+    query: vi.fn(async (sql: string) =>
+      /FOR UPDATE/i.test(sql)
+        ? { rows: [poolRow], rowCount: 1 }
+        : { rows: [clientRow], rowCount: 1 }
+    ),
     release: vi.fn(),
   };
   const pool = {
