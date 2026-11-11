@@ -1,12 +1,20 @@
 {
   "description": "Checkpoint for the Daily Code Review routine. Records the last commit on the default branch (main) that has been reviewed. The next run diffs main from this SHA forward. Update after each run.",
-  "lastReviewedCommit": "9d529c9",
-  "lastReviewedDate": "2026-10-28",
+  "lastReviewedCommit": "c043bf2",
+  "lastReviewedDate": "2026-11-11",
   "lastRun": {
-    "date": "2026-10-28",
-    "range": "4591685..9d529c9",
-    "commitsReviewed": 1,
-    "ticketsFiled": [],
-    "notes": "1 commit / 1 file (7 insertions, 7 deletions). Zero tickets filed (guardrail 2) — the diff was reviewed and nothing cleared the bar.\n\nThe 1 commit:\n- 9d529c9 (#1542) chore(review): record daily-code-review checkpoint at 4591685 (ADS-1424) — the prior run's OWN checkpoint-recording commit; touches only .claude/daily-code-review-checkpoint.json (routine bookkeeping), no product code and no behaviour change. Skipped per established practice (prior runs skipped their own checkpoint commits 03b703e, 03aec63-equivalent).\n\nMethod: diffed 4591685..origin/main (origin/main HEAD = 9d529c9). The entire range is the single checkpoint-JSON bookkeeping commit; there is no product, test, docs, ci or tooling change to evaluate. No finding, so no Linear overlap check was required (guardrail 3 applies only before filing). Guardrail 2 respected: no manufactured ticket. Checkpoint advanced to 9d529c9 so the next run diffs forward from here."
+    "date": "2026-11-11",
+    "range": "9d529c9..c043bf2",
+    "commitsReviewed": 101,
+    "ticketsFiled": [
+      "ADS-1473",
+      "ADS-1474",
+      "ADS-1475",
+      "ADS-1476",
+      "ADS-1477",
+      "ADS-1478",
+      "ADS-1479"
+    ],
+    "notes": "Large backlog: the routine had not run since 2026-10-28 (the repo clone was shallow; history was deepened with `git fetch --unshallow` to reach the 9d529c9 checkpoint). 101 merged commits, 1607 files. Reviewed via 4 parallel domain-focused review agents (moderation/auth/applications; matching/discovery/pets/gateway; rescue/notifications; frontend apps + lib.components), each finding verified against source before filing.\n\n7 tickets filed (High -> Low):\n- ADS-1473 (High, Bug): Distance badge never renders for adopters - GetRescueLocations hard-requires rescues.read which adopters lack; withDistances swallows the PERMISSION_DENIED. Feature (#1598) dead for its target audience.\n- ADS-1474 (High, Bug): Public rescue registration (#1606) has no saga/compensation - a failed rescue-create step orphans the committed owner account and the neutral-201-on-existing-email path makes retry impossible (permanent lockout).\n- ADS-1475 (Medium, Bug): insertPendingRescue doesn't catch 23505 - duplicate rescue name/email/registration-number surfaces as opaque INTERNAL 500 instead of ALREADY_EXISTS (#1606).\n- ADS-1476 (Medium, Bug): Moderator sanction calls auth.ApplyUserSanction (a cross-service write) inside moderation's withTransaction - dual-write gap, enforcement/record divergence if moderation commit fails; contradicts outbox discipline (#1607).\n- ADS-1477 (Medium, Bug): Admin Messages search has no debounce + hand-rolled fetch with no sequencing - per-keystroke platform-wide FTS and stale last-resolved-wins results (#1638).\n- ADS-1478 (Low, Bug): ApplyUserSanction suspend overwrites suspended_until unconditionally - a shorter later suspension silently shortens a longer active one (#1607/#1610).\n- ADS-1479 (Low, Improvement): views_today counts (viewer,hour) buckets over a rolling 24h window, not distinct viewers/calendar-today - overstates social-proof count and mislabels window (#1594).\n\nSystemic pattern noted: synchronous cross-service multi-writes without atomicity/compensation (ADS-1474 auth+rescue; ADS-1476 moderation+auth). Both file into this board; cross-referenced in the tickets.\n\nDropped below the bar (signal over noise): a redundant tabpanel tabIndex=0 in the new accessible Tabs primitive (minor APG friction, content still operable); and lib.invitations invitation_id typed `number` while carrying a UUID string (pre-existing type lie perpetuated by #1574, no demonstrated runtime failure). Independently spot-checked the observability redactor change (#1613) and the moderation GDPR auto-report redaction (#1653) - both correct and well-tested, no finding. Overlap checked against all existing labels (DevEx/Security/Documentation/Tooling tickets and the two Done Daily Code Review chat-sender tickets ADS-1408/1424) - no duplicates. Checkpoint advanced to c043bf2."
   }
 }
