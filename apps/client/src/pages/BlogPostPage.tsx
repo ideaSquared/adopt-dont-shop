@@ -22,7 +22,7 @@ export const BlogPostPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Container className={styles.pageContainer}>
+      <Container size='md' className={styles.pageContainer}>
         <div className={styles.spinnerWrapper}>
           <Spinner size='lg' label='Loading' />
         </div>
@@ -32,14 +32,14 @@ export const BlogPostPage: React.FC = () => {
 
   if (!post) {
     return (
-      <Container className={styles.pageContainer}>
+      <Container size='md' className={styles.pageContainer}>
         <EmptyState title='Post not found.' />
       </Container>
     );
   }
 
   return (
-    <Container className={styles.pageContainer}>
+    <Container size='md' className={styles.pageContainer}>
       <Link to='/blog' className={styles.backLink}>
         <ArrowLeft size='1em' aria-hidden='true' /> Back to Blog
       </Link>
@@ -48,7 +48,11 @@ export const BlogPostPage: React.FC = () => {
         <img src={post.featuredImageUrl} alt={post.title} className={styles.featuredImage} />
       )}
 
-      <PageHeader title={post.title} description={formatDate(post.publishedAt ?? post.createdAt)} />
+      <PageHeader
+        className={styles.header}
+        title={post.title}
+        description={formatDate(post.publishedAt ?? post.createdAt)}
+      />
 
       <SafeHtml html={post.content} className={styles.postContent} />
     </Container>

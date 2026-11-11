@@ -1,4 +1,5 @@
 import React from 'react';
+import { ChevronRight, FileText } from 'lucide-react';
 import { Link } from 'react-router';
 import {
   Container,
@@ -15,8 +16,9 @@ export const HelpPage: React.FC = () => {
   const articles = data?.content ?? [];
 
   return (
-    <Container className={styles.pageContainer}>
+    <Container size='md' className={styles.pageContainer}>
       <PageHeader
+        className={styles.header}
         title='Help Center'
         description='Answers to common questions about adopting, rescues, and using the platform'
       />
@@ -33,19 +35,35 @@ export const HelpPage: React.FC = () => {
       ) : articles.length === 0 ? (
         <EmptyState title='No help articles yet — check back soon!' />
       ) : (
-        <div className={styles.articleList}>
+        <ul className={styles.articleList}>
           {articles.map(article => (
-            <Link
-              key={article.contentId}
-              to={`/help/${article.slug}`}
-              className={styles.articleCard}
-            >
-              <h2 className={styles.articleTitle}>{article.title}</h2>
-              {article.excerpt && <p className={styles.articleExcerpt}>{article.excerpt}</p>}
-            </Link>
+            <li key={article.contentId}>
+              <Link to={`/help/${article.slug}`} className={styles.articleCard}>
+                <span className={styles.articleIcon} aria-hidden='true'>
+                  <FileText size='1em' />
+                </span>
+                <div className={styles.articleText}>
+                  <h2 className={styles.articleTitle}>{article.title}</h2>
+                  {article.excerpt && <p className={styles.articleExcerpt}>{article.excerpt}</p>}
+                </div>
+                <ChevronRight size='1.25em' aria-hidden='true' className={styles.articleChevron} />
+              </Link>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
+
+      <section className={styles.contactPrompt} aria-labelledby='help-contact'>
+        <h2 id='help-contact' className={styles.contactTitle}>
+          Can&apos;t find what you need?
+        </h2>
+        <p className={styles.contactText}>
+          Our team is happy to help with anything not covered here.{' '}
+          <Link to='/contact' className={styles.contactLink}>
+            Contact us
+          </Link>
+        </p>
+      </section>
     </Container>
   );
 };

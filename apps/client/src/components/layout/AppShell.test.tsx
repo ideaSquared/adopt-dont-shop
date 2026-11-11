@@ -61,6 +61,7 @@ const renderShell = (path = '/') =>
               <Route path='/' element={<div>Home</div>} />
               <Route path='/privacy' element={<div>Privacy</div>} />
               <Route path='/terms' element={<div>Terms</div>} />
+              <Route path='*' element={<div>Reading page</div>} />
             </Route>
           </Routes>
         </MemoryRouter>
@@ -74,7 +75,17 @@ describe('AppShell swipe onboarding', () => {
     expect(screen.getByTestId('swipe-onboarding')).toBeInTheDocument();
   });
 
-  it.each(['/privacy', '/terms'])('keeps the swipe onboarding off %s', path => {
+  it.each([
+    '/privacy',
+    '/terms',
+    '/cookies',
+    '/blog',
+    '/blog/a-post',
+    '/help',
+    '/help/an-article',
+    '/about',
+    '/contact',
+  ])('keeps the swipe onboarding off %s', path => {
     renderShell(path);
     expect(screen.queryByTestId('swipe-onboarding')).not.toBeInTheDocument();
   });

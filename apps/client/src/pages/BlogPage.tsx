@@ -16,6 +16,7 @@ export const BlogPage: React.FC = () => {
   return (
     <Container className={styles.pageContainer}>
       <PageHeader
+        className={styles.header}
         title='Blog'
         description='News, stories, and updates from the world of pet adoption'
       />
@@ -28,24 +29,27 @@ export const BlogPage: React.FC = () => {
         <EmptyState title='No posts yet — check back soon!' />
       ) : (
         <div className={styles.postGrid}>
-          {posts.map(post => (
-            <Link key={post.contentId} to={`/blog/${post.slug}`} className={styles.postCard}>
-              {post.featuredImageUrl ? (
-                <img src={post.featuredImageUrl} alt={post.title} className={styles.postImage} />
-              ) : (
-                <div className={styles.postImagePlaceholder} aria-hidden='true'>
-                  <PawPrint size='1em' />
+          {posts.map(post => {
+            const date = post.publishedAt ?? post.createdAt;
+            return (
+              <Link key={post.contentId} to={`/blog/${post.slug}`} className={styles.postCard}>
+                {post.featuredImageUrl ? (
+                  <img src={post.featuredImageUrl} alt='' className={styles.postImage} />
+                ) : (
+                  <div className={styles.postImagePlaceholder} aria-hidden='true'>
+                    <PawPrint size='1em' />
+                  </div>
+                )}
+                <div className={styles.postBody}>
+                  <time dateTime={date} className={styles.postDate}>
+                    {formatDate(date)}
+                  </time>
+                  <h2 className={styles.postTitle}>{post.title}</h2>
+                  {post.excerpt && <p className={styles.postExcerpt}>{post.excerpt}</p>}
                 </div>
-              )}
-              <div className={styles.postBody}>
-                <h2 className={styles.postTitle}>{post.title}</h2>
-                {post.excerpt && <p className={styles.postExcerpt}>{post.excerpt}</p>}
-                <span className={styles.postDate}>
-                  {formatDate(post.publishedAt ?? post.createdAt)}
-                </span>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       )}
     </Container>
