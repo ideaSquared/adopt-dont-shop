@@ -72,7 +72,17 @@ runs:
 
     - name: Install Playwright browsers
       shell: bash
-      run: pnpm test:e2e:install
+      # The browser comes from the cache or Playwright's CDN; its system
+      # packages come from the Ubuntu mirrors via apt. When the runner can't
+      # reach those mirrors, `--with-deps` failed the whole job before any test
+      # ran, though the runner image already carries what Chromium needs (the
+      # missing packages were extra fonts). Install the browser strictly and
+      # the system packages best-effort: if something essential really is
+      # missing, the browser fails to launch and the tests say so.
+      run: |
+        pnpm --filter @adopt-dont-shop/e2e exec playwright install chromium
+        pnpm --filter @adopt-dont-shop/e2e exec playwright install-deps chromium \
+          || echo "::warning title=Playwright system packages::apt install failed (mirror unreachable?); continuing with the runner image's packages"
 
     - name: Build the shared dev image
       # The isolated stack (docker-compose.e2e.yml on top of the dev compose
