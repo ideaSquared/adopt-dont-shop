@@ -22,8 +22,6 @@
 // enforcement (preferences-gate.ts) for free, on top of this job's own
 // digest-specific consent check.
 
-import { randomUUID } from 'node:crypto';
-
 import type { Logger } from 'winston';
 
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
@@ -40,6 +38,7 @@ import {
 import { loadWeeklyDigestConsentedUserIds } from '../email/preferences.js';
 import { createNotification } from '../grpc/handlers.js';
 import { SYSTEM_PRINCIPAL } from '../nats/system-principal.js';
+import { runSummaryActionTaken } from './run-summary-audit.js';
 
 // --- Fan-out client slices this job needs ------------------------------
 
@@ -262,14 +261,9 @@ export async function runWeeklyDigest(
   // run that sent nothing.
   if (sent > 0) {
     await withTransaction(deps, async ({ publish }) => {
-      publish({
-        type: 'notifications.actionTaken',
-        id: `notifications.actionTaken.weeklyDigestRun.${now.getTime()}`,
-        payload: {
-          service: 'service.notifications',
-          subject: 'notifications.actionTaken',
+      publish(
+        runSummaryActionTaken({
           aggregateType: 'weekly_digest',
-          aggregateId: randomUUID(),
           action: 'digest_run',
           details: {
             cohortSize: activeUserIds.length,
@@ -278,8 +272,8 @@ export async function runWeeklyDigest(
             skippedEmpty,
             failed,
           },
-        },
-      });
+        })
+      );
     });
   }
 

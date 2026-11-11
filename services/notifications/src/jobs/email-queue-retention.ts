@@ -12,9 +12,9 @@
 // one notifications.actionTaken summary event per run (only when rows were
 // actually deleted) — see the audit-logging skill.
 
-import { randomUUID } from 'node:crypto';
-
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
+
+import { runSummaryActionTaken } from './run-summary-audit.js';
 
 export type EmailQueueRetentionOptions = {
   // Age (in days) a sent row must reach before it's purged.
@@ -52,20 +52,13 @@ export async function purgeSentEmailQueue(
       // Attach the summary event to the final batch's commit — a run that
       // deleted nothing publishes nothing (no audit noise for a no-op tick).
       if (isLastBatch && deletedCount > 0) {
-        publish({
-          type: 'notifications.actionTaken',
-          id: `notifications.actionTaken.emailQueueRetentionPurge.${Date.now()}`,
-          payload: {
-            service: 'service.notifications',
-            subject: 'notifications.actionTaken',
+        publish(
+          runSummaryActionTaken({
             aggregateType: 'email_queue',
-            // Synthetic per-run id — audit_events.aggregate_id is a uuid
-            // column and there is no single row this bulk purge maps to.
-            aggregateId: randomUUID(),
             action: 'retention_purge',
             details: { deletedCount, retentionDays: opts.retentionDays },
-          },
-        });
+          })
+        );
       }
 
       return rows.length;
