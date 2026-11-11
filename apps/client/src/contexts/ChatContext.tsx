@@ -89,12 +89,16 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   // Scope the offline queue to the signed-in user. Runs on every user change,
   // including the null of a logout or a session-expiry sign-out, but not while
   // the session is still rehydrating (a returning user keeps their queue).
+  // ChatService keeps its own disconnected-send queue across disconnect(); drop it too so the
+  // next user's socket cannot flush the previous user's messages. This effect runs after
+  // lib.chat's connect effect, but the socket 'connect' that flushes is asynchronous.
   const userId = user?.userId ?? null;
   useEffect(() => {
     if (isInitializing) {
       return;
     }
     offlineManager.setCurrentUser(userId);
+    chatService.clearMessageQueue();
   }, [userId, isInitializing]);
 
   const featureFlags = useMemo<FeatureFlagsAdapter>(

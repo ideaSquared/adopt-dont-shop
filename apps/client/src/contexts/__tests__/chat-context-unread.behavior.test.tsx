@@ -38,6 +38,7 @@ let seededConversations: Conversation[] = [];
 vi.mock('@/services', () => ({
   chatService: {
     connect: vi.fn(),
+    clearMessageQueue: vi.fn(),
     disconnect: vi.fn(),
     getConversations: vi.fn(async () => seededConversations),
     getMessages: vi.fn(async () => ({ data: [] })),
