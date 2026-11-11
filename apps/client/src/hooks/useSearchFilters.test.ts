@@ -128,7 +128,7 @@ describe('useSearchFilters inside a router', () => {
       { wrapper }
     );
     expect(result.current.location.pathname).toBe('/search');
-    expect(result.current.location.search).toBe('?sortBy=createdAt&sortOrder=desc');
+    expect(result.current.location.search).toBe('');
 
     act(() => {
       result.current.navigate('/favorites');
@@ -137,6 +137,47 @@ describe('useSearchFilters inside a router', () => {
     // Its filter params must not be written onto the page that was navigated to.
     expect(result.current.location.pathname).toBe('/favorites');
     expect(result.current.location.search).toBe('');
+  });
+
+  it('does not navigate when landing on /search with the default filters', () => {
+    // A write on mount lands late when the page commits during the next
+    // navigation, and drags the visitor back to /search. With nothing to
+    // change there must be no write at all.
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(MemoryRouter, { initialEntries: ['/search'] }, children);
+
+    const { result } = renderHook(
+      () => {
+        const [searchParams, setSearchParams] = useSearchParams();
+        useSearchFilters(searchParams, setSearchParams);
+        return useLocation();
+      },
+      { wrapper }
+    );
+
+    expect(result.current.key).toBe('default');
+    expect(result.current.search).toBe('');
+  });
+
+  it('does not navigate when a deep link already holds the filters', () => {
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(
+        MemoryRouter,
+        { initialEntries: ['/search?type=dog&sortBy=name&sortOrder=asc'] },
+        children
+      );
+
+    const { result } = renderHook(
+      () => {
+        const [searchParams, setSearchParams] = useSearchParams();
+        useSearchFilters(searchParams, setSearchParams);
+        return useLocation();
+      },
+      { wrapper }
+    );
+
+    expect(result.current.key).toBe('default');
+    expect(result.current.search).toBe('?type=dog&sortBy=name&sortOrder=asc');
   });
 
   it('keeps the history stack flat: Back leaves the page after mount and filter changes', () => {

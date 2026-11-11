@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { type PetSearchFilters } from '@/services';
 import { isKnownSortBy, isKnownSortOrder } from '../pages/searchOptions';
 
+const DEFAULT_SORT_BY = 'createdAt';
+const DEFAULT_SORT_ORDER = 'desc';
+
 type UseSearchFiltersReturn = {
   filters: PetSearchFilters;
   searchQuery: string;
@@ -29,8 +32,8 @@ export const useSearchFilters = (
     status: searchParams.get('status') || '',
     page: parseInt(searchParams.get('page') || '1'),
     limit: 12,
-    sortBy: isKnownSortBy(initialSortByParam) ? (initialSortByParam as string) : 'createdAt',
-    sortOrder: isKnownSortOrder(initialSortOrderParam) ? initialSortOrderParam : 'desc',
+    sortBy: isKnownSortBy(initialSortByParam) ? (initialSortByParam as string) : DEFAULT_SORT_BY,
+    sortOrder: isKnownSortOrder(initialSortOrderParam) ? initialSortOrderParam : DEFAULT_SORT_ORDER,
   });
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
@@ -39,8 +42,10 @@ export const useSearchFilters = (
   // it out of the effect's dependencies: the page can stay mounted while the
   // next route loads, and a re-run then writes these params onto the old URL.
   const setSearchParamsRef = useRef(setSearchParams);
+  const searchParamsRef = useRef(searchParams);
   useEffect(() => {
     setSearchParamsRef.current = setSearchParams;
+    searchParamsRef.current = searchParams;
   });
 
   useEffect(() => {
@@ -73,11 +78,21 @@ export const useSearchFilters = (
     if (filters.page && filters.page > 1) {
       params.set('page', filters.page.toString());
     }
-    if (filters.sortBy) {
+    // The default sort is implied, so leave it out of the URL.
+    const isDefaultSort =
+      filters.sortBy === DEFAULT_SORT_BY && filters.sortOrder === DEFAULT_SORT_ORDER;
+    if (filters.sortBy && !isDefaultSort) {
       params.set('sortBy', filters.sortBy);
     }
-    if (filters.sortOrder) {
+    if (filters.sortOrder && !isDefaultSort) {
       params.set('sortOrder', filters.sortOrder);
+    }
+
+    // Write only when the URL would change. A write on mount can land after the
+    // visitor has already clicked away (the page commits during the next
+    // navigation) and would drag them back to /search.
+    if (params.toString() === searchParamsRef.current.toString()) {
+      return;
     }
 
     // Replace, don't push: filter state is not a navigation, so it must not
