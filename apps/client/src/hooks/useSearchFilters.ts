@@ -14,7 +14,7 @@ type UseSearchFiltersReturn = {
 
 export const useSearchFilters = (
   searchParams: URLSearchParams,
-  setSearchParams: (params: URLSearchParams) => void
+  setSearchParams: (params: URLSearchParams, options?: { replace?: boolean }) => void
 ): UseSearchFiltersReturn => {
   const initialSortByParam = searchParams.get('sortBy');
   const initialSortOrderParam = searchParams.get('sortOrder');
@@ -80,7 +80,9 @@ export const useSearchFilters = (
       params.set('sortOrder', filters.sortOrder);
     }
 
-    setSearchParamsRef.current(params);
+    // Replace, don't push: filter state is not a navigation, so it must not
+    // add a history entry (on mount or on every filter change).
+    setSearchParamsRef.current(params, { replace: true });
   }, [filters, searchQuery]);
 
   const handleFilterChange = (field: keyof PetSearchFilters, value: string) => {
