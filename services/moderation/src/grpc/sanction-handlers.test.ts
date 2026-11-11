@@ -163,6 +163,8 @@ describe('listUserSanctions', () => {
     const { deps } = makeDeps([{ rows: [sanctionRow({ user_id: 'usr-2' })] }]);
     const res = await listUserSanctions(deps, makePrincipal({ userId: 'usr-2', permissions: [] }), {
       userId: 'usr-2',
+      includeInactive: false,
+      unacknowledgedOnly: false,
     });
     expect(res.sanctions).toHaveLength(1);
   });
@@ -172,17 +174,27 @@ describe('listUserSanctions', () => {
     await expect(
       listUserSanctions(deps, makePrincipal({ userId: 'usr-1', permissions: [] }), {
         userId: 'usr-2',
+        includeInactive: false,
+        unacknowledgedOnly: false,
       })
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   });
 
   it('defaults to active-only; include_inactive returns full history', async () => {
     const activeOnly = makeDeps([{ rows: [] }]);
-    await listUserSanctions(activeOnly.deps, makePrincipal(), { userId: 'usr-2' });
+    await listUserSanctions(activeOnly.deps, makePrincipal(), {
+      userId: 'usr-2',
+      includeInactive: false,
+      unacknowledgedOnly: false,
+    });
     expect(activeOnly.query.mock.calls[0][0]).toContain('is_active = true');
 
     const all = makeDeps([{ rows: [] }]);
-    await listUserSanctions(all.deps, makePrincipal(), { userId: 'usr-2', includeInactive: true });
+    await listUserSanctions(all.deps, makePrincipal(), {
+      userId: 'usr-2',
+      includeInactive: true,
+      unacknowledgedOnly: false,
+    });
     expect(all.query.mock.calls[0][0]).not.toContain('is_active = true');
   });
 
@@ -190,19 +202,28 @@ describe('listUserSanctions', () => {
     const banner = makeDeps([{ rows: [] }]);
     await listUserSanctions(banner.deps, makePrincipal({ userId: 'usr-2', permissions: [] }), {
       userId: 'usr-2',
+      includeInactive: false,
       unacknowledgedOnly: true,
     });
     expect(banner.query.mock.calls[0][0]).toContain('acknowledged_at IS NULL');
 
     const all = makeDeps([{ rows: [] }]);
-    await listUserSanctions(all.deps, makePrincipal(), { userId: 'usr-2' });
+    await listUserSanctions(all.deps, makePrincipal(), {
+      userId: 'usr-2',
+      includeInactive: false,
+      unacknowledgedOnly: false,
+    });
     expect(all.query.mock.calls[0][0]).not.toContain('acknowledged_at IS NULL');
   });
 
   // ADS-1323: the query ran with no LIMIT.
   it('caps the query with a LIMIT (ADS-1323)', async () => {
     const { deps, query } = makeDeps([{ rows: [] }]);
-    await listUserSanctions(deps, makePrincipal(), { userId: 'usr-2' });
+    await listUserSanctions(deps, makePrincipal(), {
+      userId: 'usr-2',
+      includeInactive: false,
+      unacknowledgedOnly: false,
+    });
     expect(query.mock.calls[0][0]).toMatch(/LIMIT\s+\d+/i);
   });
 });
@@ -247,7 +268,7 @@ describe('acknowledgeSanction', () => {
         sanctionId: 'sanc-1',
       }
     );
-    expect(res.sanction.acknowledgedAt).toBe('2026-06-02T09:00:00.000Z');
+    expect(res.sanction?.acknowledgedAt).toBe('2026-06-02T09:00:00.000Z');
     expect(query.mock.calls[1][0]).toContain('acknowledged_at = NOW()');
   });
 
@@ -319,7 +340,7 @@ describe('appealSanction', () => {
       sanctionId: 'sanc-1',
       appealReason: 'provoked',
     });
-    expect(res.sanction.appealStatus).toBe('pending');
+    expect(res.sanction?.appealStatus).toBe('pending');
     const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
     expect(publish.mock.calls[0][0]).toMatchObject({ type: 'moderation.sanctionAppealed' });
   });
@@ -337,7 +358,7 @@ describe('appealSanction', () => {
         appealReason: 'support escalation',
       }
     );
-    expect(res.sanction.appealStatus).toBe('pending');
+    expect(res.sanction?.appealStatus).toBe('pending');
   });
 });
 

@@ -32,9 +32,12 @@ vi.mock('@adopt-dont-shop/events', () => ({
 }));
 
 // Spy on the canonical FileReport handler the subscribers delegate to.
-const fileReportMock = vi.fn(async () => ({ report: undefined }));
+const fileReportMock = vi.fn<
+  (deps: unknown, principal: unknown, req: FileReportRequest) => Promise<{ report: undefined }>
+>(async () => ({ report: undefined }));
 vi.mock('../grpc/handlers.js', () => ({
-  fileReport: (...args: unknown[]) => fileReportMock(...args),
+  fileReport: (deps: unknown, principal: unknown, req: FileReportRequest) =>
+    fileReportMock(deps, principal, req),
 }));
 
 const { registerSubscribers } = await import('./subscribers.js');
@@ -95,11 +98,7 @@ describe('registerSubscribers', () => {
     });
 
     expect(fileReportMock).toHaveBeenCalledTimes(1);
-    const [, principal, req] = fileReportMock.mock.calls[0] as [
-      unknown,
-      unknown,
-      FileReportRequest,
-    ];
+    const [, principal, req] = fileReportMock.mock.calls[0]!;
     // Filed as the SYSTEM principal so the row is indistinguishable from a
     // user report at the storage layer (and hits the auto-report unique index).
     expect(principal).toBe(SYSTEM_PRINCIPAL);
@@ -122,7 +121,7 @@ describe('registerSubscribers', () => {
     });
 
     expect(fileReportMock).toHaveBeenCalledTimes(1);
-    const [, , req] = fileReportMock.mock.calls[0] as [unknown, unknown, FileReportRequest];
+    const [, , req] = fileReportMock.mock.calls[0]!;
     expect(req.category).toBe(ModerationV1.ReportCategory.REPORT_CATEGORY_SPAM);
     expect(req.severity).toBe(ModerationV1.Severity.SEVERITY_MEDIUM);
   });
@@ -142,11 +141,7 @@ describe('registerSubscribers', () => {
     });
 
     expect(fileReportMock).toHaveBeenCalledTimes(1);
-    const [, principal, req] = fileReportMock.mock.calls[0] as [
-      unknown,
-      unknown,
-      FileReportRequest,
-    ];
+    const [, principal, req] = fileReportMock.mock.calls[0]!;
     expect(principal).toBe(SYSTEM_PRINCIPAL);
     expect(req.reportedEntityType).toBe(
       ModerationV1.ReportEntityType.REPORT_ENTITY_TYPE_APPLICATION

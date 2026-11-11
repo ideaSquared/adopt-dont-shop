@@ -445,7 +445,7 @@ describe('addEvidence', () => {
       type: ModerationV1.EvidenceType.EVIDENCE_TYPE_SCREENSHOT,
       content: 's3://x/abc.png',
     });
-    expect(res.evidence.evidenceId).toBe('ev-1');
+    expect(res.evidence?.evidenceId).toBe('ev-1');
     const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
     expect(publish.mock.calls[0][0]).toMatchObject({ type: 'moderation.evidenceAdded' });
   });

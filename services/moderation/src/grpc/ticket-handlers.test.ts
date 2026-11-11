@@ -98,6 +98,7 @@ function responseRow(overrides: Record<string, unknown> = {}) {
     responder_id: 'staff-1',
     responder_type: 'staff',
     content: 'Try clearing cookies.',
+    isInternal: false,
     is_internal: false,
     created_at: new Date('2026-06-01T13:00:00.000Z'),
     ...overrides,
@@ -117,7 +118,7 @@ describe('openSupportTicket', () => {
   it('does NOT require admin (any authenticated user can open a ticket)', async () => {
     const { deps } = makeDeps([{ rows: [ticketRow()] }]);
     const res = await openSupportTicket(deps, makePrincipal({ permissions: [] }), VALID_OPEN);
-    expect(res.ticket.ticketId).toBe('tkt-1');
+    expect(res.ticket?.ticketId).toBe('tkt-1');
   });
 
   it.each([
@@ -191,7 +192,7 @@ describe('openSupportTicket', () => {
       ...VALID_OPEN,
       userName: 'Jane Doe',
     });
-    expect(res.ticket.ticketId).toBe('tkt-1');
+    expect(res.ticket?.ticketId).toBe('tkt-1');
   });
 
   it('falls back to principal.userId when request user_id is absent', async () => {
@@ -255,7 +256,7 @@ describe('getSupportTicket', () => {
     const res = await getSupportTicket(deps, makePrincipal({ userId: 'usr-1', permissions: [] }), {
       ticketId: 'tkt-1',
     } as GetSupportTicketRequest);
-    expect(res.ticket.ticketId).toBe('tkt-1');
+    expect(res.ticket?.ticketId).toBe('tkt-1');
   });
 
   it('throws NOT_FOUND on a missing ticket', async () => {
@@ -270,7 +271,7 @@ describe('getSupportTicket', () => {
     const res = await getSupportTicket(deps, makePrincipal(), {
       ticketId: 'tkt-1',
     } as GetSupportTicketRequest);
-    expect(res.ticket.ticketId).toBe('tkt-1');
+    expect(res.ticket?.ticketId).toBe('tkt-1');
     expect(res.responses).toEqual([]);
     expect(query).toHaveBeenCalledTimes(1);
   });
@@ -419,7 +420,7 @@ describe('respondToTicket', () => {
   it('throws NOT_FOUND on a missing ticket', async () => {
     const { deps } = makeDeps([{ rows: [] }]);
     await expect(
-      respondToTicket(deps, makePrincipal(), { ticketId: 'gone', content: 'hi' })
+      respondToTicket(deps, makePrincipal(), { ticketId: 'gone', content: 'hi', isInternal: false })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
@@ -432,8 +433,9 @@ describe('respondToTicket', () => {
     const res = await respondToTicket(deps, makePrincipal(), {
       ticketId: 'tkt-1',
       content: 'Try clearing cookies.',
+      isInternal: false,
     });
-    expect(res.response.responseId).toBe('rsp-1');
+    expect(res.response?.responseId).toBe('rsp-1');
     // The UPDATE keeps first_response_at via COALESCE.
     expect(query.mock.calls[2][0]).toContain('COALESCE(first_response_at, NOW())');
     const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
@@ -451,7 +453,7 @@ describe('respondToTicket', () => {
       content: 'Internal note',
       isInternal: true,
     });
-    expect(res.response.isInternal).toBe(true);
+    expect(res.response?.isInternal).toBe(true);
     // INSERT params: [responseId, ticketId, responderId, responderType,
     // content, isInternal] — is_internal is index 5 (0-based).
     expect(query.mock.calls[1][1][5]).toBe(true);
@@ -466,6 +468,7 @@ describe('respondToTicket', () => {
     await respondToTicket(deps, makePrincipal({ userId: 'usr-1', permissions: [] }), {
       ticketId: 'tkt-1',
       content: 'Reply from owner',
+      isInternal: false,
     });
     // responder_type at INSERT param index 3.
     expect(query.mock.calls[1][1][3]).toBe('user');
@@ -488,6 +491,7 @@ describe('respondToTicket', () => {
       respondToTicket(deps, makePrincipal({ userId: 'usr-1', permissions: [] }), {
         ticketId: 'tkt-1',
         content: 'not mine',
+        isInternal: false,
       })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
