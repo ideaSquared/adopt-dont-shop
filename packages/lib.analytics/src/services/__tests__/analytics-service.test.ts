@@ -1,5 +1,4 @@
 import { AnalyticsService } from '../analytics-service';
-import { apiService } from '@adopt-dont-shop/lib.api';
 
 // Mock lib.api
 vi.mock('@adopt-dont-shop/lib.api', () => ({
@@ -44,6 +43,12 @@ Object.defineProperty(document, 'referrer', {
   value: 'https://example.com/previous',
   writable: true,
 });
+
+// The defineProperty above makes `document.referrer` writable at runtime, but lib.dom
+// types it readonly; this view lets tests reassign it without a per-site cast.
+const setReferrer = (value: string): void => {
+  (document as { referrer: string }).referrer = value;
+};
 
 Object.defineProperty(navigator, 'userAgent', {
   value: 'Test User Agent',
@@ -203,7 +208,7 @@ describe('AnalyticsService', () => {
       // so seed a token into BOTH to prove neither leaks to the datastore.
       window.history.replaceState({}, '', '/verify-email?token=SECRET&page=2');
       const prevReferrer = document.referrer;
-      document.referrer = 'https://example.com/reset-password?token=REFSECRET&ref=abc';
+      setReferrer('https://example.com/reset-password?token=REFSECRET&ref=abc');
 
       try {
         await service.trackEvent({ category: 'user_interaction', action: 'click' });
@@ -218,7 +223,7 @@ describe('AnalyticsService', () => {
         expect(captured.referrer).toBe('https://example.com/reset-password?ref=abc');
       } finally {
         window.history.replaceState({}, '', '/test');
-        document.referrer = prevReferrer;
+        setReferrer(prevReferrer);
       }
     });
 

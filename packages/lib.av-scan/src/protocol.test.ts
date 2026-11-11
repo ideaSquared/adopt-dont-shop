@@ -19,7 +19,7 @@ function startFakeClamd(
       let sawCommand = false;
       const chunks: Buffer[] = [];
 
-      socket.on('data', (data) => {
+      socket.on('data', (data: Buffer) => {
         buf = Buffer.concat([buf, data]);
         if (!sawCommand) {
           const idx = buf.indexOf('\n');

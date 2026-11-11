@@ -12,8 +12,8 @@ const lineWidget = {
   id: '634d3ff9-634a-40e8-8ef5-efd55e37d4b1',
   title: 'Adoptions',
   position: { x: 0, y: 0, w: 6, h: 4 },
-  metric: 'adoption',
-  chartType: 'line',
+  metric: 'adoption' as const,
+  chartType: 'line' as const,
   options: {
     xKey: 'date',
     series: [{ key: 'count', label: 'Count' }],

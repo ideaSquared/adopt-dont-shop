@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { AuditLogsService } from '../services/audit-logs-service';
 import { api } from '@adopt-dont-shop/lib.api';
 import { AuditLogLevel, AuditLogStatus } from '../types';
@@ -5,7 +6,7 @@ import { AuditLogLevel, AuditLogStatus } from '../types';
 vi.mock('@adopt-dont-shop/lib.api');
 
 describe('AuditLogsService', () => {
-  const mockApi = api as vi.Mocked<typeof api>;
+  const mockApi = api as Mocked<typeof api>;
 
   beforeEach(() => {
     vi.clearAllMocks();

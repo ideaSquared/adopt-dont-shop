@@ -1,19 +1,15 @@
+import type { Mocked, MockedClass } from 'vitest';
 import { ApplicationsService } from '../applications-service';
+import type { ApplicationStatus } from '../../schemas';
 import { ApiService } from '@adopt-dont-shop/lib.api';
-import type {
-  ApplicationData,
-  Application,
-  ApplicationWithPetInfo,
-  DocumentUpload,
-  Document,
-} from '../../types';
+import type { ApplicationData, Application, DocumentUpload, Document } from '../../types';
 
 // Mock the ApiService
 vi.mock('@adopt-dont-shop/lib.api');
 
 describe('ApplicationsService', () => {
   let applicationsService: ApplicationsService;
-  let mockApiService: vi.Mocked<ApiService>;
+  let mockApiService: Mocked<ApiService>;
 
   const mockApplicationData: ApplicationData = {
     userId: 'user-123',
@@ -129,10 +125,10 @@ describe('ApplicationsService', () => {
       patch: vi.fn(),
       delete: vi.fn(),
       updateConfig: vi.fn(),
-    } as unknown as vi.Mocked<ApiService>;
+    } as unknown as Mocked<ApiService>;
 
     // Mock the ApiService constructor
-    (ApiService as vi.MockedClass<typeof ApiService>).mockImplementation(function () {
+    (ApiService as MockedClass<typeof ApiService>).mockImplementation(function () {
       return mockApiService;
     });
 

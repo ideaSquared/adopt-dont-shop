@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { InvitationsService } from '../invitations-service';
 import { ApiService } from '@adopt-dont-shop/lib.api';
 
@@ -6,11 +7,11 @@ vi.mock('@adopt-dont-shop/lib.api');
 
 describe('InvitationsService', () => {
   let service: InvitationsService;
-  let mockApiService: vi.Mocked<ApiService>;
+  let mockApiService: Mocked<ApiService>;
 
   beforeEach(() => {
     // Create a mock ApiService
-    mockApiService = new ApiService() as vi.Mocked<ApiService>;
+    mockApiService = new ApiService() as Mocked<ApiService>;
 
     service = new InvitationsService(mockApiService, {
       debug: false,
