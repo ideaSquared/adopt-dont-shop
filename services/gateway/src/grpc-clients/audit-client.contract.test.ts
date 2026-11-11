@@ -34,6 +34,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { createAuditClient } from './audit-client.js';
 
+import { unimplementedHandlers } from '../../test/helpers/unimplemented-handlers.js';
+
 // ── helpers ──────────────────────────────────────────────────────────
 
 const makeServiceError = (code: number, details: string): ServiceError => {
@@ -44,25 +46,13 @@ const makeServiceError = (code: number, details: string): ServiceError => {
   return err;
 };
 
-const unimplemented = (_call: unknown, cb: sendUnaryData<unknown>) =>
-  cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null);
-
 const makeHandlers = (
   overrides: Partial<AuditV1.AuditQueryServiceServer>
-): AuditV1.AuditQueryServiceServer => ({
-  query: unimplemented,
-  getByTarget: unimplemented,
-  listSavedReports: unimplemented,
-  getSavedReport: unimplemented,
-  createSavedReport: unimplemented,
-  updateSavedReport: unimplemented,
-  deleteSavedReport: unimplemented,
-  listReportTemplates: unimplemented,
-  getGdprErasureRequest: unimplemented,
-  upsertReportSchedule: unimplemented,
-  createReportShare: unimplemented,
-  ...overrides,
-});
+): AuditV1.AuditQueryServiceServer =>
+  unimplementedHandlers<AuditV1.AuditQueryServiceServer>(
+    AuditV1.AuditQueryServiceService,
+    overrides
+  );
 
 // ── suite ─────────────────────────────────────────────────────────────
 

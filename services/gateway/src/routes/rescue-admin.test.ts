@@ -8,6 +8,7 @@ import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
 import { registerRescueAdminRoutes } from './rescue-admin.js';
+import { stubClient } from '../../test/helpers/stub-client.js';
 
 type Mocks = {
   client: RescueClient;
@@ -40,7 +41,7 @@ function makeClient(): Mocks {
   const cancelRescueInvitation = vi.fn();
   // Only the methods these routes touch need to be real; the rest are
   // present to satisfy the RescueClient shape.
-  const client = {
+  const client = stubClient<RescueClient>({
     create: vi.fn(),
     get: vi.fn(),
     list: vi.fn(),
@@ -68,7 +69,7 @@ function makeClient(): Mocks {
     createApplicationQuestion: vi.fn(),
     deleteApplicationQuestion: vi.fn(),
     close: vi.fn(),
-  } satisfies RescueClient;
+  });
   return {
     client,
     updatePlan,

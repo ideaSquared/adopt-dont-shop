@@ -96,17 +96,17 @@ function createInMemoryRedisBus(): { client: () => RedisAdapterClient } {
         listeners.set(event, list);
         return client;
       },
-      psubscribe(pattern) {
+      psubscribe(pattern: string) {
         client.__patterns.push({ prefix: pattern.replace(/\*$/, '') });
         return Promise.resolve(1);
       },
-      subscribe(channels) {
+      subscribe(channels: string[]) {
         for (const c of channels) {
           client.__channels.add(c);
         }
         return Promise.resolve(channels.length);
       },
-      publish(channel, message) {
+      publish(channel: string, message: string | Buffer) {
         deliver(channel, message);
         return Promise.resolve(members.length);
       },

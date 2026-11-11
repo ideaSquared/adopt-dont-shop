@@ -20,6 +20,7 @@ import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
 import { registerChatRoutes } from './chat.js';
 import { createEmailRateLimiter, type EmailRateLimiter } from './email-rate-limiter.js';
+import { stubClient } from '../../test/helpers/stub-client.js';
 
 // --- Fixtures -------------------------------------------------------
 
@@ -72,7 +73,25 @@ function makeClient(): ChatClient & {
   const getChatUnreadCountMock = vi.fn();
   const deleteMessageMock = vi.fn();
   const getChatMock = vi.fn();
-  return {
+  return stubClient<
+    ChatClient & {
+      openChatMock: ReturnType<typeof vi.fn>;
+      openPetEnquiryMock: ReturnType<typeof vi.fn>;
+      sendMessageMock: ReturnType<typeof vi.fn>;
+      listMessagesMock: ReturnType<typeof vi.fn>;
+      listChatsMock: ReturnType<typeof vi.fn>;
+      markReadMock: ReturnType<typeof vi.fn>;
+      reactMock: ReturnType<typeof vi.fn>;
+      searchChatsMock: ReturnType<typeof vi.fn>;
+      getChatUnreadCountMock: ReturnType<typeof vi.fn>;
+      deleteMessageMock: ReturnType<typeof vi.fn>;
+      getChatMock: ReturnType<typeof vi.fn>;
+      deleteChatMock: ReturnType<typeof vi.fn>;
+      updateChatStatusMock: ReturnType<typeof vi.fn>;
+      getChatStatsMock: ReturnType<typeof vi.fn>;
+      adminListChatsMock: ReturnType<typeof vi.fn>;
+    }
+  >({
     openChat: openChatMock,
     openPetEnquiry: openPetEnquiryMock,
     sendMessage: sendMessageMock,
@@ -104,7 +123,7 @@ function makeClient(): ChatClient & {
     updateChatStatusMock,
     getChatStatsMock,
     adminListChatsMock,
-  };
+  });
 }
 
 async function buildApp(client: ChatClient, authClient?: AuthClient): Promise<FastifyInstance> {

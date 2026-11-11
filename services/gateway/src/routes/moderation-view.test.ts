@@ -82,9 +82,10 @@ describe('supportTicketToView', () => {
       subject: 'broken',
       description: '500 on save',
       tags: ['login'],
+      metadataJson: '{}',
       createdAt: '2026-06-01T00:00:00.000Z',
       updatedAt: '2026-06-01T00:00:00.000Z',
-    } as Parameters<typeof supportTicketToView>[0]);
+    });
     expect(v).toMatchObject({ status: 'open', priority: 'high', category: 'report_bug' });
   });
 });
@@ -96,6 +97,7 @@ describe('supportTicketResponseToView', () => {
         responseId: 'res-1',
         ticketId: 'tkt-1',
         responderId: 'mod-1',
+        responderType: ModerationV1.SupportTicketResponderType.SUPPORT_TICKET_RESPONDER_TYPE_STAFF,
         content: 'check email',
         isInternal: false,
         createdAt: '2026-06-01T00:00:00.000Z',
@@ -121,9 +123,10 @@ describe('supportTicketWithThreadToView', () => {
     subject: 'help',
     description: 'need assistance',
     tags: [],
+    metadataJson: '{}',
     createdAt: '2026-06-01T00:00:00.000Z',
     updatedAt: '2026-06-01T00:00:00.000Z',
-  } as Parameters<typeof supportTicketWithThreadToView>[0];
+  };
 
   it('embeds the thread with lowercased responder_type tokens', () => {
     const v = supportTicketWithThreadToView(TICKET, [

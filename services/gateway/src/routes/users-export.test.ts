@@ -1,5 +1,7 @@
 import Fastify, { type FastifyInstance } from 'fastify';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+
+import type { Metadata } from '@grpc/grpc-js';
 
 import { AuthV1 } from '@adopt-dont-shop/proto';
 
@@ -7,11 +9,16 @@ import type { AuthClient } from '../grpc-clients/auth-client.js';
 
 import { registerUsersExportRoutes } from './users-export.js';
 import { createEmailRateLimiter, type EmailRateLimiter } from './email-rate-limiter.js';
+import { stubClient } from '../../test/helpers/stub-client.js';
 
-function makeClient(exportUserData = vi.fn()): AuthClient {
-  // Only exportUserData is exercised by this route; the cast avoids
-  // stubbing the ~50 other methods on the interface.
-  return { exportUserData } as unknown as AuthClient;
+type ExportUserData = (req: AuthV1.ExportUserDataRequest, metadata: Metadata) => unknown;
+
+function makeClient(exportUserData: ExportUserData = vi.fn()): AuthClient {
+  // Only exportUserData is exercised by this route; each test mocks its payload.
+  return stubClient<AuthClient>({
+    exportUserData: (req, metadata) =>
+      Promise.resolve(exportUserData(req, metadata)) as ReturnType<AuthClient['exportUserData']>,
+  });
 }
 
 async function makeApp(client: AuthClient): Promise<FastifyInstance> {
@@ -88,7 +95,7 @@ describe('GET /api/v1/users/me/export', () => {
 // limiter blocks before the export RPC ever runs.
 describe('GET /api/v1/users/me/export — per-principal rate limit (ADS-1421)', () => {
   let app: FastifyInstance;
-  let exportUserData: ReturnType<typeof vi.fn>;
+  let exportUserData: Mock<ExportUserData>;
   let exportUserRateLimiter: EmailRateLimiter;
 
   const get = (userId: string) =>
@@ -100,7 +107,7 @@ describe('GET /api/v1/users/me/export — per-principal rate limit (ADS-1421)', 
 
   beforeEach(async () => {
     app = Fastify({ logger: false });
-    exportUserData = vi.fn().mockResolvedValue({
+    exportUserData = vi.fn<ExportUserData>().mockResolvedValue({
       user: { userId: 'usr-1', email: 'jane@example.com' },
       exportedAt: '2026-09-07T00:00:00.000Z',
     });

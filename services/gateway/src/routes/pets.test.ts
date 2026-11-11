@@ -17,6 +17,7 @@ import type { PetsClient } from '../grpc-clients/pets-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
 import { registerPetsRoutes } from './pets.js';
+import { stubClient } from '../../test/helpers/stub-client.js';
 
 function makeClient(): {
   client: PetsClient;
@@ -53,7 +54,7 @@ function makeClient(): {
   const getSearchSuggestionsMock = vi.fn();
   const getPetFacetsMock = vi.fn();
   const recordPetViewMock = vi.fn().mockResolvedValue({ recorded: true });
-  const client: PetsClient = {
+  const client = stubClient<PetsClient>({
     create: createMock,
     get: getMock,
     list: listMock,
@@ -71,7 +72,7 @@ function makeClient(): {
     getPetFacets: getPetFacetsMock,
     recordPetView: recordPetViewMock,
     close: vi.fn(),
-  };
+  });
   return {
     client,
     createMock,

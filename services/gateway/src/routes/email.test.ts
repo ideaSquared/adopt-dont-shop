@@ -7,6 +7,7 @@ import { NotificationsV1, type CreateEmailTemplateRequest } from '@adopt-dont-sh
 import type { NotificationsClient } from '../grpc-clients/notifications-client.js';
 
 import { registerEmailRoutes } from './email.js';
+import { stubClient } from '../../test/helpers/stub-client.js';
 
 const TEMPLATE_FIXTURE: NotificationsV1.EmailTemplate = {
   templateId: 'tpl-1',
@@ -37,7 +38,16 @@ function makeClient(): NotificationsClient & {
   const updateEmailTemplateMock = vi.fn();
   const deleteEmailTemplateMock = vi.fn();
   const previewEmailTemplateMock = vi.fn();
-  return {
+  return stubClient<
+    NotificationsClient & {
+      listEmailTemplatesMock: ReturnType<typeof vi.fn>;
+      getEmailTemplateMock: ReturnType<typeof vi.fn>;
+      createEmailTemplateMock: ReturnType<typeof vi.fn>;
+      updateEmailTemplateMock: ReturnType<typeof vi.fn>;
+      deleteEmailTemplateMock: ReturnType<typeof vi.fn>;
+      previewEmailTemplateMock: ReturnType<typeof vi.fn>;
+    }
+  >({
     listEmailTemplates: listEmailTemplatesMock,
     getEmailTemplate: getEmailTemplateMock,
     createEmailTemplate: createEmailTemplateMock,
@@ -65,14 +75,7 @@ function makeClient(): NotificationsClient & {
     updateEmailTemplateMock,
     deleteEmailTemplateMock,
     previewEmailTemplateMock,
-  } as NotificationsClient & {
-    listEmailTemplatesMock: ReturnType<typeof vi.fn>;
-    getEmailTemplateMock: ReturnType<typeof vi.fn>;
-    createEmailTemplateMock: ReturnType<typeof vi.fn>;
-    updateEmailTemplateMock: ReturnType<typeof vi.fn>;
-    deleteEmailTemplateMock: ReturnType<typeof vi.fn>;
-    previewEmailTemplateMock: ReturnType<typeof vi.fn>;
-  };
+  });
 }
 
 async function buildApp(client: NotificationsClient): Promise<FastifyInstance> {

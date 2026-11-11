@@ -30,6 +30,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { createApplicationsClient } from './applications-client.js';
 
+import { unimplementedHandlers } from '../../test/helpers/unimplemented-handlers.js';
+
 // ── helpers ──────────────────────────────────────────────────────────
 
 const makeServiceError = (code: number, details: string): ServiceError => {
@@ -40,36 +42,13 @@ const makeServiceError = (code: number, details: string): ServiceError => {
   return err;
 };
 
-const unimplemented = (_call: unknown, cb: sendUnaryData<unknown>) =>
-  cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null);
-
 const makeHandlers = (
   overrides: Partial<ApplicationsV1.ApplicationServiceServer>
-): ApplicationsV1.ApplicationServiceServer => ({
-  startDraft: unimplemented,
-  saveDraftAnswers: unimplemented,
-  submitDraft: unimplemented,
-  startReview: unimplemented,
-  scheduleHomeVisit: unimplemented,
-  completeHomeVisit: unimplemented,
-  approve: unimplemented,
-  reject: unimplemented,
-  withdraw: unimplemented,
-  markAdopted: unimplemented,
-  get: unimplemented,
-  list: unimplemented,
-  getStats: unimplemented,
-  countAdoptedAdopters: unimplemented,
-  addDocument: unimplemented,
-  listDocuments: unimplemented,
-  removeDocument: unimplemented,
-  getApplicationDefaults: unimplemented,
-  updateApplicationDefaults: unimplemented,
-  getApplicationDraft: unimplemented,
-  saveApplicationDraft: unimplemented,
-  deleteApplicationDraft: unimplemented,
-  ...overrides,
-});
+): ApplicationsV1.ApplicationServiceServer =>
+  unimplementedHandlers<ApplicationsV1.ApplicationServiceServer>(
+    ApplicationsV1.ApplicationServiceService,
+    overrides
+  );
 
 // ── suite ─────────────────────────────────────────────────────────────
 

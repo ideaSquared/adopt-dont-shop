@@ -27,6 +27,23 @@ const baseConfig: GatewayConfig = {
   port: 0,
   host: '127.0.0.1',
   environment: 'test',
+  // Addresses only index.ts reads to dial the real services; createServer takes
+  // injected clients, so these are placeholders here.
+  natsUrl: 'nats://localhost:4222',
+  notificationsGrpcUrl: 'localhost:6001',
+  authGrpcUrl: 'localhost:6002',
+  petsGrpcUrl: 'localhost:6003',
+  rescueGrpcUrl: 'localhost:6004',
+  applicationsGrpcUrl: 'localhost:6005',
+  moderationGrpcUrl: 'localhost:6007',
+  matchingGrpcUrl: 'localhost:6008',
+  auditGrpcUrl: 'localhost:6009',
+  chatGrpcUrl: 'localhost:6006',
+  cmsGrpcUrl: 'localhost:6010',
+  principalSigningKey: undefined,
+  metricsBearerToken: undefined,
+  testTokenPeek: { enabled: false, databaseUrl: undefined },
+  trustProxy: false,
   storage: {
     provider: 'local',
     local: { directory: 'uploads', publicPath: '/uploads' },
@@ -39,13 +56,15 @@ const baseConfig: GatewayConfig = {
   legal: { enabled: false, docsDir: 'docs/legal' },
   config: { publicEnabled: false },
   rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },
+  enquiryRateLimit: { ipMax: 200, userMax: 20 },
+  erasureRateLimit: { ipMax: 5 },
   cors: { origins: ['http://localhost:3000'] },
   maintenance: {
     filePath: '/run/maintenance-not-created-in-tests',
     allowlistIps: [],
     bypassToken: undefined,
   },
-} as GatewayConfig;
+};
 
 // Minimal stubs — we only need the route to register so its `schema`
 // block lands in the OpenAPI document. The handlers are never invoked.

@@ -7,14 +7,15 @@ import { AuditV1, type AuditEvent } from '@adopt-dont-shop/proto';
 import type { AuditClient } from '../grpc-clients/audit-client.js';
 
 import { registerEntityActivityRoutes } from './entity-activity.js';
+import { stubClient } from '../../test/helpers/stub-client.js';
 
 function makeClient(): { client: AuditClient; getByTargetMock: ReturnType<typeof vi.fn> } {
   const getByTargetMock = vi.fn();
-  const client: AuditClient = {
+  const client = stubClient<AuditClient>({
     query: vi.fn(),
     getByTarget: getByTargetMock,
     close: vi.fn(),
-  };
+  });
   return { client, getByTargetMock };
 }
 

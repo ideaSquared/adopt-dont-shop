@@ -36,6 +36,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { createModerationClient } from './moderation-client.js';
 
+import { unimplementedHandlers } from '../../test/helpers/unimplemented-handlers.js';
+
 // ── helpers ──────────────────────────────────────────────────────────
 
 const makeServiceError = (code: number, details: string): ServiceError => {
@@ -46,34 +48,13 @@ const makeServiceError = (code: number, details: string): ServiceError => {
   return err;
 };
 
-const unimplemented = (_call: unknown, cb: sendUnaryData<unknown>) =>
-  cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null);
-
 const makeHandlers = (
   overrides: Partial<ModerationV1.ModerationServiceServer>
-): ModerationV1.ModerationServiceServer => ({
-  fileReport: unimplemented,
-  getReport: unimplemented,
-  listReports: unimplemented,
-  assignReport: unimplemented,
-  resolveReport: unimplemented,
-  logModeratorAction: unimplemented,
-  listModeratorActions: unimplemented,
-  addEvidence: unimplemented,
-  issueSanction: unimplemented,
-  listUserSanctions: unimplemented,
-  appealSanction: unimplemented,
-  acknowledgeSanction: unimplemented,
-  openSupportTicket: unimplemented,
-  getSupportTicket: unimplemented,
-  listSupportTickets: unimplemented,
-  respondToTicket: unimplemented,
-  assignSupportTicket: unimplemented,
-  updateSupportTicket: unimplemented,
-  escalateSupportTicket: unimplemented,
-  getSupportTicketStats: unimplemented,
-  ...overrides,
-});
+): ModerationV1.ModerationServiceServer =>
+  unimplementedHandlers<ModerationV1.ModerationServiceServer>(
+    ModerationV1.ModerationServiceService,
+    overrides
+  );
 
 // ── suite ─────────────────────────────────────────────────────────────
 

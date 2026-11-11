@@ -31,6 +31,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { createCmsClient } from './cms-client.js';
 
+import { unimplementedHandlers } from '../../test/helpers/unimplemented-handlers.js';
+
 // ── helpers ──────────────────────────────────────────────────────────
 
 const makeServiceError = (code: number, details: string): ServiceError => {
@@ -41,30 +43,8 @@ const makeServiceError = (code: number, details: string): ServiceError => {
   return err;
 };
 
-const unimplemented = (_call: unknown, cb: sendUnaryData<unknown>) =>
-  cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null);
-
-const makeHandlers = (overrides: Partial<CmsV1.CmsServiceServer>): CmsV1.CmsServiceServer => ({
-  listPublicContent: unimplemented,
-  getPublicContentBySlug: unimplemented,
-  listContent: unimplemented,
-  getContent: unimplemented,
-  getContentBySlug: unimplemented,
-  createContent: unimplemented,
-  updateContent: unimplemented,
-  deleteContent: unimplemented,
-  publishContent: unimplemented,
-  unpublishContent: unimplemented,
-  archiveContent: unimplemented,
-  getVersionHistory: unimplemented,
-  restoreVersion: unimplemented,
-  listMenus: unimplemented,
-  getMenu: unimplemented,
-  createMenu: unimplemented,
-  updateMenu: unimplemented,
-  deleteMenu: unimplemented,
-  ...overrides,
-});
+const makeHandlers = (overrides: Partial<CmsV1.CmsServiceServer>): CmsV1.CmsServiceServer =>
+  unimplementedHandlers<CmsV1.CmsServiceServer>(CmsV1.CmsServiceService, overrides);
 
 // ── suite ─────────────────────────────────────────────────────────────
 

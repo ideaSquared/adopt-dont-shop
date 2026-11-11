@@ -41,6 +41,8 @@ import { startStubGrpcServer, type StubGrpcServer } from '@adopt-dont-shop/test-
 
 import { createAuthClient } from './auth-client.js';
 
+import { unimplementedHandlers } from '../../test/helpers/unimplemented-handlers.js';
+
 // ── helpers ──────────────────────────────────────────────────────────
 
 const makeServiceError = (code: number, details: string): ServiceError => {
@@ -51,52 +53,11 @@ const makeServiceError = (code: number, details: string): ServiceError => {
   return err;
 };
 
-const unimplemented = (_call: unknown, cb: sendUnaryData<unknown>) =>
-  cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null);
-
 // Minimal valid handler implementations for the full AuthService surface.
 // Handlers not under test return UNIMPLEMENTED so the server definition is
 // satisfied without masking bugs in the ones being exercised.
-const makeHandlers = (overrides: Partial<AuthV1.AuthServiceServer>): AuthV1.AuthServiceServer => ({
-  login: unimplemented,
-  logout: unimplemented,
-  refreshToken: unimplemented,
-  validateToken: unimplemented,
-  getMe: unimplemented,
-  assignRole: unimplemented,
-  register: unimplemented,
-  verifyEmail: unimplemented,
-  resendVerification: unimplemented,
-  forgotPassword: unimplemented,
-  resetPassword: unimplemented,
-  changePassword: unimplemented,
-  verifyCredentials: unimplemented,
-  checkSelfErasure: unimplemented,
-  updateAccount: unimplemented,
-  requestEmailChange: unimplemented,
-  confirmEmailChange: unimplemented,
-  listSessions: unimplemented,
-  revokeSession: unimplemented,
-  getPrivacyPreferences: unimplemented,
-  updatePrivacyPreferences: unimplemented,
-  resetPrivacyPreferences: unimplemented,
-  searchUsers: unimplemented,
-  adminGetUser: unimplemented,
-  adminUpdateUser: unimplemented,
-  deactivateUser: unimplemented,
-  reactivateUser: unimplemented,
-  getUserStatistics: unimplemented,
-  getUserPermissions: unimplemented,
-  bulkUpdateUsers: unimplemented,
-  getFieldPermissionDefaults: unimplemented,
-  getFieldPermissionDefaultsForRole: unimplemented,
-  listFieldPermissionOverrides: unimplemented,
-  listFieldPermissionOverridesForRole: unimplemented,
-  upsertFieldPermission: unimplemented,
-  bulkUpsertFieldPermissions: unimplemented,
-  deleteFieldPermission: unimplemented,
-  ...overrides,
-});
+const makeHandlers = (overrides: Partial<AuthV1.AuthServiceServer>): AuthV1.AuthServiceServer =>
+  unimplementedHandlers<AuthV1.AuthServiceServer>(AuthV1.AuthServiceService, overrides);
 
 // Start a stub gRPC server for a single test case; the returned `stub`
 // carries `stub.address` and `stub.close()`. Callers are responsible for
@@ -168,6 +129,9 @@ describe('auth-client — gRPC contract', () => {
         refreshExpiresAt: '2026-01-08T00:00:00Z',
       },
       permissions: ['pets.read'],
+      twoFactorRequired: false,
+      emailVerificationRequired: false,
+      backupCodesExhausted: false,
     };
 
     let capturedEmail = '';

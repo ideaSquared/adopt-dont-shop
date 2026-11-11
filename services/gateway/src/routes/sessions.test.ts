@@ -7,6 +7,7 @@ import type { ListSessionsRequest, RevokeSessionRequest } from '@adopt-dont-shop
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 
 import { registerSessionsRoutes } from './sessions.js';
+import { stubClient } from '../../test/helpers/stub-client.js';
 
 const SESSION_FIXTURE = {
   sessionId: 'tok-1',
@@ -21,7 +22,12 @@ function makeClient(): AuthClient & {
 } {
   const listSessionsMock = vi.fn();
   const revokeSessionMock = vi.fn();
-  return {
+  return stubClient<
+    AuthClient & {
+      listSessionsMock: ReturnType<typeof vi.fn>;
+      revokeSessionMock: ReturnType<typeof vi.fn>;
+    }
+  >({
     login: vi.fn(),
     logout: vi.fn(),
     refreshToken: vi.fn(),
@@ -40,7 +46,7 @@ function makeClient(): AuthClient & {
     revokeSession: revokeSessionMock,
     listSessionsMock,
     revokeSessionMock,
-  };
+  });
 }
 
 async function buildApp(client: AuthClient): Promise<FastifyInstance> {

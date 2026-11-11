@@ -76,7 +76,7 @@ const TICKET = {
   userEmail: 'a@b.c',
   status: ModerationV1.SupportTicketStatus.SUPPORT_TICKET_STATUS_OPEN,
   priority: ModerationV1.SupportTicketPriority.SUPPORT_TICKET_PRIORITY_NORMAL,
-  category: ModerationV1.SupportTicketCategory.SUPPORT_TICKET_CATEGORY_GENERAL_INQUIRY,
+  category: ModerationV1.SupportTicketCategory.SUPPORT_TICKET_CATEGORY_GENERAL_QUESTION,
   subject: 'help',
   description: 'pls',
   tags: [],
