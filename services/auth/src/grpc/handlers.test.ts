@@ -1751,6 +1751,7 @@ describe('validateToken', () => {
       .mockResolvedValueOnce({ rows: [{ name: 'pets.read' }] }); // permissions
 
     const res = await validateToken(mocks.deps, null, { accessToken: 'tok' });
+    expect(res.principal).toBeDefined();
     expect(res.principal?.rescueId).toBeUndefined();
   });
 
