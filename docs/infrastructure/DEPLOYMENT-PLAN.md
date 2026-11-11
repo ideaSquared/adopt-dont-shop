@@ -2,7 +2,7 @@
 
 One-time setup to stand up a new Adopt Don't Shop environment: server, DNS, TLS, and the GitHub environments/secrets the deploy workflows need (audience: whoever bootstraps a host). The recurring release procedure is [operations/deploy.md](../operations/deploy.md); an in-progress deploy gone wrong is [runbooks/deploy-rollback.md](../runbooks/deploy-rollback.md).
 
-> **Start here.** Setting up the netcup VPS before launch (public landing page + private staging, no production yet)? Follow [Pre-launch runbook](#pre-launch-runbook-netcup-vps) from top to bottom. It is complete on its own and links back to the other sections only for background. The rest of this document is the production setup for launch day.
+> **Start here.** Setting up the netcup VPS before launch (public landing page + private staging, no production yet)? Follow [PRE-LAUNCH-SETUP.md](./PRE-LAUNCH-SETUP.md) from top to bottom. It is a complete step-by-step guide. The rest of this document is the production setup for launch day.
 
 ## Model
 
@@ -49,7 +49,7 @@ An **8 GB host** runs production plus the observability overlay, and nothing els
 - Set `OBSERVABILITY_ENABLED=true` — production deploys fail preflight without it (ADS-1307).
 - Leave `GLITCHTIP_ENABLED` unset. For error tracking use a hosted Sentry project instead (its free tier is enough): put its DSN in `SENTRY_DSN` in the host `.env` and in `VITE_SENTRY_DSN` under the `production-vars` environment.
 - No staging stack on the same host.
-- Add the 4 GB swap file from "Initial server setup" — headroom for ClamAV's signature reloads, not for steady-state load.
+- Add the 4 GB swap file (step 6 of [PRE-LAUNCH-SETUP.md](./PRE-LAUNCH-SETUP.md)) — headroom for ClamAV's signature reloads, not for steady-state load.
 
 A **staging-only host** (pre-launch: gateway + staging, no production) also fits in 8 GB with the swap file.
 
@@ -147,54 +147,15 @@ Build-time-only secret (`build-and-push` in `deploy.yml`, not shipped to the hos
 
 ### Initial server setup
 
-Run as root on a fresh Ubuntu 24.04 VPS. Order matters: harden first, and start the edge gateway only after the first deploy (it joins the Docker network that deploy creates) and after the certificate exists (nginx will not start without it).
+The server setup commands (updates, firewall, Docker, the `deploy` user, SSH lockdown, swap, `/opt/ads` directories, host fingerprint) are steps 2–8 of [PRE-LAUNCH-SETUP.md](./PRE-LAUNCH-SETUP.md). A production-only host runs the same steps, then continues with "Host `.env`" below, the first deploy, and "DNS & TLS". Start the edge gateway only after the first deploy (it joins the Docker network that deploy creates) and after the certificate exists (nginx will not start without it).
 
-```bash
-# 1. Updates, automatic security patches, firewall (SSH + HTTP/S only).
-apt-get update && apt-get -y upgrade
-apt-get -y install unattended-upgrades ufw fail2ban apache2-utils   # apache2-utils: htpasswd for staging access
-dpkg-reconfigure -f noninteractive unattended-upgrades
-ufw default deny incoming && ufw default allow outgoing
-ufw allow OpenSSH && ufw allow 80/tcp && ufw allow 443/tcp
-ufw --force enable
-```
+Docker publishes container ports around ufw, so the firewall is not what keeps the databases private — the compose files are: only the gateway publishes ports (80/443), and the observability/GlitchTip UIs bind `127.0.0.1` only (reach them over an SSH tunnel). `service-ops` (the developer ops CLI backend, [ADR 0016](../adr/0016-developer-ops-cli.md)) is the one other deliberate exception, for the same reason as the observability UIs: it publishes `127.0.0.1:4101` (staging) / `127.0.0.1:4102` (production) on the host loopback only, never `0.0.0.0`, never behind nginx or the edge gateway, and developers reach it over a tunnel-only SSH user ([ops-cli runbook](../runbooks/ops-cli.md)). Do not add a `ports:` mapping to any other service, and never widen `service-ops` beyond `127.0.0.1`.
 
-Docker publishes container ports around ufw, so the firewall above is not what keeps the databases private — the compose files are: only the gateway publishes ports (80/443), and the observability/GlitchTip UIs bind `127.0.0.1` only (reach them over an SSH tunnel). `service-ops` (the developer ops CLI backend, [ADR 0016](../adr/0016-developer-ops-cli.md)) is the one other deliberate exception, for the same reason as the observability UIs: it publishes `127.0.0.1:4101` (staging) / `127.0.0.1:4102` (production) on the host loopback only, never `0.0.0.0`, never behind nginx or the edge gateway, and developers reach it over a tunnel-only SSH user ([ops-cli runbook](../runbooks/ops-cli.md)). Do not add a `ports:` mapping to any other service, and never widen `service-ops` beyond `127.0.0.1`.
-
-```bash
-# 2. Deploy user (key-only SSH) and Docker.
-adduser --disabled-password --gecos '' deploy
-usermod -aG docker deploy
-install -d -m 700 -o deploy -g deploy /home/deploy/.ssh
-# Paste the PUBLIC half of the key whose private half is the NETCUP_SSH_KEY secret:
-nano /home/deploy/.ssh/authorized_keys && chown deploy:deploy /home/deploy/.ssh/authorized_keys && chmod 600 /home/deploy/.ssh/authorized_keys
-curl -fsSL https://get.docker.com | sh
-
-# 3. SSH: keys only, no root login. sshd keeps the FIRST value it reads for
-#    each option and reads sshd_config.d/ in name order, so the file must sort
-#    before any provider drop-in (e.g. 50-cloud-init.conf sets
-#    `PasswordAuthentication yes`). Confirm the effective values, then check
-#    you can log in as `deploy` with your own key in a second terminal BEFORE
-#    closing this session.
-printf 'PasswordAuthentication no\nPermitRootLogin no\nKbdInteractiveAuthentication no\n' > /etc/ssh/sshd_config.d/00-hardening.conf
-sshd -t && sshd -T | grep -Ei '^(passwordauthentication|permitrootlogin|kbdinteractiveauthentication) '
-# Expected: all three `no`.
-systemctl reload ssh
-
-# 4. Swap — headroom for memory spikes (ClamAV signature reloads) on an 8–12 GB box.
-fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
-echo '/swapfile none swap sw 0 0' >> /etc/fstab
-
-# 5. Directory skeleton (pre-launch: gateway + staging only).
-mkdir -p /opt/ads/{gateway,production,staging}
-chown -R deploy:deploy /opt/ads
-```
-
-`deploy` is in the `docker` group, which is root-equivalent on the host — protect `NETCUP_SSH_KEY` accordingly. Record the host key fingerprint for the `NETCUP_HOST_FINGERPRINT` secret **on the server itself**, from the provider's web/VNC console (an authenticated channel): `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub | awk '{print $2}'`. Do not take it from `ssh-keyscan` across the network — that trusts whatever answers, which is the impersonation the pinned fingerprint exists to stop. When you first SSH in from your own machine, check the fingerprint it shows matches.
-
-Then: write `/opt/ads/<env>/.env` (next section), run the first deploy, issue the certificate and start the gateway (see "DNS & TLS", or the pre-launch runbook).
+The SSH hardening file is `/etc/ssh/sshd_config.d/00-hardening.conf`. sshd keeps the FIRST value it reads for each option and reads `sshd_config.d/` in name order, so the file must sort before any provider drop-in (e.g. `50-cloud-init.conf` sets `PasswordAuthentication yes`). The host key fingerprint is read on the server itself, from the provider's console, because `ssh-keyscan` across the network trusts whatever answers, which is the impersonation the pinned fingerprint exists to stop.
 
 ### Host `.env` (non-secret config)
+
+**Production host only.** Pre-launch staging writes its `.env` in step 12 of [PRE-LAUNCH-SETUP.md](./PRE-LAUNCH-SETUP.md).
 
 Application secrets come from GitHub (above) as `secrets/*` files. The host `/opt/ads/<env>/.env` carries only non-secret config; `DEPLOY_SHA` is written by the deploy workflow on each run:
 
@@ -273,193 +234,7 @@ From then on the `certbot` container renews via the webroot every 12h and nginx 
 
 ## Pre-launch runbook (netcup VPS)
 
-Until production launches, the host runs the edge gateway and the **staging** stack only:
-
-| Hostname                                                        | Serves                                                                        |
-| --------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `adoptdontshop.app`, `www.`                                     | Static landing page with the waiting list (`deploy/gateway/landing/`), public |
-| `staging.`, `staging-api.`, `staging-admin.`, `staging-rescue.` | The staging stack, behind an IP allowlist or a basic-auth password            |
-
-Commands marked **(laptop)** run on your own machine. Everything else runs on the VPS: as root during step 2, then as `deploy` (`ssh -i ~/.ssh/ads-deploy deploy@<vps-ip>`). Root SSH login is off after step 2; the SCP browser console still accepts the root password.
-
-### 1. Accounts you need first
-
-- **netcup VPS** with at least 8 GB RAM.
-- **DNS** for `adoptdontshop.app` at your registrar or DNS host.
-- **Resend** (resend.com): an API key, and `adoptdontshop.app` added as a sending domain with the DNS records Resend gives you. Staging will not deploy without `RESEND_API_KEY`.
-- **No Firebase account needed.** Push notifications are off by default (`PUSH_PROVIDER=none`, ideaSquared/adopt-dont-shop#1615) until an app registers device tokens.
-- **GitHub CLI** (`gh auth login`) **(laptop)**, to run `make staging`. Without it, use Actions → Deploy → Run workflow instead.
-
-### 2. Install the VPS (netcup SCP)
-
-1. **(laptop)** Create the deploy key, which GitHub Actions uses to SSH in:
-
-   ```bash
-   ssh-keygen -t ed25519 -f ~/.ssh/ads-deploy -N '' -C ads-deploy
-   ```
-
-2. In the netcup Server Control Panel (SCP), install **Ubuntu 24.04** on the server and add **your own** SSH public key if the installer offers it. Otherwise log in as root with the password netcup sends you.
-3. If you turn on netcup's firewall in the SCP, allow TCP 22, 80 and 443 there.
-4. SSH in as root and run "Initial server setup" steps 1–5 above. In step 2, paste the contents of `~/.ssh/ads-deploy.pub` into `authorized_keys`.
-5. Open the server's browser console in the SCP, log in, and read the host key fingerprint. This becomes `NETCUP_HOST_FINGERPRINT`:
-
-   ```bash
-   ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub | awk '{print $2}'
-   ```
-
-6. **(laptop)** Check the deploy user works, and that the fingerprint SSH shows you matches step 5:
-
-   ```bash
-   ssh -i ~/.ssh/ads-deploy deploy@<vps-ip> docker ps
-   ```
-
-7. If your netcup plan has snapshots, take one now.
-
-### 3. GitHub settings
-
-In the repository (Settings → Secrets and variables → Actions → **Secrets**):
-
-| Secret                    | Value                                                                                                                                                                            |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NETCUP_HOST`             | The VPS IPv4 address                                                                                                                                                             |
-| `NETCUP_SSH_KEY`          | The whole private key file `~/.ssh/ads-deploy`                                                                                                                                   |
-| `NETCUP_HOST_FINGERPRINT` | The `SHA256:…` value from step 2.5                                                                                                                                               |
-| `GHCR_TOKEN`              | A classic personal access token with **only** `read:packages`                                                                                                                    |
-| Seven application secrets | `JWT_SECRET`, `JWT_REFRESH_SECRET`, `ENCRYPTION_KEY`, `UPLOAD_SIGNING_SECRET`, `DB_PASSWORD`, `PRINCIPAL_SIGNING_KEY`, `NATS_AUTH_TOKEN` (generate with `pnpm secrets:generate`) |
-
-Then (Settings → Environments):
-
-- Create `staging` with no protection rules.
-- Create `staging-vars` with no protection rules. Leave `VITE_API_BASE_URL` and `VITE_WS_BASE_URL` empty or unset, so the staging apps call their own origin. Basic auth breaks cross-origin API calls to `staging-api.`.
-
-Then send deploy results to Discord through ideasquared-bot (Settings → Webhooks → Add webhook):
-
-- **Payload URL:** the bot's `/ads` route, `https://<ideasquared-bot worker host>/ads`
-- **Content type:** `application/json`
-- **Secret:** the value of the bot's `GITHUB_WEBHOOK_SECRET_ADS`
-- **Events:** "Let me select individual events", then tick **Deployment statuses** (plus whatever else the bot should relay, such as pull requests and releases)
-
-Each deploy then posts its result to the ADS GitHub channel: deployed, rolled back to `<sha>`, or manual action needed.
-
-Then disable the nightly backup until launch (Actions → Backup → ⋯ → Disable workflow). It only backs up production, so it fails every night on a staging-only host.
-
-### 4. Host network, directories and staging `.env`
-
-The gateway's compose file joins `ads-prod-network`, which the production stack normally creates. Create it by hand so the gateway can run without production. Step 11 removes it again at launch.
-
-```bash
-docker network create ads-prod-network
-```
-
-Write `/opt/ads/staging/.env` as the `deploy` user (`chmod 600`):
-
-```env
-POSTGRES_USER=ads_staging
-POSTGRES_DB=adopt_dont_shop_staging
-REDIS_PASSWORD=<openssl rand -hex 32>
-CORS_ORIGIN=https://staging.adoptdontshop.app,https://staging-admin.adoptdontshop.app,https://staging-rescue.adoptdontshop.app
-FRONTEND_URL=https://staging.adoptdontshop.app
-RESCUE_FRONTEND_URL=https://staging-rescue.adoptdontshop.app
-EMAIL_PROVIDER=resend
-RESEND_API_KEY=<from Resend>
-DEFAULT_FROM_EMAIL=noreply@adoptdontshop.app
-```
-
-No Firebase values: push is off by default (`PUSH_PROVIDER=none`), because no app registers device tokens yet.
-
-### 5. DNS
-
-Create **A records only**, all pointing at the VPS IPv4 address: `adoptdontshop.app`, `www`, `staging`, `staging-api`, `staging-admin`, `staging-rescue`.
-
-- No `api`, `admin` or `rescue` records yet: their vhosts proxy to the production stack, which is not running.
-- **IPv6:** no AAAA records. netcup gives the VPS an IPv6 address, but with Docker's default settings nginx sees every IPv6 visitor as Docker's internal IP (`172.x`). Allowlisted IPv6 addresses would never match, and all IPv6 visitors would share one rate limit (the login limit is 5 per minute). Add AAAA records only after enabling IPv6 in Docker.
-
-Check with `dig +short staging.adoptdontshop.app` before step 7.
-
-### 6. First staging deploy
-
-`main` must include ideaSquared/adopt-dont-shop#1615 (push off by default). Without it the deploy stops on the missing Firebase values.
-
-The deploy only runs for a commit on `main` whose CI passed, including **Production Image Smoke** (about 25 minutes after a merge). Once it is green:
-
-```bash
-make staging   # (laptop); then: make watch
-```
-
-The deploy builds and pulls the images, writes `/opt/ads/staging/`, starts the stack and waits for every service to report healthy. It also copies the gateway files to `/opt/ads/gateway/`.
-
-### 7. TLS certificate
-
-Nothing listens on port 80 yet, so certbot runs its own server. The bare domain must come first:
-
-```bash
-cd /opt/ads/gateway
-docker compose -f docker-compose.gateway.yml run --rm --no-deps -p 80:80 \
-  --entrypoint certbot certbot certonly --standalone \
-  -d adoptdontshop.app -d www.adoptdontshop.app \
-  -d staging.adoptdontshop.app -d staging-api.adoptdontshop.app \
-  -d staging-admin.adoptdontshop.app -d staging-rescue.adoptdontshop.app \
-  --email <an address you read> --agree-tos --no-eff-email
-```
-
-### 8. Staging access lists
-
-Every staging vhost includes `snippets/staging-access.conf` (`pnpm check:gateway-staging-access` fails CI if one does not). An allowlisted IP gets straight in; anyone else gets a password prompt. With neither file present, every staging request is refused.
-
-```bash
-install -d -m 755 /opt/ads/gateway/staging-access
-cd /opt/ads/gateway/staging-access
-
-# One `allow` line per IPv4 address. Find yours (laptop): curl -4 -s https://ifconfig.me
-echo 'allow 203.0.113.7;' > team.allow
-
-# Passwords: bcrypt, one user per person (htpasswd was installed in step 2).
-htpasswd -B -c htpasswd <first-user>      # drop -c for each further user
-chmod 644 htpasswd *.allow                # nginx workers (uid 101) must read them
-```
-
-Never allowlist a private or Docker range (`10.`, `172.16–31.`, `192.168.`).
-
-### 9. Start the gateway
-
-```bash
-cd /opt/ads/gateway
-docker compose -f docker-compose.gateway.yml -f docker-compose.gateway.staging.yml up -d
-```
-
-After changing the access lists later: `docker compose -f docker-compose.gateway.yml exec nginx nginx -s reload`.
-
-### 10. Check it works
-
-**(laptop)**
-
-```bash
-curl -sI https://adoptdontshop.app | head -1                       # HTTP/2 200 (landing page)
-curl -sI https://staging.adoptdontshop.app | head -1               # 200 from an allowlisted IP, else 401
-curl -sI -u <user>:<password> https://staging.adoptdontshop.app | head -1   # 200
-```
-
-Then open `https://staging.adoptdontshop.app` in a browser. On the VPS, check memory after a few minutes with `free -h` and `docker stats --no-stream`. To see which IP nginx records for you: `docker logs ads_gateway --tail 20`.
-
-From now on, `make staging` redeploys the latest `main`. Gateway config changes reach the host on every deploy and go live within 12 hours (nginx reloads itself), or straight away with the reload command in step 9. Changes to the gateway's compose file need the `up -d` from step 9 again.
-
-### Switching on the waiting list
-
-The signup form in `deploy/gateway/landing/index.html` is hidden until an email provider is chosen. The comment above the form lists the three changes: set the provider's form URL, unhide the form, and add the provider's origin to `form-action` in the apex vhost's CSP. Use the provider's double opt-in so consent is recorded.
-
-### 11. At launch
-
-1. Switch the apex to the production client: in `deploy/gateway/nginx.conf`, comment out `include /etc/nginx/snippets/apex-landing.conf;` and uncomment `include /etc/nginx/snippets/apex-production.conf;` (include exactly one; `node scripts/check-csp-headers.mjs` fails if both or neither are active). Remove the `landing/` mount from `docker-compose.gateway.yml`.
-2. Remove the hand-made network, so the production stack can create its own. Docker Compose refuses to adopt a network it did not create. The landing page is down until step 4:
-
-   ```bash
-   cd /opt/ads/gateway && docker compose -f docker-compose.gateway.yml -f docker-compose.gateway.staging.yml down
-   docker network rm ads-prod-network
-   ```
-
-3. Follow the production setup above: `/opt/ads/production/.env`, the production GitHub environments and reviewers, `make prod`, and the pre-flight checklist.
-4. Expand the certificate with `api.`, `admin.` and `rescue.` (see "DNS & TLS"), start the gateway again as in step 9, and re-enable the backup workflow.
-5. Check the RAM: production plus staging on one host needs 16 GB (see "Sizing").
+Moved to [PRE-LAUNCH-SETUP.md](./PRE-LAUNCH-SETUP.md): a step-by-step guide for the pre-launch host (landing page + private staging), including the waiting list and the switch to production at launch.
 
 ## Database migrations
 
@@ -481,7 +256,7 @@ Backups are automated by `.github/workflows/backup.yml` (nightly `0 2 * * *`) �
 
 ## Pre-flight checklist
 
-For the production launch. Pre-launch setup is covered by the runbook above.
+For the production launch. Pre-launch setup is covered by [PRE-LAUNCH-SETUP.md](./PRE-LAUNCH-SETUP.md).
 
 - [ ] Repo confirmed as `ideaSquared/adopt-dont-shop`
 - [ ] The production stack boots and serves end to end: `Production Image Smoke` is green on `main`, or run `pnpm smoke:prod` locally (see [testing.md](../testing.md#production-smoke-test))
@@ -489,7 +264,7 @@ For the production launch. Pre-launch setup is covered by the runbook above.
 - [ ] `staging-vars` / `production-vars` environments created, **no** required reviewers, each with `VITE_API_BASE_URL`, `VITE_WS_BASE_URL`, `VITE_SENTRY_DSN`, `VITE_STATSIG_CLIENT_KEY` set to that target's values (ADS-1318)
 - [ ] Infra secrets added: `NETCUP_HOST`, `NETCUP_HOST_FINGERPRINT`, `NETCUP_SSH_KEY`, `GHCR_TOKEN` (**`read:packages` only**); repo variables `BACKUP_BUCKET`, `AWS_REGION`; optional `DISCORD_WEBHOOK_URL` secret for deploy failure notifications (ADS-1324)
 - [ ] Seven application secrets added: `JWT_SECRET`, `JWT_REFRESH_SECRET`, `ENCRYPTION_KEY`, `UPLOAD_SIGNING_SECRET`, `DB_PASSWORD`, `PRINCIPAL_SIGNING_KEY`, `NATS_AUTH_TOKEN`; optional build-time `SENTRY_AUTH_TOKEN` (ADS-1319)
-- [ ] Host hardened (updates, ufw 22/80/443, key-only SSH, no root login, swap) — see "Initial server setup"
+- [ ] Host hardened (updates, ufw 22/80/443, key-only SSH, no root login, swap) — see [PRE-LAUNCH-SETUP.md](./PRE-LAUNCH-SETUP.md) steps 4–7
 - [ ] Host provisioned, `deploy` user + Docker installed, `/opt/ads/*` created
 - [ ] DNS records point at the host
 - [ ] `PROD_HOSTNAME` (plain literal) set in `/opt/ads/production/.env` — `deploy.yml` substitutes it into the freshly-shipped `nginx.prod.conf` on every run (ADS-1312); certbot issuance done
