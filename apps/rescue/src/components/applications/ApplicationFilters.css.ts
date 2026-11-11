@@ -25,7 +25,7 @@ globalStyle(`${filtersHeader} h3`, {
 
 export const filtersGrid = style({
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
   gap: vars.spacing['3'],
   '@media': {
     '(max-width: 768px)': {
