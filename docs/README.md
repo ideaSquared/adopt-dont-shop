@@ -70,6 +70,7 @@ Documentation for the adopt-don't-shop monorepo, organised by audience: **Start 
 - [Backend deployment](./backend/deployment.md) — how the backend is built and shipped
 - [Container image signing](./security/image-signing.md) — Cosign / Sigstore image-signing pipeline
 - [Deployment plan](./infrastructure/DEPLOYMENT-PLAN.md) — one-time provisioning (DNS, nginx, secrets, reviewers)
+- [Pre-launch setup](./infrastructure/PRE-LAUNCH-SETUP.md) — step-by-step netcup VPS setup for the landing page and private staging
 
 ### Incident runbooks
 
