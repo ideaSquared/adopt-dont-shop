@@ -243,7 +243,7 @@ describe('AccountSettings', () => {
       />
     );
 
-    expect(rowTitles().at(-1)).toBe('Privacy & data');
+    expect(rowTitles().slice(-1)[0]).toBe('Privacy & data');
     expect(row('Privacy & data').getByText('Profile visibility')).toBeInTheDocument();
     expect(screen.getByText('Privacy controls')).toBeVisible();
   });

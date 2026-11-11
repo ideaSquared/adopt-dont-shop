@@ -21,6 +21,8 @@ const baseUser: User = {
   emailVerified: true,
   userType: 'adopter',
   status: 'active',
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
 };
 
 const fetchCookiesVersionMock = vi.fn();
@@ -244,7 +246,7 @@ describe('CookieBanner [ADS-497 slice 5]', () => {
       render(<CookieBanner />);
 
       const banner = await screen.findByTestId('cookie-banner');
-      expect(banner).not.toContainElement(document.activeElement);
+      expect(banner.contains(document.activeElement)).toBe(false);
       expect(document.activeElement).toBe(document.body);
     });
 

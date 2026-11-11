@@ -123,6 +123,7 @@ describe('environment guard', () => {
       authed.listUnlocks(),
       authed.createUnlock({
         subjectType: 'any',
+        subjectId: null,
         reason: 'looking into a failure',
         ticket: 'ADS-1',
       }),

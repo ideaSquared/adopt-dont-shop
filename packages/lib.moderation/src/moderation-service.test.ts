@@ -1,9 +1,10 @@
+import type { Mocked } from 'vitest';
 import { ModerationService } from './moderation-service';
 import { apiService } from '@adopt-dont-shop/lib.api';
 
 vi.mock('@adopt-dont-shop/lib.api');
 
-const mockedApi = apiService as vi.Mocked<typeof apiService>;
+const mockedApi = apiService as Mocked<typeof apiService>;
 
 const validReport = {
   reportId: 'rep_1',

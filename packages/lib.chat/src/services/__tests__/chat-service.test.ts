@@ -735,9 +735,7 @@ describe('ChatService', () => {
         messageId: 'msg-123',
         emoji: '\u{2764}\u{FE0F}',
         userId: 'user-456',
-        reactions: [
-          { userId: 'user-456', emoji: '\u{2764}\u{FE0F}', createdAt: new Date().toISOString() },
-        ],
+        change: 'added' as const,
       };
 
       service.simulateReactionUpdate(event);

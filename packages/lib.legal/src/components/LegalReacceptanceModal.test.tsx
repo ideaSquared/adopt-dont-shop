@@ -16,6 +16,8 @@ const baseUser: User = {
   emailVerified: true,
   userType: 'adopter',
   status: 'active',
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
 };
 
 const fetchPendingMock = vi.fn();

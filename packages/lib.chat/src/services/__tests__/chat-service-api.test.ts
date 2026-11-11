@@ -63,7 +63,7 @@ describe('ChatService REST API methods', () => {
       service.onMessage(received);
       service.connect('user-1', 'token');
 
-      const socket = vi.mocked(io).mock.results.at(-1)?.value as {
+      const socket = vi.mocked(io).mock.results.slice(-1)[0]?.value as {
         on: ReturnType<typeof vi.fn>;
       };
       const handler = socket.on.mock.calls.find(([event]) => event === 'chat:message:created')?.[1];
@@ -82,7 +82,7 @@ describe('ChatService REST API methods', () => {
 
   describe('real-time reactions and read receipts', () => {
     const socketHandler = (event: string): ((payload: unknown) => void) => {
-      const socket = vi.mocked(io).mock.results.at(-1)?.value as {
+      const socket = vi.mocked(io).mock.results.slice(-1)[0]?.value as {
         on: ReturnType<typeof vi.fn>;
       };
       const handler = socket.on.mock.calls.find(([name]) => name === event)?.[1];

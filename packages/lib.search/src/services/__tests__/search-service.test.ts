@@ -94,7 +94,7 @@ describe('SearchService', () => {
       put: vi.fn(),
       delete: vi.fn(),
     };
-    ApiService.mockImplementation(function () {
+    vi.mocked(ApiService).mockImplementation(function () {
       return mockApiService;
     });
 
@@ -370,7 +370,7 @@ describe('SearchService', () => {
 
   describe('error handling and debug mode', () => {
     it('should log debug information when debug mode is enabled', async () => {
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       const debugService = new SearchService({ debug: true });
       mockApiService.get.mockRejectedValue(new Error('Test error'));

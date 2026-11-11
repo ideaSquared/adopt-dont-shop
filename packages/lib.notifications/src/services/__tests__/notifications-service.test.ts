@@ -1,5 +1,4 @@
 import { NotificationsService } from '../notifications-service';
-import { apiService } from '@adopt-dont-shop/lib.api';
 import {
   NotificationRequest,
   BulkNotificationRequest,
