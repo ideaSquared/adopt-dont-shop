@@ -3,6 +3,11 @@ import type { Pool } from 'pg';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { HandlerDeps } from '../grpc/adapter.js';
+// Read-only imports of the audit service's real contract: the payload type and
+// the subscriber's persist function (it has no schema validator of its own, the
+// uuid/NOT NULL columns are the validation).
+import { persistAuditEvent } from '../../../audit/src/nats/subscribers.js';
+import type { AuditEventPayload } from '../../../audit/src/nats/event-types.js';
 import { purgeExpiredApplicationDrafts } from './application-draft-retention.js';
 
 // Same scripted-client pattern as services/auth/src/grpc/privacy-handlers.test.ts:
@@ -90,5 +95,57 @@ describe('purgeExpiredApplicationDrafts', () => {
     // "unscripted", modelling the query failing.
     await expect(purgeExpiredApplicationDrafts(mocks.deps, { batchSize: 500 })).rejects.toThrow();
     expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  describe('published audit event', () => {
+    const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+    const runOnce = async () => {
+      const m = makeMocks();
+      m.clientScript.push({ rows: [draftRow('d-1'), draftRow('d-2')] });
+      await purgeExpiredApplicationDrafts(m.deps, { batchSize: 500 });
+      const [subject, data] = m.natsMock.publish.mock.calls[0] as [string, Uint8Array];
+      const envelope = JSON.parse(new TextDecoder().decode(data)) as {
+        id: string;
+        payload: AuditEventPayload;
+      };
+      return { subject, envelope };
+    };
+
+    it('satisfies AuditEventPayload and persists through the audit subscriber insert', async () => {
+      const { subject, envelope } = await runOnce();
+      const payload: AuditEventPayload = envelope.payload;
+
+      expect(payload.eventId).toMatch(UUID);
+      expect(payload.aggregateId).toMatch(UUID);
+      expect(payload.outcome).toBe('success');
+      expect(Number.isNaN(Date.parse(payload.occurredAt))).toBe(false);
+      expect(payload.actorUserId).toBeUndefined();
+      expect(payload.payload).toMatchObject({ deletedCount: 2 });
+
+      const query = vi.fn().mockResolvedValue({ rowCount: 1 });
+      await persistAuditEvent({ query } as unknown as Pool, payload, subject);
+      const params = query.mock.calls[0][1] as unknown[];
+      // event_id, aggregate_id, actor_user_id, outcome, occurred_at
+      expect(params[0]).toMatch(UUID);
+      expect(params[4]).toMatch(UUID);
+      expect(params[5]).toBeNull();
+      expect(params[8]).toBe('success');
+      expect(params[9]).toEqual(expect.any(String));
+    });
+
+    it('uses a different envelope id and eventId for each run', async () => {
+      const a = await runOnce();
+      const b = await runOnce();
+
+      expect(a.envelope.id).not.toBe(b.envelope.id);
+      expect(a.envelope.payload.eventId).not.toBe(b.envelope.payload.eventId);
+    });
+
+    it('carries no draft ids or other row data, only counts', async () => {
+      const { envelope } = await runOnce();
+
+      expect(JSON.stringify(envelope.payload.payload)).not.toContain('d-1');
+    });
   });
 });
