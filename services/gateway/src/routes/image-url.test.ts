@@ -49,6 +49,8 @@ describe('isSafeImageUrl', () => {
       '/\\evil.example/a.png',
       '/\t/evil.example',
       '//evil.example/a.png',
+      '//placeholder.invalid/a.png',
+      '///placeholder.invalid/a.png',
       'https://cdn.example.com/a.jpg',
       'https://evil.example/a.jpg',
       'javascript:alert(1)',

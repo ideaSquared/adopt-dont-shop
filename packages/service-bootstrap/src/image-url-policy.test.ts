@@ -72,6 +72,12 @@ describe('isSafeImageUrl bypass resistance', () => {
     ['leading backslash', '\\evil.example/a.png'],
     ['leading backslash-slash', '\\/evil.example/a.png'],
     ['protocol-relative', '//evil.example/a.png'],
+    // These resolve to the placeholder origin the policy resolves paths against, so they
+    // look same-origin to it, but on a real page they point at another host.
+    ['protocol-relative to the resolution placeholder host', '//placeholder.invalid/a.png'],
+    ['three slashes to the resolution placeholder host', '///placeholder.invalid/a.png'],
+    ['protocol-relative placeholder host with default port', '//placeholder.invalid:443/a.png'],
+    ['protocol-relative placeholder host, mixed case', '//PLACEHOLDER.invalid/a.png'],
     ['userinfo pointing off-host', 'https://cdn.example.com@evil.example/a.png'],
     ['userinfo, unrelated host', 'https://good.example@evil.example/'],
     ['backslash inside absolute url', 'https://cdn.example.com\\@evil.example/a.png'],

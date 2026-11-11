@@ -28,7 +28,11 @@ const UNSAFE_CHARACTERS = /[\u0000-\u001f\u007f\\]/;
 const PLACEHOLDER_ORIGIN = 'https://placeholder.invalid';
 
 const isSameOriginPath = (value: string): boolean => {
-  if (!value.startsWith('/')) {
+  // `//host/...` is protocol-relative: it names a host, so it is never a path on
+  // this origin. Rejecting it here (not just by comparing origins below) matters
+  // because it would resolve against the placeholder origin to the placeholder
+  // host itself and look same-origin, while on a real page it points elsewhere.
+  if (!value.startsWith('/') || value.startsWith('//')) {
     return false;
   }
   try {
