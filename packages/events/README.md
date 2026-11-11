@@ -32,6 +32,13 @@ Delivery is then two-phase:
   error log and `events_outbox_quarantined_total`. A failure only counts toward
   quarantine when another row published in the same sweep, so a NATS outage never
   quarantines healthy rows.
+  Quarantine is marked explicitly: `last_error` gets the prefix `QUARANTINED: `
+  and the claim query skips rows carrying it (the raw `attempts` count is not
+  used, as it also counted NATS-outage failures before quarantine existed). To
+  release a row once its cause is fixed, clear the marker:
+  `UPDATE event_outbox SET last_error = NULL, attempts = 0 WHERE outbox_id = '…'`
+  (use the service's own schema). Quarantined rows still count in
+  `events_outbox_pending`.
 
 Each event-publishing service adds a migration that creates `event_outbox` in
 its own schema (re-exporting the DDL from

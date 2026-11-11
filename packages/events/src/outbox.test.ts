@@ -8,6 +8,7 @@ import {
   flushInline,
   insertOutboxRecords,
   MAX_OUTBOX_ATTEMPTS,
+  QUARANTINE_MARKER,
   relayOutboxOnce,
   startOutboxRelay,
   toOutboxRecord,
@@ -231,7 +232,14 @@ describe('relayOutboxOnce', () => {
       expect(publish.mock.calls.length).toBeLessThan(20);
     });
 
-    it('skips quarantined rows in the claim query', async () => {
+    const stampedErrors = (query: ReturnType<typeof makePool>['query']) =>
+      Object.fromEntries(
+        query.mock.calls
+          .filter(([sql]) => String(sql).includes('SET attempts'))
+          .map(([, params]) => [params?.[0], String(params?.[1])])
+      );
+
+    it('excludes quarantined rows by their marker, never by the raw attempts count', async () => {
       const { pool, query } = makePool([]);
       const { nats } = makeNats();
 
@@ -240,8 +248,93 @@ describe('relayOutboxOnce', () => {
       const [sql, params] = query.mock.calls.find(([s]) =>
         String(s).includes('FOR UPDATE SKIP LOCKED')
       ) as [string, unknown[]];
-      expect(sql).toContain('attempts < $2');
-      expect(params[1]).toBe(MAX_OUTBOX_ATTEMPTS);
+      expect(sql).not.toContain('attempts <');
+      expect(sql).toContain('last_error');
+      expect(params[1]).toBe(QUARANTINE_MARKER);
+    });
+
+    it('delivers a legacy row whose attempts piled up before quarantine existed', async () => {
+      // Before quarantine, every failure (including NATS outages) bumped attempts.
+      const { pool, query } = makePool([row('legacy', MAX_OUTBOX_ATTEMPTS + 15)]);
+      const { nats, jsPublish } = makeNats();
+
+      const published = await relayOutboxOnce({ pool, nats }, 100);
+
+      expect(published).toBe(1);
+      expect(jsPublish).toHaveBeenCalledWith('s.legacy', expect.anything(), expect.anything());
+      const deleted = query.mock.calls
+        .filter(([sql]) => String(sql).includes('DELETE'))
+        .map(([, params]) => params?.[0]);
+      expect(deleted).toEqual(['legacy']);
+    });
+
+    it('sends a legacy row that fails attributably through the normal quarantine path', async () => {
+      const { pool, query } = makePool([row('legacy', MAX_OUTBOX_ATTEMPTS + 15), row('ok')]);
+      const logger = { warn: vi.fn(), error: vi.fn() };
+
+      await relayOutboxOnce({ pool, nats: natsFailingFor('s.legacy'), logger }, 100);
+
+      expect(stampedErrors(query).legacy).toBe(`${QUARANTINE_MARKER}payload too large`);
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('quarantined'),
+        expect.objectContaining({ subject: 's.legacy' })
+      );
+      const text = await getMetricsRegistry().metrics();
+      expect(text).toContain('events_outbox_quarantined_total 1');
+    });
+
+    it('marks the row that reaches the cap and leaves earlier failures unmarked', async () => {
+      const { pool, query } = makePool([
+        row('last', MAX_OUTBOX_ATTEMPTS - 1),
+        row('early', 2),
+        row('ok'),
+      ]);
+
+      await relayOutboxOnce({ pool, nats: natsFailingFor('s.last', 's.early') }, 100);
+
+      expect(stampedErrors(query)).toEqual({
+        last: `${QUARANTINE_MARKER}payload too large`,
+        early: 'payload too large',
+      });
+    });
+
+    it('never marks a row during an outage, even one a single attempt from the cap', async () => {
+      const { pool, query } = makePool([row('a', MAX_OUTBOX_ATTEMPTS - 1)]);
+      const logger = { warn: vi.fn(), error: vi.fn() };
+
+      await relayOutboxOnce({ pool, nats: natsFailingFor('s.a'), logger }, 100);
+
+      expect(stampedErrors(query)).toEqual({ a: 'payload too large' });
+      expect(logger.error).not.toHaveBeenCalled();
+    });
+
+    it('skips a marked row while later rows keep flowing', async () => {
+      // Stateful double: the claim honours the marker parameter like the SQL does.
+      const table = [
+        { ...row('poison', MAX_OUTBOX_ATTEMPTS), last_error: `${QUARANTINE_MARKER}too big` },
+        row('ok1'),
+        row('ok2'),
+      ].map(r => ({ last_error: null as string | null, ...r }));
+      const query = vi.fn(async (sql: string, params?: unknown[]) => {
+        if (sql.includes('FOR UPDATE SKIP LOCKED')) {
+          const marker = String(params?.[1]);
+          return { rows: table.filter(r => !r.last_error?.startsWith(marker)) };
+        }
+        if (sql.includes('DELETE')) {
+          const i = table.findIndex(r => r.outbox_id === params?.[0]);
+          table.splice(i, 1);
+        }
+        return { rows: [] };
+      });
+      const client = { query, release: vi.fn() };
+      const pool = { connect: vi.fn(async () => client), query } as unknown as Pool;
+      const { nats, jsPublish } = makeNats();
+
+      const published = await relayOutboxOnce({ pool, nats }, 100);
+
+      expect(published).toBe(2);
+      expect(jsPublish.mock.calls.map(([subject]) => subject)).toEqual(['s.ok1', 's.ok2']);
+      expect(table.map(r => r.outbox_id)).toEqual(['poison']);
     });
 
     it('quarantines a row on its final attempt: logs at error and counts it', async () => {

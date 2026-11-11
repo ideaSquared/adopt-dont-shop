@@ -199,10 +199,16 @@ const rowToRecord = (row: {
 // healthy: only when at least one other row published in the same sweep is the
 // failure attributed to the row itself and `attempts` incremented. Otherwise
 // `attempts` is left alone, so a NATS outage can never quarantine healthy
-// rows. Once a row reaches MAX_OUTBOX_ATTEMPTS it is quarantined: the claim
-// query skips it, it stays in the table for triage (and in the pending gauge),
-// and it is logged at error and counted on events_outbox_quarantined_total.
-// No schema change is needed: quarantine reuses the existing `attempts` column.
+// rows. Once a row reaches MAX_OUTBOX_ATTEMPTS it is quarantined: its
+// `last_error` is stamped with QUARANTINE_MARKER, the claim query skips rows
+// carrying that marker, and the row stays in the table for triage (and in the
+// pending gauge). It is logged at error and counted on
+// events_outbox_quarantined_total.
+//
+// Quarantine is keyed on the marker, NOT on the raw `attempts` value: before
+// quarantine existed `attempts` also counted NATS-outage failures, so a healthy
+// legacy row can already sit at 10+ and must still be delivered after an
+// upgrade. No schema change is needed; `last_error` is an existing column.
 //
 // Trade-offs: skipping a failed row lets a later event on the same subject
 // publish before it (consumers are idempotent and apply latest-wins on a
@@ -223,11 +229,11 @@ export const relayOutboxOnce = async (
     const { rows } = await client.query(
       `SELECT outbox_id, event_id, subject, payload, occurred_at, attempts
          FROM ${OUTBOX_TABLE}
-        WHERE attempts < $2
+        WHERE last_error IS NULL OR NOT starts_with(last_error, $2)
         ORDER BY seq
         LIMIT $1
         FOR UPDATE SKIP LOCKED`,
-      [batchSize, MAX_OUTBOX_ATTEMPTS]
+      [batchSize, QUARANTINE_MARKER]
     );
     if (rows.length === 0) {
       await client.query('COMMIT');
@@ -260,13 +266,14 @@ export const relayOutboxOnce = async (
     }
     const rowAttributable = published > 0;
     for (const { rec, attempts, error } of failed) {
+      const quarantine = rowAttributable && attempts + 1 >= MAX_OUTBOX_ATTEMPTS;
       await client.query(
         `UPDATE ${OUTBOX_TABLE}
             SET attempts = attempts + $3, last_attempt_at = now(), last_error = $2
           WHERE outbox_id = $1`,
-        [rec.outboxId, error, rowAttributable ? 1 : 0]
+        [rec.outboxId, quarantine ? `${QUARANTINE_MARKER}${error}` : error, rowAttributable ? 1 : 0]
       );
-      if (rowAttributable && attempts + 1 >= MAX_OUTBOX_ATTEMPTS) {
+      if (quarantine) {
         recordOutboxQuarantined();
         logger?.error?.('outbox row quarantined after repeated publish failures', {
           subject: rec.subject,
@@ -308,6 +315,11 @@ export type OutboxRelayHandle = {
 // Row-attributable publish failures after which a row is quarantined: skipped
 // by the claim query and kept in the table for manual triage.
 export const MAX_OUTBOX_ATTEMPTS = 10;
+
+// Prefix stamped on `last_error` when a row is quarantined; the claim query
+// skips rows that start with it. To release a row, clear `last_error` (see the
+// package README).
+export const QUARANTINE_MARKER = 'QUARANTINED: ';
 
 // A sweep gives up after this many failed publishes in a row (likely an outage).
 const MAX_SWEEP_CONSECUTIVE_FAILURES = 5;
