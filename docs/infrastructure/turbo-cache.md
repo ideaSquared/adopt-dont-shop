@@ -69,15 +69,42 @@ builds keep working after a rotation as long as the new token is in place.
 ## Task inputs and shared config
 
 A task's cache key hashes its declared `inputs` plus `globalDependencies` — not
-every file a task happens to read. `type-check` lists the shared
-`$TURBO_ROOT$/tsconfig.*.base.json` files as inputs so an edit to one busts the
-cache for every consumer instead of a stale hit. `lint`'s `inputs` likewise list
-the `index.js` of each `packages/eslint-config-*` package, since every
-package's `eslint.config.js` imports one of those shared rulesets; without
-that, editing a shared ESLint rule would hit a stale `lint` cache everywhere it
-applies. These are scoped to the `lint` task's own `inputs` rather than
-`globalDependencies` (the way `.prettierrc` is listed) so an ESLint rule change
-only busts `lint`, not `build` or `test` too.
+every file a task happens to read. Root-level config therefore only busts a task
+if `turbo.json` names it. Today:
+
+| Root file                                                                        | Busts                                          |
+| -------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `tsconfig.base.json`                                                             | `build`, `test`, `test:coverage`, `type-check` |
+| `tsconfig.lib.base.json`, `tsconfig.service.base.json`, `tsconfig.cjs.base.json` | `build`, `type-check`                          |
+| `vite.shared.config.ts`                                                          | `build`, `test`, `test:coverage`               |
+| `vitest.shared.config.ts`                                                        | `test`, `test:coverage`                        |
+| `vitest-globals.d.ts`                                                            | `type-check`                                   |
+| `eslint.config.js` (root)                                                        | `lint`                                         |
+| `packages/eslint-config-{base,node,react}/index.js`                              | `lint`                                         |
+| `.prettierrc`, `.prettierignore`, `.editorconfig`, `.env.*local`                 | every task (`globalDependencies`)              |
+
+`build` compiles with the root tsconfig bases and (for the apps) `vite.shared.config.ts`,
+so it lists them; without that, editing one would replay a stale `dist/` from the
+(remote) cache. Because specifying `inputs` replaces a task's default input set
+(all tracked files in the package), `build` starts with `$TURBO_DEFAULT$`. Keep it
+there when adding to the list, or package sources stop invalidating `build`.
+
+`lint` lists the root `eslint.config.js` because the service-side packages with
+no `eslint.config.js` of their own (`authz`, `config-secrets`, `db`, `events`,
+`observability`, `ops-cli`, `ops-contract`, `proto`, `scheduler`, `seed-faker`,
+`service-bootstrap`, `storage`, `test-utils`) run `eslint src` and ESLint resolves
+the root file for them. (The file's header comment says CI does not use it; that
+holds for packages with their own config, not for these.) It also lists each
+`packages/eslint-config-*` `index.js`, since every other package's
+`eslint.config.js` imports one of those rulesets.
+
+These are scoped to the individual tasks' `inputs` rather than `globalDependencies`
+(the way `.prettierrc` is listed) so an ESLint or tsconfig change only busts the
+tasks that read it, not every task.
+
+To check a change, record `pnpm exec turbo run <task> --filter=<pkg> --dry=json`
+(the `hash` field), edit the file, and confirm the hash moves; an edit to an
+unrelated file such as a `docs/*.md` must leave it unchanged.
 
 ## Troubleshooting
 
