@@ -29,6 +29,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { createMatchingClient } from './matching-client.js';
 
+import { unimplementedHandlers } from '../../test/helpers/unimplemented-handlers.js';
+
 // ── helpers ──────────────────────────────────────────────────────────
 
 const makeServiceError = (code: number, details: string): ServiceError => {
@@ -39,24 +41,13 @@ const makeServiceError = (code: number, details: string): ServiceError => {
   return err;
 };
 
-const unimplemented = (_call: unknown, cb: sendUnaryData<unknown>) =>
-  cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null);
-
 const makeHandlers = (
   overrides: Partial<MatchingV1.MatchingServiceServer>
-): MatchingV1.MatchingServiceServer => ({
-  startSession: unimplemented,
-  endSession: unimplemented,
-  recommend: unimplemented,
-  recordSwipe: unimplemented,
-  searchPets: unimplemented,
-  listSwipeHistory: unimplemented,
-  getMatchProfile: unimplemented,
-  upsertMatchProfile: unimplemented,
-  getUserSwipeStats: unimplemented,
-  getSessionStats: unimplemented,
-  ...overrides,
-});
+): MatchingV1.MatchingServiceServer =>
+  unimplementedHandlers<MatchingV1.MatchingServiceServer>(
+    MatchingV1.MatchingServiceService,
+    overrides
+  );
 
 // ── suite ─────────────────────────────────────────────────────────────
 

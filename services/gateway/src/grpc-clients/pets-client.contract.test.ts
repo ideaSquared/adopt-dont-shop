@@ -32,6 +32,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { createPetsClient } from './pets-client.js';
 
+import { unimplementedHandlers } from '../../test/helpers/unimplemented-handlers.js';
+
 // ── helpers ──────────────────────────────────────────────────────────
 
 const makeServiceError = (code: number, details: string): ServiceError => {
@@ -42,26 +44,8 @@ const makeServiceError = (code: number, details: string): ServiceError => {
   return err;
 };
 
-const unimplemented = (_call: unknown, cb: sendUnaryData<unknown>) =>
-  cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null);
-
-const makeHandlers = (overrides: Partial<PetsV1.PetServiceServer>): PetsV1.PetServiceServer => ({
-  create: unimplemented,
-  get: unimplemented,
-  list: unimplemented,
-  update: unimplemented,
-  updateStatus: unimplemented,
-  delete: unimplemented,
-  getStats: unimplemented,
-  getAdoptionTrend: unimplemented,
-  getAdoptionsByType: unimplemented,
-  getTopRescuesByAdoptions: unimplemented,
-  addFavorite: unimplemented,
-  removeFavorite: unimplemented,
-  getFavoriteStatus: unimplemented,
-  listUserFavorites: unimplemented,
-  ...overrides,
-});
+const makeHandlers = (overrides: Partial<PetsV1.PetServiceServer>): PetsV1.PetServiceServer =>
+  unimplementedHandlers<PetsV1.PetServiceServer>(PetsV1.PetServiceService, overrides);
 
 // Minimal valid Pet object satisfying proto serialization.
 // All required (non-optional) fields must be set; optional fields can be
@@ -200,7 +184,7 @@ describe('pets-client — gRPC contract', () => {
           call: ServerUnaryCall<GetAdoptionTrendRequest, GetAdoptionTrendResponse>,
           cb: sendUnaryData<GetAdoptionTrendResponse>
         ) => {
-          receivedGroupBy = call.request.groupBy;
+          receivedGroupBy = call.request.groupBy ?? '';
           cb(null, want);
         },
       })

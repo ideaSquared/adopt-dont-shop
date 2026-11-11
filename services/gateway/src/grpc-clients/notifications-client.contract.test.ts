@@ -30,6 +30,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { createNotificationsClient } from './notifications-client.js';
 
+import { unimplementedHandlers } from '../../test/helpers/unimplemented-handlers.js';
+
 // ── helpers ──────────────────────────────────────────────────────────
 
 const makeServiceError = (code: number, details: string): ServiceError => {
@@ -40,38 +42,13 @@ const makeServiceError = (code: number, details: string): ServiceError => {
   return err;
 };
 
-const unimplemented = (_call: unknown, cb: sendUnaryData<unknown>) =>
-  cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null);
-
 const makeHandlers = (
   overrides: Partial<NotificationsV1.NotificationServiceServer>
-): NotificationsV1.NotificationServiceServer => ({
-  create: unimplemented,
-  list: unimplemented,
-  dismiss: unimplemented,
-  getNotification: unimplemented,
-  getUnreadCount: unimplemented,
-  markAllRead: unimplemented,
-  deleteNotification: unimplemented,
-  getNotificationPreferences: unimplemented,
-  updateNotificationPreferences: unimplemented,
-  resetNotificationPreferences: unimplemented,
-  cleanupExpiredNotifications: unimplemented,
-  sendEmail: unimplemented,
-  getEmailPreferences: unimplemented,
-  updateEmailPreferences: unimplemented,
-  listEmailTemplates: unimplemented,
-  getEmailTemplate: unimplemented,
-  createEmailTemplate: unimplemented,
-  updateEmailTemplate: unimplemented,
-  deleteEmailTemplate: unimplemented,
-  previewEmailTemplate: unimplemented,
-  registerDeviceToken: unimplemented,
-  unregisterDeviceToken: unimplemented,
-  listDeviceTokens: unimplemented,
-  broadcast: unimplemented,
-  ...overrides,
-});
+): NotificationsV1.NotificationServiceServer =>
+  unimplementedHandlers<NotificationsV1.NotificationServiceServer>(
+    NotificationsV1.NotificationServiceService,
+    overrides
+  );
 
 // ── suite ─────────────────────────────────────────────────────────────
 

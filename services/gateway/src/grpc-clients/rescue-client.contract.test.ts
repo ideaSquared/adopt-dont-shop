@@ -34,6 +34,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { createRescueClient } from './rescue-client.js';
 
+import { unimplementedHandlers } from '../../test/helpers/unimplemented-handlers.js';
+
 // ── helpers ──────────────────────────────────────────────────────────
 
 const makeServiceError = (code: number, details: string): ServiceError => {
@@ -44,29 +46,10 @@ const makeServiceError = (code: number, details: string): ServiceError => {
   return err;
 };
 
-const unimplemented = (_call: unknown, cb: sendUnaryData<unknown>) =>
-  cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null);
-
 const makeHandlers = (
   overrides: Partial<RescueV1.RescueServiceServer>
-): RescueV1.RescueServiceServer => ({
-  create: unimplemented,
-  get: unimplemented,
-  getRescueNames: unimplemented,
-  list: unimplemented,
-  update: unimplemented,
-  verify: unimplemented,
-  inviteStaff: unimplemented,
-  getMyStaffMembership: unimplemented,
-  checkSelfErasure: unimplemented,
-  listStaffMembers: unimplemented,
-  createFosterPlacement: unimplemented,
-  listFosterPlacements: unimplemented,
-  getFosterPlacement: unimplemented,
-  endFosterPlacement: unimplemented,
-  getInvitationByToken: unimplemented,
-  ...overrides,
-});
+): RescueV1.RescueServiceServer =>
+  unimplementedHandlers<RescueV1.RescueServiceServer>(RescueV1.RescueServiceService, overrides);
 
 // Minimal valid Rescue satisfying proto serialization constraints.
 const minimalRescue: RescueV1.Rescue = {
@@ -80,6 +63,7 @@ const minimalRescue: RescueV1.Rescue = {
   contactPerson: 'Jane Smith',
   status: 0,
   settingsJson: '{}',
+  plan: 'free',
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',
 };

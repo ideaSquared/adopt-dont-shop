@@ -29,6 +29,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { createChatClient } from './chat-client.js';
 
+import { unimplementedHandlers } from '../../test/helpers/unimplemented-handlers.js';
+
 // ── helpers ──────────────────────────────────────────────────────────
 
 const makeServiceError = (code: number, details: string): ServiceError => {
@@ -39,23 +41,8 @@ const makeServiceError = (code: number, details: string): ServiceError => {
   return err;
 };
 
-const unimplemented = (_call: unknown, cb: sendUnaryData<unknown>) =>
-  cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null);
-
-const makeHandlers = (overrides: Partial<ChatV1.ChatServiceServer>): ChatV1.ChatServiceServer => ({
-  openChat: unimplemented,
-  sendMessage: unimplemented,
-  listMessages: unimplemented,
-  listChats: unimplemented,
-  markRead: unimplemented,
-  react: unimplemented,
-  searchChats: unimplemented,
-  getChatUnreadCount: unimplemented,
-  deleteMessage: unimplemented,
-  getChat: unimplemented,
-  deleteChat: unimplemented,
-  ...overrides,
-});
+const makeHandlers = (overrides: Partial<ChatV1.ChatServiceServer>): ChatV1.ChatServiceServer =>
+  unimplementedHandlers<ChatV1.ChatServiceServer>(ChatV1.ChatServiceService, overrides);
 
 // ── suite ─────────────────────────────────────────────────────────────
 
@@ -88,6 +75,7 @@ describe('chat-client — gRPC contract', () => {
         {
           chatId: 'chat-001',
           applicationId: 'app-1',
+          rescueId: 'rescue-1',
           participantUserIds: ['user-a', 'user-b'],
           createdAt: '2024-01-01T00:00:00Z',
           updatedAt: '2024-01-01T00:00:00Z',
@@ -113,7 +101,7 @@ describe('chat-client — gRPC contract', () => {
 
     const client = createChatClient({ address: `127.0.0.1:${port}` });
     try {
-      const result = await client.listChats({ limit: 10 }, new Metadata());
+      const result = await client.listChats({ limit: 10, unreadOnly: false }, new Metadata());
       expect(handlerCalled).toBe(true);
       expect(result.chats).toHaveLength(1);
       expect(result.chats[0].chatId).toBe('chat-001');
@@ -129,6 +117,7 @@ describe('chat-client — gRPC contract', () => {
       chat: {
         chatId: 'chat-new',
         applicationId: 'app-2',
+        rescueId: 'rescue-1',
         participantUserIds: ['user-a', 'user-b'],
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
@@ -156,7 +145,7 @@ describe('chat-client — gRPC contract', () => {
     const client = createChatClient({ address: `127.0.0.1:${port}` });
     try {
       const result = await client.openChat(
-        { applicationId: 'app-2', otherUserId: 'user-b' },
+        { applicationId: 'app-2', otherUserId: 'user-b', rescueId: 'rescue-1' },
         new Metadata()
       );
       expect(capturedApplicationId).toBe('app-2');
@@ -184,7 +173,10 @@ describe('chat-client — gRPC contract', () => {
 
     const client = createChatClient({ address: `127.0.0.1:${port}` });
     try {
-      await client.openChat({ applicationId: 'missing', otherUserId: 'user-b' }, new Metadata());
+      await client.openChat(
+        { applicationId: 'missing', otherUserId: 'user-b', rescueId: 'rescue-1' },
+        new Metadata()
+      );
       expect.fail('expected rejection');
     } catch (err: unknown) {
       expect((err as { code?: number }).code).toBe(status.NOT_FOUND);
