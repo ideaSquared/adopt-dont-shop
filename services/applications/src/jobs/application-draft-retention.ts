@@ -16,6 +16,7 @@ import { randomUUID } from 'node:crypto';
 import { withTransaction } from '@adopt-dont-shop/events';
 
 import type { HandlerDeps } from '../grpc/adapter.js';
+import { draftRetentionPurged } from '../grpc/audit.js';
 
 export type ApplicationDraftRetentionOptions = {
   // Max rows deleted per transaction. Bounds lock/transaction duration.
@@ -31,6 +32,7 @@ export async function purgeExpiredApplicationDrafts(
   opts: ApplicationDraftRetentionOptions
 ): Promise<ApplicationDraftRetentionResult> {
   let deletedCount = 0;
+  const runId = randomUUID();
 
   for (;;) {
     const batchDeleted = await withTransaction(deps, async ({ client, publish }) => {
@@ -51,20 +53,7 @@ export async function purgeExpiredApplicationDrafts(
       // Attach the summary event to the final batch's commit — a run that
       // deleted nothing publishes nothing (no audit noise for a no-op tick).
       if (isLastBatch && deletedCount > 0) {
-        publish({
-          type: 'applications.actionTaken',
-          id: `applications.actionTaken.draftRetentionPurge.${Date.now()}`,
-          payload: {
-            service: 'service.applications',
-            subject: 'applications.actionTaken',
-            aggregateType: 'application_draft',
-            // Synthetic per-run id — audit_events.aggregate_id is a uuid
-            // column and there is no single row this bulk purge maps to.
-            aggregateId: randomUUID(),
-            action: 'retention_purge',
-            details: { deletedCount },
-          },
-        });
+        publish(draftRetentionPurged(runId, deletedCount));
       }
 
       return rows.length;
