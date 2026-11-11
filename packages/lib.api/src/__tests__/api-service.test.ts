@@ -537,7 +537,7 @@ describe('ApiService', () => {
 
       // Mock fetch to simulate timeout by checking if abort was called
       mockFetch.mockImplementationOnce(() => {
-        return new Promise((resolve, reject) => {
+        return new Promise((_resolve, reject) => {
           // Simulate the timeout by rejecting with AbortError after a delay
           setTimeout(() => {
             const error = new Error('The operation was aborted');
