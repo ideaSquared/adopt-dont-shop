@@ -157,7 +157,7 @@ describe('withTransaction', () => {
     // Released exactly once overall (no double release in the finally block).
     expect(mocks.clientMock.release).toHaveBeenCalledTimes(1);
     // The published row is still cleared, via the pool.
-    const deleteOnPool = mocks.poolMock.query.mock.calls.some(([sql]: [string]) =>
+    const deleteOnPool = mocks.poolMock.query.mock.calls.some(([sql]) =>
       String(sql).includes('DELETE FROM event_outbox')
     );
     expect(deleteOnPool).toBe(true);

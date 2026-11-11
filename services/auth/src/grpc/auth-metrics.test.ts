@@ -70,8 +70,17 @@ function makeMocks() {
   };
   const passwordHasher = { compare: vi.fn(), hash: vi.fn() };
   const tokenIssuer = { mint: vi.fn(), verifyAccess: vi.fn(), verifyRefresh: vi.fn() };
+  // withTransaction's inline outbox DELETE runs on the pool after commit. It is
+  // infrastructure, so answer it without consuming the scripted business rows.
+  const handlerPool = {
+    ...pool,
+    query: (sql: string, ...args: unknown[]) =>
+      /event_outbox/i.test(sql)
+        ? Promise.resolve({ rows: [], rowCount: 0 })
+        : pool.query(sql, ...args),
+  };
   const deps: HandlerDeps = {
-    pool: pool as unknown as Pool,
+    pool: handlerPool as unknown as Pool,
     nats: nats as unknown as NatsConnection,
     passwordHasher,
     tokenIssuer,

@@ -49,8 +49,17 @@ function makeMocks() {
   // pool.connect(); the read-path handlers use pool.query directly.
   const client = { query: vi.fn(), release: vi.fn() };
   client.query.mockResolvedValue({ rows: [] });
-  const pool = { query: vi.fn(), connect: vi.fn().mockResolvedValue(client) };
-  pool.query.mockResolvedValue({ rows: [] });
+  const poolQuery = vi.fn();
+  poolQuery.mockResolvedValue({ rows: [] });
+  // withTransaction's inline outbox DELETE runs on the pool after commit. It is
+  // infrastructure, so answer it without consuming the scripted business rows.
+  const pool = {
+    query: (sql: string, ...args: unknown[]) =>
+      /event_outbox/i.test(sql)
+        ? Promise.resolve({ rows: [], rowCount: 0 })
+        : poolQuery(sql, ...args),
+    connect: vi.fn().mockResolvedValue(client),
+  };
   // JetStream publish routes to the same spy so publish assertions can observe
   // withTransaction's inline delivery.
   const natsPublish = vi.fn();
@@ -59,7 +68,12 @@ function makeMocks() {
     pool: pool as unknown as Pool,
     nats: nats as unknown as NatsConnection,
   };
-  return { deps, poolMock: pool, clientMock: client, natsMock: nats };
+  return {
+    deps,
+    poolMock: { query: poolQuery, connect: pool.connect },
+    clientMock: client,
+    natsMock: nats,
+  };
 }
 
 const questionRow = (overrides: Record<string, unknown> = {}) => ({

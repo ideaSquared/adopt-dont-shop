@@ -128,7 +128,11 @@ function makeMocks() {
   const poolScript: Array<{ rows: unknown[] }> = [];
   const pool = {
     connect: vi.fn().mockResolvedValue(client),
-    query: vi.fn(async (_sql: string, _params?: unknown[]) => poolScript.shift() ?? { rows: [] }),
+    // The inline outbox DELETE runs on the pool after commit (withTransaction releases
+    // its client first). It is infrastructure, so answer it without consuming the script.
+    query: vi.fn(async (sql: string, _params?: unknown[]) =>
+      /event_outbox/i.test(sql) ? { rows: [], rowCount: 0 } : (poolScript.shift() ?? { rows: [] })
+    ),
   };
   const natsPublish = vi.fn();
   // JetStream publish routes to the same spy so existing publish assertions
@@ -1833,7 +1837,7 @@ describe('updateChatStatus', () => {
   it('gives a status that flips back and forth a fresh event id each time', async () => {
     // JetStream drops a repeated Nats-Msg-Id inside its dedupe window, so
     // locking, unlocking and locking again must not reuse an id.
-    const flip = async (from: string, to: string, status: typeof LOCKED): Promise<void> => {
+    const flip = async (from: string, to: string, status: ChatV1.ChatStatus): Promise<void> => {
       mocks.poolMock.query.mockResolvedValueOnce({ rows: [chatRowFixture({ status: from })] });
       mocks.clientScript.push({ rows: [chatRowFixture({ status: to })] });
       mocks.clientScript.push({ rows: [{ participant_id: 'usr-adopter' }] });
