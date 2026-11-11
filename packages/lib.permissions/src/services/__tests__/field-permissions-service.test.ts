@@ -1,16 +1,17 @@
+import type { Mocked, MockedClass } from 'vitest';
 import { FieldPermissionsService } from '../field-permissions-service';
 import { ApiService } from '@adopt-dont-shop/lib.api';
 
 vi.mock('@adopt-dont-shop/lib.api');
-const MockedApiService = ApiService as vi.MockedClass<typeof ApiService>;
+const MockedApiService = ApiService as MockedClass<typeof ApiService>;
 
 describe('FieldPermissionsService', () => {
   let service: FieldPermissionsService;
-  let mockApiService: vi.Mocked<ApiService>;
+  let mockApiService: Mocked<ApiService>;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockApiService = new MockedApiService() as vi.Mocked<ApiService>;
+    mockApiService = new MockedApiService() as Mocked<ApiService>;
     service = new FieldPermissionsService({}, mockApiService);
     service.clearCache();
   });

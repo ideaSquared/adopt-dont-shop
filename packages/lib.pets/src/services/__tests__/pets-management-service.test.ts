@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { PetManagementService } from '../pets-management-service';
 import { ApiService } from '@adopt-dont-shop/lib.api';
 import type { PetCreateData, PetUpdateData, PetStatus } from '../../types';
@@ -10,7 +11,7 @@ const mockApiService = {
   patch: vi.fn(),
   delete: vi.fn(),
   updateConfig: vi.fn(),
-} as unknown as vi.Mocked<ApiService>;
+} as unknown as Mocked<ApiService>;
 
 const samplePet = {
   pet_id: 'pet-1',

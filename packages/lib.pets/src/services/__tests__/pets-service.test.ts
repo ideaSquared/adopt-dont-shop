@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { PetsService } from '../pets-service';
 import { ApiService } from '@adopt-dont-shop/lib.api';
 
@@ -8,7 +9,7 @@ const mockApiService = {
   put: vi.fn(),
   delete: vi.fn(),
   updateConfig: vi.fn(),
-} as unknown as vi.Mocked<ApiService>;
+} as unknown as Mocked<ApiService>;
 
 describe('PetsService', () => {
   let service: PetsService;

@@ -1,6 +1,7 @@
+import type { Mocked, MockedClass } from 'vitest';
 import { PermissionsService } from '../permissions-service';
 import { ApiService } from '@adopt-dont-shop/lib.api';
-import { Permission, PermissionAuditLog, UserWithPermissions } from '../../types';
+import { Permission, UserWithPermissions } from '../../types';
 
 const buildUser = (overrides: Partial<UserWithPermissions> = {}): UserWithPermissions => ({
   userId: 'user123',
@@ -15,15 +16,15 @@ const buildUser = (overrides: Partial<UserWithPermissions> = {}): UserWithPermis
 
 // Mock the ApiService
 vi.mock('@adopt-dont-shop/lib.api');
-const MockedApiService = ApiService as vi.MockedClass<typeof ApiService>;
+const MockedApiService = ApiService as MockedClass<typeof ApiService>;
 
 describe('PermissionsService', () => {
   let service: PermissionsService;
-  let mockApiService: vi.Mocked<ApiService>;
+  let mockApiService: Mocked<ApiService>;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockApiService = new MockedApiService() as vi.Mocked<ApiService>;
+    mockApiService = new MockedApiService() as Mocked<ApiService>;
     service = new PermissionsService({}, mockApiService);
   });
 
@@ -42,7 +43,7 @@ describe('PermissionsService', () => {
 
   describe('hasPermission', () => {
     it('returns true when the user has the permission (computed from their set)', async () => {
-      mockApiService.get = vi.fn().mockResolvedValue({ permissions: ['pets.read'] });
+      mockApiService.get.mockResolvedValue({ permissions: ['pets.read'] });
 
       const result = await service.hasPermission('user123', 'pets.read');
 
@@ -51,7 +52,7 @@ describe('PermissionsService', () => {
     });
 
     it('returns false when the user lacks the permission', async () => {
-      mockApiService.get = vi.fn().mockResolvedValue({ permissions: ['pets.read'] });
+      mockApiService.get.mockResolvedValue({ permissions: ['pets.read'] });
 
       const result = await service.hasPermission('user123', 'admin.dashboard');
 
@@ -71,7 +72,7 @@ describe('PermissionsService', () => {
     it('should retrieve user permissions', async () => {
       const mockPermissions: Permission[] = ['pets.read', 'pets.create'];
       const mockResponse = { permissions: mockPermissions };
-      mockApiService.get = vi.fn().mockResolvedValue(mockResponse);
+      mockApiService.get.mockResolvedValue(mockResponse);
 
       const result = await service.getUserPermissions('user123');
 
@@ -89,7 +90,7 @@ describe('PermissionsService', () => {
     });
 
     it('should return an empty array when the API omits permissions', async () => {
-      mockApiService.get = vi.fn().mockResolvedValue({});
+      mockApiService.get.mockResolvedValue({});
 
       const result = await service.getUserPermissions('user123');
 
@@ -97,7 +98,7 @@ describe('PermissionsService', () => {
     });
 
     it('should serve repeated lookups from cache without re-fetching', async () => {
-      mockApiService.get = vi.fn().mockResolvedValue({ permissions: ['pets.read'] });
+      mockApiService.get.mockResolvedValue({ permissions: ['pets.read'] });
 
       await service.getUserPermissions('user123');
       await service.getUserPermissions('user123');
@@ -106,7 +107,7 @@ describe('PermissionsService', () => {
     });
 
     it('should bypass the cache when useCache is false', async () => {
-      mockApiService.get = vi.fn().mockResolvedValue({ permissions: ['pets.read'] });
+      mockApiService.get.mockResolvedValue({ permissions: ['pets.read'] });
 
       await service.getUserPermissions('user123', false);
       await service.getUserPermissions('user123', false);
@@ -117,7 +118,7 @@ describe('PermissionsService', () => {
 
   describe('hasAnyPermission', () => {
     it('returns true when at least one permission is granted', async () => {
-      mockApiService.get = vi.fn().mockResolvedValue({ permissions: ['pets.create'] });
+      mockApiService.get.mockResolvedValue({ permissions: ['pets.create'] });
 
       const result = await service.hasAnyPermission('user123', ['pets.read', 'pets.create']);
 
@@ -125,7 +126,7 @@ describe('PermissionsService', () => {
     });
 
     it('returns false when every permission is denied', async () => {
-      mockApiService.get = vi.fn().mockResolvedValue({ permissions: ['rescues.read'] });
+      mockApiService.get.mockResolvedValue({ permissions: ['rescues.read'] });
 
       const result = await service.hasAnyPermission('user123', ['pets.read', 'pets.create']);
 
@@ -133,7 +134,7 @@ describe('PermissionsService', () => {
     });
 
     it('returns false for an empty permission set (no fetch)', async () => {
-      mockApiService.get = vi.fn();
+      mockApiService.get.mockReset();
 
       const result = await service.hasAnyPermission('user123', []);
 
@@ -144,7 +145,7 @@ describe('PermissionsService', () => {
 
   describe('hasAllPermissions', () => {
     it('returns true only when all permissions are granted', async () => {
-      mockApiService.get = vi.fn().mockResolvedValue({ permissions: ['pets.read', 'pets.create'] });
+      mockApiService.get.mockResolvedValue({ permissions: ['pets.read', 'pets.create'] });
 
       const result = await service.hasAllPermissions('user123', ['pets.read', 'pets.create']);
 
@@ -152,7 +153,7 @@ describe('PermissionsService', () => {
     });
 
     it('returns false when any permission is denied', async () => {
-      mockApiService.get = vi.fn().mockResolvedValue({ permissions: ['pets.read'] });
+      mockApiService.get.mockResolvedValue({ permissions: ['pets.read'] });
 
       const result = await service.hasAllPermissions('user123', ['pets.read', 'pets.create']);
 
@@ -160,7 +161,7 @@ describe('PermissionsService', () => {
     });
 
     it('returns true (vacuously) for an empty permission set (no fetch)', async () => {
-      mockApiService.get = vi.fn();
+      mockApiService.get.mockReset();
 
       const result = await service.hasAllPermissions('user123', []);
 
@@ -172,7 +173,7 @@ describe('PermissionsService', () => {
   describe('getUserWithPermissions', () => {
     it('unwraps the { success, data } envelope the gateway serves', async () => {
       const user = buildUser({ userType: 'admin' });
-      mockApiService.get = vi.fn().mockResolvedValue({ success: true, data: user });
+      mockApiService.get.mockResolvedValue({ success: true, data: user });
 
       const result = await service.getUserWithPermissions('user123');
 
@@ -182,7 +183,7 @@ describe('PermissionsService', () => {
 
     it('still accepts a flat (un-enveloped) response', async () => {
       const user = buildUser({ userType: 'admin' });
-      mockApiService.get = vi.fn().mockResolvedValue(user);
+      mockApiService.get.mockResolvedValue(user);
 
       const result = await service.getUserWithPermissions('user123');
 
@@ -260,7 +261,7 @@ describe('PermissionsService', () => {
 
   describe('assignRole', () => {
     it('posts the assignment and clears the user cache', async () => {
-      mockApiService.get = vi.fn().mockResolvedValue({ permissions: ['pets.read'] });
+      mockApiService.get.mockResolvedValue({ permissions: ['pets.read'] });
       mockApiService.post = vi.fn().mockResolvedValue({ success: true });
 
       // Prime the cache so we can observe it being cleared.
@@ -305,7 +306,7 @@ describe('PermissionsService', () => {
     };
 
     it('queries /api/v1/audit and adapts events when no user is given', async () => {
-      mockApiService.get = vi.fn().mockResolvedValue({ events: [auditEvent] });
+      mockApiService.get.mockResolvedValue({ events: [auditEvent] });
 
       const result = await service.getAuditLogs();
 
@@ -324,7 +325,7 @@ describe('PermissionsService', () => {
     });
 
     it('scopes the query to a user and respects the limit', async () => {
-      mockApiService.get = vi.fn().mockResolvedValue({ events: [] });
+      mockApiService.get.mockResolvedValue({ events: [] });
 
       await service.getAuditLogs('user123', 10);
 
@@ -343,7 +344,7 @@ describe('PermissionsService', () => {
     });
 
     it('returns an empty array when the API omits events', async () => {
-      mockApiService.get = vi.fn().mockResolvedValue({});
+      mockApiService.get.mockResolvedValue({});
 
       const result = await service.getAuditLogs();
 
@@ -353,7 +354,7 @@ describe('PermissionsService', () => {
 
   describe('clearCache', () => {
     beforeEach(() => {
-      mockApiService.get = vi.fn().mockResolvedValue({ permissions: ['pets.read'] });
+      mockApiService.get.mockResolvedValue({ permissions: ['pets.read'] });
     });
 
     it('clears a single user without affecting others', async () => {
@@ -428,7 +429,7 @@ describe('PermissionsService', () => {
   describe('permissions cache', () => {
     it('does not grow the cache beyond MAX_PERMISSIONS_CACHE_SIZE (500) entries', async () => {
       const mockPermissions: Permission[] = ['pets.read'];
-      mockApiService.get = vi.fn().mockResolvedValue({ permissions: mockPermissions });
+      mockApiService.get.mockResolvedValue({ permissions: mockPermissions });
 
       // Populate 501 distinct user entries — the cache should stay at 500
       for (let i = 0; i < 501; i++) {
@@ -443,7 +444,7 @@ describe('PermissionsService', () => {
 
     it('evicts the oldest entry (insertion-order LRU) when the cache is full', async () => {
       const mockPermissions: Permission[] = ['pets.read'];
-      mockApiService.get = vi.fn().mockResolvedValue({ permissions: mockPermissions });
+      mockApiService.get.mockResolvedValue({ permissions: mockPermissions });
 
       // Fill cache to exactly 500 entries
       for (let i = 0; i < 500; i++) {
@@ -466,7 +467,7 @@ describe('PermissionsService', () => {
 
   describe('healthCheck', () => {
     it('should return true when API is healthy', async () => {
-      mockApiService.get = vi.fn().mockResolvedValue({});
+      mockApiService.get.mockResolvedValue({});
 
       const result = await service.healthCheck();
 
