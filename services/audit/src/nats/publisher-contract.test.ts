@@ -11,8 +11,60 @@ import { describe, expect, it } from 'vitest';
 // publisher is added without stamping the fields the audit_events table requires.
 
 const SERVICES_DIR = join(import.meta.dirname, '../../..');
-const PUBLISH_SITE = /type:\s*'[a-z]+\.actionTaken'/;
+const PUBLISH_SITE = /type:\s*'[a-z]+\.actionTaken'/g;
 const REQUIRED_FIELDS = ['eventId:', 'outcome:', 'occurredAt:', 'aggregateId:'] as const;
+const NON_UUID_AGGREGATE = /aggregateId:\s*(String\(|[^,\n]*\.join\()/;
+
+// The object literal that contains `index`: walks out to the nearest unbalanced braces.
+const enclosingObject = (source: string, index: number): string => {
+  const start = [...source.slice(0, index)].reduceRight(
+    (acc, char, i) => {
+      if (acc.found !== undefined) {
+        return acc;
+      }
+      if (char === '}') {
+        return { ...acc, depth: acc.depth + 1 };
+      }
+      if (char !== '{') {
+        return acc;
+      }
+      return acc.depth === 0 ? { ...acc, found: i } : { ...acc, depth: acc.depth - 1 };
+    },
+    { depth: 0, found: undefined as number | undefined }
+  ).found;
+  if (start === undefined) {
+    return source;
+  }
+  const end = [...source.slice(index)].reduce(
+    (acc, char, i) => {
+      if (acc.found !== undefined) {
+        return acc;
+      }
+      if (char === '{') {
+        return { ...acc, depth: acc.depth + 1 };
+      }
+      if (char !== '}') {
+        return acc;
+      }
+      return acc.depth === 0 ? { ...acc, found: index + i } : { ...acc, depth: acc.depth - 1 };
+    },
+    { depth: 0, found: undefined as number | undefined }
+  ).found;
+  return source.slice(start, (end ?? source.length - 1) + 1);
+};
+
+// One entry per `type: '<x>.actionTaken'` site, each checked against its OWN object so a
+// complete publisher cannot mask an incomplete one in the same file.
+export const publishSites = (source: string): ReadonlyArray<{ line: number; object: string }> =>
+  [...source.matchAll(PUBLISH_SITE)].map(match => ({
+    line: source.slice(0, match.index).split('\n').length,
+    object: enclosingObject(source, match.index),
+  }));
+
+export const siteProblems = (object: string): string[] => [
+  ...REQUIRED_FIELDS.filter(field => !object.includes(field)).map(field => `missing ${field}`),
+  ...(NON_UUID_AGGREGATE.test(object) ? ['aggregateId built from String() or join()'] : []),
+];
 
 const sourceFiles = (dir: string): string[] =>
   readdirSync(dir).flatMap(name => {
@@ -24,27 +76,42 @@ const sourceFiles = (dir: string): string[] =>
     return isSource ? [path] : [];
   });
 
-const publisherFiles = readdirSync(SERVICES_DIR)
+const publishers = readdirSync(SERVICES_DIR)
   .filter(name =>
     statSync(join(SERVICES_DIR, name, 'src'), { throwIfNoEntry: false })?.isDirectory()
   )
   .flatMap(name => sourceFiles(join(SERVICES_DIR, name, 'src')))
-  .filter(file => PUBLISH_SITE.test(readFileSync(file, 'utf8')))
-  .map(file => relative(SERVICES_DIR, file));
+  .flatMap(file =>
+    publishSites(readFileSync(file, 'utf8')).map(site => ({
+      label: `${relative(SERVICES_DIR, file)}:${site.line}`,
+      object: site.object,
+    }))
+  );
 
 describe('actionTaken publishers', () => {
   it('finds the publishers (guards against the scan silently matching nothing)', () => {
-    expect(publisherFiles.length).toBeGreaterThanOrEqual(15);
+    expect(publishers.length).toBeGreaterThanOrEqual(15);
   });
 
-  it.each(publisherFiles)('%s stamps every field audit_events requires', file => {
-    const source = readFileSync(join(SERVICES_DIR, file), 'utf8');
-    const missing = REQUIRED_FIELDS.filter(field => !source.includes(field));
-    expect(missing).toEqual([]);
+  it.each(publishers.map(p => [p.label, p.object] as const))(
+    '%s stamps every field audit_events requires with a uuid-safe aggregateId',
+    (_label, object) => {
+      expect(siteProblems(object)).toEqual([]);
+    }
+  );
+
+  it('checks each publisher independently: an incomplete one is flagged even beside a complete one', () => {
+    const source = `
+      publish({ type: 'x.actionTaken', id: 'a', payload: { eventId: randomUUID(), outcome: 'success', occurredAt: now, aggregateId: id } });
+      publish({ type: 'x.actionTaken', id: 'b', payload: { outcome: 'success', occurredAt: now, aggregateId: id } });
+    `;
+    const [complete, incomplete] = publishSites(source);
+    expect(siteProblems(complete.object)).toEqual([]);
+    expect(siteProblems(incomplete.object)).toEqual(['missing eventId:']);
   });
 
-  it.each(publisherFiles)('%s does not derive aggregateId from a numeric or joined id', file => {
-    const source = readFileSync(join(SERVICES_DIR, file), 'utf8');
-    expect(source).not.toMatch(/aggregateId:\s*(String\(|[^,\n]*\.join\()/);
+  it('flags an aggregateId built from a numeric or joined id', () => {
+    const object = `{ type: 'x.actionTaken', payload: { eventId: e, outcome: o, occurredAt: t, aggregateId: String(row.id) } }`;
+    expect(siteProblems(object)).toEqual(['aggregateId built from String() or join()']);
   });
 });
