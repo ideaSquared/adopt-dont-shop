@@ -1116,3 +1116,83 @@ describe('menus', () => {
     expect(res.deleted).toBe(true);
   });
 });
+
+describe('featured_image_url write boundary rejects off-origin and malformed URLs', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+    vi.stubEnv('CLOUDFRONT_DOMAIN', 'cdn.adoptdontshop.com');
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  const createWith = (featuredImageUrl: string) =>
+    createContent(mocks.deps, ADMIN, {
+      title: 'Hello',
+      slug: 'hello',
+      contentType: CmsV1.ContentType.CONTENT_TYPE_PAGE,
+      content: 'body',
+      metaKeywords: [],
+      featuredImageUrl,
+    });
+
+  const updateWith = (featuredImageUrl: string) =>
+    updateContent(mocks.deps, ADMIN, {
+      contentId: 'c-1',
+      featuredImageUrl,
+      metaKeywords: [],
+      setMetaKeywords: false,
+    });
+
+  const REJECTED: Array<[string, string]> = [
+    ['backslash after the leading slash', '/\\evil.example/a.png'],
+    ['tab after the leading slash', '/\t/evil.example'],
+    ['line feed after the leading slash', '/\n/evil.example'],
+    ['carriage return after the leading slash', '/\r/evil.example'],
+    ['NUL character', '/uploads/a\u0000.png'],
+    ['DEL character', '/uploads/a\u007f.png'],
+    ['protocol-relative host', '//evil.example/a.png'],
+    ['triple slash host', '///evil.example/a.png'],
+    ['placeholder host', '//placeholder.invalid/a.png'],
+    ['userinfo smuggling', 'https://good@evil.example/'],
+    ['userinfo on the allowed host name', 'https://cdn.adoptdontshop.com@evil.example/a.png'],
+    ['javascript scheme', 'javascript:alert(1)'],
+    ['data scheme', 'data:image/svg+xml,<svg onload=alert(1)>'],
+    ['plain http on an allowed host', 'http://cdn.adoptdontshop.com/a.png'],
+  ];
+
+  it.each(REJECTED)('createContent rejects %s', async (_label, url) => {
+    await expect(createWith(url)).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+      message: 'featured_image_url must be a same-origin path or https platform URL',
+    });
+  });
+
+  it.each(REJECTED)('updateContent rejects %s', async (_label, url) => {
+    mocks.clientScript.push({ rows: [contentRow()] }); // SELECT FOR UPDATE
+    await expect(updateWith(url)).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+      message: 'featured_image_url must be a same-origin path or https platform URL',
+    });
+  });
+
+  const ACCEPTED: Array<[string, string]> = [
+    ['an upload path', '/uploads/pets/a.png'],
+    ['an https URL on the allowed host', 'https://cdn.adoptdontshop.com/a.png'],
+    ['an empty string (clears the image)', ''],
+  ];
+
+  it.each(ACCEPTED)('createContent accepts %s', async (_label, url) => {
+    mocks.clientScript.push({ rows: [contentRow({ featured_image_url: url })] });
+    const res = await createWith(url);
+    expect(res.content?.contentId).toBe('c-1');
+  });
+
+  it.each(ACCEPTED)('updateContent accepts %s', async (_label, url) => {
+    mocks.clientScript.push({ rows: [contentRow()] }); // SELECT FOR UPDATE
+    mocks.clientScript.push({ rows: [contentRow({ featured_image_url: url })] });
+    const res = await updateWith(url);
+    expect(res.content?.contentId).toBe('c-1');
+  });
+});

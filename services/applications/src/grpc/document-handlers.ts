@@ -32,6 +32,8 @@ import type {
   RemoveDocumentResponse,
 } from '@adopt-dont-shop/proto';
 
+import { isSafeImageUrl } from '@adopt-dont-shop/service-bootstrap';
+
 import { HandlerError, type HandlerDeps } from './adapter.js';
 import { requireDraftAwareReadScope, requireDraftAwareWriteScope } from './command-runner.js';
 
@@ -96,37 +98,14 @@ async function loadOwnerOrThrow(deps: HandlerDeps, applicationId: string): Promi
 // vector (ADS-930). The host allowlist tracks the same env vars
 // packages/storage's S3 provider uses to build public URLs, so it stays
 // correct as storage config changes without a second source of truth.
-function allowedDocumentHosts(env: NodeJS.ProcessEnv = process.env): Set<string> {
-  const hosts = new Set<string>();
-  const cloudFrontDomain = env.CLOUDFRONT_DOMAIN?.trim();
-  if (cloudFrontDomain) {
-    hosts.add(cloudFrontDomain);
-  }
-  const bucket = env.S3_BUCKET_NAME?.trim();
-  if (bucket) {
-    const region = env.S3_REGION?.trim() || 'us-east-1';
-    hosts.add(`${bucket}.s3.${region}.amazonaws.com`);
-  }
-  return hosts;
-}
-
+//
+// The rule itself (control characters / backslashes rejected, relative paths
+// must be a single-slash same-origin path, https only on an allowlisted host)
+// is the shared isSafeImageUrl; documents have no extra rules of their own
+// (no file-type restriction here).
 function assertValidDocumentUrl(url: string): void {
-  // `//host/...` is protocol-relative — browsers resolve it off-origin, so
-  // it's excluded from the same-origin relative-path allowance below.
-  if (url.startsWith('/') && !url.startsWith('//')) {
-    return;
-  }
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
+  if (!isSafeImageUrl(url)) {
     throw new HandlerError('INVALID_ARGUMENT', 'url must be https or a platform-relative path');
-  }
-  if (parsed.protocol !== 'https:') {
-    throw new HandlerError('INVALID_ARGUMENT', 'url must be https or a platform-relative path');
-  }
-  if (!allowedDocumentHosts().has(parsed.host)) {
-    throw new HandlerError('INVALID_ARGUMENT', 'url must point to platform storage');
   }
 }
 

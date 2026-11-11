@@ -574,3 +574,57 @@ describe('removeDocument', () => {
     expect(res).toEqual({});
   });
 });
+
+describe('addDocument url policy rejects off-origin and malformed URLs', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  const addWith = (url: string) => {
+    vi.stubEnv('CLOUDFRONT_DOMAIN', 'cdn.adoptdontshop.com');
+    const { deps, query } = makeDeps();
+    query
+      .mockResolvedValueOnce({ rows: [ownerRow()] })
+      .mockResolvedValueOnce({ rows: [{ ...documentRow, url }] });
+    const result = addDocument(deps, makePrincipal(), {
+      applicationId: 'app-1',
+      type: 'reference',
+      filename: 'ref.pdf',
+      url,
+    });
+    return { query, result };
+  };
+
+  const REJECTED: Array<[string, string]> = [
+    ['backslash after the leading slash', '/\\evil.example/ref.pdf'],
+    ['tab after the leading slash', '/\t/evil.example'],
+    ['line feed after the leading slash', '/\n/evil.example'],
+    ['carriage return after the leading slash', '/\r/evil.example'],
+    ['NUL character', '/uploads/ref\u0000.pdf'],
+    ['DEL character', '/uploads/ref\u007f.pdf'],
+    ['protocol-relative host', '//evil.example/ref.pdf'],
+    ['triple slash host', '///evil.example/ref.pdf'],
+    ['placeholder host', '//placeholder.invalid/ref.pdf'],
+    ['userinfo smuggling', 'https://good@evil.example/'],
+    ['userinfo on the allowed host name', 'https://cdn.adoptdontshop.com@evil.example/ref.pdf'],
+    ['javascript scheme', 'javascript:alert(1)'],
+    ['data scheme', 'data:text/html,<script>alert(1)</script>'],
+    ['plain http on an allowed host', 'http://cdn.adoptdontshop.com/ref.pdf'],
+  ];
+
+  it.each(REJECTED)('rejects %s before touching the database', async (_label, url) => {
+    const { query, result } = addWith(url);
+    await expect(result).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  const ACCEPTED: Array<[string, string]> = [
+    ['an upload path', '/uploads/documents/ref.pdf'],
+    ['an https URL on the allowed host', 'https://cdn.adoptdontshop.com/apps/aa/ref.pdf'],
+  ];
+
+  it.each(ACCEPTED)('accepts %s', async (_label, url) => {
+    const { result } = addWith(url);
+    await expect(result).resolves.toMatchObject({ document: { url } });
+  });
+});

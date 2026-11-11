@@ -20,6 +20,7 @@ import { randomUUID } from 'node:crypto';
 
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
+import { isSafeImageUrl } from '@adopt-dont-shop/service-bootstrap';
 import sanitizeHtml from 'sanitize-html';
 import {
   CMS_CONTENT_CREATE as CONTENT_CREATE,
@@ -290,45 +291,11 @@ function parseTs(raw: string | undefined): Date | null {
 // ADS-1350: featured_image_url is rendered as an <img src> and isn't
 // covered by the content body sanitiser, so CreateContent/UpdateContent
 // need the same scheme/host allowlist as the other stored-URL write
-// boundaries. Forked from isSafeImageUrl
-// (services/gateway/src/routes/image-url.ts) the same way ADS-1343
-// forked it into services/pets/src/grpc/handlers.ts — defense-in-depth at
-// this handler's own write boundary, for any caller of the gRPC method,
-// not just the gateway.
-function allowedImageHosts(env: NodeJS.ProcessEnv = process.env): Set<string> {
-  const hosts = new Set<string>();
-  const cloudFrontDomain = env.CLOUDFRONT_DOMAIN?.trim();
-  if (cloudFrontDomain) {
-    hosts.add(cloudFrontDomain);
-  }
-  const bucket = env.S3_BUCKET_NAME?.trim();
-  if (bucket) {
-    const region = env.S3_REGION?.trim() || 'us-east-1';
-    hosts.add(`${bucket}.s3.${region}.amazonaws.com`);
-  }
-  return hosts;
-}
-
-function isSafeImageUrl(value: string): boolean {
-  if (value === '') {
-    return true;
-  }
-  // `//host/...` is protocol-relative — browsers resolve it off-origin, so
-  // it's excluded from the same-origin relative-path allowance below.
-  if (value.startsWith('/') && !value.startsWith('//')) {
-    return true;
-  }
-  let parsed: URL;
-  try {
-    parsed = new URL(value);
-  } catch {
-    return false;
-  }
-  return parsed.protocol === 'https:' && allowedImageHosts().has(parsed.host);
-}
-
+// boundaries. Uses the shared isSafeImageUrl (the same rule as the gateway
+// and service.pets) at this handler's own write boundary, for any caller of
+// the gRPC method, not just the gateway. An empty string clears the image.
 function assertSafeFeaturedImageUrl(url: string): void {
-  if (!isSafeImageUrl(url)) {
+  if (url !== '' && !isSafeImageUrl(url)) {
     throw new HandlerError(
       'INVALID_ARGUMENT',
       'featured_image_url must be a same-origin path or https platform URL'
