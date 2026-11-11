@@ -33,7 +33,7 @@ const record = (over: Partial<OutboxRecord> = {}): OutboxRecord => ({
 // keyword. Each test supplies what the claim `SELECT ... FOR UPDATE` returns;
 // BEGIN/COMMIT/DELETE/UPDATE all fall through to an empty result.
 function makePool(claimRows: Record<string, unknown>[]) {
-  const query = vi.fn(async (sql: string) => {
+  const query = vi.fn(async (sql: string, _params?: unknown[]) => {
     if (sql.includes('FOR UPDATE SKIP LOCKED')) {
       return { rows: claimRows };
     }

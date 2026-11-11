@@ -303,7 +303,15 @@ describe('nakBackoffMs', () => {
 
 describe('handleFailure / deadLetter', () => {
   function makeNc() {
-    const publish = vi.fn(async () => ({ seq: 1 }));
+    const publish = vi.fn(
+      async (
+        _subject: string,
+        _data: Uint8Array,
+        _opts: { headers: { get: (k: string) => string } }
+      ) => ({
+        seq: 1,
+      })
+    );
     const nc = { jetstream: vi.fn(() => ({ publish })) } as unknown as NatsConnection;
     return { nc, publish };
   }

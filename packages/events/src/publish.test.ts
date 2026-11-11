@@ -135,7 +135,7 @@ describe('withTransaction', () => {
     expect(mocks.clientMock.query).toHaveBeenCalledWith('COMMIT');
     expect(mocks.clientMock.query).not.toHaveBeenCalledWith('ROLLBACK');
     // ...and the row is left in the outbox (never DELETEd) for the relay.
-    const deleted = mocks.clientMock.query.mock.calls.some(([sql]: [string]) =>
+    const deleted = mocks.clientMock.query.mock.calls.some(([sql]) =>
       String(sql).includes('DELETE FROM event_outbox')
     );
     expect(deleted).toBe(false);
