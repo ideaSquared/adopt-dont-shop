@@ -15,7 +15,7 @@ import {
   markAllRead,
   markRead,
   resetNotificationPreferences,
-  updateNotificationPreferences,
+  updateNotificationPreferences as updateNotificationPreferencesHandler,
 } from './notification-prefs-handlers.js';
 
 // --- Principals -------------------------------------------------------
@@ -57,6 +57,19 @@ const NO_PERMS: Principal = {
 const N1 = '11111111-1111-1111-1111-111111111111';
 const N2 = '22222222-2222-2222-2222-222222222222';
 const OTHER = '44444444-4444-4444-4444-444444444444';
+// A patch only names the fields it changes; the proto request also carries a
+// required digestFrequency, where UNSPECIFIED means "leave untouched".
+const updateNotificationPreferences = (
+  deps: Parameters<typeof updateNotificationPreferencesHandler>[0],
+  principal: Principal,
+  patch: Partial<NotificationsV1.UpdateNotificationPreferencesRequest>
+) =>
+  updateNotificationPreferencesHandler(deps, principal, {
+    digestFrequency:
+      NotificationsV1.NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_UNSPECIFIED,
+    ...patch,
+  });
+
 const MISSING = '99999999-9999-9999-9999-999999999999';
 
 // --- Mock pool/client/nats -------------------------------------------
@@ -64,7 +77,7 @@ const MISSING = '99999999-9999-9999-9999-999999999999';
 function makeMocks() {
   const clientScript: Array<{ rows: unknown[]; rowCount?: number }> = [];
   const client = {
-    query: vi.fn(async (sql: string) => {
+    query: vi.fn(async (sql: string, _params?: unknown[]) => {
       const op = sql.trim().split(/\s+/)[0].toUpperCase();
       if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
         return { rows: [] };
@@ -85,7 +98,7 @@ function makeMocks() {
   const poolScript: Array<{ rows: unknown[]; rowCount?: number }> = [];
   const pool = {
     connect: vi.fn().mockResolvedValue(client),
-    query: vi.fn(async () => {
+    query: vi.fn(async (_sql?: string, _params?: unknown[]) => {
       const next = poolScript.shift();
       if (!next) {
         return { rows: [] };
@@ -243,8 +256,8 @@ describe('getUnreadCount', () => {
     expect(res.count).toBe(7);
     // Confirm the user_id binding is the principal's, not anything from the request.
     expect(mocks.poolMock.query).toHaveBeenCalled();
-    const lastCall = mocks.poolMock.query.mock.calls.at(-1) as [string, unknown[]];
-    expect(lastCall[1][0]).toBe('usr-adopter');
+    const lastCall = mocks.poolMock.query.mock.calls.at(-1);
+    expect(lastCall?.[1]?.[0]).toBe('usr-adopter');
   });
 
   it('returns 0 when no row comes back', async () => {
@@ -335,12 +348,12 @@ describe('markRead', () => {
     expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('notifications.read');
     // The UPDATE is scoped by user_id AND the id set.
-    const updateCall = mocks.clientMock.query.mock.calls.find(([q]: [string]) =>
+    const updateCall = mocks.clientMock.query.mock.calls.find(([q]) =>
       String(q).includes('UPDATE notifications.notifications')
-    ) as [string, unknown[]];
-    expect(updateCall[0]).toContain('user_id = $1');
-    expect(updateCall[1][0]).toBe('usr-adopter');
-    expect(updateCall[1][1]).toEqual([N1, N2, OTHER]);
+    );
+    expect(updateCall?.[0]).toContain('user_id = $1');
+    expect(updateCall?.[1]?.[0]).toBe('usr-adopter');
+    expect(updateCall?.[1]?.[1]).toEqual([N1, N2, OTHER]);
   });
 
   it('returns 0 and skips publish when nothing matched', async () => {
@@ -522,7 +535,7 @@ describe('updateNotificationPreferences', () => {
         typeof sql === 'string' && sql.includes('UPDATE notifications.user_notification_prefs')
     );
     expect(updateCall).toBeDefined();
-    const sql = updateCall![0] as string;
+    const sql = updateCall?.[0] ?? '';
     expect(sql).toContain('email_enabled = $1');
     expect(sql).toContain('push_enabled = $2');
     expect(sql).not.toContain('sms_enabled');
@@ -544,7 +557,7 @@ describe('updateNotificationPreferences', () => {
         typeof sql === 'string' && sql.includes('UPDATE notifications.user_notification_prefs')
     );
     expect(updateCall).toBeDefined();
-    const params = updateCall![1] as unknown[];
+    const params = updateCall?.[1] ?? [];
     // First parameter set is null (clear).
     expect(params[0]).toBeNull();
   });
@@ -662,8 +675,8 @@ describe('cleanupExpiredNotifications', () => {
     expect(res.deletedCount).toBe(2);
 
     // Confirm days_to_keep is passed as the first parameter (stringified for interval).
-    const call = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
-    expect(call[1]).toEqual(['30']);
+    const call = mocks.poolMock.query.mock.calls[0];
+    expect(call?.[1]).toEqual(['30']);
   });
 
   it('defaults to 30 days when days_to_keep is 0', async () => {
@@ -674,7 +687,7 @@ describe('cleanupExpiredNotifications', () => {
     };
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
     await cleanupExpiredNotifications(mocks.deps, admin, { daysToKeep: 0 });
-    const call = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
-    expect(call[1]).toEqual(['30']);
+    const call = mocks.poolMock.query.mock.calls[0];
+    expect(call?.[1]).toEqual(['30']);
   });
 });

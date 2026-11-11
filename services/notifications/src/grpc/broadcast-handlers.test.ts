@@ -25,7 +25,7 @@ const NO_PERMS: Principal = {
 function makeMocks(authClient?: AuthCohortClient, logger?: Logger) {
   const clientScript: Array<{ rows: unknown[] }> = [];
   const client = {
-    query: vi.fn(async (sql: string) => {
+    query: vi.fn(async (sql: string, _params?: unknown[]) => {
       const op = sql.trim().split(/\s+/)[0].toUpperCase();
       if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
         return { rows: [] };
@@ -79,6 +79,7 @@ describe('broadcast', () => {
       broadcast(mocks.deps, NO_PERMS, {
         cohort: { userTypes: [], statuses: [] },
         type: 0,
+        dryRun: false,
         title: 't',
         message: 'm',
       })
@@ -91,6 +92,7 @@ describe('broadcast', () => {
       broadcast(mocks.deps, BROADCASTER, {
         cohort: { userTypes: [], statuses: [] },
         type: 0,
+        dryRun: false,
         title: 't',
         message: 'm',
       })
@@ -106,6 +108,7 @@ describe('broadcast', () => {
       broadcast(mocks.deps, BROADCASTER, {
         cohort: { userTypes: [], statuses: [] },
         type: 0,
+        dryRun: false,
         title: '',
         message: 'm',
       })
@@ -114,6 +117,7 @@ describe('broadcast', () => {
       broadcast(mocks.deps, BROADCASTER, {
         cohort: { userTypes: [], statuses: [] },
         type: 0,
+        dryRun: false,
         title: 't',
         message: '   ',
       })
@@ -180,6 +184,7 @@ describe('broadcast', () => {
     const res = await broadcast(mocks.deps, BROADCASTER, {
       cohort: { userTypes: ['adopter'], statuses: [], emailVerified: true },
       type: NotificationsV1.NotificationType.NOTIFICATION_TYPE_SYSTEM_ANNOUNCEMENT,
+      dryRun: false,
       title: 'Maintenance',
       message: 'Brief downtime tonight',
     });
@@ -239,6 +244,7 @@ describe('broadcast', () => {
     const res = await broadcast(mocks.deps, BROADCASTER, {
       cohort: { userTypes: [], statuses: [] },
       type: 0,
+      dryRun: false,
       title: 't',
       message: 'm',
     });
@@ -289,6 +295,7 @@ describe('broadcast', () => {
     const res = await broadcast(mocks.deps, BROADCASTER, {
       cohort: { userTypes: [], statuses: [] },
       type: 0,
+      dryRun: false,
       title: 't',
       message: 'm',
     });
@@ -334,6 +341,7 @@ describe('broadcast', () => {
     const res = await broadcast(mocks.deps, BROADCASTER, {
       cohort: { userTypes: [], statuses: [] },
       type: 0,
+      dryRun: false,
       title: 't',
       message: 'm',
     });
@@ -358,15 +366,16 @@ describe('broadcast', () => {
     await broadcast(mocks.deps, BROADCASTER, {
       cohort: { userTypes: [], statuses: [] },
       type: 0,
+      dryRun: false,
       title: 't',
       message: 'm',
       scheduledFor: '2030-01-01T00:00:00Z',
     });
 
-    const insertCall = mocks.clientMock.query.mock.calls.find(c =>
-      String(c[0]).includes('INSERT INTO notifications.notifications')
+    const insertCall = mocks.clientMock.query.mock.calls.find(([sql]) =>
+      sql.includes('INSERT INTO notifications.notifications')
     );
-    const params = insertCall![1] as unknown[];
+    const params = insertCall?.[1] ?? [];
     // scheduled_for is the 7th param ($7).
     expect(params[6]).toBeInstanceOf(Date);
   });
@@ -380,6 +389,7 @@ describe('broadcast', () => {
       broadcast(mocks.deps, BROADCASTER, {
         cohort: { userTypes: [], statuses: [] },
         type: 0,
+        dryRun: false,
         title: 't',
         message: 'm',
         scheduledFor: 'not a date',

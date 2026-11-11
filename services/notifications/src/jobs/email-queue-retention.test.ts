@@ -12,7 +12,7 @@ import { purgeSentEmailQueue } from './email-queue-retention.js';
 function makeMocks() {
   const clientScript: Array<{ rows: unknown[] }> = [];
   const client = {
-    query: vi.fn(async (sql: string) => {
+    query: vi.fn(async (sql: string, _params?: unknown[]) => {
       const op = sql.trim().split(/\s+/)[0].toUpperCase();
       if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
         return { rows: [] };
@@ -65,7 +65,7 @@ describe('purgeSentEmailQueue', () => {
     const res = await purgeSentEmailQueue(mocks.deps, { retentionDays: 365, batchSize: 500 });
 
     expect(res.deletedCount).toBe(2);
-    const deleteCall = mocks.clientMock.query.mock.calls.find(([sql]: [string]) =>
+    const deleteCall = mocks.clientMock.query.mock.calls.find(([sql]) =>
       typeof sql === 'string' ? sql.includes('DELETE FROM email_queue') : false
     );
     expect(deleteCall).toBeDefined();

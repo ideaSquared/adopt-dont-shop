@@ -198,7 +198,7 @@ function makeDeps(opts: {
   applicationsByUser?: Record<string, Application[]>;
   failFor?: Set<string>;
 }) {
-  const poolQuery = vi.fn(async (sql: string) => {
+  const poolQuery = vi.fn(async (sql: string, _params?: unknown[]) => {
     if (sql.includes('FROM email_preferences') && sql.includes('ANY(')) {
       return { rows: opts.consentRows ?? [] };
     }

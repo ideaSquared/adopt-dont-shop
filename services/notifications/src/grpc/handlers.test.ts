@@ -75,14 +75,16 @@ function rowFixture(overrides: Record<string, unknown> = {}) {
   };
 }
 
+type QueryFn = (sql: string, params?: unknown[]) => Promise<{ rows: unknown[] }>;
+
 function makeMocks() {
   const client = {
-    query: vi.fn(),
+    query: vi.fn<QueryFn>(),
     release: vi.fn(),
   };
   const pool = {
     connect: vi.fn().mockResolvedValue(client),
-    query: vi.fn(),
+    query: vi.fn<QueryFn>(),
   };
   const nat = makeNatsDouble();
   return {
@@ -173,13 +175,13 @@ describe('createNotification', () => {
     const res = await createNotification(mocks.deps, SYSTEM_PRINCIPAL, BASE_CREATE_REQ);
 
     expect(calls).toEqual(['BEGIN', 'INSERT', 'COMMIT', 'NATS_PUBLISH']);
-    expect(res.notification.notificationId).toBe('n-1');
-    expect(res.notification.userId).toBe('usr-adopter');
-    expect(res.notification.title).toBe('Application submitted');
-    expect(res.notification.type).toBe(
+    expect(res.notification?.notificationId).toBe('n-1');
+    expect(res.notification?.userId).toBe('usr-adopter');
+    expect(res.notification?.title).toBe('Application submitted');
+    expect(res.notification?.type).toBe(
       NotificationsV1.NotificationType.NOTIFICATION_TYPE_APPLICATION_STATUS
     );
-    expect(res.notification.priority).toBe(
+    expect(res.notification?.priority).toBe(
       NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_NORMAL
     );
   });
@@ -303,7 +305,7 @@ describe('bulkCreateNotifications', () => {
     expect(res.results[0]?.notificationId).toBeDefined();
     expect(res.results[1]).toMatchObject({ userId: 'usr-2', created: true });
 
-    const insertCalls = mocks.clientMock.query.mock.calls.filter(([sql]: [string]) =>
+    const insertCalls = mocks.clientMock.query.mock.calls.filter(([sql]) =>
       String(sql).includes('INSERT INTO notifications.notifications')
     );
     expect(insertCalls).toHaveLength(2);
@@ -327,7 +329,7 @@ describe('bulkCreateNotifications', () => {
       templateVariablesJson: '{"name":"Rex"}',
     });
 
-    const insertCalls = mocks.clientMock.query.mock.calls.filter(([sql]: [string]) =>
+    const insertCalls = mocks.clientMock.query.mock.calls.filter(([sql]) =>
       String(sql).includes('INSERT INTO notifications.notifications')
     );
     expect(insertCalls[0]?.[1]?.[4]).toBe('urgent');
@@ -625,7 +627,7 @@ describe('dismissNotification', () => {
     // Only the SELECT happened — no transaction, no publish.
     expect(mocks.poolMock.connect).not.toHaveBeenCalled();
     expect(mocks.natsMock.publishSpy).not.toHaveBeenCalled();
-    expect(res.notification.status).toBe(
+    expect(res.notification?.status).toBe(
       NotificationsV1.NotificationStatus.NOTIFICATION_STATUS_READ
     );
   });
@@ -660,7 +662,7 @@ describe('dismissNotification', () => {
     const res = await dismissNotification(mocks.deps, ADOPTER_PRINCIPAL, dismissReq);
 
     expect(calls).toEqual(['BEGIN', 'UPDATE', 'COMMIT', 'NATS_PUBLISH']);
-    expect(res.notification.status).toBe(
+    expect(res.notification?.status).toBe(
       NotificationsV1.NotificationStatus.NOTIFICATION_STATUS_READ
     );
     const [subject, body] = mocks.natsMock.publishSpy.mock.calls[0] as [string, Uint8Array];
