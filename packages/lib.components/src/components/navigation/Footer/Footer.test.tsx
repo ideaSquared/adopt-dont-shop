@@ -27,3 +27,17 @@ describe('Footer source code link (AGPL-3.0 section 13)', () => {
     expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'));
   });
 });
+
+describe('Footer legal links', () => {
+  it('links to the privacy, terms and cookie policies', () => {
+    render(
+      <MemoryRouter>
+        <Footer />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole('link', { name: 'Privacy' })).toHaveAttribute('href', '/privacy');
+    expect(screen.getByRole('link', { name: 'Terms' })).toHaveAttribute('href', '/terms');
+    expect(screen.getByRole('link', { name: 'Cookies' })).toHaveAttribute('href', '/cookies');
+  });
+});

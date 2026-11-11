@@ -1,14 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { renderWithProviders, screen } from '../test-utils';
 
-const { useLegalDocumentMock, renderLegalMarkdownMock } = vi.hoisted(() => ({
-  useLegalDocumentMock: vi.fn(),
-  renderLegalMarkdownMock: vi.fn((markdown: string) => `<p>${markdown}</p>`),
-}));
+const { useLegalDocumentMock } = vi.hoisted(() => ({ useLegalDocumentMock: vi.fn() }));
 
-vi.mock('@adopt-dont-shop/lib.legal', () => ({
+vi.mock('@adopt-dont-shop/lib.legal', async importOriginal => ({
+  ...(await importOriginal<typeof import('@adopt-dont-shop/lib.legal')>()),
   useLegalDocument: useLegalDocumentMock,
-  renderLegalMarkdown: renderLegalMarkdownMock,
 }));
 
 const { getStaticPageMock } = vi.hoisted(() => ({ getStaticPageMock: vi.fn() }));
@@ -20,6 +17,10 @@ vi.mock('@/services/cmsService', () => ({
 import { LegalPage } from './LegalPage';
 
 describe('LegalPage', () => {
+  beforeEach(() => {
+    window.scrollTo = vi.fn();
+  });
+
   it('shows a loading state while the legal document is fetching', () => {
     useLegalDocumentMock.mockReturnValue({ isLoading: true, isError: false, data: undefined });
     getStaticPageMock.mockReturnValue(new Promise(() => {}));
@@ -33,7 +34,12 @@ describe('LegalPage', () => {
     useLegalDocumentMock.mockReturnValue({
       isLoading: false,
       isError: false,
-      data: { version: '2026-05-10-v1', contentType: 'text/markdown', content: 'Body text.' },
+      data: {
+        version: '2026-05-10-v1',
+        contentType: 'text/markdown',
+        content:
+          '# Terms of Service\n\n> Maintainer note.\n\n**Version:** 2026-05-10-v1\n**Last updated:** 10 May 2026\n\n## 1. Acceptance\n\nBody text.',
+      },
     });
     getStaticPageMock.mockRejectedValue(new Error('404')); // CMS 404s on a fresh database
 
@@ -41,7 +47,8 @@ describe('LegalPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Terms of Service' })).toBeInTheDocument();
     expect(screen.getByText('Body text.')).toBeInTheDocument();
-    expect(renderLegalMarkdownMock).toHaveBeenCalledWith('Body text.');
+    expect(screen.getByText('Last updated 10 May 2026')).toBeInTheDocument();
+    expect(screen.queryByText('Maintainer note.')).not.toBeInTheDocument();
   });
 
   it("shows the title once when the document opens with its own '#' heading", async () => {
@@ -59,8 +66,8 @@ describe('LegalPage', () => {
     renderWithProviders(<LegalPage slug='terms' />);
 
     expect(await screen.findByText('Body text.', { exact: false })).toBeInTheDocument();
-    // The page header supplies the title; the document's own heading is dropped.
-    expect(renderLegalMarkdownMock).toHaveBeenLastCalledWith('Body text.');
+    // The document opens with its own heading; the title must not appear twice.
+    expect(screen.getAllByRole('heading', { name: 'Terms of Service' })).toHaveLength(1);
   });
 
   it('prefers a CMS override page over the versioned document when one exists', async () => {
