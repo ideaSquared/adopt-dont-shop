@@ -19,7 +19,7 @@ export const HelpArticlePage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Container className={styles.pageContainer}>
+      <Container size='md' className={styles.pageContainer}>
         <div className={styles.spinnerWrapper}>
           <Spinner size='lg' label='Loading' />
         </div>
@@ -29,18 +29,18 @@ export const HelpArticlePage: React.FC = () => {
 
   if (!article) {
     return (
-      <Container className={styles.pageContainer}>
+      <Container size='md' className={styles.pageContainer}>
         <EmptyState title='Article not found.' />
       </Container>
     );
   }
 
   return (
-    <Container className={styles.pageContainer}>
+    <Container size='md' className={styles.pageContainer}>
       <Link to='/help' className={styles.backLink}>
         <ArrowLeft size='1em' aria-hidden='true' /> Back to Help Center
       </Link>
-      <PageHeader title={article.title} />
+      <PageHeader className={styles.header} title={article.title} />
       <SafeHtml html={article.content} className={styles.articleContent} />
     </Container>
   );

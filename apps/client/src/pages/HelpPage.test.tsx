@@ -48,3 +48,32 @@ describe('HelpPage error handling', () => {
     expect(await screen.findByText(/no help articles yet/i)).toBeInTheDocument();
   });
 });
+
+describe('HelpPage articles', () => {
+  beforeEach(() => {
+    listHelpArticlesMock.mockReset();
+  });
+
+  it('links each article to its page and offers a way to contact us', async () => {
+    listHelpArticlesMock.mockResolvedValueOnce({
+      content: [
+        {
+          contentId: 'h-1',
+          title: 'How do I apply?',
+          slug: 'how-do-i-apply',
+          excerpt: 'The application process step by step',
+          createdAt: '2026-01-15T00:00:00.000Z',
+          updatedAt: '2026-01-15T00:00:00.000Z',
+        },
+      ],
+      pagination: { page: 1, limit: 20, total: 1 },
+    });
+
+    render(<HelpPage />);
+
+    const article = await screen.findByRole('link', { name: /how do i apply/i });
+    expect(article).toHaveAttribute('href', '/help/how-do-i-apply');
+    expect(screen.getByText('The application process step by step')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /contact us/i })).toHaveAttribute('href', '/contact');
+  });
+});
