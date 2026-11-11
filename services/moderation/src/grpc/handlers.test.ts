@@ -111,7 +111,7 @@ describe('fileReport', () => {
   it('does NOT require admin permission (any authenticated user can file)', async () => {
     const { deps } = makeDeps([{ rows: [reportRow()] }]);
     const res = await fileReport(deps, makePrincipal({ permissions: [] }), VALID_FILE_REQ);
-    expect(res.report.reportId).toBe('rpt-1');
+    expect(res.report?.reportId).toBe('rpt-1');
   });
 
   it.each([
@@ -178,7 +178,7 @@ describe('fileReport', () => {
     // No duplicate event for an already-announced report.
     expect(publish).not.toHaveBeenCalled();
     // The persisted (existing) id is returned, not the throwaway generated one.
-    expect(res.report.reportId).toBe('existing-rpt');
+    expect(res.report?.reportId).toBe('existing-rpt');
   });
 
   it('publishes the event keyed by the persisted report_id', async () => {
@@ -211,7 +211,7 @@ describe('fileReport', () => {
     const res = await fileReport(deps, makePrincipal({ userId: 'usr-1' }), VALID_FILE_REQ);
     const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
     expect(publish).not.toHaveBeenCalled();
-    expect(res.report.reportId).toBe('first-rpt');
+    expect(res.report?.reportId).toBe('first-rpt');
   });
 
   it('SYSTEM auto-reports keep the entity-scoped arbiter (no regression)', async () => {
@@ -274,7 +274,7 @@ describe('getReport', () => {
       makePrincipal({ userId: 'mod-9', permissions: ['moderation.reports.view'] }),
       { reportId: 'rpt-1' } as GetReportRequest
     );
-    expect(res.report.reportId).toBe('rpt-1');
+    expect(res.report?.reportId).toBe('rpt-1');
   });
 
   it('allows a reporter to read their OWN report without any moderation permission', async () => {
@@ -282,7 +282,7 @@ describe('getReport', () => {
     const res = await getReport(deps, makePrincipal({ userId: 'usr-1', permissions: [] }), {
       reportId: 'rpt-1',
     } as GetReportRequest);
-    expect(res.report.reportId).toBe('rpt-1');
+    expect(res.report?.reportId).toBe('rpt-1');
   });
 
   it('strips internal moderation fields from the reporter self-read', async () => {
@@ -308,17 +308,17 @@ describe('getReport', () => {
       reportId: 'rpt-1',
     } as GetReportRequest);
     // Internal workflow is hidden…
-    expect(res.report.assignedModerator).toBeUndefined();
-    expect(res.report.assignedAt).toBeUndefined();
-    expect(res.report.resolvedBy).toBeUndefined();
-    expect(res.report.resolutionNotes).toBeUndefined();
-    expect(res.report.escalatedTo).toBeUndefined();
-    expect(res.report.escalatedAt).toBeUndefined();
-    expect(res.report.escalationReason).toBeUndefined();
+    expect(res.report?.assignedModerator).toBeUndefined();
+    expect(res.report?.assignedAt).toBeUndefined();
+    expect(res.report?.resolvedBy).toBeUndefined();
+    expect(res.report?.resolutionNotes).toBeUndefined();
+    expect(res.report?.escalatedTo).toBeUndefined();
+    expect(res.report?.escalatedAt).toBeUndefined();
+    expect(res.report?.escalationReason).toBeUndefined();
     // …but the reporter still sees their report's status and outcome.
-    expect(res.report.status).toBeDefined();
-    expect(res.report.resolution).toBe('user_suspended');
-    expect(res.report.resolvedAt).toBe('2026-06-03T00:00:00.000Z');
+    expect(res.report?.status).toBeDefined();
+    expect(res.report?.resolution).toBe('user_suspended');
+    expect(res.report?.resolvedAt).toBe('2026-06-03T00:00:00.000Z');
   });
 
   it('returns full internal fields to a moderator with reports-view', async () => {
@@ -338,8 +338,8 @@ describe('getReport', () => {
       makePrincipal({ userId: 'mod-9', permissions: ['moderation.reports.view'] }),
       { reportId: 'rpt-1' } as GetReportRequest
     );
-    expect(res.report.assignedModerator).toBe('mod-7');
-    expect(res.report.resolutionNotes).toBe('user suspended — internal');
+    expect(res.report?.assignedModerator).toBe('mod-7');
+    expect(res.report?.resolutionNotes).toBe('user suspended — internal');
   });
 
   it('strips transition moderator identity and reason for a reporter', async () => {
@@ -379,7 +379,7 @@ describe('getReport', () => {
   it('returns the report without transitions by default', async () => {
     const { deps, query } = makeDeps([{ rows: [reportRow()] }]);
     const res = await getReport(deps, makePrincipal(), { reportId: 'rpt-1' } as GetReportRequest);
-    expect(res.report.reportId).toBe('rpt-1');
+    expect(res.report?.reportId).toBe('rpt-1');
     expect(res.transitions).toEqual([]);
     expect(query).toHaveBeenCalledTimes(1);
   });
@@ -631,7 +631,7 @@ describe('assignReport', () => {
       reportId: 'rpt-1',
       moderatorId: 'mod-1',
     });
-    expect(res.report.assignedModerator).toBe('mod-1');
+    expect(res.report?.assignedModerator).toBe('mod-1');
     const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
     expect(publish.mock.calls[0][0]).toMatchObject({ type: 'moderation.reportAssigned' });
   });
@@ -667,7 +667,7 @@ describe('resolveReport', () => {
       resolution: 'user_suspended',
       resolutionNotes: 'User suspended.',
     });
-    expect(res.report.status).toBe(ModerationV1.ReportStatus.REPORT_STATUS_RESOLVED);
+    expect(res.report?.status).toBe(ModerationV1.ReportStatus.REPORT_STATUS_RESOLVED);
     // The transition drives reports.status via the mig-003 trigger; a
     // non-dismiss resolution must record to_status='resolved'.
     const transitionParams = query.mock.calls[2][1] as unknown[];
@@ -693,7 +693,7 @@ describe('resolveReport', () => {
     const transitionParams = query.mock.calls[2][1] as unknown[];
     expect(transitionSql).toContain('INSERT INTO report_status_transitions');
     expect(transitionParams[3]).toBe('dismissed');
-    expect(res.report.status).toBe(ModerationV1.ReportStatus.REPORT_STATUS_DISMISSED);
+    expect(res.report?.status).toBe(ModerationV1.ReportStatus.REPORT_STATUS_DISMISSED);
     // A dismissal stores a value the admin list schema accepts, never 'dismissed'.
     const updateParams = query.mock.calls[1][1] as unknown[];
     expect(updateParams[1]).toBe('no_action');
@@ -783,8 +783,8 @@ describe('escalateReport', () => {
       escalatedTo: 'mod-9',
       reason: 'needs senior review',
     });
-    expect(res.report.status).toBe(ModerationV1.ReportStatus.REPORT_STATUS_ESCALATED);
-    expect(res.report.escalatedTo).toBe('mod-9');
+    expect(res.report?.status).toBe(ModerationV1.ReportStatus.REPORT_STATUS_ESCALATED);
+    expect(res.report?.escalatedTo).toBe('mod-9');
     const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
     expect(publish.mock.calls[0][0]).toMatchObject({ type: 'moderation.reportEscalated' });
   });
