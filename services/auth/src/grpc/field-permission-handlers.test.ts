@@ -6,6 +6,10 @@ import type { Principal } from '@adopt-dont-shop/authz';
 import type { Permission, UserId } from '@adopt-dont-shop/lib.types';
 import { AuthV1 } from '@adopt-dont-shop/proto';
 
+// Read-only import of the audit service's real persist function (no validator of its
+// own; the uuid / NOT NULL columns are the validation).
+import { persistAuditEvent } from '../../../audit/src/nats/subscribers.js';
+import type { AuditEventPayload } from '../../../audit/src/nats/event-types.js';
 import type { HandlerDeps } from './handlers.js';
 import {
   bulkUpsertFieldPermissions,
@@ -24,6 +28,11 @@ const ADMIN: Principal = {
     'admin.field_permissions.read' as Permission,
     'admin.field_permissions.write' as Permission,
   ],
+};
+
+const ADMIN_UUID: Principal = {
+  ...ADMIN,
+  userId: '5b0d1c0e-6f0a-4c43-9d3e-0a3f2a9c7e11' as UserId,
 };
 
 const READER: Principal = {
@@ -111,6 +120,20 @@ function auditEvent(mocks: ReturnType<typeof makeMocks>): {
     new TextDecoder().decode(mocks.natsPublish.mock.calls[0][1] as Uint8Array)
   );
   return envelope.payload;
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+// Run the published event through the real audit insert with a stub pool and return the
+// bind params, in column order: event_id, service, subject, aggregate_type, aggregate_id,
+// actor_user_id, actor_email_snapshot, action, outcome, occurred_at.
+async function persistedParams(mocks: ReturnType<typeof makeMocks>): Promise<unknown[]> {
+  const envelope = JSON.parse(
+    new TextDecoder().decode(mocks.natsPublish.mock.calls[0][1] as Uint8Array)
+  ) as { payload: AuditEventPayload };
+  const query = vi.fn().mockResolvedValue({ rowCount: 1 });
+  await persistAuditEvent({ query } as unknown as Pool, envelope.payload, 'auth.actionTaken');
+  return query.mock.calls[0][1] as unknown[];
 }
 
 function row(over: Record<string, unknown> = {}) {
@@ -280,15 +303,32 @@ describe('upsertFieldPermission', () => {
       action: 'fieldPermission.upsert',
       outcome: 'success',
       actorUserId: ADMIN.userId,
-      aggregateType: 'fieldPermission',
-      aggregateId: '7',
+      aggregateType: 'field_permission_change',
+      aggregateId: expect.stringMatching(UUID),
     });
     expect(ev.payload).toMatchObject({
+      fieldPermissionId: 7,
       resource: 'users',
       fieldName: 'firstName',
       role: 'admin',
       accessLevel: 'read',
     });
+  });
+
+  it('persists through the audit insert: the aggregate is a uuid even though the row id is an integer', async () => {
+    mocks.clientScript.push({ rows: [row({ field_permission_id: 1 })] });
+    await upsertFieldPermission(mocks.deps, ADMIN_UUID, {
+      resource: AuthV1.FieldPermissionResource.FIELD_PERMISSION_RESOURCE_USERS,
+      fieldName: 'firstName',
+      role: 'admin',
+      accessLevel: AuthV1.FieldAccessLevel.FIELD_ACCESS_LEVEL_READ,
+    });
+    const params = await persistedParams(mocks);
+    expect(params[0]).toMatch(UUID);
+    expect(params[4]).toMatch(UUID);
+    expect(params[5]).toBe(ADMIN_UUID.userId);
+    expect(params[8]).toBe('success');
+    expect(params[9]).toEqual(expect.any(String));
   });
 
   it('publishes no audit event when the write is rejected', async () => {
@@ -407,10 +447,28 @@ describe('bulkUpsertFieldPermissions', () => {
       action: 'fieldPermission.bulkUpsert',
       outcome: 'success',
       actorUserId: ADMIN.userId,
-      aggregateType: 'fieldPermission',
-      aggregateId: '1,2',
+      aggregateType: 'field_permission_change',
+      aggregateId: expect.stringMatching(UUID),
     });
-    expect(ev.payload).toMatchObject({ count: 2 });
+    expect(ev.payload).toMatchObject({ count: 2, fieldPermissionIds: [1, 2] });
+  });
+
+  it('persists through the audit insert with a uuid aggregate, not the joined row ids', async () => {
+    mocks.clientScript.push({ rows: [row({ field_permission_id: 1 })] });
+    mocks.clientScript.push({ rows: [row({ field_permission_id: 2, role: 'moderator' })] });
+    const override = (role: string) => ({
+      resource: AuthV1.FieldPermissionResource.FIELD_PERMISSION_RESOURCE_USERS,
+      fieldName: 'firstName',
+      role,
+      accessLevel: AuthV1.FieldAccessLevel.FIELD_ACCESS_LEVEL_READ,
+    });
+    await bulkUpsertFieldPermissions(mocks.deps, ADMIN_UUID, {
+      overrides: [override('admin'), override('moderator')],
+    });
+    const params = await persistedParams(mocks);
+    expect(params[0]).toMatch(UUID);
+    expect(params[4]).toMatch(UUID);
+    expect(params[8]).toBe('success');
   });
 
   it('refuses the whole batch when any one entry is sensitive', async () => {
@@ -468,15 +526,29 @@ describe('deleteFieldPermission', () => {
       action: 'fieldPermission.delete',
       outcome: 'success',
       actorUserId: ADMIN.userId,
-      aggregateType: 'fieldPermission',
-      aggregateId: '1',
+      aggregateType: 'field_permission_change',
+      aggregateId: expect.stringMatching(UUID),
     });
     expect(ev.payload).toMatchObject({
+      fieldPermissionId: 1,
       resource: 'users',
       fieldName: 'firstName',
       role: 'admin',
       before: { accessLevel: 'write' },
     });
+  });
+
+  it('persists through the audit insert with a uuid aggregate', async () => {
+    mocks.clientScript.push({ rows: [{ field_permission_id: 1, access_level: 'write' }] });
+    await deleteFieldPermission(mocks.deps, ADMIN_UUID, {
+      resource: AuthV1.FieldPermissionResource.FIELD_PERMISSION_RESOURCE_USERS,
+      fieldName: 'firstName',
+      role: 'admin',
+    });
+    const params = await persistedParams(mocks);
+    expect(params[0]).toMatch(UUID);
+    expect(params[4]).toMatch(UUID);
+    expect(params[8]).toBe('success');
   });
 
   it('returns deleted=false and publishes no event when no row matched', async () => {

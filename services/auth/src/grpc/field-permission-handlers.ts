@@ -300,8 +300,7 @@ function publishFieldPermissionActionTaken(
   params: {
     actorUserId: string;
     action: 'upsert' | 'bulkUpsert' | 'delete';
-    aggregateId: string;
-    details: unknown;
+    details: Record<string, unknown>;
   }
 ): void {
   publish({
@@ -311,8 +310,11 @@ function publishFieldPermissionActionTaken(
       eventId: randomUUID(),
       service: 'service.auth',
       subject: 'auth.actionTaken',
-      aggregateType: 'fieldPermission',
-      aggregateId: params.aggregateId,
+      // field_permissions has an integer primary key and audit_events.aggregate_id is a
+      // uuid, so the aggregate is this change operation (one id per write, covering a
+      // bulk write too); the integer row ids travel in the details.
+      aggregateType: 'field_permission_change',
+      aggregateId: randomUUID(),
       actorUserId: params.actorUserId,
       action: `fieldPermission.${params.action}`,
       outcome: 'success',
@@ -354,8 +356,13 @@ export async function upsertFieldPermission(
     publishFieldPermissionActionTaken(publish, {
       actorUserId: principal.userId,
       action: 'upsert',
-      aggregateId: String(inserted.field_permission_id),
-      details: { resource, fieldName, role, accessLevel },
+      details: {
+        fieldPermissionId: inserted.field_permission_id,
+        resource,
+        fieldName,
+        role,
+        accessLevel,
+      },
     });
     return inserted;
   });
@@ -410,9 +417,9 @@ export async function bulkUpsertFieldPermissions(
     publishFieldPermissionActionTaken(publish, {
       actorUserId: principal.userId,
       action: 'bulkUpsert',
-      aggregateId: out.map(r => String(r.field_permission_id)).join(','),
       details: {
         count: inputs.length,
+        fieldPermissionIds: out.map(r => r.field_permission_id),
         overrides: inputs.map(i => ({
           resource: i.resource,
           fieldName: i.fieldName,
@@ -464,8 +471,13 @@ export async function deleteFieldPermission(
     publishFieldPermissionActionTaken(publish, {
       actorUserId: principal.userId,
       action: 'delete',
-      aggregateId: String(deletedRow.field_permission_id),
-      details: { resource, fieldName, role, before: { accessLevel: deletedRow.access_level } },
+      details: {
+        fieldPermissionId: deletedRow.field_permission_id,
+        resource,
+        fieldName,
+        role,
+        before: { accessLevel: deletedRow.access_level },
+      },
     });
     return true;
   });
