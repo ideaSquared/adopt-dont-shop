@@ -73,6 +73,11 @@ const buildHarness = (initialConversations: Conversation[] = [buildConversation(
   return { chatService, connectSpy, getConversationsMock };
 };
 
+// Type assertion, deliberate: each `let latest = null as T | null` below is assigned inside a
+// render callback. TypeScript narrows a plain `let x: T | null = null` to `never` after the
+// callback, because it cannot see the assignment, so the declared type is widened here.
+// It has no runtime effect.
+
 describe('ChatProvider', () => {
   it('does not connect when the user is not authenticated', () => {
     const { chatService, connectSpy } = buildHarness();

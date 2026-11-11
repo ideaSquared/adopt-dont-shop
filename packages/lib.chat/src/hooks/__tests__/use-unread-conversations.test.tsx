@@ -70,6 +70,11 @@ const Probe = ({
   return null;
 };
 
+// Type assertion, deliberate: each `let latest = null as T | null` below is assigned inside a
+// render callback. TypeScript narrows a plain `let x: T | null = null` to `never` after the
+// callback, because it cannot see the assignment, so the declared type is widened here.
+// It has no runtime effect.
+
 describe('useUnreadConversations', () => {
   afterEach(() => {
     vi.restoreAllMocks();
