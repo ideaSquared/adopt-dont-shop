@@ -1023,6 +1023,13 @@ describe('verifyRescue', () => {
     vi.resetAllMocks();
   });
 
+  // The in-transaction `SELECT status ... FOR UPDATE` answers with the locked
+  // status; every other client query (the UPDATE) answers with the written row.
+  const answerClient = (lockedStatus: string, written: ReturnType<typeof rescueRow>) =>
+    mocks.clientMock.query.mockImplementation(async (sql: string) =>
+      /FOR UPDATE/.test(sql) ? { rows: [{ status: lockedStatus }] } : { rows: [written] }
+    );
+
   it('PERMISSION_DENIED for non-admin', async () => {
     await expect(
       verifyRescue(mocks.deps, STAFF, {
@@ -1050,6 +1057,7 @@ describe('verifyRescue', () => {
       // event_outbox INSERT/DELETE are withTransaction's outbox plumbing —
       // not part of the handler's own query sequence, so keep them out of `order`.
       if (!sql.includes('event_outbox')) order.push(sql.trim().split(/\s+/)[0]);
+      if (/FOR UPDATE/.test(sql)) return { rows: [{ status: 'pending' }] };
       return { rows: [rescueRow({ status: 'verified' })] };
     });
     mocks.natsMock.publish.mockImplementation((subject: string) => {
@@ -1064,15 +1072,13 @@ describe('verifyRescue', () => {
     } as never);
 
     expect(res.rescue?.status).toBe(RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED);
-    expect(order).toEqual(['BEGIN', 'UPDATE', 'COMMIT', 'NATS_PUBLISH', 'NATS_PUBLISH']);
+    expect(order).toEqual(['BEGIN', 'SELECT', 'UPDATE', 'COMMIT', 'NATS_PUBLISH', 'NATS_PUBLISH']);
     expect(publishedSubjects).toEqual(['rescue.verified', 'rescue.actionTaken']);
   });
 
   it('audits a verification as rescue.actionTaken, versioned by the row', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ status: 'pending' })] });
-    mocks.clientMock.query.mockResolvedValue({
-      rows: [rescueRow({ status: 'verified', version: 7 })],
-    });
+    answerClient('pending', rescueRow({ status: 'verified', version: 7 }));
 
     await verifyRescue(mocks.deps, ADMIN, {
       rescueId: 'rsc-1',
@@ -1097,9 +1103,7 @@ describe('verifyRescue', () => {
 
   it('audits a rejection with its reason', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ status: 'pending' })] });
-    mocks.clientMock.query.mockResolvedValue({
-      rows: [rescueRow({ status: 'rejected', version: 2 })],
-    });
+    answerClient('pending', rescueRow({ status: 'rejected', version: 2 }));
 
     await verifyRescue(mocks.deps, ADMIN, {
       rescueId: 'rsc-1',
@@ -1120,7 +1124,7 @@ describe('verifyRescue', () => {
       if (/UPDATE rescue\.rescues/.test(sql)) {
         throw new Error('boom');
       }
-      return { rows: [] };
+      return { rows: [{ status: 'pending' }] };
     });
 
     await expect(
@@ -1147,7 +1151,7 @@ describe('verifyRescue', () => {
   it('publishes rescue.rejected when transitioning pending → rejected with a reason', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ status: 'pending' })] });
     const publishedSubjects: string[] = [];
-    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow({ status: 'rejected' })] });
+    answerClient('pending', rescueRow({ status: 'rejected' }));
     mocks.natsMock.publish.mockImplementation((subject: string) => publishedSubjects.push(subject));
 
     await verifyRescue(mocks.deps, ADMIN, {
@@ -1157,6 +1161,59 @@ describe('verifyRescue', () => {
     } as never);
 
     expect(publishedSubjects).toEqual(['rescue.rejected', 'rescue.actionTaken']);
+  });
+
+  it('audits fromStatus from the locked row, not the stale pre-transaction read', async () => {
+    // Between our read (pending) and our lock the rescue was verified then suspended
+    // elsewhere; suspended -> verified is legal, so the write proceeds and must
+    // record suspended as the from-status.
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ status: 'pending' })] });
+    answerClient('suspended', rescueRow({ status: 'verified', version: 3 }));
+
+    await verifyRescue(mocks.deps, ADMIN, {
+      rescueId: 'rsc-1',
+      toStatus: RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED,
+    } as never);
+
+    const [event] = publishedOn(mocks, 'rescue.actionTaken');
+    expect(event.payload).toMatchObject({
+      payload: { fromStatus: 'suspended', toStatus: 'verified' },
+    });
+    const [verified] = publishedOn(mocks, 'rescue.verified');
+    expect(verified.payload).toMatchObject({ fromStatus: 'suspended' });
+  });
+
+  it('rejects a transition no longer legal against the locked status and publishes nothing', async () => {
+    // Stale read says pending (reject is legal); the locked row is already verified.
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ status: 'pending' })] });
+    answerClient('verified', rescueRow({ status: 'rejected' }));
+
+    await expect(
+      verifyRescue(mocks.deps, ADMIN, {
+        rescueId: 'rsc-1',
+        toStatus: RescueV1.RescueStatus.RESCUE_STATUS_REJECTED,
+        failureReason: 'too late',
+      } as never)
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+
+    const wrote = mocks.clientMock.query.mock.calls.some(([sql]) =>
+      /UPDATE rescue\.rescues/.test(sql as string)
+    );
+    expect(wrote).toBe(false);
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('NOT_FOUND when the rescue disappears before the lock is taken', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ status: 'pending' })] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+
+    await expect(
+      verifyRescue(mocks.deps, ADMIN, {
+        rescueId: 'rsc-1',
+        toStatus: RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED,
+      } as never)
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 });
 

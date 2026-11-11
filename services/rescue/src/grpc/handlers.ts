@@ -923,6 +923,26 @@ export async function verifyRescue(
 
   let updated: RescueRow | undefined;
   await withTransaction(deps, async ({ client, publish }) => {
+    // The read above is unlocked, so two admins can both see `pending` and both
+    // write. Lock the row, re-validate against its committed status, and use that
+    // status as the audit `fromStatus`: the loser is rejected instead of silently
+    // overwriting the winner and recording a transition that never happened.
+    const locked = await client.query<{ status: RescueStatusDb }>(
+      `SELECT status FROM rescue.rescues WHERE rescue_id = $1 AND deleted_at IS NULL FOR UPDATE`,
+      [req.rescueId]
+    );
+    const lockedRow = locked.rows[0];
+    if (!lockedRow) {
+      throw new HandlerError('NOT_FOUND', `rescue ${req.rescueId} not found`);
+    }
+    const fromStatus = lockedRow.status;
+    if (!isLegalTransition(fromStatus, toStatus)) {
+      throw new HandlerError(
+        'INVALID_ARGUMENT',
+        `illegal status transition ${fromStatus} → ${toStatus}`
+      );
+    }
+
     const result = await client.query<RescueRow>(
       `
       UPDATE rescue.rescues
@@ -960,7 +980,7 @@ export async function verifyRescue(
       id: `${subject}.${req.rescueId}:${updated?.version}`,
       payload: {
         rescueId: req.rescueId,
-        fromStatus: existing.status,
+        fromStatus,
         toStatus,
         reason: req.failureReason ?? null,
       },
@@ -978,7 +998,7 @@ export async function verifyRescue(
                 : 'updateStatus',
           actorUserId: principal.userId,
           details: {
-            fromStatus: existing.status,
+            fromStatus,
             toStatus,
             reason: req.failureReason ?? null,
             verificationSource:
