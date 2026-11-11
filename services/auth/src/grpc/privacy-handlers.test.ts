@@ -33,7 +33,7 @@ const NO_PERMS: Principal = {
 function makeMocks() {
   const clientScript: Array<{ rows: unknown[] }> = [];
   const client = {
-    query: vi.fn(async (sql: string) => {
+    query: vi.fn(async (sql: string, _params?: unknown[]) => {
       const op = sql.trim().split(/\s+/)[0].toUpperCase();
       if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
         return { rows: [] };
@@ -64,6 +64,7 @@ function makeMocks() {
     nats: nats as unknown as NatsConnection,
     passwordHasher: { hash: vi.fn(), verify: vi.fn() } as unknown as HandlerDeps['passwordHasher'],
     tokenIssuer: {} as unknown as HandlerDeps['tokenIssuer'],
+    encryptionKey: 'a'.repeat(64),
   };
   return { deps, poolMock: pool, clientMock: client, natsMock: nats, clientScript };
 }
@@ -155,9 +156,8 @@ describe('exportUserData', () => {
     expect(res.privacyPreferences?.allowDataExport).toBe(true);
     expect(res.exportedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     // The prefs read is non-creating (a plain SELECT, no INSERT).
-    const prefsCall = mocks.clientMock.query.mock.calls.find(
-      ([sql]: [string]) =>
-        typeof sql === 'string' && sql.includes('SELECT * FROM user_privacy_prefs')
+    const prefsCall = mocks.clientMock.query.mock.calls.find(([sql]) =>
+      sql.includes('SELECT * FROM user_privacy_prefs')
     );
     expect(prefsCall).toBeDefined();
     // A forensic trail is published for the export (Art. 15/20 access).
@@ -236,12 +236,12 @@ describe('requestAccountDeletion', () => {
     expect(days).toBeGreaterThan(29.9);
     expect(days).toBeLessThan(30.1);
 
-    const update = mocks.clientMock.query.mock.calls.find(
-      ([sql]: [string]) => typeof sql === 'string' && sql.includes('UPDATE auth.users')
+    const update = mocks.clientMock.query.mock.calls.find(([sql]) =>
+      sql.includes('UPDATE auth.users')
     );
-    expect(String(update[0])).toContain("status = 'deactivated'");
-    expect(String(update[0])).toContain('deletion_scheduled_at');
-    expect(String(update[0])).toContain('tokens_valid_from = now()');
+    expect(String(update?.[0])).toContain("status = 'deactivated'");
+    expect(String(update?.[0])).toContain('deletion_scheduled_at');
+    expect(String(update?.[0])).toContain('tokens_valid_from = now()');
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.accountDeletionRequested');
   });
 });

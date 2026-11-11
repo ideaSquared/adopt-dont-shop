@@ -24,6 +24,7 @@ const baseConfig: AuthConfig = {
   rescueGrpcUrl: 'localhost:6004',
   jwtSecret: 'test-access',
   jwtRefreshSecret: 'test-refresh',
+  encryptionKey: 'a'.repeat(64),
 };
 
 describe('createServer — health endpoint', () => {

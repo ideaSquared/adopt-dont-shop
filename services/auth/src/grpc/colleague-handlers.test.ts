@@ -4,7 +4,12 @@ import type { Pool } from 'pg';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Principal } from '@adopt-dont-shop/authz';
-import { APPLICATIONS_VIEW, STAFF_VIEW, type UserId } from '@adopt-dont-shop/lib.types';
+import {
+  APPLICATIONS_VIEW,
+  STAFF_VIEW,
+  type RescueId,
+  type UserId,
+} from '@adopt-dont-shop/lib.types';
 import { RescueV1 } from '@adopt-dont-shop/proto';
 
 import { makeListColleagueProfiles } from './colleague-handlers.js';
@@ -15,7 +20,7 @@ const STAFF: Principal = {
   userId: 'usr-me' as UserId,
   roles: ['rescue_staff'],
   permissions: [STAFF_VIEW],
-  rescueId: 'rsc-1',
+  rescueId: 'rsc-1' as RescueId,
 };
 
 // Holds a rescue but not staff.read.
@@ -44,6 +49,7 @@ function makeMocks() {
     nats: {} as unknown as NatsConnection,
     passwordHasher: {} as unknown as HandlerDeps['passwordHasher'],
     tokenIssuer: {} as unknown as HandlerDeps['tokenIssuer'],
+    encryptionKey: 'a'.repeat(64),
   };
   return { deps, listStaffMembers, query, rescueClient };
 }

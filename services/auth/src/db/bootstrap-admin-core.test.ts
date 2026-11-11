@@ -51,7 +51,7 @@ const makeDeps = (guards: { superAdmins?: Row[]; sameEmail?: Row[] } = {}) => {
   };
 };
 
-const written = (queries: Array<{ sql: string }>, table: string) =>
+const written = <T extends { sql: string }>(queries: T[], table: string): T[] =>
   queries.filter(q => q.sql.includes(`INSERT INTO ${table}`));
 
 describe('bootstrapSuperAdmin', () => {

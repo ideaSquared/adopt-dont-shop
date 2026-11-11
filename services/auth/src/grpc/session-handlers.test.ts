@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Principal } from '@adopt-dont-shop/authz';
 import type { Permission, UserId } from '@adopt-dont-shop/lib.types';
+import { AuthV1 } from '@adopt-dont-shop/proto';
 
 import {
   adminListSessions,
@@ -221,7 +222,9 @@ describe('adminListSessions', () => {
   });
 
   it('rejects without admin.security.read', async () => {
-    await expect(adminListSessions(mocks.deps, PRINCIPAL, {})).rejects.toMatchObject({
+    await expect(
+      adminListSessions(mocks.deps, PRINCIPAL, AuthV1.AdminListSessionsRequest.fromPartial({}))
+    ).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
     });
   });

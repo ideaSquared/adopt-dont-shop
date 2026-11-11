@@ -29,7 +29,7 @@ const ANON: Principal = {
 function makeMocks() {
   const clientScript: Array<{ rows: unknown[] }> = [];
   const client = {
-    query: vi.fn(async (sql: string) => {
+    query: vi.fn(async (sql: string, _params?: unknown[]) => {
       const op = sql.trim().split(/\s+/)[0].toUpperCase();
       if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
         return { rows: [] };
@@ -48,7 +48,7 @@ function makeMocks() {
   const poolScript: Array<{ rows: unknown[] }> = [];
   const pool = {
     connect: vi.fn().mockResolvedValue(client),
-    query: vi.fn(async () => poolScript.shift() ?? { rows: [] }),
+    query: vi.fn(async (_sql: string, _params?: unknown[]) => poolScript.shift() ?? { rows: [] }),
   };
   const natsPublish = vi.fn();
   const nats = { publish: natsPublish, jetstream: () => ({ publish: natsPublish }) };
@@ -61,6 +61,7 @@ function makeMocks() {
       mintAccess: vi.fn(),
       mintRefresh: vi.fn(),
     } as unknown as HandlerDeps['tokenIssuer'],
+    encryptionKey: 'a'.repeat(64),
   };
   return {
     client: client as unknown as PoolClient,

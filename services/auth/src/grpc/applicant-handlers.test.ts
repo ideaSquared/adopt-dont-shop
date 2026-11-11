@@ -8,6 +8,7 @@ import {
   ADMIN_USERS_READ,
   APPLICATIONS_CREATE,
   APPLICATIONS_VIEW,
+  type RescueId,
   type UserId,
 } from '@adopt-dont-shop/lib.types';
 import { ApplicationsV1, type GetApplicantProfileResponse } from '@adopt-dont-shop/proto';
@@ -23,14 +24,14 @@ const STAFF: Principal = {
   userId: 'usr-staff' as UserId,
   roles: ['rescue_staff'],
   permissions: [APPLICATIONS_VIEW],
-  rescueId: APP_RESCUE_ID,
+  rescueId: APP_RESCUE_ID as RescueId,
 };
 
 const OTHER_RESCUE_STAFF: Principal = {
   userId: 'usr-other-staff' as UserId,
   roles: ['rescue_staff'],
   permissions: [APPLICATIONS_VIEW],
-  rescueId: 'rsc-2',
+  rescueId: 'rsc-2' as RescueId,
 };
 
 // Adopters can read their own application, but that is not a reason to
@@ -58,7 +59,7 @@ function makeMocks() {
     application: ApplicationsV1.Application.fromPartial({
       applicationId: 'app-1',
       adopterId: 'usr-adopter',
-      rescueId: APP_RESCUE_ID,
+      rescueId: APP_RESCUE_ID as RescueId,
     }),
     timeline: [],
   });
@@ -71,6 +72,7 @@ function makeMocks() {
     nats: {} as unknown as NatsConnection,
     passwordHasher: {} as unknown as HandlerDeps['passwordHasher'],
     tokenIssuer: {} as unknown as HandlerDeps['tokenIssuer'],
+    encryptionKey: 'a'.repeat(64),
   };
   return { deps, getApplication, query, applicationsClient };
 }
