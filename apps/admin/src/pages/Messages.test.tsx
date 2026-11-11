@@ -22,6 +22,23 @@ vi.mock('@adopt-dont-shop/lib.chat', () => ({
   }),
 }));
 
+// Which permissions the signed-in admin holds; drives useHasPermission.
+const { grantedPermissions } = vi.hoisted(() => ({ grantedPermissions: new Set<string>() }));
+
+vi.mock('@adopt-dont-shop/lib.auth', async () => {
+  const actual = await vi.importActual<typeof import('@adopt-dont-shop/lib.auth')>(
+    '@adopt-dont-shop/lib.auth'
+  );
+  return {
+    ...actual,
+    useHasPermission: (permission: string) => ({
+      allowed: grantedPermissions.has(permission),
+      isLoading: false,
+      error: null,
+    }),
+  };
+});
+
 const chatDetailModalCalls: Array<{ isOpen: boolean; chatId: string | null }> = [];
 
 vi.mock('../components/modals', () => ({
@@ -53,8 +70,38 @@ const emptyResult = { data: { data: [] }, isLoading: false, error: null, refetch
 describe('Messages page', () => {
   beforeEach(() => {
     chatDetailModalCalls.length = 0;
+    grantedPermissions.clear();
     useAdminChatsMock.mockReset();
     useAdminChatsMock.mockReturnValue(emptyResult);
+  });
+
+  describe('chat management controls', () => {
+    // The chat service lets only chat.moderate:any (or chats.update inside the
+    // chat's own rescue, which an admin is not) archive or delete a chat.
+    const withOneChat = () =>
+      useAdminChatsMock.mockReturnValue({
+        ...emptyResult,
+        data: { data: [conversation({ id: 'chat-m' })] },
+      });
+
+    it('shows archive and delete to a user holding chat.moderate:any', () => {
+      grantedPermissions.add('chats.read').add('chat.moderate:any');
+      withOneChat();
+      renderWithProviders(<Messages />);
+
+      expect(screen.getAllByRole('button', { name: 'Archive chat' }).length).toBeGreaterThan(0);
+      expect(screen.getAllByRole('button', { name: 'Delete chat' }).length).toBeGreaterThan(0);
+    });
+
+    it('hides archive and delete from a chats.read holder without chat.moderate:any', () => {
+      grantedPermissions.add('chats.read');
+      withOneChat();
+      renderWithProviders(<Messages />);
+
+      expect(screen.getAllByRole('button', { name: 'View chat' }).length).toBeGreaterThan(0);
+      expect(screen.queryByRole('button', { name: 'Archive chat' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Delete chat' })).not.toBeInTheDocument();
+    });
   });
 
   describe('deep-link', () => {

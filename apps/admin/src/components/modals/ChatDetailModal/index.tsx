@@ -16,6 +16,8 @@ import {
   useAdminChatMutations,
   type Conversation,
 } from '@adopt-dont-shop/lib.chat';
+import { useHasPermission } from '@adopt-dont-shop/lib.auth';
+import { CHAT_MODERATE_ANY } from '@adopt-dont-shop/lib.types';
 import { Archive, MessageSquare, Trash2, X } from 'lucide-react';
 import { MessagesTab } from './MessagesTab';
 import { ParticipantsTab } from './ParticipantsTab';
@@ -60,6 +62,10 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
 
   const { data: chat, isLoading: chatLoading } = useAdminChatById(chatId);
   const { deleteChat, updateChatStatus } = useAdminChatMutations();
+  // The chat service only lets chat.moderate:any archive or delete another rescue's chat.
+  const { allowed: canModerate, isLoading: permissionsLoading } =
+    useHasPermission(CHAT_MODERATE_ANY);
+  const canManageChat = canModerate && !permissionsLoading;
 
   if (!chatId) {
     return null;
@@ -204,17 +210,21 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
         )}
 
         <div className={styles.actionBar}>
-          <Button
-            variant='secondary'
-            leftIcon={<Archive size='1em' />}
-            onClick={handleArchiveChat}
-            disabled={conversation?.status === 'archived'}
-          >
-            Archive
-          </Button>
-          <Button variant='danger' leftIcon={<Trash2 size='1em' />} onClick={handleDeleteChat}>
-            Delete
-          </Button>
+          {canManageChat && (
+            <>
+              <Button
+                variant='secondary'
+                leftIcon={<Archive size='1em' />}
+                onClick={handleArchiveChat}
+                disabled={conversation?.status === 'archived'}
+              >
+                Archive
+              </Button>
+              <Button variant='danger' leftIcon={<Trash2 size='1em' />} onClick={handleDeleteChat}>
+                Delete
+              </Button>
+            </>
+          )}
           <div className={styles.closeButtonWrapper}>
             <Button variant='secondary' leftIcon={<X size='1em' />} onClick={onClose}>
               Close

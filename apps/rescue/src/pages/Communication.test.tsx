@@ -187,7 +187,7 @@ vi.mock('@adopt-dont-shop/lib.chat', async () => {
 });
 
 // useHasPermission is the gate. We replace it inline so we can grant or
-// revoke CHAT_UPDATE per test.
+// revoke chats.update per test.
 const mockedUseHasPermission = vi.fn();
 vi.mock('@adopt-dont-shop/lib.auth', () => ({
   useHasPermission: (permission: string) => mockedUseHasPermission(permission),
@@ -358,22 +358,40 @@ describe('Communication page - ADS-583 mark resolved', () => {
     expect(screen.queryByRole('button', { name: /reopen/i })).not.toBeInTheDocument();
   });
 
-  // ADS-1191: the backend's updateChatStatus gates on `chats.read` (+ rescue
-  // ownership), never `chats.update`. Gate the controls on the permission the
-  // backend actually grants so a chats.read holder can resolve/reopen.
-  it('gates the controls on chats.read and shows them to a chats.read holder', () => {
+  // The chat service gates updateChatStatus on chats.read plus chats.update
+  // within the chat's own rescue (or chat.moderate:any), so a chats.read holder
+  // without chats.update must not see controls that would fail.
+  it('shows the controls to a user holding chats.update', () => {
     const active = baseConversation({ id: 'a', status: 'active' });
-    setupHooks({
-      conversations: [active],
-      activeConversation: active,
-      hasPermission: true,
-    });
+    setupHooks({ conversations: [active], activeConversation: active });
+    mockedUseHasPermission.mockImplementation((permission: string) => ({
+      allowed: permission === 'chats.read' || permission === 'chats.update',
+      isLoading: false,
+      error: null,
+    }));
 
     renderPage();
 
-    expect(mockedUseHasPermission).toHaveBeenCalledWith('chats.read');
-    expect(mockedUseHasPermission).not.toHaveBeenCalledWith('chats.update');
     expect(screen.getByRole('button', { name: /mark resolved/i })).toBeInTheDocument();
+  });
+
+  it('hides the controls from a chats.read holder without chats.update', () => {
+    const active = baseConversation({ id: 'a', status: 'active' });
+    const resolved = baseConversation({ id: 'b', status: 'archived' });
+    setupHooks({ conversations: [active, resolved], activeConversation: active });
+    mockedUseHasPermission.mockImplementation((permission: string) => ({
+      allowed: permission === 'chats.read',
+      isLoading: false,
+      error: null,
+    }));
+
+    const { unmount } = renderPage();
+    expect(screen.queryByRole('button', { name: /mark resolved/i })).not.toBeInTheDocument();
+    unmount();
+
+    mockedUseChat.mockReturnValue({ ...mockedUseChat(), activeConversation: resolved });
+    renderPage();
+    expect(screen.queryByRole('button', { name: /reopen/i })).not.toBeInTheDocument();
   });
 
   it('switches the visible list when the user toggles the Resolved filter', () => {
