@@ -454,41 +454,40 @@ export function makeOpenChat(
     );
 
     // Idempotency: look up an existing chat for this application + pair.
-    const existing = await deps.pool.query<ChatRow>(
-      `
-      SELECT c.*
-      FROM chats c
-      WHERE c.application_id = $1
-        AND c.deleted_at IS NULL
-        AND EXISTS (
-          SELECT 1 FROM chat_participants p1
-          WHERE p1.chat_id = c.chat_id AND p1.participant_id = $2 AND p1.deleted_at IS NULL
-        )
-        AND EXISTS (
-          SELECT 1 FROM chat_participants p2
-          WHERE p2.chat_id = c.chat_id AND p2.participant_id = $3 AND p2.deleted_at IS NULL
-        )
-      LIMIT 1
-      `,
-      [req.applicationId, principal.userId, req.otherUserId]
+    const existing = await findApplicationChat(
+      deps,
+      req.applicationId,
+      principal.userId,
+      req.otherUserId
     );
-    if (existing.rows[0]) {
-      const chat = await chatRowToProto(deps, existing.rows[0]);
+    if (existing) {
+      const chat = await chatRowToProto(deps, existing);
       return { chat, created: false };
     }
 
     const chatId = randomUUID();
     let inserted: ChatRow | undefined;
     await withTransaction(deps, async ({ client, publish }) => {
+      // The lookup above is not atomic with this insert, so two concurrent
+      // opens can both miss it. The partial unique index on
+      // (application_id, participant_pair_key) (migration 009) lets exactly
+      // one INSERT through; the loser gets no row back and returns the
+      // winner's chat below, publishing nothing.
       const inserted0 = await client.query<ChatRow>(
         `
-        INSERT INTO chats (chat_id, application_id, rescue_id, created_at, updated_at)
-        VALUES ($1, $2, $3, now(), now())
+        INSERT INTO chats (chat_id, application_id, rescue_id, participant_pair_key, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, now(), now())
+        ON CONFLICT (application_id, participant_pair_key)
+          WHERE application_id IS NOT NULL AND participant_pair_key IS NOT NULL AND deleted_at IS NULL
+          DO NOTHING
         RETURNING *
         `,
-        [chatId, req.applicationId, rescueId]
+        [chatId, req.applicationId, rescueId, participantPairKey(principal.userId, req.otherUserId)]
       );
       inserted = inserted0.rows[0];
+      if (!inserted) {
+        return;
+      }
 
       // Two participant rows. Roles default to 'member' — the gateway/
       // service.rescue can promote a rescue-staff participant via a
@@ -512,12 +511,56 @@ export function makeOpenChat(
       });
     });
 
-    if (!inserted) {
+    if (inserted) {
+      return { chat: await chatRowToProto(deps, inserted), created: true };
+    }
+    // A concurrent open won the race; its transaction has committed by the
+    // time our ON CONFLICT resolved, so its chat is visible now.
+    const winner = await findApplicationChat(
+      deps,
+      req.applicationId,
+      principal.userId,
+      req.otherUserId
+    );
+    if (!winner) {
       throw new HandlerError('INTERNAL', 'insert returned no rows');
     }
-    const chat = await chatRowToProto(deps, inserted);
-    return { chat, created: true };
+    return { chat: await chatRowToProto(deps, winner), created: false };
   };
+}
+
+// Order-independent identity of a two-party chat, so an adopter-initiated and
+// a staff-initiated open for the same application collide on one key. Ids are
+// lower-cased first: they are uuids in the database, which compare
+// case-insensitively, so differently cased requests name the same participant.
+const participantPairKey = (userA: string, userB: string): string =>
+  [userA.toLowerCase(), userB.toLowerCase()].sort().join(':');
+
+async function findApplicationChat(
+  deps: HandlerDeps,
+  applicationId: string,
+  userId: string,
+  otherUserId: string
+): Promise<ChatRow | undefined> {
+  const { rows } = await deps.pool.query<ChatRow>(
+    `
+    SELECT c.*
+    FROM chats c
+    WHERE c.application_id = $1
+      AND c.deleted_at IS NULL
+      AND EXISTS (
+        SELECT 1 FROM chat_participants p1
+        WHERE p1.chat_id = c.chat_id AND p1.participant_id = $2 AND p1.deleted_at IS NULL
+      )
+      AND EXISTS (
+        SELECT 1 FROM chat_participants p2
+        WHERE p2.chat_id = c.chat_id AND p2.participant_id = $3 AND p2.deleted_at IS NULL
+      )
+    LIMIT 1
+    `,
+    [applicationId, userId, otherUserId]
+  );
+  return rows[0];
 }
 
 // Resolves the application referenced by OpenChatRequest and validates

@@ -80,6 +80,49 @@ describe('chat migrations', () => {
     return { pgm: spies as unknown as MigrationBuilder, spies };
   }
 
+  describe('009_add_application_chat_unique_index', () => {
+    const builder = () => {
+      const spies = {
+        addColumns: vi.fn(),
+        createIndex: vi.fn(),
+        dropIndex: vi.fn(),
+        dropColumns: vi.fn(),
+        sql: vi.fn(),
+      };
+      return { pgm: spies as unknown as MigrationBuilder, spies };
+    };
+
+    it('adds a nullable pair key and a partial unique index that skips legacy and deleted rows', async () => {
+      const mod = await import('./009_add_application_chat_unique_index.js');
+      const { pgm, spies } = builder();
+      await mod.up(pgm);
+
+      // Nullable (no notNull) and no backfill: pre-existing duplicates keep a
+      // NULL key, so the unique build cannot fail on them.
+      expect(spies.addColumns).toHaveBeenCalledWith('chats', {
+        participant_pair_key: { type: 'text' },
+      });
+      expect(spies.sql).not.toHaveBeenCalled();
+      const [, columns, options] = spies.createIndex.mock.calls[0] as [
+        string,
+        string[],
+        { unique: boolean; where: string },
+      ];
+      expect(columns).toEqual(['application_id', 'participant_pair_key']);
+      expect(options.unique).toBe(true);
+      expect(options.where).toContain('participant_pair_key IS NOT NULL');
+      expect(options.where).toContain('deleted_at IS NULL');
+    });
+
+    it('down() drops the index and the column', async () => {
+      const mod = await import('./009_add_application_chat_unique_index.js');
+      const { pgm, spies } = builder();
+      await mod.down(pgm);
+      expect(spies.dropIndex).toHaveBeenCalled();
+      expect(spies.dropColumns).toHaveBeenCalledWith('chats', ['participant_pair_key']);
+    });
+  });
+
   it.each([
     '001_create_chats.ts',
     '002_create_chat_participants.ts',

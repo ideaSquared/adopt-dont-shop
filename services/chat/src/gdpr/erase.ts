@@ -31,6 +31,15 @@ export async function eraseChat(
     `DELETE FROM chat.message_reactions WHERE user_id = $1`,
     `DELETE FROM chat.message_reads WHERE user_id = $1`,
     `DELETE FROM chat.chat_participants WHERE participant_id = $1`,
+    // The application-chat pair key (migration 009) stores both participants'
+    // ids on the chat row, which would keep the erased user, and who they spoke
+    // to, recoverable after their membership rows are gone. Match one element of
+    // the stored 'idA:idB' exactly (the key is stored lower-cased), and include
+    // soft-deleted chats, which still carry it. The chat itself stays, as the
+    // counterparty's record of the conversation.
+    `UPDATE chat.chats
+        SET participant_pair_key = NULL, updated_at = now()
+      WHERE lower($1) = ANY(string_to_array(participant_pair_key, ':'))`,
   ]) {
     const res = await client.query(sql, [payload.userId]);
     total += res.rowCount ?? 0;

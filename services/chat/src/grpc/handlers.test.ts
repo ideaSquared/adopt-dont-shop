@@ -315,6 +315,94 @@ describe('openChat', () => {
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('chat.created');
   });
 
+  // Concurrent opens for the same application + pair: the unique index
+  // (migration 009) makes the loser's INSERT ... ON CONFLICT DO NOTHING return
+  // no row. It must hand back the winner's chat, add no participants and
+  // publish nothing — only the winning call announces chat.created.
+  it('returns the winner’s chat, with no second insert or event, when a concurrent open wins the race', async () => {
+    // existing-chat lookup → none (the winner has not committed yet)
+    mocks.poolScript.push({ rows: [] });
+    // Inside withTransaction: INSERT chat conflicts → no row
+    mocks.clientScript.push({ rows: [] });
+    // After commit: re-select finds the winner, then participants + preview
+    mocks.poolScript.push({ rows: [chatRowFixture({ chat_id: 'winner-chat' })] });
+    mocks.poolScript.push({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
+    mocks.poolScript.push({ rows: [] });
+
+    const res = await openChat(mocks.deps, ADOPTER_PRINCIPAL, BASE_OPEN);
+
+    expect(res.created).toBe(false);
+    expect(res.chat?.chatId).toBe('winner-chat');
+    expect(realClientQueries(mocks)).toEqual(['INSERT']);
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('keys the chat on the application and the unordered participant pair', async () => {
+    const asAdopter = makeMocks();
+    asAdopter.poolScript.push({ rows: [] });
+    asAdopter.clientScript.push({ rows: [chatRowFixture({ chat_id: 'c-a' })] });
+    asAdopter.clientScript.push({ rows: [] });
+    await openChat(asAdopter.deps, ADOPTER_PRINCIPAL, BASE_OPEN);
+
+    const asStaff = makeMocks();
+    asStaff.poolScript.push({ rows: [] });
+    asStaff.clientScript.push({ rows: [chatRowFixture({ chat_id: 'c-s' })] });
+    asStaff.clientScript.push({ rows: [] });
+    const staff: Principal = {
+      userId: 'usr-rescue' as UserId,
+      roles: ['rescue_staff'],
+      permissions: ['chats.create' as Permission],
+      rescueId: APP_RESCUE_ID as RescueId,
+    };
+    await openChat(asStaff.deps, staff, { ...BASE_OPEN, otherUserId: 'usr-adopter' });
+
+    const insertSql = (m: ReturnType<typeof makeMocks>) =>
+      (m.clientMock.query.mock.calls as Array<[string, unknown[]]>).find(([sql]) =>
+        sql.includes('INSERT INTO chats ')
+      );
+    const a = insertSql(asAdopter);
+    const s = insertSql(asStaff);
+    expect(a?.[0]).toMatch(/ON CONFLICT/);
+    // Adopter-initiated and staff-initiated opens must collide on one key.
+    const keyOf = (call: [string, unknown[]] | undefined) =>
+      call?.[1].find(
+        p => typeof p === 'string' && p.includes('usr-adopter') && p.includes('usr-rescue')
+      );
+    expect(keyOf(a)).toBeDefined();
+    expect(keyOf(a)).toBe(keyOf(s));
+  });
+
+  // User ids are uuids in the database, which compare case-insensitively, so two
+  // opens naming the same person in different letter case are the same pair. Only
+  // a super_admin can name any user (everyone else is matched exactly against the
+  // application's adopter or rescue staff), so that is the path that can differ.
+  it('builds the pair key from lower-cased ids so differently cased requests collide', async () => {
+    const root: Principal = {
+      userId: 'usr-root' as UserId,
+      roles: ['super_admin'],
+      permissions: [],
+    };
+    const openAs = async (otherUserId: string) => {
+      const m = makeMocks();
+      m.poolScript.push({ rows: [] });
+      m.clientScript.push({ rows: [chatRowFixture({ chat_id: 'c', rescue_id: APP_RESCUE_ID })] });
+      m.clientScript.push({ rows: [] });
+      await openChat(m.deps, root, { ...BASE_OPEN, otherUserId });
+      const insert = (m.clientMock.query.mock.calls as Array<[string, unknown[]]>).find(([sql]) =>
+        sql.includes('INSERT INTO chats ')
+      );
+      return insert?.[1].find(p => typeof p === 'string' && p.includes(':'));
+    };
+
+    const lower = await openAs('usr-other');
+    const upper = await openAs('USR-Other');
+
+    expect(lower).toBe('usr-other:usr-root');
+    expect(upper).toBe(lower);
+  });
+
   const insertChatParams = (mocks: ReturnType<typeof makeMocks>): unknown[] => {
     const call = (mocks.clientMock.query.mock.calls as Array<[string, unknown[]]>).find(([sql]) =>
       sql.includes('INSERT INTO chats')

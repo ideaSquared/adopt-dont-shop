@@ -43,7 +43,7 @@ describe('eraseChat', () => {
     const { client, calls } = makeClient([2, 3, 1, 1]);
     const total = await eraseChat(client, PAYLOAD);
 
-    expect(calls).toHaveLength(4);
+    expect(calls).toHaveLength(5);
     expect(calls.every(c => c.values[0] === 'usr-erase')).toBe(true);
 
     const msgCall = calls.find(c => c.text.includes('messages'));
@@ -94,5 +94,23 @@ describe('eraseChat', () => {
     // And it must only touch rows that aren't already scrubbed, so re-runs
     // stay idempotent.
     expect(msgCall?.text).toMatch(/content\s*<>\s*'\[erased\]'/i);
+  });
+  it('clears the pair key of every chat the user was in, so the erased id is not left on the chat row', async () => {
+    const { client, calls } = makeClient([0, 0, 0, 0, 2]);
+    const total = await eraseChat(client, PAYLOAD);
+
+    const keyCall = calls.find(c => c.text.includes('participant_pair_key'));
+    expect(keyCall).toBeDefined();
+    expect(keyCall?.text).toMatch(/UPDATE\s+chat\.chats/i);
+    expect(keyCall?.text).toMatch(/SET\s+participant_pair_key\s*=\s*NULL/i);
+    // Exact match on one element of the stored `idA:idB`, not a wildcard, and
+    // case-insensitive because the key is stored lower-cased.
+    expect(keyCall?.text).toMatch(
+      /lower\(\$1\)\s*=\s*ANY\(string_to_array\(participant_pair_key,\s*':'\)\)/i
+    );
+    // Soft-deleted chats still carry the key, so it must not be gated on deleted_at.
+    expect(keyCall?.text).not.toMatch(/deleted_at\s+IS\s+NULL/i);
+    expect(keyCall?.values).toEqual([PAYLOAD.userId]);
+    expect(total).toBe(2);
   });
 });
