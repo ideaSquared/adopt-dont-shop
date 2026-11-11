@@ -52,7 +52,9 @@ function makePetsClient(listPets: ReturnType<typeof vi.fn>): PetsClient {
 }
 
 function makeRescueClient(
-  getRescueName: ReturnType<typeof vi.fn> = vi.fn().mockResolvedValue('A Rescue')
+  getRescueName: RescueNameClient['getRescueName'] = vi
+    .fn<RescueNameClient['getRescueName']>()
+    .mockResolvedValue('A Rescue')
 ): RescueNameClient {
   return { getRescueName, close: vi.fn() };
 }
@@ -115,7 +117,9 @@ describe('makeGetTopPicks', () => {
         }),
       ])
     );
-    const getRescueName = vi.fn().mockResolvedValue('Happy Tails');
+    const getRescueName = vi
+      .fn<RescueNameClient['getRescueName']>()
+      .mockResolvedValue('Happy Tails');
     const getTopPicks = makeGetTopPicks(makePetsClient(listPets), makeRescueClient(getRescueName));
 
     const res = await getTopPicks(makeDeps(), makePrincipal(), req());

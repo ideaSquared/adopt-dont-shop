@@ -20,6 +20,8 @@ const baseConfig: MatchingConfig = {
   databaseUrl: 'postgres://test',
   schema: 'matching',
   natsUrl: 'nats://localhost:4222',
+  petsGrpcUrl: 'localhost:5003',
+  rescueGrpcUrl: 'localhost:5004',
 };
 
 describe('createServer — health endpoint', () => {
