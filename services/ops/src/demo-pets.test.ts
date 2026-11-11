@@ -30,7 +30,7 @@ const setup = async (opts: HarnessOptions = {}) => {
 
 const notFound = () => Object.assign(new Error('nope'), { code: 5, details: 'not found' });
 
-const requestOf = (call: GrpcCall | undefined) =>
+const requestOf = (call: { readonly request: unknown } | undefined) =>
   JSON.parse(JSON.stringify(call?.request ?? null)) as Record<string, unknown>;
 
 describe('demo create-pets', () => {

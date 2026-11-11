@@ -30,7 +30,7 @@ const setup = async (opts: HarnessOptions = {}) => {
   return { ...h, session, invoke, previewThenExecute };
 };
 
-const requestOf = (call: GrpcCall | undefined) =>
+const requestOf = (call: { readonly request: unknown } | undefined) =>
   JSON.parse(JSON.stringify(call?.request ?? null)) as Record<string, unknown>;
 
 // Downstream behaviour for a successful create. Search echoes back whatever
