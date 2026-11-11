@@ -413,7 +413,8 @@ export async function verifyEmail(
           updated_at = now()
       WHERE verification_token_hash = $1
         AND (verification_token_expires_at IS NULL OR verification_token_expires_at > now())
-        AND status = 'pending_verification'
+        AND email_verified = false
+        AND status IN ('pending_verification', 'active')
         AND deleted_at IS NULL
       RETURNING *
       `,
@@ -450,7 +451,8 @@ export async function resendVerification(
       SET verification_token_hash = $1,
           verification_token_expires_at = $2,
           updated_at = now()
-      WHERE email = $3 AND email_verified = false AND status = 'pending_verification'
+      WHERE email = $3 AND email_verified = false
+        AND status IN ('pending_verification', 'active')
         AND deleted_at IS NULL
       RETURNING *
       `,
