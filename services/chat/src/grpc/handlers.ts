@@ -24,7 +24,7 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
+import { hasPermission, requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
 // Canonical permission names from lib.types (rescue-permissions.ts): the RBAC
 // matrix (auth migration 016) grants adopters + rescue staff `chats.*` /
@@ -37,8 +37,11 @@ import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/even
 import {
   CHAT_CREATE,
   CHAT_MESSAGE_DELETE_ANY,
+  CHAT_MODERATE_ANY,
+  CHAT_UPDATE,
   CHAT_VIEW as CHAT_READ,
   MESSAGES_SEND as CHAT_SEND,
+  type RescueId,
 } from '@adopt-dont-shop/lib.types';
 import { principalToMetadata } from '@adopt-dont-shop/service-bootstrap';
 import type { ApplicationsClient } from './applications-client.js';
@@ -160,12 +163,22 @@ const VISIBLE_CHATS_SQL = `c.deleted_at IS NULL AND (
       OR (${PET_ENQUIRY_SQL} AND c.rescue_id = $2)
     )`;
 
-// Platform staff who oversee every chat from the admin Messages page. They
-// may read any chat (getChat, listMessages, adminListChats) but are not
-// participants, so they still cannot post, react or mark read.
+// Platform staff who oversee every chat from the admin Messages page: anyone
+// holding chat.moderate:any (default roles: moderator, admin; super_admin via
+// the authz bypass). They may read any chat (getChat, listMessages,
+// adminListChats) but are not participants, so they still cannot post, react
+// or mark read.
 const isPlatformStaff = (principal: Principal): boolean =>
-  hasPermission(principal, CHAT_READ) &&
-  (['super_admin', 'admin', 'moderator'] as const).some(role => principal.roles.includes(role));
+  hasPermission(principal, CHAT_READ) && hasPermission(principal, CHAT_MODERATE_ANY);
+
+// Who may delete a chat or change its status: platform-wide moderators
+// (chat.moderate:any), or a holder of chats.update acting inside the chat's
+// own rescue. Permission-based so custom roles can be granted or denied it.
+const canManageChat = (principal: Principal, row: ChatRow): boolean =>
+  hasPermission(principal, CHAT_MODERATE_ANY) ||
+  // chats.rescue_id is NOT NULL, so the scope is always defined and enforced;
+  // the cast only brands the DB string as a RescueId.
+  requirePermission(principal, CHAT_UPDATE, { rescueId: row.rescue_id as RescueId });
 
 // Who may use a chat: its participants, super_admin, and — for a pet
 // enquiry (a chat with a pet and no application) — any staff member of the
@@ -1476,18 +1489,11 @@ export async function deleteChat(
 
   // ADS-923: chat-wide delete erases the thread for every participant —
   // a plain adopter participant could use it to destroy adoption-workflow
-  // evidence the rescue relies on. Deleting is now a staff/safety-team
-  // primitive: super_admin, a moderator/admin, or rescue-staff whose home
-  // rescue matches this chat's rescue_id. A regular participant (e.g. the
-  // adopter) is denied even though they can otherwise read the chat.
-  const isPrivilegedDeleter =
-    principal.roles.includes('super_admin') ||
-    principal.roles.includes('moderator') ||
-    principal.roles.includes('admin') ||
-    (principal.roles.includes('rescue_staff') &&
-      principal.rescueId !== undefined &&
-      principal.rescueId === row.rescue_id);
-  if (!isPrivilegedDeleter) {
+  // evidence the rescue relies on. Deleting is a staff/safety-team
+  // primitive: chat.moderate:any (platform), or chats.update within this
+  // chat's own rescue. A regular participant (e.g. the adopter) is denied
+  // even though they can otherwise read the chat.
+  if (!canManageChat(principal, row)) {
     // Non-participants still get NOT_FOUND posture so the row's
     // existence isn't enumerable; a participant who simply lacks the
     // role learns the real reason.
@@ -1496,7 +1502,7 @@ export async function deleteChat(
     }
     throw new HandlerError(
       'PERMISSION_DENIED',
-      'only rescue staff of this chat, or a moderator/admin, may delete a chat'
+      `'${CHAT_UPDATE}' for this rescue, or '${CHAT_MODERATE_ANY}', required to delete a chat`
     );
   }
 
@@ -1570,20 +1576,13 @@ export async function updateChatStatus(
   }
   const row = existing.rows[0];
 
-  const isPrivileged =
-    principal.roles.includes('super_admin') ||
-    principal.roles.includes('moderator') ||
-    principal.roles.includes('admin') ||
-    (principal.roles.includes('rescue_staff') &&
-      principal.rescueId !== undefined &&
-      principal.rescueId === row.rescue_id);
-  if (!isPrivileged) {
+  if (!canManageChat(principal, row)) {
     if (!(await isParticipantOrAdmin(deps, principal, req.chatId))) {
       throw new HandlerError('NOT_FOUND', `chat ${req.chatId} not found`);
     }
     throw new HandlerError(
       'PERMISSION_DENIED',
-      'only rescue staff of this chat, or a moderator/admin, may change a chat status'
+      `'${CHAT_UPDATE}' for this rescue, or '${CHAT_MODERATE_ANY}', required to change a chat status`
     );
   }
 
@@ -1623,8 +1622,8 @@ export async function updateChatStatus(
 // --- GetChatStats ----------------------------------------------------
 //
 // Cross-chat aggregate counts for the admin Messages dashboard. A global
-// staff view, not per-chat, so it requires a privileged role
-// (moderator / admin / super_admin); a plain participant is denied.
+// staff view, not per-chat, so it requires chat.moderate:any (default roles:
+// moderator, admin; super_admin via bypass); a plain participant is denied.
 // Counts exclude soft-deleted chats and messages.
 
 export async function getChatStats(
@@ -1632,12 +1631,11 @@ export async function getChatStats(
   principal: Principal,
   _req: GetChatStatsRequest
 ): Promise<GetChatStatsResponse> {
-  const privileged =
-    principal.roles.includes('super_admin') ||
-    principal.roles.includes('moderator') ||
-    principal.roles.includes('admin');
-  if (!hasPermission(principal, CHAT_READ) || !privileged) {
-    throw new HandlerError('PERMISSION_DENIED', 'a moderator/admin/super_admin role is required');
+  if (!isPlatformStaff(principal)) {
+    throw new HandlerError(
+      'PERMISSION_DENIED',
+      `'${CHAT_READ}' and '${CHAT_MODERATE_ANY}' required`
+    );
   }
 
   const { rows } = await deps.pool.query<{
