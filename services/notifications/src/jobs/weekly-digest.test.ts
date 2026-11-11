@@ -15,6 +15,10 @@ vi.mock('../grpc/handlers.js', () => ({
   createNotification: (...args: unknown[]) => createNotificationMock(...args),
 }));
 
+// Read-only imports of the audit service's real contract (it has no validator of its own;
+// the uuid / NOT NULL columns are the validation).
+import { persistAuditEvent } from '../../../audit/src/nats/subscribers.js';
+import type { AuditEventPayload } from '../../../audit/src/nats/event-types.js';
 import {
   composeWeeklyDigest,
   runWeeklyDigest,
@@ -379,5 +383,64 @@ describe('runWeeklyDigest', () => {
     await runWeeklyDigest(mocks.deps);
 
     expect(mocks.natsPublish).not.toHaveBeenCalled();
+  });
+
+  describe('published audit event', () => {
+    const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+    const decode = (call: unknown[]) =>
+      JSON.parse(new TextDecoder().decode(call[1] as Uint8Array)) as {
+        id: string;
+        payload: AuditEventPayload;
+      };
+
+    const runOnce = async () => {
+      const m = makeDeps({
+        activeUserIds: ['usr-1'],
+        consentRows: [{ user_id: 'usr-1', ...consented }],
+        favoritesByUser: { 'usr-1': [availablePet()] },
+      });
+      await runWeeklyDigest(m.deps);
+      return decode(m.natsPublish.mock.calls[0]);
+    };
+
+    it('satisfies AuditEventPayload and persists through the audit subscriber insert', async () => {
+      const envelope = await runOnce();
+      const payload = envelope.payload;
+
+      expect(payload.eventId).toMatch(UUID);
+      expect(payload.aggregateId).toMatch(UUID);
+      expect(payload.outcome).toBe('success');
+      expect(Number.isNaN(Date.parse(payload.occurredAt))).toBe(false);
+      expect(payload.actorUserId).toBeUndefined();
+      expect(payload.payload).toMatchObject({ sent: 1 });
+
+      const query = vi.fn().mockResolvedValue({ rowCount: 1 });
+      await persistAuditEvent({ query } as unknown as Pool, payload, 'notifications.actionTaken');
+      const params = query.mock.calls[0][1] as unknown[];
+      // event_id, aggregate_id, actor_user_id, outcome, occurred_at
+      expect(params[0]).toMatch(UUID);
+      expect(params[4]).toMatch(UUID);
+      expect(params[5]).toBeNull();
+      expect(params[8]).toBe('success');
+      expect(params[9]).toEqual(expect.any(String));
+    });
+
+    it('uses a different envelope id and eventId for each run, even within the same millisecond', async () => {
+      vi.useFakeTimers();
+      try {
+        const a = await runOnce();
+        const b = await runOnce();
+        expect(a.id).not.toBe(b.id);
+        expect(a.payload.eventId).not.toBe(b.payload.eventId);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('carries no user ids, only counts', async () => {
+      const envelope = await runOnce();
+      expect(JSON.stringify(envelope.payload.payload)).not.toContain('usr-1');
+    });
   });
 });
