@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { type PetSearchFilters } from '@/services';
 import { isKnownSortBy, isKnownSortOrder } from '../pages/searchOptions';
 
+const DEFAULT_SORT_BY = 'createdAt';
+const DEFAULT_SORT_ORDER = 'desc';
+
 type UseSearchFiltersReturn = {
   filters: PetSearchFilters;
   searchQuery: string;
@@ -29,8 +32,8 @@ export const useSearchFilters = (
     status: searchParams.get('status') || '',
     page: parseInt(searchParams.get('page') || '1'),
     limit: 12,
-    sortBy: isKnownSortBy(initialSortByParam) ? (initialSortByParam as string) : 'createdAt',
-    sortOrder: isKnownSortOrder(initialSortOrderParam) ? initialSortOrderParam : 'desc',
+    sortBy: isKnownSortBy(initialSortByParam) ? (initialSortByParam as string) : DEFAULT_SORT_BY,
+    sortOrder: isKnownSortOrder(initialSortOrderParam) ? initialSortOrderParam : DEFAULT_SORT_ORDER,
   });
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
@@ -43,7 +46,19 @@ export const useSearchFilters = (
     setSearchParamsRef.current = setSearchParams;
   });
 
+  // The state the page opened with. Until the visitor edits a filter or the
+  // query, the URL already describes it, so there is nothing to write.
+  const initialFiltersRef = useRef(filters);
+  const initialSearchQueryRef = useRef(searchQuery);
+
   useEffect(() => {
+    // Write only after an edit. A write on mount can land after the visitor
+    // has already clicked away (the page commits during the next navigation)
+    // and would drag them back to /search.
+    if (filters === initialFiltersRef.current && searchQuery === initialSearchQueryRef.current) {
+      return;
+    }
+
     const params = new URLSearchParams();
 
     if (searchQuery) {
@@ -73,10 +88,13 @@ export const useSearchFilters = (
     if (filters.page && filters.page > 1) {
       params.set('page', filters.page.toString());
     }
-    if (filters.sortBy) {
+    // The default sort is implied, so leave it out of the URL.
+    const isDefaultSort =
+      filters.sortBy === DEFAULT_SORT_BY && filters.sortOrder === DEFAULT_SORT_ORDER;
+    if (filters.sortBy && !isDefaultSort) {
       params.set('sortBy', filters.sortBy);
     }
-    if (filters.sortOrder) {
+    if (filters.sortOrder && !isDefaultSort) {
       params.set('sortOrder', filters.sortOrder);
     }
 
