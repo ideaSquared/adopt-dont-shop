@@ -40,7 +40,7 @@ const STAFF: Principal = {
 
 const STAFF_MANAGER: Principal = {
   userId: 'usr-admin' as UserId,
-  roles: ['rescue_admin'],
+  roles: ['rescue_staff'],
   permissions: [
     'staff.create' as Permission,
     'staff.update' as Permission,
@@ -577,9 +577,10 @@ describe('cancelRescueInvitation', () => {
     const res = await cancelRescueInvitation(mocks.deps, ADMIN, baseReq);
 
     expect(res.cancelled).toBe(true);
-    const [sql, params] = mocks.clientMock.query.mock.calls.find(
-      ([s]: [string]) => typeof s === 'string' && s.includes('DELETE FROM rescue.invitations')
-    );
+    const [sql, params] =
+      mocks.clientMock.query.mock.calls.find(
+        ([s]) => typeof s === 'string' && s.includes('DELETE FROM rescue.invitations')
+      ) ?? [];
     expect(String(sql)).toContain('used = false');
     expect(params).toEqual(['inv-1', RESCUE_ID]);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('rescue.staffInvitationCancelled');
