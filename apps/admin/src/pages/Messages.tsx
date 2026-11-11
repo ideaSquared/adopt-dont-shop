@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router';
+import { useHasPermission } from '@adopt-dont-shop/lib.auth';
+import { CHAT_MODERATE_ANY } from '@adopt-dont-shop/lib.types';
 import {
   Badge,
   Button,
@@ -89,6 +91,10 @@ const Messages: React.FC = () => {
   const { data: chatsData, isLoading, error: chatsError, refetch } = useAdminChats(chatFilters);
   const { data: statsData } = useAdminChatStats();
   const { deleteChat, updateChatStatus } = useAdminChatMutations();
+  // The chat service only lets chat.moderate:any archive or delete another rescue's chat.
+  const { allowed: canModerate, isLoading: permissionsLoading } =
+    useHasPermission(CHAT_MODERATE_ANY);
+  const canManageChats = canModerate && !permissionsLoading;
 
   const chats = chatsData?.data || [];
   const total = chatsData?.pagination?.total;
@@ -331,24 +337,28 @@ const Messages: React.FC = () => {
             >
               <Eye size='1em' aria-hidden />
             </Button>
-            <Button
-              variant='outline'
-              size='sm'
-              onClick={e => handleUpdateStatus(chat.id, 'archived', e)}
-              title='Archive chat'
-              aria-label='Archive chat'
-            >
-              <Flag size='1em' aria-hidden />
-            </Button>
-            <Button
-              variant='outline'
-              size='sm'
-              onClick={e => handleDeleteChat(chat.id, e)}
-              title='Delete chat'
-              aria-label='Delete chat'
-            >
-              <Trash size='1em' aria-hidden />
-            </Button>
+            {canManageChats && (
+              <>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={e => handleUpdateStatus(chat.id, 'archived', e)}
+                  title='Archive chat'
+                  aria-label='Archive chat'
+                >
+                  <Flag size='1em' aria-hidden />
+                </Button>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={e => handleDeleteChat(chat.id, e)}
+                  title='Delete chat'
+                  aria-label='Delete chat'
+                >
+                  <Trash size='1em' aria-hidden />
+                </Button>
+              </>
+            )}
           </div>
         );
       },

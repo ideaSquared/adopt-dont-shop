@@ -27,6 +27,22 @@ vi.mock('@adopt-dont-shop/lib.chat', () => ({
   }),
 }));
 
+const { grantedPermissions } = vi.hoisted(() => ({ grantedPermissions: new Set<string>() }));
+
+vi.mock('@adopt-dont-shop/lib.auth', async () => {
+  const actual = await vi.importActual<typeof import('@adopt-dont-shop/lib.auth')>(
+    '@adopt-dont-shop/lib.auth'
+  );
+  return {
+    ...actual,
+    useHasPermission: (permission: string) => ({
+      allowed: grantedPermissions.has(permission),
+      isLoading: false,
+      error: null,
+    }),
+  };
+});
+
 const mockUseEntityActivity = vi.fn();
 
 vi.mock('../../hooks', async () => {
@@ -97,5 +113,31 @@ describe('ChatDetailModal — EntityInspector shell', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Activity' }));
 
     expect(screen.getByText('Created chat: Buddy')).toBeInTheDocument();
+  });
+});
+
+describe('ChatDetailModal — management actions', () => {
+  const renderModal = () => {
+    mockUseEntityActivity.mockReturnValue({ data: [], isLoading: false, error: null });
+    render(<ChatDetailModal isOpen onClose={vi.fn()} chatId='chat-1234567890abcdef' />);
+  };
+
+  it('shows Archive and Delete to a user holding chat.moderate:any', () => {
+    grantedPermissions.clear();
+    grantedPermissions.add('chats.read').add('chat.moderate:any');
+    renderModal();
+
+    expect(screen.getByRole('button', { name: /archive/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^delete$/i })).toBeInTheDocument();
+  });
+
+  it('hides Archive and Delete from a chats.read holder without chat.moderate:any', () => {
+    grantedPermissions.clear();
+    grantedPermissions.add('chats.read');
+    renderModal();
+
+    expect(screen.getByRole('button', { name: /^close$/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /archive/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument();
   });
 });
