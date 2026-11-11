@@ -49,7 +49,7 @@ const toContentListResult = (response: ContentListResponse): ContentListResult =
 class CmsPublicService {
   async listBlogPosts(page = 1, limit = 12): Promise<ContentListResult> {
     const response = await api.get<ContentListResponse>('/api/v1/cms/public/content', {
-      contentType: 'blog_post',
+      type: 'blog_post',
       page,
       limit,
     });
@@ -65,7 +65,7 @@ class CmsPublicService {
 
   async listHelpArticles(page = 1, limit = 20): Promise<ContentListResult> {
     const response = await api.get<ContentListResponse>('/api/v1/cms/public/content', {
-      contentType: 'help_article',
+      type: 'help_article',
       page,
       limit,
     });

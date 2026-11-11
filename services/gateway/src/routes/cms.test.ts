@@ -97,6 +97,19 @@ describe('cms gateway routes', () => {
     expect(json.pagination.total).toBe(1);
   });
 
+  it('GET /public/content filters by the `type` query param', async () => {
+    mocks.listPublicContent.mockResolvedValue({ items: [], total: 0, page: 1, totalPages: 0 });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/cms/public/content?type=help_article',
+    });
+    expect(res.statusCode).toBe(200);
+    expect(mocks.listPublicContent).toHaveBeenCalledWith(
+      expect.objectContaining({ contentType: CmsV1.ContentType.CONTENT_TYPE_HELP_ARTICLE }),
+      expect.anything()
+    );
+  });
+
   it('GET /public/content rejects a non-numeric page with 400 before calling the service', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/cms/public/content?page=abc' });
     expect(res.statusCode).toBe(400);

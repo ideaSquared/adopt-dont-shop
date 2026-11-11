@@ -43,7 +43,7 @@ describe('listBlogPosts', () => {
     const result = await cmsPublicService.listBlogPosts();
 
     expect(apiGet).toHaveBeenCalledWith('/api/v1/cms/public/content', {
-      contentType: 'blog_post',
+      type: 'blog_post',
       page: 1,
       limit: 12,
     });
@@ -78,7 +78,7 @@ describe('listBlogPosts', () => {
     await cmsPublicService.listBlogPosts(3, 6);
 
     expect(apiGet).toHaveBeenCalledWith('/api/v1/cms/public/content', {
-      contentType: 'blog_post',
+      type: 'blog_post',
       page: 3,
       limit: 6,
     });
@@ -96,7 +96,7 @@ describe('listHelpArticles', () => {
     await cmsPublicService.listHelpArticles();
 
     expect(apiGet).toHaveBeenCalledWith('/api/v1/cms/public/content', {
-      contentType: 'help_article',
+      type: 'help_article',
       page: 1,
       limit: 20,
     });
