@@ -1,0 +1,22 @@
+{
+  // Program behind `pnpm type-check`: the build program plus its test files.
+  // Kept apart from tsconfig.json because that file drives the build, whose
+  // rootDir/outDir must stay src -> dist and which must not emit tests. rootDir
+  // is the repo root only because vitest-globals.d.ts lives there; nothing is emitted.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "../..",
+    "incremental": false,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "tsBuildInfoFile": null,
+    // The root vite.shared.config.ts (imported by a test) resolves `vite` from the repo
+    // root, where it is not installed. Point type resolution at the copy lib.components
+    // already depends on instead of adding a root dependency.
+    "paths": { "vite": ["../lib.components/node_modules/vite/dist/node/index.d.ts"] }
+  },
+  "include": ["src/**/*", "../../vitest-globals.d.ts", "../../vite.shared.config.ts"],
+  "exclude": ["node_modules", "dist"]
+}

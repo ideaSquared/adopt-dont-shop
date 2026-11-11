@@ -1,6 +1,5 @@
 import '@testing-library/jest-dom';
-import { render, screen, within } from '@testing-library/react';
-import React from 'react';
+import { render, screen } from '@testing-library/react';
 import { Skeleton, SkeletonText, SkeletonTableRow, SkeletonCard } from './Skeleton';
 
 describe('Skeleton primitives', () => {
@@ -54,7 +53,7 @@ describe('Skeleton primitives', () => {
 
   describe('SkeletonTableRow', () => {
     it('renders a table row with the specified column count', () => {
-      const { container } = render(
+      render(
         <table>
           <tbody>
             <SkeletonTableRow columnCount={3} />

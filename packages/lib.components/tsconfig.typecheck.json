@@ -1,0 +1,17 @@
+{
+  // Program behind `pnpm type-check`: tsconfig.json plus the test files it excludes.
+  // Kept apart from tsconfig.json because that file drives Storybook and the declaration
+  // build (tsconfig.build.json), which must stay test-free. rootDir is the repo root only
+  // because vitest-globals.d.ts lives there; nothing is emitted.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "../..",
+    "incremental": false,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false
+  },
+  "include": ["src", "../../vitest-globals.d.ts"],
+  "exclude": ["node_modules", "dist"]
+}
