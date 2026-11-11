@@ -52,3 +52,69 @@ describe('isSafeImageUrl', () => {
     expect(isSafeImageUrl('', configured)).toBe(false);
   });
 });
+
+// WHATWG URL parsing strips tab/LF/CR anywhere in the input and treats `\` as
+// `/` for https, so a string that starts with a single `/` can still resolve
+// off-origin. Every case below is checked against the real parser too.
+describe('isSafeImageUrl bypass resistance', () => {
+  const configured = env({ CLOUDFRONT_DOMAIN: 'cdn.example.com' });
+  const appOrigin = 'https://app.example';
+
+  const rejected: ReadonlyArray<readonly [string, string]> = [
+    ['backslash after slash', '/\\evil.example/a.png'],
+    ['double backslash', '/\\\\evil.example'],
+    ['tab between slashes', '/\t/evil.example'],
+    ['newline between slashes', '/\n/evil.example'],
+    ['carriage return between slashes', '/\r/evil.example'],
+    ['tab then backslash', '/\t\\evil.example'],
+    ['NUL byte', '/\u0000/evil.example'],
+    ['DEL byte', '/\u007f/x'],
+    ['leading backslash', '\\evil.example/a.png'],
+    ['leading backslash-slash', '\\/evil.example/a.png'],
+    ['protocol-relative', '//evil.example/a.png'],
+    ['userinfo pointing off-host', 'https://cdn.example.com@evil.example/a.png'],
+    ['userinfo, unrelated host', 'https://good.example@evil.example/'],
+    ['backslash inside absolute url', 'https://cdn.example.com\\@evil.example/a.png'],
+    ['single-slash https', 'https:/\\evil.example'],
+    ['http scheme', 'http://cdn.example.com/a.jpg'],
+    ['non-default port', 'https://cdn.example.com:8443/a.jpg'],
+    ['javascript scheme', 'javascript:alert(1)'],
+    ['data scheme', 'data:image/png;base64,AAAA'],
+    ['bare relative', 'a.jpg'],
+    ['empty', ''],
+  ];
+
+  const accepted: ReadonlyArray<readonly [string, string]> = [
+    ['upload path', '/uploads/pets/a.jpg'],
+    ['percent-encoded backslash (parser does not decode it)', '/%5Cevil.example/a.png'],
+    ['dot-dot stays on origin', '/../uploads/a.png'],
+    ['double slash after dot-dot stays a path', '/..//evil.example/a.png'],
+    ['space in path', '/uploads/a b.jpg'],
+    ['allowed host', 'https://cdn.example.com/a.jpg'],
+    ['allowed host, mixed case', 'HTTPS://CDN.Example.com/a.jpg'],
+    ['allowed host, explicit default port', 'https://cdn.example.com:443/a.jpg'],
+  ];
+
+  it.each(rejected)('rejects %s', (_label, candidate) => {
+    expect(isSafeImageUrl(candidate, configured)).toBe(false);
+  });
+
+  it.each(accepted)('accepts %s', (_label, candidate) => {
+    expect(isSafeImageUrl(candidate, configured)).toBe(true);
+  });
+
+  it('never accepts a path that resolves to another origin', () => {
+    const offOrigin = [...rejected, ...accepted]
+      .map(([, candidate]) => candidate)
+      .filter(candidate => {
+        try {
+          return new URL(candidate, appOrigin).origin !== appOrigin;
+        } catch {
+          return false;
+        }
+      })
+      .filter(candidate => !candidate.startsWith('http') && !candidate.startsWith('HTTP'));
+    expect(offOrigin.length).toBeGreaterThan(0);
+    offOrigin.forEach(candidate => expect(isSafeImageUrl(candidate, configured)).toBe(false));
+  });
+});
