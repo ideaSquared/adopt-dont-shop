@@ -272,8 +272,8 @@ describe('createPet', () => {
     mocks.natsMock.publish.mockImplementation(() => order.push('NATS_PUBLISH'));
 
     const res = await createPet(mocks.deps, STAFF, BASE_CREATE);
-    expect(res.pet.name).toBe('Rex');
-    expect(res.pet.status).toBe(PetsV1.PetStatus.PET_STATUS_AVAILABLE);
+    expect(res.pet?.name).toBe('Rex');
+    expect(res.pet?.status).toBe(PetsV1.PetStatus.PET_STATUS_AVAILABLE);
     expect(order).toEqual(['BEGIN', 'INSERT', 'COMMIT', 'NATS_PUBLISH']);
   });
 
@@ -297,7 +297,7 @@ describe('createPet', () => {
   it('super_admin can create for any rescue', async () => {
     mocks.clientMock.query.mockResolvedValue({ rows: [petRow()] });
     const res = await createPet(mocks.deps, SUPER_ADMIN, BASE_CREATE);
-    expect(res.pet.petId).toBe('pet-1');
+    expect(res.pet?.petId).toBe('pet-1');
   });
 
   it('persists the extra_json blob (image_urls + good_with_*) on insert (ADS-1155)', async () => {
@@ -323,7 +323,7 @@ describe('createPet', () => {
     expect(insertSql).toMatch(/extra_json/);
     expect(insertParams.some(p => typeof p === 'string' && p.includes('image_urls'))).toBe(true);
     // …and it round-trips back through the response.
-    const extra = JSON.parse(res.pet.extraJson) as Record<string, unknown>;
+    const extra = JSON.parse(res.pet?.extraJson ?? '') as Record<string, unknown>;
     expect(extra.image_urls).toEqual(['/x.jpg']);
     expect(extra.good_with_children).toBe(true);
   });
@@ -479,10 +479,10 @@ describe('getPet', () => {
   it('returns the pet for any pets.read holder (adopter browse)', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
     const res = await getPet(mocks.deps, ADOPTER, { petId: 'pet-1' });
-    expect(res.pet.name).toBe('Rex');
+    expect(res.pet?.name).toBe('Rex');
     // temperament + extra surfaced as JSON strings
-    expect(JSON.parse(res.pet.temperamentJson)).toEqual(['friendly']);
-    expect(JSON.parse(res.pet.extraJson)).toMatchObject({ goodWithChildren: true });
+    expect(JSON.parse(res.pet?.temperamentJson ?? '')).toEqual(['friendly']);
+    expect(JSON.parse(res.pet?.extraJson ?? '')).toMatchObject({ goodWithChildren: true });
   });
 
   it('NOT_FOUND when missing/soft-deleted', async () => {
@@ -497,7 +497,7 @@ describe('getPet', () => {
       rows: [petRow({ medical_notes: 'allergic to chicken', behavioral_notes: 'shy' })],
     });
     const res = await getPet(mocks.deps, ADOPTER, { petId: 'pet-1' });
-    const extra = JSON.parse(res.pet.extraJson) as Record<string, unknown>;
+    const extra = JSON.parse(res.pet?.extraJson ?? '') as Record<string, unknown>;
     expect(extra.medicalNotes).toBeUndefined();
     expect(extra.behavioralNotes).toBeUndefined();
   });
@@ -507,7 +507,7 @@ describe('getPet', () => {
       rows: [petRow({ medical_notes: 'allergic to chicken', behavioral_notes: 'shy' })],
     });
     const res = await getPet(mocks.deps, STAFF, { petId: 'pet-1' });
-    const extra = JSON.parse(res.pet.extraJson) as Record<string, unknown>;
+    const extra = JSON.parse(res.pet?.extraJson ?? '') as Record<string, unknown>;
     expect(extra.medicalNotes).toBe('allergic to chicken');
     expect(extra.behavioralNotes).toBe('shy');
   });
@@ -531,8 +531,8 @@ describe('getPet', () => {
       rows: [petRow({ medical_notes: 'sensitive', behavioral_notes: 'sensitive' })],
     });
     const res = await getPet(mocks.deps, null, { petId: 'pet-1' });
-    expect(res.pet.name).toBe('Rex');
-    const extra = JSON.parse(res.pet.extraJson) as Record<string, unknown>;
+    expect(res.pet?.name).toBe('Rex');
+    const extra = JSON.parse(res.pet?.extraJson ?? '') as Record<string, unknown>;
     expect(extra.medicalNotes).toBeUndefined();
     expect(extra.behavioralNotes).toBeUndefined();
   });
@@ -547,7 +547,7 @@ describe('getPet', () => {
   it('lets rescue staff of the pet rescue view a terminal-status pet', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ status: 'adopted' })] });
     const res = await getPet(mocks.deps, STAFF, { petId: 'pet-1' });
-    expect(res.pet.status).toBe(PetsV1.PetStatus.PET_STATUS_ADOPTED);
+    expect(res.pet?.status).toBe(PetsV1.PetStatus.PET_STATUS_ADOPTED);
   });
 
   it('hides another rescue staff’s terminal pet (treats them as non-privileged)', async () => {
@@ -565,7 +565,7 @@ describe('getPet', () => {
       ],
     });
     const res = await getPet(mocks.deps, ADOPTER, { petId: 'pet-1' });
-    const extra = JSON.parse(res.pet.extraJson) as Record<string, unknown>;
+    const extra = JSON.parse(res.pet?.extraJson ?? '') as Record<string, unknown>;
     expect(extra.image_urls).toEqual(['https://cdn/a.jpg']);
     expect(extra.good_with_children).toBe(true);
   });
@@ -575,7 +575,7 @@ describe('getPet', () => {
       rows: [petRow({ extra_json: { medical_notes: 'secret', medicalNotes: 'secret' } })],
     });
     const res = await getPet(mocks.deps, ADOPTER, { petId: 'pet-1' });
-    const extra = JSON.parse(res.pet.extraJson) as Record<string, unknown>;
+    const extra = JSON.parse(res.pet?.extraJson ?? '') as Record<string, unknown>;
     expect(extra.medical_notes).toBeUndefined();
     expect(extra.medicalNotes).toBeUndefined();
   });
@@ -1010,13 +1010,13 @@ describe('updatePet', () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ rescue_id: null })] });
     mocks.clientMock.query.mockResolvedValue({ rows: [petRow({ rescue_id: null, name: 'x' })] });
     const res = await updatePet(mocks.deps, SUPER_ADMIN, { petId: 'pet-1', name: 'x' } as never);
-    expect(res.pet.name).toBe('x');
+    expect(res.pet?.name).toBe('x');
   });
 
   it('no-ops (returns current row, no write) when no fields supplied', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
     const res = await updatePet(mocks.deps, STAFF, { petId: 'pet-1' } as never);
-    expect(res.pet.name).toBe('Rex');
+    expect(res.pet?.name).toBe('Rex');
     expect(mocks.clientMock.query).not.toHaveBeenCalled();
   });
 
@@ -1037,7 +1037,7 @@ describe('updatePet', () => {
       archived: true,
     } as never);
 
-    expect(res.pet.archived).toBe(true);
+    expect(res.pet?.archived).toBe(true);
     expect(updateSql).toMatch(/archived = \$1/);
   });
 
@@ -1064,7 +1064,7 @@ describe('updatePet', () => {
       featured: true,
     } as never);
 
-    expect(res.pet.featured).toBe(true);
+    expect(res.pet?.featured).toBe(true);
     expect(updateSql).toMatch(/featured = \$1/);
   });
 
@@ -1082,7 +1082,7 @@ describe('updatePet', () => {
     mocks.natsMock.publish.mockImplementation(() => order.push('NATS_PUBLISH'));
 
     const res = await updatePet(mocks.deps, STAFF, { petId: 'pet-1', name: 'Rexy' } as never);
-    expect(res.pet.name).toBe('Rexy');
+    expect(res.pet?.name).toBe('Rexy');
     expect(order).toEqual(['BEGIN', 'UPDATE', 'COMMIT', 'NATS_PUBLISH']);
     // calls[0] is the transaction's own BEGIN; the UPDATE is calls[1].
     const updateSql = mocks.clientMock.query.mock.calls[1][0] as string;
@@ -1161,7 +1161,7 @@ describe('updatePet', () => {
     expect(order).toEqual(['BEGIN', 'UPDATE', 'COMMIT', 'NATS_PUBLISH']);
     const updateSql = mocks.clientMock.query.mock.calls[1][0] as string;
     expect(updateSql).toMatch(/extra_json = \$1::jsonb/);
-    const extra = JSON.parse(res.pet.extraJson) as Record<string, unknown>;
+    const extra = JSON.parse(res.pet?.extraJson ?? '') as Record<string, unknown>;
     expect(extra.image_urls).toEqual(['/a.jpg']);
   });
 
@@ -1190,7 +1190,7 @@ describe('updatePet', () => {
         breedName: 'Domestic Shorthair',
       } as never);
 
-      expect(res.pet.breedId).toBe(BREED_ID);
+      expect(res.pet?.breedId).toBe(BREED_ID);
       expect(mocks.poolMock.query).toHaveBeenLastCalledWith(
         expect.stringContaining('pets.breeds'),
         ['cat', 'Domestic Shorthair']
@@ -1245,7 +1245,7 @@ describe('updatePet', () => {
           breedName: 'lab CROSS',
         } as never);
 
-        expect(res.pet.name).toBe('Rexy');
+        expect(res.pet?.name).toBe('Rexy');
         const updateSql = mocks.clientMock.query.mock.calls[1][0] as string;
         const setClause = updateSql.slice(0, updateSql.indexOf('WHERE'));
         expect(setClause).not.toMatch(/breed_id/);
@@ -1392,9 +1392,9 @@ describe('updatePetStatus', () => {
       reason: 'application opened',
     } as never);
 
-    expect(res.pet.status).toBe(PetsV1.PetStatus.PET_STATUS_PENDING);
-    expect(res.transition.fromStatus).toBe(PetsV1.PetStatus.PET_STATUS_AVAILABLE);
-    expect(res.transition.toStatus).toBe(PetsV1.PetStatus.PET_STATUS_PENDING);
+    expect(res.pet?.status).toBe(PetsV1.PetStatus.PET_STATUS_PENDING);
+    expect(res.transition?.fromStatus).toBe(PetsV1.PetStatus.PET_STATUS_AVAILABLE);
+    expect(res.transition?.toStatus).toBe(PetsV1.PetStatus.PET_STATUS_PENDING);
     // BEGIN → SELECT … FOR UPDATE (lock + re-validate) → INSERT transition →
     // UPDATE pet → COMMIT → publish
     // statusChanged + actionTaken, both after COMMIT
@@ -2213,7 +2213,9 @@ describe('getPetFacets', () => {
       roles: ['adopter'],
       permissions: [],
     };
-    await expect(getPetFacets(mocks.deps, noPerms, {})).rejects.toMatchObject({
+    await expect(
+      getPetFacets(mocks.deps, noPerms, PetsV1.GetPetFacetsRequest.fromPartial({}))
+    ).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
     });
     expect(mocks.poolMock.query).not.toHaveBeenCalled();
@@ -2225,7 +2227,9 @@ describe('getPetFacets', () => {
   // getPetStats' stricter rule.
   it('allows an adopter with no rescue scope (mirrors listPets, not getPetStats)', async () => {
     emptyFacetRows();
-    await expect(getPetFacets(mocks.deps, ADOPTER, {})).resolves.toEqual({
+    await expect(
+      getPetFacets(mocks.deps, ADOPTER, PetsV1.GetPetFacetsRequest.fromPartial({}))
+    ).resolves.toEqual({
       facets: [
         { name: 'status', values: [] },
         { name: 'type', values: [] },
@@ -2236,7 +2240,7 @@ describe('getPetFacets', () => {
 
   it('scopes a public/adopter caller to visible statuses + non-archived pets', async () => {
     emptyFacetRows();
-    await getPetFacets(mocks.deps, ADOPTER, {});
+    await getPetFacets(mocks.deps, ADOPTER, PetsV1.GetPetFacetsRequest.fromPartial({}));
 
     const [statusSql, statusParams] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
     expect(statusSql).toMatch(/status NOT IN/);
@@ -2246,7 +2250,11 @@ describe('getPetFacets', () => {
 
   it('pins rescue staff to their own rescue, ignoring rescue_id_filter', async () => {
     emptyFacetRows();
-    await getPetFacets(mocks.deps, STAFF, { rescueIdFilter: 'rsc-other' });
+    await getPetFacets(
+      mocks.deps,
+      STAFF,
+      PetsV1.GetPetFacetsRequest.fromPartial({ rescueIdFilter: 'rsc-other' })
+    );
 
     for (const call of mocks.poolMock.query.mock.calls) {
       const [, params] = call as [string, unknown[]];
@@ -2261,7 +2269,11 @@ describe('getPetFacets', () => {
       permissions: ['pets.read' as Permission, 'pets.read:any' as Permission],
     };
     emptyFacetRows();
-    await getPetFacets(mocks.deps, adminAny, { rescueIdFilter: 'rsc-target' });
+    await getPetFacets(
+      mocks.deps,
+      adminAny,
+      PetsV1.GetPetFacetsRequest.fromPartial({ rescueIdFilter: 'rsc-target' })
+    );
 
     for (const call of mocks.poolMock.query.mock.calls) {
       const [, params] = call as [string, unknown[]];
@@ -2303,7 +2315,7 @@ describe('getPetFacets', () => {
       .mockResolvedValueOnce({ rows: [{ value: 'dog', count: '8' }] })
       .mockResolvedValueOnce({ rows: [{ value: 'medium', count: '5' }] });
 
-    const res = await getPetFacets(mocks.deps, STAFF, {});
+    const res = await getPetFacets(mocks.deps, STAFF, PetsV1.GetPetFacetsRequest.fromPartial({}));
 
     expect(res.facets).toEqual([
       {

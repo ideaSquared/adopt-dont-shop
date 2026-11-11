@@ -284,11 +284,11 @@ describe.skipIf(!process.env.DATABASE_URL)(
           secondaryBreedName: 'Poodle',
         });
 
-        expect(await storedBreeds(pool, pet.petId)).toEqual({
+        expect(await storedBreeds(pool, pet?.petId ?? '')).toEqual({
           breed_id: breeds.labrador,
           secondary_breed_id: breeds.poodle,
         });
-        expect(pet.breedId).toBe(breeds.labrador);
+        expect(pet?.breedId).toBe(breeds.labrador);
       });
     });
 
@@ -308,7 +308,7 @@ describe.skipIf(!process.env.DATABASE_URL)(
           breedName: 'Domestic Shorthair',
         });
 
-        expect((await storedBreeds(pool, pet.petId))?.breed_id).toBe(breeds.catShorthair);
+        expect((await storedBreeds(pool, pet?.petId ?? ''))?.breed_id).toBe(breeds.catShorthair);
       });
     });
 
@@ -343,11 +343,11 @@ describe.skipIf(!process.env.DATABASE_URL)(
         };
         const breeds = await seedBreeds(pool);
         const { pet } = await createPet(deps, STAFF, BASE_CREATE);
-        expect((await storedBreeds(pool, pet.petId))?.breed_id).toBeNull();
+        expect((await storedBreeds(pool, pet?.petId ?? ''))?.breed_id).toBeNull();
 
-        await updatePet(deps, STAFF, { petId: pet.petId, breedName: 'Poodle' });
+        await updatePet(deps, STAFF, { petId: pet?.petId ?? '', breedName: 'Poodle' });
 
-        expect((await storedBreeds(pool, pet.petId))?.breed_id).toBe(breeds.poodle);
+        expect((await storedBreeds(pool, pet?.petId ?? ''))?.breed_id).toBe(breeds.poodle);
       });
     });
   }

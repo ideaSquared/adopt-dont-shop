@@ -156,7 +156,8 @@ describe('pets migrations', () => {
       const sql = vi.fn();
       const pgm = { sql } as unknown as MigrationBuilder;
       const mod = await import('./011_backfill_images_into_image_urls.js');
-      await mod.down(pgm);
+      // `down` declares no parameters; pass the builder anyway to prove it is never touched.
+      await (mod.down as (pgm: MigrationBuilder) => Promise<void>)(pgm);
       expect(sql).not.toHaveBeenCalled();
     });
   });
@@ -195,7 +196,8 @@ describe('pets migrations', () => {
       const sql = vi.fn();
       const pgm = { sql } as unknown as MigrationBuilder;
       const mod = await import('./013_seed_breed_reference_data.js');
-      await mod.down(pgm);
+      // `down` declares no parameters; pass the builder anyway to prove it is never touched.
+      await (mod.down as (pgm: MigrationBuilder) => Promise<void>)(pgm);
       const down = String(sql.mock.calls[0][0]);
       expect(down).toMatch(/DELETE FROM breeds/);
       expect(down).toMatch(/NOT EXISTS/);
