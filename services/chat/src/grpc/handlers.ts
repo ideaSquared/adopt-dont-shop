@@ -517,9 +517,11 @@ export function makeOpenChat(
 }
 
 // Order-independent identity of a two-party chat, so an adopter-initiated and
-// a staff-initiated open for the same application collide on one key.
+// a staff-initiated open for the same application collide on one key. Ids are
+// lower-cased first: they are uuids in the database, which compare
+// case-insensitively, so differently cased requests name the same participant.
 const participantPairKey = (userA: string, userB: string): string =>
-  [userA, userB].sort().join(':');
+  [userA.toLowerCase(), userB.toLowerCase()].sort().join(':');
 
 async function findApplicationChat(
   deps: HandlerDeps,

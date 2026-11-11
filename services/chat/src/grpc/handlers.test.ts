@@ -325,6 +325,35 @@ describe('openChat', () => {
     expect(keyOf(a)).toBe(keyOf(s));
   });
 
+  // User ids are uuids in the database, which compare case-insensitively, so two
+  // opens naming the same person in different letter case are the same pair. Only
+  // a super_admin can name any user (everyone else is matched exactly against the
+  // application's adopter or rescue staff), so that is the path that can differ.
+  it('builds the pair key from lower-cased ids so differently cased requests collide', async () => {
+    const root: Principal = {
+      userId: 'usr-root' as UserId,
+      roles: ['super_admin'],
+      permissions: [],
+    };
+    const openAs = async (otherUserId: string) => {
+      const m = makeMocks();
+      m.poolScript.push({ rows: [] });
+      m.clientScript.push({ rows: [chatRowFixture({ chat_id: 'c', rescue_id: APP_RESCUE_ID })] });
+      m.clientScript.push({ rows: [] });
+      await openChat(m.deps, root, { ...BASE_OPEN, otherUserId });
+      const insert = (m.clientMock.query.mock.calls as Array<[string, unknown[]]>).find(([sql]) =>
+        sql.includes('INSERT INTO chats ')
+      );
+      return insert?.[1].find(p => typeof p === 'string' && p.includes(':'));
+    };
+
+    const lower = await openAs('usr-other');
+    const upper = await openAs('USR-Other');
+
+    expect(lower).toBe('usr-other:usr-root');
+    expect(upper).toBe(lower);
+  });
+
   const insertChatParams = (mocks: ReturnType<typeof makeMocks>): unknown[] => {
     const call = (mocks.clientMock.query.mock.calls as Array<[string, unknown[]]>).find(([sql]) =>
       sql.includes('INSERT INTO chats')
