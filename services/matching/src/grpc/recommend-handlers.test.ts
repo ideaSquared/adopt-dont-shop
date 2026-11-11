@@ -10,6 +10,7 @@ import {
 
 import type { HandlerDeps } from './adapter.js';
 import type { PetsClient } from './pets-client.js';
+import type { RescueLocationClient } from './rescue-client.js';
 import { makeRecommend, makeSearchPets } from './recommend-handlers.js';
 
 function makePrincipal(
@@ -84,7 +85,7 @@ describe('makeRecommend distance', () => {
 
   const recommendWith = async (
     filtersJsonOverride: string | undefined,
-    rescueLocations: { getRescueLocations: ReturnType<typeof vi.fn> } | undefined
+    rescueLocations: Pick<RescueLocationClient, 'getRescueLocations'> | undefined
   ) => {
     const listPets = vi
       .fn()
@@ -104,7 +105,9 @@ describe('makeRecommend distance', () => {
   };
 
   it('adds miles from the caller to each pet whose rescue has coordinates', async () => {
-    const getRescueLocations = vi.fn().mockResolvedValue(new Map([['rsc-1', MANCHESTER]]));
+    const getRescueLocations = vi
+      .fn<RescueLocationClient['getRescueLocations']>()
+      .mockResolvedValue(new Map([['rsc-1', MANCHESTER]]));
 
     const candidates = await recommendWith(LONDON_FILTERS, { getRescueLocations });
 
@@ -131,7 +134,9 @@ describe('makeRecommend distance', () => {
     const getAdoptionStats = vi
       .fn()
       .mockResolvedValue({ stats: [{ cohort: dog, sampleCount: 9, medianDays: 5 }] });
-    const getRescueLocations = vi.fn().mockResolvedValue(new Map([['rsc-1', MANCHESTER]]));
+    const getRescueLocations = vi
+      .fn<RescueLocationClient['getRescueLocations']>()
+      .mockResolvedValue(new Map([['rsc-1', MANCHESTER]]));
     const recommend = makeRecommend(makePetsClient(listPets, getAdoptionStats), {
       getRescueLocations,
     });
@@ -168,7 +173,9 @@ describe('makeRecommend distance', () => {
         .fn()
         .mockResolvedValue({ stats: [{ cohort: dog, sampleCount: 9, medianDays: 5 }] });
       const getViewsToday = vi.fn().mockResolvedValue({ counts: [{ petId: 'p-1', views: 12 }] });
-      const getRescueLocations = vi.fn().mockResolvedValue(new Map([['rsc-1', MANCHESTER]]));
+      const getRescueLocations = vi
+        .fn<RescueLocationClient['getRescueLocations']>()
+        .mockResolvedValue(new Map([['rsc-1', MANCHESTER]]));
       const recommend = makeRecommend(makePetsClient(listPets, getAdoptionStats, getViewsToday), {
         getRescueLocations,
       });
@@ -190,7 +197,7 @@ describe('makeRecommend distance', () => {
   });
 
   it('skips the lookup when the caller sent no usable coordinates', async () => {
-    const getRescueLocations = vi.fn();
+    const getRescueLocations = vi.fn<RescueLocationClient['getRescueLocations']>();
 
     const none = await recommendWith(undefined, { getRescueLocations });
     const bad = await recommendWith(JSON.stringify({ latitude: 'x', longitude: 200 }), {
@@ -203,7 +210,9 @@ describe('makeRecommend distance', () => {
   });
 
   it('still returns the deck, without distances, when the rescue lookup fails', async () => {
-    const getRescueLocations = vi.fn().mockRejectedValue(new Error('rescue down'));
+    const getRescueLocations = vi
+      .fn<RescueLocationClient['getRescueLocations']>()
+      .mockRejectedValue(new Error('rescue down'));
 
     const candidates = await recommendWith(LONDON_FILTERS, { getRescueLocations });
 
@@ -429,10 +438,13 @@ describe('makeRecommend', () => {
       });
 
       it('passes a short no-retry budget to the lookup', async () => {
-        const getAdoptionStats = vi.fn(async (req: { cohorts: unknown[] }) => allFast(req));
+        const getAdoptionStats = vi.fn(
+          async (req: { cohorts: unknown[] }, _metadata?: unknown, _budget?: unknown) =>
+            allFast(req)
+        );
         await recommendPage(hundredPets().slice(0, 3), getAdoptionStats);
 
-        expect(getAdoptionStats.mock.calls[0][2]).toEqual({ deadlineMs: 750, maxRetries: 0 });
+        expect(getAdoptionStats.mock.calls[0]?.[2]).toEqual({ deadlineMs: 750, maxRetries: 0 });
       });
     });
 

@@ -116,7 +116,7 @@ describe('startSession', () => {
     ]);
     const res = await startSession(deps, makePrincipal(), {} as StartSessionRequest);
     expect(res.created).toBe(false);
-    expect(res.session.sessionId).toBe('sess-1');
+    expect(res.session?.sessionId).toBe('sess-1');
     // No publish on idempotent path.
     expect((deps as { _publish?: ReturnType<typeof vi.fn> })._publish?.mock.calls.length ?? 0).toBe(
       0
@@ -134,7 +134,7 @@ describe('startSession', () => {
       filtersJson: '{"species":"dog"}',
     } as StartSessionRequest);
     expect(res.created).toBe(true);
-    expect(res.session.sessionId).toBe('sess-new');
+    expect(res.session?.sessionId).toBe('sess-new');
     const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
     expect(publish).toHaveBeenCalledTimes(1);
     expect(publish.mock.calls[0][0]).toMatchObject({
@@ -231,7 +231,7 @@ describe('endSession', () => {
   it('returns existing closed session without firing event (idempotent)', async () => {
     const { deps } = makeDeps([{ rows: [sessionRow({ is_active: false })] }]);
     const res = await endSession(deps, makePrincipal(), { sessionId: 'sess-1' });
-    expect(res.session.isActive).toBe(false);
+    expect(res.session?.isActive).toBe(false);
     const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
     expect(publish.mock.calls.length).toBe(0);
   });
@@ -268,7 +268,7 @@ describe('endSession', () => {
       makePrincipal({ userId: 'admin-1', roles: ['super_admin'] }),
       { sessionId: 'sess-1' }
     );
-    expect(res.session.isActive).toBe(false);
+    expect(res.session?.isActive).toBe(false);
   });
 
   it('closes an active session and publishes matching.sessionEnded', async () => {
@@ -279,8 +279,8 @@ describe('endSession', () => {
       }, // UPDATE RETURNING
     ]);
     const res = await endSession(deps, makePrincipal(), { sessionId: 'sess-1' });
-    expect(res.session.isActive).toBe(false);
-    expect(res.session.endTime).toBe('2026-06-01T13:00:00.000Z');
+    expect(res.session?.isActive).toBe(false);
+    expect(res.session?.endTime).toBe('2026-06-01T13:00:00.000Z');
     const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
     expect(publish.mock.calls[0][0]).toMatchObject({
       type: 'matching.sessionEnded',
@@ -391,9 +391,9 @@ describe('recordSwipe', () => {
       petId: 'pet-1',
       action: MatchingV1.SwipeAction.SWIPE_ACTION_LIKE,
     });
-    expect(res.action.action).toBe(MatchingV1.SwipeAction.SWIPE_ACTION_LIKE);
-    expect(res.session.totalSwipes).toBe(1);
-    expect(res.session.likes).toBe(1);
+    expect(res.action?.action).toBe(MatchingV1.SwipeAction.SWIPE_ACTION_LIKE);
+    expect(res.session?.totalSwipes).toBe(1);
+    expect(res.session?.likes).toBe(1);
     // UPDATE SQL should bump the likes column.
     const updateSql = query.mock.calls[2][0] as string;
     expect(updateSql).toContain('likes = likes + 1');
