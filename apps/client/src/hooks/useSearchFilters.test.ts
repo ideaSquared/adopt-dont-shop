@@ -138,4 +138,39 @@ describe('useSearchFilters inside a router', () => {
     expect(result.current.location.pathname).toBe('/favorites');
     expect(result.current.location.search).toBe('');
   });
+
+  it('keeps the history stack flat: Back leaves the page after mount and filter changes', () => {
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(
+        MemoryRouter,
+        { initialEntries: ['/home', '/search?type=dog'], initialIndex: 1 },
+        children
+      );
+
+    const { result } = renderHook(
+      () => {
+        const [searchParams, setSearchParams] = useSearchParams();
+        const search = useSearchFilters(searchParams, setSearchParams);
+        return { search, location: useLocation(), navigate: useNavigate() };
+      },
+      { wrapper }
+    );
+
+    act(() => {
+      result.current.search.handleFilterChange('breed', 'collie');
+    });
+    act(() => {
+      result.current.search.handleSortChange('name:asc');
+    });
+    // Deep link and edits are still reflected in the URL.
+    expect(result.current.location.search).toContain('type=dog');
+    expect(result.current.location.search).toContain('breed=collie');
+    expect(result.current.location.search).toContain('sortBy=name');
+
+    // One Back press must leave the search page, not step through filter states.
+    act(() => {
+      result.current.navigate(-1);
+    });
+    expect(result.current.location.pathname).toBe('/home');
+  });
 });
