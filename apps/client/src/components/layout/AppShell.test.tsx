@@ -85,6 +85,10 @@ describe('AppShell swipe onboarding', () => {
     '/help/an-article',
     '/about',
     '/contact',
+    // The router matches case-insensitively and with a trailing slash.
+    '/contact/',
+    '/About',
+    '/Help/an-article',
   ])('keeps the swipe onboarding off %s', path => {
     renderShell(path);
     expect(screen.queryByTestId('swipe-onboarding')).not.toBeInTheDocument();

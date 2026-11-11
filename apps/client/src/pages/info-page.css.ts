@@ -150,7 +150,8 @@ export const primaryLinkButton = style([
     background: vars.colors.primary,
     color: vars.text.inverse,
     selectors: {
-      '&:hover': { background: vars.colors.primaryHover },
+      // Restate the colour: the global `a:hover` rule would otherwise recolour the label.
+      '&:hover': { background: vars.colors.primaryHover, color: vars.text.inverse },
     },
   },
 ]);
@@ -162,7 +163,7 @@ export const outlineLinkButton = style([
     borderColor: vars.border.color.strong,
     color: vars.text.primary,
     selectors: {
-      '&:hover': { borderColor: vars.colors.primary },
+      '&:hover': { borderColor: vars.colors.primary, color: vars.text.primary },
     },
   },
 ]);
