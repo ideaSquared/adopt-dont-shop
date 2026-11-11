@@ -69,7 +69,7 @@ function makeMocks() {
   // call should return. BEGIN / COMMIT / ROLLBACK pass through.
   const clientScript: Array<{ rows: unknown[] }> = [];
   const client = {
-    query: vi.fn(async (sql: string) => {
+    query: vi.fn(async (sql: string, _params?: unknown[]) => {
       const op = sql.trim().split(/\s+/)[0].toUpperCase();
       if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
         return { rows: [] };
@@ -361,11 +361,11 @@ describe('sendEmail', () => {
     expect(res.alreadyQueued).toBe(false);
     expect(realClientQueries(mocks)).toEqual(['INSERT', 'UPDATE']);
     // INSERT call params include the rendered subject + html.
-    const insertCall = (mocks.clientMock.query.mock.calls as Array<[string, unknown[]]>).find(
-      ([sql]) => sql.includes('INSERT INTO email_queue')
+    const insertCall = mocks.clientMock.query.mock.calls.find(([sql]) =>
+      sql.includes('INSERT INTO email_queue')
     );
     expect(insertCall).toBeDefined();
-    const params = insertCall![1];
+    const params = insertCall?.[1] ?? [];
     // From the insertEmail SQL: subject is param $10, html_content $11.
     expect(params[9]).toBe('Welcome Jane');
     expect(params[10]).toBe('<p>Hi Jane</p>');

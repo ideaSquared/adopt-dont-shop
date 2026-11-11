@@ -708,6 +708,7 @@ describe('registerSubscribers idempotency wiring', () => {
     });
     const petsClient = {
       listFavoriters: vi.fn(async () => ['usr-f1', 'usr-f2']),
+      listFavoritesForUser: vi.fn(async () => []),
       close: vi.fn(),
     };
 

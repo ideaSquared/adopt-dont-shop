@@ -78,7 +78,14 @@ describe('listEmailTemplates', () => {
   });
 
   it('rejects without email.templates.read', async () => {
-    await expect(listEmailTemplates(mocks.deps, NO_PERMS, {})).rejects.toMatchObject({
+    await expect(
+      listEmailTemplates(mocks.deps, NO_PERMS, {
+        typeFilter: NotificationsV1.EmailTemplateType.EMAIL_TEMPLATE_TYPE_UNSPECIFIED,
+        statusFilter: NotificationsV1.EmailTemplateStatus.EMAIL_TEMPLATE_STATUS_UNSPECIFIED,
+        page: 0,
+        limit: 0,
+      })
+    ).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
     });
   });

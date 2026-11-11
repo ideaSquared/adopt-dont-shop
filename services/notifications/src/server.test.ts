@@ -16,6 +16,21 @@ const baseConfig: NotificationsConfig = {
   port: 0,
   host: '127.0.0.1',
   environment: 'test',
+  grpcPort: 0,
+  databaseUrl: 'postgres://test',
+  schema: 'notifications',
+  natsUrl: 'nats://localhost:4222',
+  frontendUrl: 'http://localhost:3000',
+  rescueAppUrl: 'http://localhost:3002',
+  adminAppUrl: 'http://localhost:3001',
+  emailProvider: { kind: 'console' },
+  emailWorkerEnabled: false,
+  emailChannelEnabled: false,
+  defaultFromEmail: 'noreply@test.local',
+  defaultFromName: 'Test',
+  pushProvider: { kind: 'none' },
+  pushWorkerEnabled: false,
+  weeklyDigestEnabled: false,
 };
 
 describe('createServer — health endpoint', () => {
