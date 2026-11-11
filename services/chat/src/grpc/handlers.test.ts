@@ -66,14 +66,63 @@ const OTHER_RESCUE_STAFF_PRINCIPAL: Principal = {
 const RESCUE_STAFF_PRINCIPAL: Principal = {
   userId: 'usr-staff' as UserId,
   roles: ['rescue_staff'],
+  permissions: [
+    'chats.read' as Permission,
+    'chats.create' as Permission,
+    'chats.update' as Permission,
+  ],
+  rescueId: '00000000-0000-0000-0000-000000000000' as RescueId,
+};
+
+// Same role name and rescue, but its granular permissions were revoked
+// (a custom-permission rescue_staff): holds chats.read only.
+const RESTRICTED_RESCUE_STAFF_PRINCIPAL: Principal = {
+  userId: 'usr-restricted-staff' as UserId,
+  roles: ['rescue_staff'],
   permissions: ['chats.read' as Permission, 'chats.create' as Permission],
   rescueId: '00000000-0000-0000-0000-000000000000' as RescueId,
+};
+
+// A role that is not rescue_staff (support_agent held no chat privilege by name) granted chats.update.
+const CUSTOM_ROLE_PRINCIPAL: Principal = {
+  userId: 'usr-custom' as UserId,
+  roles: ['support_agent'],
+  permissions: ['chats.read' as Permission, 'chats.update' as Permission],
+  rescueId: '00000000-0000-0000-0000-000000000000' as RescueId,
+};
+
+// Holds chats.update but for a different rescue than the chat fixture.
+const OTHER_RESCUE_UPDATER_PRINCIPAL: Principal = {
+  userId: 'usr-other-updater' as UserId,
+  roles: ['rescue_staff'],
+  permissions: ['chats.read' as Permission, 'chats.update' as Permission],
+  rescueId: 'rsc-other' as RescueId,
 };
 
 const MODERATOR_PRINCIPAL: Principal = {
   userId: 'usr-moderator' as UserId,
   roles: ['moderator'],
+  permissions: ['chats.read' as Permission, 'chat.moderate:any' as Permission],
+};
+
+// A moderator-named role whose chat.moderate:any grant was removed.
+const STRIPPED_MODERATOR_PRINCIPAL: Principal = {
+  userId: 'usr-stripped-mod' as UserId,
+  roles: ['moderator'],
   permissions: ['chats.read' as Permission],
+};
+
+const SUPER_ADMIN_PRINCIPAL: Principal = {
+  userId: 'usr-super' as UserId,
+  roles: ['super_admin'],
+  permissions: [],
+};
+
+// A non-moderator/admin role granted platform-wide chat oversight via permission.
+const CUSTOM_PLATFORM_PRINCIPAL: Principal = {
+  userId: 'usr-custom-platform' as UserId,
+  roles: ['support_agent'],
+  permissions: ['chats.read' as Permission, 'chat.moderate:any' as Permission],
 };
 
 // --- Row fixtures ----------------------------------------------------
@@ -1734,6 +1783,75 @@ describe('deleteChat', () => {
     expect(envelope.payload.participantUserIds).toEqual(['usr-adopter', 'usr-rescue']);
   });
 
+  it('denies rescue_staff of the chat rescue who lacks chats.update (role name alone is not enough)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ ...chatRowFixture(), deleted_at: null }],
+    });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // not a participant
+    await expect(
+      deleteChat(mocks.deps, RESTRICTED_RESCUE_STAFF_PRINCIPAL, { chatId: 'chat-1' })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('tells a participant who lacks chats.update the real reason (PERMISSION_DENIED)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ ...chatRowFixture(), deleted_at: null }],
+    });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ ok: 1 }] }); // participant
+    await expect(
+      deleteChat(mocks.deps, RESTRICTED_RESCUE_STAFF_PRINCIPAL, { chatId: 'chat-1' })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+  });
+
+  it('allows a custom role (not named rescue_staff) holding chats.update in the chat rescue', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ ...chatRowFixture(), deleted_at: null }],
+    });
+    mocks.clientScript.push({ rows: [chatRowFixture()] });
+    mocks.clientScript.push({ rows: [{ participant_id: 'usr-adopter' }] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ participant_id: 'usr-adopter' }] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+
+    const res = await deleteChat(mocks.deps, CUSTOM_ROLE_PRINCIPAL, { chatId: 'chat-1' });
+    expect(res.chat?.chatId).toBe('chat-1');
+    expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
+  });
+
+  it('denies a chats.update holder from a different rescue (tenant scope still enforced)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ ...chatRowFixture(), deleted_at: null }],
+    });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // not a participant
+    await expect(
+      deleteChat(mocks.deps, OTHER_RESCUE_UPDATER_PRINCIPAL, { chatId: 'chat-1' })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('denies a moderator whose chat.moderate:any grant was removed', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ ...chatRowFixture(), deleted_at: null }],
+    });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await expect(
+      deleteChat(mocks.deps, STRIPPED_MODERATOR_PRINCIPAL, { chatId: 'chat-1' })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('allows super_admin without any explicit grant', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ ...chatRowFixture(), deleted_at: null }],
+    });
+    mocks.clientScript.push({ rows: [chatRowFixture()] });
+    mocks.clientScript.push({ rows: [{ participant_id: 'usr-adopter' }] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ participant_id: 'usr-adopter' }] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    const res = await deleteChat(mocks.deps, SUPER_ADMIN_PRINCIPAL, { chatId: 'chat-1' });
+    expect(res.chat?.chatId).toBe('chat-1');
+  });
+
   it('a moderator can soft-delete a chat they are not a participant of', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({
       rows: [{ ...chatRowFixture(), deleted_at: null }],
@@ -1799,6 +1917,67 @@ describe('updateChatStatus', () => {
       updateChatStatus(mocks.deps, ADOPTER_PRINCIPAL, { chatId: 'chat-1', status: LOCKED })
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
     expect(mocks.clientMock.query).not.toHaveBeenCalled();
+  });
+
+  it('denies rescue_staff of the chat rescue who lacks chats.update', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [chatRowFixture()] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ ok: 1 }] }); // participant
+    await expect(
+      updateChatStatus(mocks.deps, RESTRICTED_RESCUE_STAFF_PRINCIPAL, {
+        chatId: 'chat-1',
+        status: LOCKED,
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+  });
+
+  it('lets rescue staff holding chats.update lock a chat of their rescue', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [chatRowFixture({ status: 'active' })] });
+    mocks.clientScript.push({ rows: [chatRowFixture({ status: 'locked' })] });
+    mocks.clientScript.push({ rows: [{ participant_id: 'usr-adopter' }] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ participant_id: 'usr-adopter' }] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    const res = await updateChatStatus(mocks.deps, RESCUE_STAFF_PRINCIPAL, {
+      chatId: 'chat-1',
+      status: LOCKED,
+    });
+    expect(res.chat?.status).toBe(LOCKED);
+  });
+
+  it('lets a custom role (not named rescue_staff) holding chats.update lock a chat', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [chatRowFixture({ status: 'active' })] });
+    mocks.clientScript.push({ rows: [chatRowFixture({ status: 'locked' })] });
+    mocks.clientScript.push({ rows: [{ participant_id: 'usr-adopter' }] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ participant_id: 'usr-adopter' }] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    const res = await updateChatStatus(mocks.deps, CUSTOM_ROLE_PRINCIPAL, {
+      chatId: 'chat-1',
+      status: LOCKED,
+    });
+    expect(res.chat?.status).toBe(LOCKED);
+  });
+
+  it('denies a chats.update holder from a different rescue', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [chatRowFixture()] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // not a participant
+    await expect(
+      updateChatStatus(mocks.deps, OTHER_RESCUE_UPDATER_PRINCIPAL, {
+        chatId: 'chat-1',
+        status: LOCKED,
+      })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('denies a moderator whose chat.moderate:any grant was removed', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [chatRowFixture()] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await expect(
+      updateChatStatus(mocks.deps, STRIPPED_MODERATOR_PRINCIPAL, {
+        chatId: 'chat-1',
+        status: LOCKED,
+      })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
   it('is idempotent when already in the requested status (no write, no publish)', async () => {
@@ -1878,6 +2057,26 @@ describe('getChatStats', () => {
       code: 'PERMISSION_DENIED',
     });
     expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
+  it('denies rescue_staff (even of a rescue) without chat.moderate:any', async () => {
+    await expect(getChatStats(mocks.deps, RESCUE_STAFF_PRINCIPAL, {})).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('denies a moderator whose chat.moderate:any grant was removed', async () => {
+    await expect(getChatStats(mocks.deps, STRIPPED_MODERATOR_PRINCIPAL, {})).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('allows a custom role holding chat.moderate:any', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ total_chats: '1', active_chats: '1', total_messages: '2' }],
+    });
+    const res = await getChatStats(mocks.deps, CUSTOM_PLATFORM_PRINCIPAL, {});
+    expect(res.totalChats).toBe(1);
   });
 
   it('returns aggregate counts and the average for a moderator', async () => {

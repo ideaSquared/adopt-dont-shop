@@ -147,6 +147,7 @@ export type Permission =
   | 'auth.privacy-prefs.update'
   | 'auth.privacy-prefs.update:any'
   | 'chat.message.delete:any'
+  | 'chat.moderate:any'
   | 'users.profile.update'
   | 'reports.read'
   | 'reports.read:any'

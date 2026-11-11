@@ -191,6 +191,13 @@ export const AUTH_PRIVACY_PREFS_UPDATE_ANY = 'auth.privacy-prefs.update:any' sat
 export const CHAT_MESSAGE_DELETE_ANY = 'chat.message.delete:any' satisfies Permission;
 
 /**
+ * Platform-wide chat oversight. Lets a moderator/admin delete or change the
+ * status of ANY rescue's chat, read any chat and see the cross-chat stats.
+ * Rescue-scoped delete/lock is gated on CHAT_UPDATE + the chat's rescue.
+ */
+export const CHAT_MODERATE_ANY = 'chat.moderate:any' satisfies Permission;
+
+/**
  * Grouped permissions for common use cases
  */
 export const RescuePermissions = {
@@ -304,6 +311,7 @@ export const RescuePermissions = {
 
   // Chat Moderation
   CHAT_MESSAGE_DELETE_ANY,
+  CHAT_MODERATE_ANY,
 } as const;
 
 /**
