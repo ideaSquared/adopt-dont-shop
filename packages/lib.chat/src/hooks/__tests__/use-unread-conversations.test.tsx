@@ -94,7 +94,7 @@ describe('useUnreadConversations', () => {
       ],
     });
 
-    let latest: UseUnreadConversationsResult | null = null;
+    let latest = null as UseUnreadConversationsResult | null;
     renderWithChatContext(<Probe onState={(s) => (latest = s)} />, { value });
 
     expect(latest?.totalUnread).toBe(7);
@@ -106,7 +106,7 @@ describe('useUnreadConversations', () => {
     const other = buildConversation({ id: 'chat-2', unreadCount: 0 });
     const { chatService } = buildProviderHarness([active, other]);
 
-    let latest: UseUnreadConversationsResult | null = null;
+    let latest = null as UseUnreadConversationsResult | null;
 
     render(
       <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
@@ -134,7 +134,7 @@ describe('useUnreadConversations', () => {
     const { chatService } = buildProviderHarness([conv]);
     const markSpy = vi.spyOn(chatService, 'markAsRead').mockResolvedValue();
 
-    let latest: UseUnreadConversationsResult | null = null;
+    let latest = null as UseUnreadConversationsResult | null;
     let triggered = false;
     const Wrapper = () => {
       const state = useUnreadConversations();
@@ -164,7 +164,7 @@ describe('useUnreadConversations', () => {
     const { chatService } = buildProviderHarness([conv]);
     vi.spyOn(chatService, 'markAsRead').mockResolvedValue();
 
-    let latest: UseUnreadConversationsResult | null = null;
+    let latest = null as UseUnreadConversationsResult | null;
 
     render(
       <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>

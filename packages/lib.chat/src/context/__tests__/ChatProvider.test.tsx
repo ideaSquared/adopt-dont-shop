@@ -108,7 +108,7 @@ describe('ChatProvider', () => {
     const conversation = buildConversation({ id: 'chat-1', unreadCount: 0 });
     const { chatService } = buildHarness([conversation]);
 
-    let latest: Harness | null = null;
+    let latest = null as Harness | null;
     const onRender = (h: Harness) => {
       latest = h;
     };
@@ -171,7 +171,7 @@ describe('ChatProvider', () => {
     const conversation = buildConversation({ id: 'chat-1', unreadCount: 0 });
     const { chatService } = buildHarness([conversation]);
 
-    let latest: Harness | null = null;
+    let latest = null as Harness | null;
     const onRender = (h: Harness) => {
       latest = h;
     };
@@ -234,7 +234,7 @@ describe('ChatProvider', () => {
     const other = buildConversation({ id: 'chat-2' });
     const { chatService } = buildHarness([active, other]);
 
-    let latest: Harness | null = null;
+    let latest = null as Harness | null;
     const onRender = (h: Harness) => {
       latest = h;
     };
@@ -258,7 +258,7 @@ describe('ChatProvider', () => {
   it('registers typing users when ChatService emits a typing indicator', async () => {
     const { chatService } = buildHarness();
 
-    let latest: Harness | null = null;
+    let latest = null as Harness | null;
     render(
       <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
         <TestConsumer onRender={(h) => (latest = h)} />
@@ -312,7 +312,7 @@ describe('ChatProvider', () => {
       () => new Promise<void>(() => {})
     );
 
-    let latest: Harness | null = null;
+    let latest = null as Harness | null;
     const Caller = () => {
       const ctx = useChat();
       useEffect(() => {
@@ -361,7 +361,7 @@ describe('ChatProvider', () => {
     });
     vi.spyOn(chatService, 'markAsRead').mockResolvedValue();
 
-    let latest: Harness | null = null;
+    let latest = null as Harness | null;
     const Caller = () => {
       const ctx = useChat();
       useEffect(() => {
@@ -411,7 +411,7 @@ describe('ChatProvider', () => {
     });
     vi.spyOn(chatService, 'markAsRead').mockResolvedValue();
 
-    let latest: Harness | null = null;
+    let latest = null as Harness | null;
     const Caller = () => {
       const ctx = useChat();
       const sentOnce = useRef(false);
@@ -467,7 +467,7 @@ describe('ChatProvider', () => {
     });
     vi.spyOn(chatService, 'createConversation').mockResolvedValue(newConv);
 
-    let latest: Harness | null = null;
+    let latest = null as Harness | null;
     const Caller = () => {
       const ctx = useChat();
       const triggeredRef = useRef(false);
@@ -502,7 +502,7 @@ describe('ChatProvider', () => {
     const { chatService } = buildHarness([existing]);
     vi.spyOn(chatService, 'createConversation').mockResolvedValue(existing);
 
-    let latest: Harness | null = null;
+    let latest = null as Harness | null;
     const AskAgain = () => {
       const ctx = useChat();
       const triggeredRef = useRef(false);
@@ -541,7 +541,7 @@ describe('ChatProvider', () => {
     try {
       const { chatService } = buildHarness();
 
-      let latest: Harness | null = null;
+      let latest = null as Harness | null;
       render(
         <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
           <TestConsumer onRender={(h) => (latest = h)} />
@@ -593,7 +593,7 @@ describe('ChatProvider', () => {
       });
       vi.spyOn(chatService, 'markAsRead').mockResolvedValue();
 
-      let latest: Harness | null = null;
+      let latest = null as Harness | null;
       const Caller = () => {
         const ctx = useChat();
         const triggeredRef = useRef(false);
@@ -668,7 +668,7 @@ describe('ChatProvider', () => {
       });
       vi.spyOn(chatService, 'markAsRead').mockResolvedValue();
 
-      let latest: Harness | null = null;
+      let latest = null as Harness | null;
       let retryFn: ((messageId: string) => Promise<void>) | null = null;
       const Caller = () => {
         const ctx = useChat();
@@ -751,7 +751,7 @@ describe('ChatProvider', () => {
     });
     vi.spyOn(chatService, 'markAsRead').mockResolvedValue();
 
-    let latest: Harness | null = null;
+    let latest = null as Harness | null;
     const Caller = () => {
       const ctx = useChat();
       const triggeredRef = useRef(false);
@@ -830,7 +830,7 @@ describe('ChatProvider', () => {
       });
     vi.spyOn(chatService, 'markAsRead').mockResolvedValue();
 
-    let latest: Harness | null = null;
+    let latest = null as Harness | null;
     const Caller = () => {
       const ctx = useChat();
       useEffect(() => {
@@ -871,7 +871,7 @@ describe('ChatProvider', () => {
         .spyOn(chatService, 'updateConversationStatus')
         .mockResolvedValue({ ...conv, status: 'archived' });
 
-      let ctxRef: ReturnType<typeof useChat> | null = null;
+      let ctxRef = null as ReturnType<typeof useChat> | null;
       const Capture = () => {
         ctxRef = useChat();
         return null;
@@ -898,7 +898,7 @@ describe('ChatProvider', () => {
       const { chatService } = buildHarness([conv]);
       vi.spyOn(chatService, 'updateConversationStatus').mockRejectedValue(new Error('nope'));
 
-      let ctxRef: ReturnType<typeof useChat> | null = null;
+      let ctxRef = null as ReturnType<typeof useChat> | null;
       const Capture = () => {
         ctxRef = useChat();
         return null;
@@ -925,7 +925,7 @@ describe('ChatProvider', () => {
       const conv = buildConversation({ id: 'chat-1', status: 'archived' });
       const { chatService } = buildHarness([conv]);
 
-      let ctxRef: ReturnType<typeof useChat> | null = null;
+      let ctxRef = null as ReturnType<typeof useChat> | null;
       const Capture = () => {
         ctxRef = useChat();
         return null;
@@ -956,7 +956,7 @@ describe('ChatProvider', () => {
       const conv = buildConversation({ id: 'chat-1', status: 'archived' });
       const { chatService } = buildHarness([conv]);
 
-      let ctxRef: ReturnType<typeof useChat> | null = null;
+      let ctxRef = null as ReturnType<typeof useChat> | null;
       const Capture = () => {
         ctxRef = useChat();
         return null;
@@ -1006,17 +1006,7 @@ describe('ChatProvider', () => {
       vi.spyOn(chatService, 'markAsRead').mockResolvedValue();
       vi.spyOn(chatService, 'addReaction').mockRejectedValue(new Error('server error'));
 
-      let ctxRef: ReturnType<typeof useChat> | null = null;
-      const Capture = () => {
-        ctxRef = useChat();
-        useEffect(() => {
-          if (ctx.conversations.length > 0 && ctx.activeConversation === null) {
-            ctx.setActiveConversation(ctx.conversations[0]);
-          }
-        }, [ctx]);
-        return null;
-      };
-      // Need ctx reference inside Capture
+      let ctxRef = null as ReturnType<typeof useChat> | null;
       const CaptureWithCtx = () => {
         const ctx = useChat();
         ctxRef = ctx;
@@ -1061,7 +1051,7 @@ describe('ChatProvider', () => {
       });
       vi.spyOn(chatService, 'markAsRead').mockResolvedValue();
 
-      let ctxRef: ReturnType<typeof useChat> | null = null;
+      let ctxRef = null as ReturnType<typeof useChat> | null;
       const OpenFirstChat = () => {
         const ctx = useChat();
         ctxRef = ctx;
@@ -1169,7 +1159,7 @@ describe('ChatProvider', () => {
     // These two leave the chat closed: opening it clears the count itself.
     const renderWithClosedChat = async (conversation: Conversation) => {
       const { chatService } = buildHarness([conversation]);
-      let latest: Harness | null = null;
+      let latest = null as Harness | null;
       render(
         <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
           <TestConsumer onRender={(h) => (latest = h)} />
