@@ -145,6 +145,7 @@ async function provideRoleAssigned(): Promise<unknown> {
   const { deps, nats } = makeDeps([
     [{ user_id: 'usr-001' }], // target user exists
     [{ role_id: 'role-1' }], // role is provisioned
+    [], // the inline outbox DELETE after the event is published (it runs on the pool)
     [{ user_type: 'adopter' }], // post-assignment principal load
     [{ name: 'rescue_staff' }],
     [],
