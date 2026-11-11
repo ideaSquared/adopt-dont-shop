@@ -76,9 +76,9 @@ const SECURITY_READER: Principal = {
 // --- Mocks ------------------------------------------------------------
 
 function makeMocks() {
-  const clientScript: Array<{ rows: unknown[] }> = [];
+  const clientScript: Array<{ rows: unknown[]; rowCount?: number }> = [];
   const client = {
-    query: vi.fn(async (sql: string) => {
+    query: vi.fn(async (sql: string, _params?: unknown[]) => {
       const op = sql.trim().split(/\s+/)[0].toUpperCase();
       if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
         return { rows: [] };
@@ -111,6 +111,7 @@ function makeMocks() {
     nats: nats as unknown as NatsConnection,
     passwordHasher: { hash: vi.fn(), verify: vi.fn() } as unknown as HandlerDeps['passwordHasher'],
     tokenIssuer: {} as unknown as HandlerDeps['tokenIssuer'],
+    encryptionKey: 'a'.repeat(64),
   };
   return {
     deps,
@@ -171,7 +172,9 @@ describe('searchUsers', () => {
   });
 
   it('rejects principals without admin.users.search', async () => {
-    await expect(searchUsers(mocks.deps, NO_PERMS, {})).rejects.toMatchObject({
+    await expect(
+      searchUsers(mocks.deps, NO_PERMS, AuthV1.SearchUsersRequest.fromPartial({}))
+    ).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
     });
   });
@@ -182,7 +185,11 @@ describe('searchUsers', () => {
       rows: [userRow(), userRow({ user_id: 'usr-2' })],
     });
 
-    const res = await searchUsers(mocks.deps, ADMIN, { page: 2, limit: 20 });
+    const res = await searchUsers(
+      mocks.deps,
+      ADMIN,
+      AuthV1.SearchUsersRequest.fromPartial({ page: 2, limit: 20 })
+    );
     expect(res.total).toBe(42);
     expect(res.page).toBe(2);
     expect(res.totalPages).toBe(3);
@@ -194,12 +201,16 @@ describe('searchUsers', () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ total: '0' }] });
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
 
-    await searchUsers(mocks.deps, ADMIN, {
-      search: '50%_off',
-      statusFilter: AuthV1.UserStatus.USER_STATUS_ACTIVE,
-      userTypeFilter: AuthV1.UserRole.USER_ROLE_RESCUE_STAFF,
-      emailVerified: true,
-    });
+    await searchUsers(
+      mocks.deps,
+      ADMIN,
+      AuthV1.SearchUsersRequest.fromPartial({
+        search: '50%_off',
+        statusFilter: AuthV1.UserStatus.USER_STATUS_ACTIVE,
+        userTypeFilter: AuthV1.UserRole.USER_ROLE_RESCUE_STAFF,
+        emailVerified: true,
+      })
+    );
 
     const countCall = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
     expect(countCall[0]).toContain('status = $1');
@@ -214,7 +225,7 @@ describe('searchUsers', () => {
   it('clamps oversized limit to 100', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ total: '0' }] });
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
-    await searchUsers(mocks.deps, ADMIN, { limit: 999 });
+    await searchUsers(mocks.deps, ADMIN, AuthV1.SearchUsersRequest.fromPartial({ limit: 999 }));
     const rowsCall = mocks.poolMock.query.mock.calls[1] as [string, unknown[]];
     const params = rowsCall[1] as unknown[];
     // Last two params are limit + offset.
@@ -274,7 +285,13 @@ describe('adminUpdateUser', () => {
   });
 
   it('rejects without admin.users.update', async () => {
-    await expect(adminUpdateUser(mocks.deps, NO_PERMS, { userId: 'usr-1' })).rejects.toMatchObject({
+    await expect(
+      adminUpdateUser(
+        mocks.deps,
+        NO_PERMS,
+        AuthV1.AdminUpdateUserRequest.fromPartial({ userId: 'usr-1' })
+      )
+    ).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
     });
   });
@@ -284,10 +301,14 @@ describe('adminUpdateUser', () => {
     mocks.clientScript.push({ rows: [BEFORE_ACTIVE_ADOPTER] }); // before-state
     mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });
 
-    const res = await adminUpdateUser(mocks.deps, ADMIN, {
-      userId: 'usr-1',
-      status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
-    });
+    const res = await adminUpdateUser(
+      mocks.deps,
+      ADMIN,
+      AuthV1.AdminUpdateUserRequest.fromPartial({
+        userId: 'usr-1',
+        status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+      })
+    );
 
     expect(res.user?.status).toBe(AuthV1.UserStatus.USER_STATUS_SUSPENDED);
     const updateCall = (mocks.clientMock.query.mock.calls as Array<[string, unknown[]]>).find(
@@ -305,7 +326,11 @@ describe('adminUpdateUser', () => {
     mocks.clientScript.push({ rows: [BEFORE_ACTIVE_ADOPTER] }); // before-state
     mocks.clientScript.push({ rows: [userRow({ first_name: 'Sam' })] });
 
-    await adminUpdateUser(mocks.deps, ADMIN, { userId: 'usr-1', firstName: 'Sam' });
+    await adminUpdateUser(
+      mocks.deps,
+      ADMIN,
+      AuthV1.AdminUpdateUserRequest.fromPartial({ userId: 'usr-1', firstName: 'Sam' })
+    );
 
     const subjects = mocks.natsMock.publish.mock.calls.map(c => c[0]);
     expect(subjects).toContain('auth.userProfileChanged');
@@ -320,10 +345,14 @@ describe('adminUpdateUser', () => {
     mocks.clientScript.push({ rows: [BEFORE_ACTIVE_ADOPTER] });
     mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });
 
-    await adminUpdateUser(mocks.deps, ADMIN, {
-      userId: 'usr-1',
-      status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
-    });
+    await adminUpdateUser(
+      mocks.deps,
+      ADMIN,
+      AuthV1.AdminUpdateUserRequest.fromPartial({
+        userId: 'usr-1',
+        status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+      })
+    );
 
     const subjects = mocks.natsMock.publish.mock.calls.map(c => c[0]);
     expect(subjects).not.toContain('auth.userProfileChanged');
@@ -331,44 +360,64 @@ describe('adminUpdateUser', () => {
 
   it('no-op update returns the current row without writing', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRow()] }); // adminGetUser fallback
-    const res = await adminUpdateUser(mocks.deps, ADMIN, { userId: 'usr-1' });
+    const res = await adminUpdateUser(
+      mocks.deps,
+      ADMIN,
+      AuthV1.AdminUpdateUserRequest.fromPartial({ userId: 'usr-1' })
+    );
     expect(res.user?.userId).toBe('usr-1');
     expect(mocks.clientMock.query).not.toHaveBeenCalled();
   });
 
   it('blocks a plain admin from elevating another user to admin', async () => {
     await expect(
-      adminUpdateUser(mocks.deps, ADMIN, {
-        userId: 'usr-other',
-        userType: AuthV1.UserRole.USER_ROLE_ADMIN,
-      })
+      adminUpdateUser(
+        mocks.deps,
+        ADMIN,
+        AuthV1.AdminUpdateUserRequest.fromPartial({
+          userId: 'usr-other',
+          userType: AuthV1.UserRole.USER_ROLE_ADMIN,
+        })
+      )
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   });
 
   it('blocks a plain admin from elevating another user to super_admin', async () => {
     await expect(
-      adminUpdateUser(mocks.deps, ADMIN, {
-        userId: 'usr-other',
-        userType: AuthV1.UserRole.USER_ROLE_SUPER_ADMIN,
-      })
+      adminUpdateUser(
+        mocks.deps,
+        ADMIN,
+        AuthV1.AdminUpdateUserRequest.fromPartial({
+          userId: 'usr-other',
+          userType: AuthV1.UserRole.USER_ROLE_SUPER_ADMIN,
+        })
+      )
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   });
 
   it('blocks a plain admin from elevating another user to moderator', async () => {
     await expect(
-      adminUpdateUser(mocks.deps, ADMIN, {
-        userId: 'usr-other',
-        userType: AuthV1.UserRole.USER_ROLE_MODERATOR,
-      })
+      adminUpdateUser(
+        mocks.deps,
+        ADMIN,
+        AuthV1.AdminUpdateUserRequest.fromPartial({
+          userId: 'usr-other',
+          userType: AuthV1.UserRole.USER_ROLE_MODERATOR,
+        })
+      )
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   });
 
   it('blocks self-role-change via adminUpdateUser', async () => {
     await expect(
-      adminUpdateUser(mocks.deps, ADMIN, {
-        userId: ADMIN.userId,
-        userType: AuthV1.UserRole.USER_ROLE_SUPER_ADMIN,
-      })
+      adminUpdateUser(
+        mocks.deps,
+        ADMIN,
+        AuthV1.AdminUpdateUserRequest.fromPartial({
+          userId: ADMIN.userId,
+          userType: AuthV1.UserRole.USER_ROLE_SUPER_ADMIN,
+        })
+      )
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
@@ -378,10 +427,14 @@ describe('adminUpdateUser', () => {
     mocks.clientScript.push({ rows: [BEFORE_ACTIVE_ADOPTER] });
     mocks.clientScript.push({ rows: [userRow({ user_type: 'admin' })] });
 
-    const res = await adminUpdateUser(mocks.deps, SUPER_ADMIN, {
-      userId: 'usr-1',
-      userType: AuthV1.UserRole.USER_ROLE_ADMIN,
-    });
+    const res = await adminUpdateUser(
+      mocks.deps,
+      SUPER_ADMIN,
+      AuthV1.AdminUpdateUserRequest.fromPartial({
+        userId: 'usr-1',
+        userType: AuthV1.UserRole.USER_ROLE_ADMIN,
+      })
+    );
 
     expect(res.user?.userType).toBe(AuthV1.UserRole.USER_ROLE_ADMIN);
     const publishCall = mocks.natsMock.publish.mock.calls[0] as [string, Uint8Array];
@@ -396,10 +449,14 @@ describe('adminUpdateUser', () => {
     mocks.clientScript.push({ rows: [BEFORE_ACTIVE_ADOPTER] }); // locked before-state
     mocks.clientScript.push({ rows: [userRow({ first_name: 'Bob' })] });
 
-    const res = await adminUpdateUser(mocks.deps, ADMIN, {
-      userId: 'usr-1',
-      firstName: 'Bob',
-    });
+    const res = await adminUpdateUser(
+      mocks.deps,
+      ADMIN,
+      AuthV1.AdminUpdateUserRequest.fromPartial({
+        userId: 'usr-1',
+        firstName: 'Bob',
+      })
+    );
 
     expect(res.user?.firstName).toBe('Bob');
     const updateCall = (mocks.clientMock.query.mock.calls as Array<[string, unknown[]]>).find(
@@ -415,10 +472,14 @@ describe('adminUpdateUser', () => {
   it('blocks a plain admin from changing ANY field on a super_admin target', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'super_admin' }] });
     await expect(
-      adminUpdateUser(mocks.deps, ADMIN, {
-        userId: 'usr-target',
-        status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
-      })
+      adminUpdateUser(
+        mocks.deps,
+        ADMIN,
+        AuthV1.AdminUpdateUserRequest.fromPartial({
+          userId: 'usr-target',
+          status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+        })
+      )
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
     expect(mocks.clientMock.query).not.toHaveBeenCalled();
   });
@@ -428,10 +489,14 @@ describe('adminUpdateUser', () => {
     mocks.clientScript.push({ rows: [{ status: 'active', user_type: 'super_admin' }] }); // before-state
     mocks.clientScript.push({ rows: [userRow({ user_type: 'super_admin', status: 'suspended' })] });
 
-    const res = await adminUpdateUser(mocks.deps, SUPER_ADMIN, {
-      userId: 'usr-target',
-      status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
-    });
+    const res = await adminUpdateUser(
+      mocks.deps,
+      SUPER_ADMIN,
+      AuthV1.AdminUpdateUserRequest.fromPartial({
+        userId: 'usr-target',
+        status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+      })
+    );
 
     expect(res.user?.status).toBe(AuthV1.UserStatus.USER_STATUS_SUSPENDED);
   });
@@ -517,19 +582,27 @@ describe('a status change by an admin overrides any timed suspension', () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] });
     mocks.clientScript.push({ rows: [BEFORE_ACTIVE_ADOPTER] });
     mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });
-    await adminUpdateUser(mocks.deps, ADMIN, {
-      userId: 'usr-1',
-      status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
-    });
+    await adminUpdateUser(
+      mocks.deps,
+      ADMIN,
+      AuthV1.AdminUpdateUserRequest.fromPartial({
+        userId: 'usr-1',
+        status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+      })
+    );
     expect(updateSql(mocks)).toContain('suspended_until = NULL');
   });
 
   it('a bulk status change clears suspended_until', async () => {
     mocks.clientScript.push({ rows: [{ user_id: 'usr-1' }] });
-    await bulkUpdateUsers(mocks.deps, ADMIN, {
-      userIds: ['usr-1'],
-      status: AuthV1.UserStatus.USER_STATUS_ACTIVE,
-    });
+    await bulkUpdateUsers(
+      mocks.deps,
+      ADMIN,
+      AuthV1.BulkUpdateUsersRequest.fromPartial({
+        userIds: ['usr-1'],
+        status: AuthV1.UserStatus.USER_STATUS_ACTIVE,
+      })
+    );
     expect(updateSql(mocks)).toContain('suspended_until = NULL');
   });
 
@@ -537,7 +610,11 @@ describe('a status change by an admin overrides any timed suspension', () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] });
     mocks.clientScript.push({ rows: [BEFORE_ACTIVE_ADOPTER] });
     mocks.clientScript.push({ rows: [userRow({ first_name: 'Bob' })] });
-    await adminUpdateUser(mocks.deps, ADMIN, { userId: 'usr-1', firstName: 'Bob' });
+    await adminUpdateUser(
+      mocks.deps,
+      ADMIN,
+      AuthV1.AdminUpdateUserRequest.fromPartial({ userId: 'usr-1', firstName: 'Bob' })
+    );
     expect(updateSql(mocks)).not.toContain('suspended_until');
   });
 });
@@ -1146,34 +1223,52 @@ describe('bulkUpdateUsers', () => {
 
   it('rejects without admin.users.bulk_update', async () => {
     await expect(
-      bulkUpdateUsers(mocks.deps, NO_PERMS, {
-        userIds: ['usr-1'],
-        status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
-      })
+      bulkUpdateUsers(
+        mocks.deps,
+        NO_PERMS,
+        AuthV1.BulkUpdateUsersRequest.fromPartial({
+          userIds: ['usr-1'],
+          status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+        })
+      )
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   });
 
   it('rejects an empty user_ids list', async () => {
     await expect(
-      bulkUpdateUsers(mocks.deps, ADMIN, {
-        userIds: [],
-        status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
-      })
+      bulkUpdateUsers(
+        mocks.deps,
+        ADMIN,
+        AuthV1.BulkUpdateUsersRequest.fromPartial({
+          userIds: [],
+          status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+        })
+      )
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
   it('rejects when neither status nor user_type is set', async () => {
-    await expect(bulkUpdateUsers(mocks.deps, ADMIN, { userIds: ['usr-1'] })).rejects.toMatchObject({
+    await expect(
+      bulkUpdateUsers(
+        mocks.deps,
+        ADMIN,
+        AuthV1.BulkUpdateUsersRequest.fromPartial({ userIds: ['usr-1'] })
+      )
+    ).rejects.toMatchObject({
       code: 'INVALID_ARGUMENT',
     });
   });
 
   it('refuses to change your own role via the bulk path', async () => {
     await expect(
-      bulkUpdateUsers(mocks.deps, ADMIN, {
-        userIds: ['svc-admin', 'usr-2'],
-        userType: AuthV1.UserRole.USER_ROLE_MODERATOR,
-      })
+      bulkUpdateUsers(
+        mocks.deps,
+        ADMIN,
+        AuthV1.BulkUpdateUsersRequest.fromPartial({
+          userIds: ['svc-admin', 'usr-2'],
+          userType: AuthV1.UserRole.USER_ROLE_MODERATOR,
+        })
+      )
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   });
 
@@ -1182,10 +1277,14 @@ describe('bulkUpdateUsers', () => {
     // bulk deactivate/suspend that includes the caller locks them out. No DB
     // write should happen: the guard rejects before the per-id loop.
     await expect(
-      bulkUpdateUsers(mocks.deps, ADMIN, {
-        userIds: ['svc-admin', 'usr-2'],
-        status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
-      })
+      bulkUpdateUsers(
+        mocks.deps,
+        ADMIN,
+        AuthV1.BulkUpdateUsersRequest.fromPartial({
+          userIds: ['svc-admin', 'usr-2'],
+          status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+        })
+      )
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
     expect(mocks.poolMock.connect).not.toHaveBeenCalled();
     expect(mocks.natsMock.publish).not.toHaveBeenCalled();
@@ -1193,29 +1292,41 @@ describe('bulkUpdateUsers', () => {
 
   it('refuses super_admin assignment from a non-super_admin actor', async () => {
     await expect(
-      bulkUpdateUsers(mocks.deps, ADMIN, {
-        userIds: ['usr-2'],
-        userType: AuthV1.UserRole.USER_ROLE_SUPER_ADMIN,
-      })
+      bulkUpdateUsers(
+        mocks.deps,
+        ADMIN,
+        AuthV1.BulkUpdateUsersRequest.fromPartial({
+          userIds: ['usr-2'],
+          userType: AuthV1.UserRole.USER_ROLE_SUPER_ADMIN,
+        })
+      )
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   });
 
   it('blocks a plain admin from bulk-elevating other users to admin', async () => {
     await expect(
-      bulkUpdateUsers(mocks.deps, ADMIN, {
-        userIds: ['usr-2'],
-        userType: AuthV1.UserRole.USER_ROLE_ADMIN,
-      })
+      bulkUpdateUsers(
+        mocks.deps,
+        ADMIN,
+        AuthV1.BulkUpdateUsersRequest.fromPartial({
+          userIds: ['usr-2'],
+          userType: AuthV1.UserRole.USER_ROLE_ADMIN,
+        })
+      )
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
     expect(mocks.poolMock.connect).not.toHaveBeenCalled();
   });
 
   it('blocks a plain admin from bulk-elevating other users to moderator', async () => {
     await expect(
-      bulkUpdateUsers(mocks.deps, ADMIN, {
-        userIds: ['usr-2'],
-        userType: AuthV1.UserRole.USER_ROLE_MODERATOR,
-      })
+      bulkUpdateUsers(
+        mocks.deps,
+        ADMIN,
+        AuthV1.BulkUpdateUsersRequest.fromPartial({
+          userIds: ['usr-2'],
+          userType: AuthV1.UserRole.USER_ROLE_MODERATOR,
+        })
+      )
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
     expect(mocks.poolMock.connect).not.toHaveBeenCalled();
   });
@@ -1223,10 +1334,14 @@ describe('bulkUpdateUsers', () => {
   it('allows a super_admin to bulk-assign admin/moderator/super_admin', async () => {
     mocks.clientScript.push({ rows: [{ user_id: 'usr-2' }] });
 
-    const res = await bulkUpdateUsers(mocks.deps, SUPER_ADMIN, {
-      userIds: ['usr-2'],
-      userType: AuthV1.UserRole.USER_ROLE_MODERATOR,
-    });
+    const res = await bulkUpdateUsers(
+      mocks.deps,
+      SUPER_ADMIN,
+      AuthV1.BulkUpdateUsersRequest.fromPartial({
+        userIds: ['usr-2'],
+        userType: AuthV1.UserRole.USER_ROLE_MODERATOR,
+      })
+    );
 
     expect(res.results.find(r => r.userId === 'usr-2')?.success).toBe(true);
   });
@@ -1234,10 +1349,14 @@ describe('bulkUpdateUsers', () => {
   it('allows a plain admin to bulk-assign a non-elevated role', async () => {
     mocks.clientScript.push({ rows: [{ user_id: 'usr-2' }] });
 
-    const res = await bulkUpdateUsers(mocks.deps, ADMIN, {
-      userIds: ['usr-2'],
-      userType: AuthV1.UserRole.USER_ROLE_ADOPTER,
-    });
+    const res = await bulkUpdateUsers(
+      mocks.deps,
+      ADMIN,
+      AuthV1.BulkUpdateUsersRequest.fromPartial({
+        userIds: ['usr-2'],
+        userType: AuthV1.UserRole.USER_ROLE_ADOPTER,
+      })
+    );
 
     expect(res.results.find(r => r.userId === 'usr-2')?.success).toBe(true);
   });
@@ -1247,10 +1366,14 @@ describe('bulkUpdateUsers', () => {
     mocks.clientScript.push({ rows: [{ user_id: 'usr-1' }] });
     mocks.clientScript.push({ rows: [] });
 
-    const res = await bulkUpdateUsers(mocks.deps, ADMIN, {
-      userIds: ['usr-1', 'usr-missing'],
-      status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
-    });
+    const res = await bulkUpdateUsers(
+      mocks.deps,
+      ADMIN,
+      AuthV1.BulkUpdateUsersRequest.fromPartial({
+        userIds: ['usr-1', 'usr-missing'],
+        status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+      })
+    );
 
     expect(res.successCount).toBe(1);
     expect(res.failedCount).toBe(1);
@@ -1546,10 +1669,14 @@ describe('admin user actions publish auth.actionTaken for the audit log', () => 
     mocks.clientScript.push({ rows: [BEFORE_ACTIVE_ADOPTER] });
     mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });
 
-    await adminUpdateUser(mocks.deps, ADMIN, {
-      userId: 'usr-1',
-      status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
-    });
+    await adminUpdateUser(
+      mocks.deps,
+      ADMIN,
+      AuthV1.AdminUpdateUserRequest.fromPartial({
+        userId: 'usr-1',
+        status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+      })
+    );
 
     const [event] = actionTaken(mocks);
     expect(event).toMatchObject({
@@ -1572,10 +1699,14 @@ describe('admin user actions publish auth.actionTaken for the audit log', () => 
     mocks.clientScript.push({ rows: [BEFORE_ACTIVE_ADOPTER] });
     mocks.clientScript.push({ rows: [userRow({ user_type: 'admin' })] });
 
-    await adminUpdateUser(mocks.deps, SUPER_ADMIN, {
-      userId: 'usr-1',
-      userType: AuthV1.UserRole.USER_ROLE_ADMIN,
-    });
+    await adminUpdateUser(
+      mocks.deps,
+      SUPER_ADMIN,
+      AuthV1.AdminUpdateUserRequest.fromPartial({
+        userId: 'usr-1',
+        userType: AuthV1.UserRole.USER_ROLE_ADMIN,
+      })
+    );
 
     const [event] = actionTaken(mocks);
     expect(event.action).toBe('assign_role');
@@ -1622,11 +1753,15 @@ describe('admin user actions publish auth.actionTaken for the audit log', () => 
     mocks.clientScript.push({ rows: [{ user_id: 'usr-1' }] });
     mocks.clientScript.push({ rows: [{ user_id: 'usr-2' }] });
 
-    await bulkUpdateUsers(mocks.deps, ADMIN, {
-      userIds: ['usr-1', 'usr-2'],
-      status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
-      reason: 'bulk clean-up',
-    });
+    await bulkUpdateUsers(
+      mocks.deps,
+      ADMIN,
+      AuthV1.BulkUpdateUsersRequest.fromPartial({
+        userIds: ['usr-1', 'usr-2'],
+        status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+        reason: 'bulk clean-up',
+      })
+    );
 
     const events = actionTaken(mocks);
     expect(events.map(e => e.aggregateId)).toEqual(['usr-1', 'usr-2']);
@@ -1643,10 +1778,14 @@ describe('admin user actions publish auth.actionTaken for the audit log', () => 
     mocks.clientScript.push({ rows: [BEFORE_ACTIVE_ADOPTER] });
     mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });
 
-    await adminUpdateUser(mocks.deps, ADMIN, {
-      userId: 'usr-1',
-      status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
-    });
+    await adminUpdateUser(
+      mocks.deps,
+      ADMIN,
+      AuthV1.AdminUpdateUserRequest.fromPartial({
+        userId: 'usr-1',
+        status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+      })
+    );
 
     const selectSql = (mocks.clientMock.query.mock.calls as Array<[string]>)
       .map(([sql]) => sql)
@@ -1659,11 +1798,15 @@ describe('admin user actions publish auth.actionTaken for the audit log', () => 
     mocks.clientScript.push({ rows: [BEFORE_ACTIVE_ADOPTER] });
     mocks.clientScript.push({ rows: [userRow({ first_name: 'Bob', email_verified: true })] });
 
-    await adminUpdateUser(mocks.deps, ADMIN, {
-      userId: 'usr-1',
-      emailVerified: true,
-      firstName: 'Bob',
-    });
+    await adminUpdateUser(
+      mocks.deps,
+      ADMIN,
+      AuthV1.AdminUpdateUserRequest.fromPartial({
+        userId: 'usr-1',
+        emailVerified: true,
+        firstName: 'Bob',
+      })
+    );
 
     const [event] = actionTaken(mocks);
     expect(event.action).toBe('update');
@@ -1681,10 +1824,14 @@ describe('admin user actions publish auth.actionTaken for the audit log', () => 
       rows: [{ user_id: 'usr-1', prev_status: 'active', prev_user_type: 'adopter' }],
     });
 
-    await bulkUpdateUsers(mocks.deps, SUPER_ADMIN, {
-      userIds: ['usr-1'],
-      userType: AuthV1.UserRole.USER_ROLE_ADMIN,
-    });
+    await bulkUpdateUsers(
+      mocks.deps,
+      SUPER_ADMIN,
+      AuthV1.BulkUpdateUsersRequest.fromPartial({
+        userIds: ['usr-1'],
+        userType: AuthV1.UserRole.USER_ROLE_ADMIN,
+      })
+    );
 
     const [event] = actionTaken(mocks);
     expect(event.payload).toMatchObject({
@@ -1710,10 +1857,14 @@ describe('admin user actions publish auth.actionTaken for the audit log', () => 
     mocks.clientScript.push({ rows: [] }); // before-state: user missing
 
     await expect(
-      adminUpdateUser(mocks.deps, ADMIN, {
-        userId: 'usr-1',
-        status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
-      })
+      adminUpdateUser(
+        mocks.deps,
+        ADMIN,
+        AuthV1.AdminUpdateUserRequest.fromPartial({
+          userId: 'usr-1',
+          status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+        })
+      )
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
     expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });

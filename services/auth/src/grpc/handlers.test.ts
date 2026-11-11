@@ -106,6 +106,7 @@ function makeMocks() {
   };
   const passwordHasher = {
     compare: vi.fn(),
+    hash: vi.fn(),
   };
   const tokenIssuer = {
     mint: vi.fn(),
@@ -316,7 +317,7 @@ describe('login', () => {
 
       const res = await login(mocks.deps, null, BASE_LOGIN_REQ);
 
-      expect(res.tokens.accessToken).toBe('access.jwt.token');
+      expect(res.tokens?.accessToken).toBe('access.jwt.token');
       expect(publishedActions().map(e => e.action)).toContain('lift_suspension');
     });
 
@@ -518,8 +519,8 @@ describe('login', () => {
 
     const res = await login(mocks.deps, null, BASE_LOGIN_REQ);
 
-    expect(res.tokens.accessToken).toBe('access.jwt.token');
-    expect(res.user.email).toBe('alex@example.com');
+    expect(res.tokens?.accessToken).toBe('access.jwt.token');
+    expect(res.user?.email).toBe('alex@example.com');
     expect(res.permissions).toContain('pets.read');
 
     // BEGIN → INSERT → UPDATE → COMMIT → NATS_PUBLISH (userLoggedIn) →
@@ -1278,7 +1279,7 @@ describe('refreshToken', () => {
     });
 
     const res = await refreshToken(mocks.deps, null, { refreshToken: 'tok' });
-    expect(res.tokens.accessToken).toBe('access.jwt.token');
+    expect(res.tokens?.accessToken).toBe('access.jwt.token');
     // BEGIN → UPDATE old refresh → INSERT denylist → INSERT new refresh → COMMIT → NATS_PUBLISH
     expect(calls).toEqual(['BEGIN', 'UPDATE', 'INSERT', 'INSERT', 'COMMIT', 'NATS_PUBLISH']);
   });
@@ -1657,9 +1658,9 @@ describe('validateToken', () => {
       .mockResolvedValueOnce({ rows: [{ name: 'pets.read' }, { name: 'pets.update' }] });
 
     const res = await validateToken(mocks.deps, null, { accessToken: 'tok' });
-    expect(res.principal.userId).toBe('usr-1');
-    expect(res.principal.roles).toEqual([AuthV1.UserRole.USER_ROLE_RESCUE_STAFF]);
-    expect(res.principal.permissions).toEqual(['pets.read', 'pets.update']);
+    expect(res.principal?.userId).toBe('usr-1');
+    expect(res.principal?.roles).toEqual([AuthV1.UserRole.USER_ROLE_RESCUE_STAFF]);
+    expect(res.principal?.permissions).toEqual(['pets.read', 'pets.update']);
     expect(res.expiresAt).toBe(new Date(9_000_000_000 * 1000).toISOString());
   });
 
@@ -1680,7 +1681,7 @@ describe('validateToken', () => {
 
     const res = await validateToken(mocks.deps, null, { accessToken: 'tok' });
     // the granted permission is surfaced on the hot path alongside role perms
-    expect(res.principal.permissions).toContain('pets.delete');
+    expect(res.principal?.permissions).toContain('pets.delete');
     // ...and it arrives via the grant-aware effective-permissions query
     const permsSql = mocks.poolMock.query.mock.calls[4]?.[0] as string;
     expect(permsSql).toContain('auth.permission_grants');
@@ -1750,7 +1751,8 @@ describe('validateToken', () => {
       .mockResolvedValueOnce({ rows: [{ name: 'pets.read' }] }); // permissions
 
     const res = await validateToken(mocks.deps, null, { accessToken: 'tok' });
-    expect(res.principal.rescueId).toBeUndefined();
+    expect(res.principal).toBeDefined();
+    expect(res.principal?.rescueId).toBeUndefined();
   });
 
   it('accepts a token issued at/after the revocation watermark', async () => {
@@ -1770,7 +1772,7 @@ describe('validateToken', () => {
       .mockResolvedValueOnce({ rows: [] }) // extra roles
       .mockResolvedValueOnce({ rows: [] }); // permissions
     const res = await validateToken(mocks.deps, null, { accessToken: 'tok' });
-    expect(res.principal.userId).toBe('usr-1');
+    expect(res.principal?.userId).toBe('usr-1');
   });
 });
 
@@ -1802,7 +1804,7 @@ describe('getMe', () => {
       .mockResolvedValueOnce({ rows: [{ name: 'notifications.read' }] });
 
     const res = await getMe(mocks.deps, ADOPTER_PRINCIPAL, {});
-    expect(res.user.email).toBe('alex@example.com');
+    expect(res.user?.email).toBe('alex@example.com');
     expect(res.roles).toContain(AuthV1.UserRole.USER_ROLE_ADOPTER);
     expect(res.permissions).toContain('notifications.read');
   });

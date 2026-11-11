@@ -84,6 +84,7 @@ function makeMocks() {
     nats: nats as unknown as NatsConnection,
     passwordHasher,
     tokenIssuer,
+    encryptionKey: 'a'.repeat(64),
   };
   return {
     deps,

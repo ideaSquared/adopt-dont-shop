@@ -6,6 +6,7 @@ import { generateSecret, generateSync } from 'otplib';
 
 import type { Principal } from '@adopt-dont-shop/authz';
 import type { UserId } from '@adopt-dont-shop/lib.types';
+import { AuthV1 } from '@adopt-dont-shop/proto';
 
 import { normalizeBackupCode } from './backup-codes.js';
 import { login, type HandlerDeps } from './handlers.js';
@@ -185,7 +186,11 @@ describe('enableTwoFactor', () => {
     mocks.poolScript.push({ rows: [makePendingRow(secret)], rowCount: 1 }); // SELECT pending secret
     mocks.clientScript.push({ rows: [], rowCount: 1 }); // UPDATE promote pending→active
 
-    const res = await enableTwoFactor(mocks.deps, PRINCIPAL, { token });
+    const res = await enableTwoFactor(
+      mocks.deps,
+      PRINCIPAL,
+      AuthV1.EnableTwoFactorRequest.fromPartial({ token })
+    );
 
     expect(res.enabled).toBe(true);
 
@@ -203,7 +208,11 @@ describe('enableTwoFactor', () => {
     mocks.poolScript.push({ rows: [makePendingRow(secret)], rowCount: 1 });
     mocks.clientScript.push({ rows: [], rowCount: 1 });
 
-    await enableTwoFactor(mocks.deps, PRINCIPAL, { token });
+    await enableTwoFactor(
+      mocks.deps,
+      PRINCIPAL,
+      AuthV1.EnableTwoFactorRequest.fromPartial({ token })
+    );
 
     expect(auditPayload(mocks)).toMatchObject({
       action: 'twoFactor.enable',
@@ -222,7 +231,11 @@ describe('enableTwoFactor', () => {
       mocks.poolScript.push({ rows: [makePendingRow(secret)], rowCount: 1 });
       mocks.clientScript.push({ rows: [], rowCount: 1 });
 
-      await enableTwoFactor(mocks.deps, PRINCIPAL, { token });
+      await enableTwoFactor(
+        mocks.deps,
+        PRINCIPAL,
+        AuthV1.EnableTwoFactorRequest.fromPartial({ token })
+      );
 
       const updateCall = findClientCall(mocks, 'two_factor_secret = two_factor_secret_pending');
       const [updateSql, updateParams] = updateCall!;
@@ -275,12 +288,16 @@ describe('enableTwoFactor', () => {
       ],
       rowCount: 1,
     });
-    await expect(enableTwoFactor(mocks.deps, PRINCIPAL, { token: '123456' })).rejects.toMatchObject(
-      {
-        code: 'INVALID_ARGUMENT',
-        message: expect.stringMatching(/setup.*required|setup first/i),
-      }
-    );
+    await expect(
+      enableTwoFactor(
+        mocks.deps,
+        PRINCIPAL,
+        AuthV1.EnableTwoFactorRequest.fromPartial({ token: '123456' })
+      )
+    ).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+      message: expect.stringMatching(/setup.*required|setup first/i),
+    });
   });
 
   it('rejects an expired pending secret', async () => {
@@ -292,7 +309,9 @@ describe('enableTwoFactor', () => {
       rowCount: 1,
     });
 
-    await expect(enableTwoFactor(mocks.deps, PRINCIPAL, { token })).rejects.toMatchObject({
+    await expect(
+      enableTwoFactor(mocks.deps, PRINCIPAL, AuthV1.EnableTwoFactorRequest.fromPartial({ token }))
+    ).rejects.toMatchObject({
       code: 'INVALID_ARGUMENT',
       message: expect.stringMatching(/expired/i),
     });
@@ -304,9 +323,13 @@ describe('enableTwoFactor', () => {
 
     mocks.poolScript.push({ rows: [makePendingRow(secret)], rowCount: 1 });
 
-    await expect(enableTwoFactor(mocks.deps, PRINCIPAL, { token: '000000' })).rejects.toMatchObject(
-      { code: 'INVALID_ARGUMENT' }
-    );
+    await expect(
+      enableTwoFactor(
+        mocks.deps,
+        PRINCIPAL,
+        AuthV1.EnableTwoFactorRequest.fromPartial({ token: '000000' })
+      )
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
     expect(mocks.poolMock.query).toHaveBeenCalledTimes(1);
   });
 
@@ -317,7 +340,9 @@ describe('enableTwoFactor', () => {
     mocks.poolScript.push({ rows: [makePendingRow(secret)], rowCount: 1 });
     mocks.clientScript.push({ rows: [], rowCount: 0 }); // UPDATE matched 0 rows
 
-    await expect(enableTwoFactor(mocks.deps, PRINCIPAL, { token })).rejects.toMatchObject({
+    await expect(
+      enableTwoFactor(mocks.deps, PRINCIPAL, AuthV1.EnableTwoFactorRequest.fromPartial({ token }))
+    ).rejects.toMatchObject({
       code: 'INVALID_ARGUMENT',
     });
     // The race means no state actually changed — no audit event either.
@@ -331,7 +356,11 @@ describe('enableTwoFactor', () => {
     mocks.poolScript.push({ rows: [makePendingRow(secret)], rowCount: 1 });
     mocks.clientScript.push({ rows: [], rowCount: 1 });
 
-    const res = await enableTwoFactor(mocks.deps, PRINCIPAL, { token });
+    const res = await enableTwoFactor(
+      mocks.deps,
+      PRINCIPAL,
+      AuthV1.EnableTwoFactorRequest.fromPartial({ token })
+    );
 
     expect(res.backupCodes).toHaveLength(10);
     expect(new Set(res.backupCodes).size).toBe(10);
@@ -360,13 +389,26 @@ describe('enableTwoFactor', () => {
       ],
       rowCount: 1,
     });
-    await expect(enableTwoFactor(mocks.deps, PRINCIPAL, { token: '123456' })).rejects.toMatchObject(
-      { code: 'INVALID_ARGUMENT', message: expect.stringMatching(/already enabled/) }
-    );
+    await expect(
+      enableTwoFactor(
+        mocks.deps,
+        PRINCIPAL,
+        AuthV1.EnableTwoFactorRequest.fromPartial({ token: '123456' })
+      )
+    ).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+      message: expect.stringMatching(/already enabled/),
+    });
   });
 
   it('requires authentication', async () => {
-    await expect(enableTwoFactor(mocks.deps, null, { token: '123456' })).rejects.toMatchObject({
+    await expect(
+      enableTwoFactor(
+        mocks.deps,
+        null,
+        AuthV1.EnableTwoFactorRequest.fromPartial({ token: '123456' })
+      )
+    ).rejects.toMatchObject({
       code: 'UNAUTHENTICATED',
     });
   });
@@ -399,7 +441,11 @@ describe('enableTwoFactor confirmation-code replay (ADS-976)', () => {
       });
       enableMocks.clientScript.push({ rows: [], rowCount: 1 }); // UPDATE promote pending→active
 
-      await enableTwoFactor(enableMocks.deps, PRINCIPAL, { token });
+      await enableTwoFactor(
+        enableMocks.deps,
+        PRINCIPAL,
+        AuthV1.EnableTwoFactorRequest.fromPartial({ token })
+      );
 
       const updateCall = findClientCall(
         enableMocks,

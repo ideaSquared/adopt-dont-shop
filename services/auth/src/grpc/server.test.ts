@@ -34,7 +34,7 @@ const config: AuthConfig = {
 
 const pool = {} as unknown as Pool;
 const nats = {} as unknown as NatsConnection;
-const passwordHasher: HandlerDeps['passwordHasher'] = { compare: vi.fn() };
+const passwordHasher: HandlerDeps['passwordHasher'] = { compare: vi.fn(), hash: vi.fn() };
 const tokenIssuer: HandlerDeps['tokenIssuer'] = {
   mint: vi.fn(),
   verifyAccess: vi.fn(),

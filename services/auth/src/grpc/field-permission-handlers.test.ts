@@ -41,7 +41,7 @@ const NO_PERMS: Principal = {
 function makeMocks() {
   const clientScript: Array<{ rows: unknown[] }> = [];
   const client = {
-    query: vi.fn(async (sql: string) => {
+    query: vi.fn(async (sql: string, _params?: unknown[]) => {
       const op = sql.trim().split(/\s+/)[0].toUpperCase();
       if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
         return { rows: [] };
@@ -62,7 +62,9 @@ function makeMocks() {
   const poolScript: Array<{ rows: unknown[]; rowCount?: number }> = [];
   const pool = {
     connect: vi.fn().mockResolvedValue(client),
-    query: vi.fn(async () => poolScript.shift() ?? { rows: [], rowCount: 0 }),
+    query: vi.fn(
+      async (_sql: string, _params?: unknown[]) => poolScript.shift() ?? { rows: [], rowCount: 0 }
+    ),
   };
   const natsPublish = vi.fn();
   // JetStream publish routes to the same spy so existing publish assertions
@@ -80,6 +82,7 @@ function makeMocks() {
       verifyAccess: vi.fn(),
       verifyRefresh: vi.fn(),
     } as unknown as HandlerDeps['tokenIssuer'],
+    encryptionKey: 'a'.repeat(64),
   };
   return {
     pool: pool as unknown as Pool,

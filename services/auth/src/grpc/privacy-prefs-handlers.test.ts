@@ -43,7 +43,7 @@ const NO_PERMS: Principal = {
 function makeMocks() {
   const clientScript: Array<{ rows: unknown[] }> = [];
   const client = {
-    query: vi.fn(async (sql: string) => {
+    query: vi.fn(async (sql: string, _params?: unknown[]) => {
       const op = sql.trim().split(/\s+/)[0].toUpperCase();
       if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
         return { rows: [] };
@@ -66,7 +66,7 @@ function makeMocks() {
   const poolScript: Array<{ rows: unknown[] }> = [];
   const pool = {
     connect: vi.fn().mockResolvedValue(client),
-    query: vi.fn(async () => poolScript.shift() ?? { rows: [] }),
+    query: vi.fn(async (_sql: string, _params?: unknown[]) => poolScript.shift() ?? { rows: [] }),
   };
   const natsPublish = vi.fn();
   // JetStream publish routes to the same spy so existing publish assertions
@@ -83,6 +83,7 @@ function makeMocks() {
       mintAccess: vi.fn(),
       mintRefresh: vi.fn(),
     } as unknown as HandlerDeps['tokenIssuer'],
+    encryptionKey: 'a'.repeat(64),
   };
   return {
     pool: pool as unknown as Pool,
@@ -173,7 +174,13 @@ describe('updatePrivacyPreferences', () => {
   });
 
   it('rejects principals without update perm', async () => {
-    await expect(updatePrivacyPreferences(mocks.deps, NO_PERMS, {})).rejects.toMatchObject({
+    await expect(
+      updatePrivacyPreferences(
+        mocks.deps,
+        NO_PERMS,
+        AuthV1.UpdatePrivacyPreferencesRequest.fromPartial({})
+      )
+    ).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
     });
   });
@@ -184,10 +191,14 @@ describe('updatePrivacyPreferences', () => {
       rows: [prefsRow({ show_location: false, allow_search_indexing: true })],
     }); // UPDATE RETURNING
 
-    const res = await updatePrivacyPreferences(mocks.deps, SELF, {
-      showLocation: false,
-      allowSearchIndexing: true,
-    });
+    const res = await updatePrivacyPreferences(
+      mocks.deps,
+      SELF,
+      AuthV1.UpdatePrivacyPreferencesRequest.fromPartial({
+        showLocation: false,
+        allowSearchIndexing: true,
+      })
+    );
 
     expect(res.preferences?.showLocation).toBe(false);
     expect(res.preferences?.allowSearchIndexing).toBe(true);
@@ -219,7 +230,11 @@ describe('updatePrivacyPreferences', () => {
   it('no-op patch returns current row without UPDATE', async () => {
     mocks.poolScript.push({ rows: [prefsRow()] }); // findOrCreate
     mocks.poolScript.push({ rows: [prefsRow()] }); // SELECT current
-    const res = await updatePrivacyPreferences(mocks.deps, SELF, {});
+    const res = await updatePrivacyPreferences(
+      mocks.deps,
+      SELF,
+      AuthV1.UpdatePrivacyPreferencesRequest.fromPartial({})
+    );
     expect(res.preferences?.userId).toBe('usr-self');
     const updateCalls = mocks.poolMock.query.mock.calls.filter(
       ([sql]) => typeof sql === 'string' && sql.includes('UPDATE user_privacy_prefs')
@@ -229,7 +244,14 @@ describe('updatePrivacyPreferences', () => {
 
   it('rejects cross-user write without :any', async () => {
     await expect(
-      updatePrivacyPreferences(mocks.deps, SELF, { userId: 'usr-other', showLocation: false })
+      updatePrivacyPreferences(
+        mocks.deps,
+        SELF,
+        AuthV1.UpdatePrivacyPreferencesRequest.fromPartial({
+          userId: 'usr-other',
+          showLocation: false,
+        })
+      )
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   });
 });

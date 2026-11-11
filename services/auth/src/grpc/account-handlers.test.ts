@@ -78,6 +78,7 @@ function makeMocks() {
     nats: nats as unknown as NatsConnection,
     passwordHasher,
     tokenIssuer,
+    encryptionKey: 'a'.repeat(64),
   };
   return {
     deps,
@@ -452,7 +453,7 @@ describe('verifyEmail', () => {
     const updated = userRowFixture({ email_verified: true, status: 'active' });
     mocks.clientScript([updated]);
     const res = await verifyEmail(mocks.deps, null, { verificationToken: 'abc' });
-    expect(res.user.emailVerified).toBe(true);
+    expect(res.user?.emailVerified).toBe(true);
     const queries = realQueries(mocks.clientMock.query);
     const sql = queries[0][0] as string;
     expect(sql).toContain('verification_token_hash = $1');
@@ -864,7 +865,7 @@ describe('updateAccount', () => {
     const u = userRowFixture();
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [u] });
     const res = await updateAccount(mocks.deps, PRINCIPAL, {});
-    expect(res.user.userId).toBe(u.user_id);
+    expect(res.user?.userId).toBe(u.user_id);
   });
 
   it('updates only the supplied fields', async () => {
@@ -874,7 +875,7 @@ describe('updateAccount', () => {
       firstName: 'Joey',
       timezone: 'Europe/London',
     });
-    expect(res.user.firstName).toBe('Joey');
+    expect(res.user?.firstName).toBe('Joey');
     const sql = realQueries(mocks.clientMock.query)[0][0] as string;
     expect(sql).toContain('first_name = $1');
     expect(sql).toContain('timezone = $2');
