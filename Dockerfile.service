@@ -119,6 +119,11 @@ RUN --mount=type=cache,id=pnpm-${SERVICE},target=/pnpm/store \
 # ---------------------------------------------------------------------------
 FROM base AS production
 ARG SERVICE_DIR
+# Links the image to its repository on GHCR. deploy.yml pushes with the
+# workflow's GITHUB_TOKEN, which can only create a service's package on its
+# first push when the image names its source; without it the push is "denied".
+# Mirrors Dockerfile.app.
+LABEL org.opencontainers.image.source="https://github.com/ideaSquared/adopt-dont-shop"
 ENV NODE_ENV=production
 # Backend workspace packages expose their TypeScript source by default (for
 # tsx-based dev HMR) and their compiled dist via a "production" export
