@@ -91,8 +91,8 @@ describe('getApplication', () => {
       applicationId: 'app-1',
       includeTimeline: false,
     });
-    expect(res.application.status).toBe(S.APPLICATION_STATUS_SUBMITTED);
-    expect(res.application.adopterId).toBe('usr-1');
+    expect(res.application?.status).toBe(S.APPLICATION_STATUS_SUBMITTED);
+    expect(res.application?.adopterId).toBe('usr-1');
     expect(res.timeline).toEqual([]);
   });
 
@@ -115,7 +115,7 @@ describe('getApplication', () => {
       makePrincipal({ userId: 'staff-1', roles: ['rescue_staff'], rescueId: 'rsc-1' }),
       { applicationId: 'app-1', includeTimeline: false }
     );
-    expect(res.application.status).toBe(S.APPLICATION_STATUS_SUBMITTED);
+    expect(res.application?.status).toBe(S.APPLICATION_STATUS_SUBMITTED);
   });
 
   // ADS-1261: a draft application is private to the owning adopter until it is
@@ -127,8 +127,8 @@ describe('getApplication', () => {
       applicationId: 'app-1',
       includeTimeline: false,
     });
-    expect(res.application.status).toBe(S.APPLICATION_STATUS_DRAFT);
-    expect(res.application.adopterId).toBe('usr-1');
+    expect(res.application?.status).toBe(S.APPLICATION_STATUS_DRAFT);
+    expect(res.application?.adopterId).toBe('usr-1');
   });
 
   it('denies rescue staff reading a draft application', async () => {

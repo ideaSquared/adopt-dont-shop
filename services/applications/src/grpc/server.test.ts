@@ -25,6 +25,7 @@ const config: ApplicationsConfig = {
   schema: 'applications',
   natsUrl: 'nats://localhost:4222',
   petsGrpcUrl: 'service-pets:6003',
+  applicationDraftPurge: { intervalMs: 24 * 60 * 60 * 1000, batchSize: 500 },
 };
 
 const pool = {} as unknown as Pool;

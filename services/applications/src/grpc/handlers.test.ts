@@ -160,8 +160,8 @@ describe('saveDraftAnswers', () => {
       expectedVersion: 1,
       answersPatchJson: '{"hasYard":true}',
     } as SaveDraftAnswersRequest);
-    expect(res.application.applicationId).toBe('app-1');
-    const data = JSON.parse(res.application.answersJson) as Record<string, unknown>;
+    expect(res.application?.applicationId).toBe('app-1');
+    const data = JSON.parse(res.application?.answersJson ?? '') as Record<string, unknown>;
     expect(data.hasYard).toBe(true);
     const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
     // Idempotency key is per-event (aggregate:version), not the bare
@@ -182,7 +182,7 @@ describe('saveDraftAnswers', () => {
       answersPatchJson: '{}',
       referencesJson: '[{"name":"Jane","email":"j@e.com","relationship":"friend"}]',
     });
-    const refs = JSON.parse(res.application.referencesJson) as Array<Record<string, string>>;
+    const refs = JSON.parse(res.application?.referencesJson ?? '') as Array<Record<string, string>>;
     expect(refs[0]).toMatchObject({ name: 'Jane', email: 'j@e.com', relationship: 'friend' });
   });
 
@@ -230,7 +230,7 @@ describe('saveDraftAnswers', () => {
       expectedVersion: 1,
       answersPatchJson: '{"hasYard":true}',
     } as SaveDraftAnswersRequest);
-    expect(res.application.applicationId).toBe('app-1');
+    expect(res.application?.applicationId).toBe('app-1');
   });
 
   it('allows rescue staff to edit answers once the application is under_review', async () => {
@@ -242,7 +242,7 @@ describe('saveDraftAnswers', () => {
       expectedVersion: 3,
       answersPatchJson: '{"followUp":"answered"}',
     } as SaveDraftAnswersRequest);
-    expect(res.application.applicationId).toBe('app-1');
+    expect(res.application?.applicationId).toBe('app-1');
   });
 
   it('denies a non-owning adopter in both draft and under_review', async () => {
@@ -294,11 +294,11 @@ describe('makeStartDraft', () => {
 
     const res = await startDraft(deps, makePrincipal(), { adopterId: 'usr-1', petId: 'pet-1' });
 
-    expect(res.application.status).toBe(ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_DRAFT);
-    expect(res.application.adopterId).toBe('usr-1');
-    expect(res.application.petId).toBe('pet-1');
-    expect(res.application.rescueId).toBe('rsc-1');
-    expect(res.application.applicationId).not.toBe('');
+    expect(res.application?.status).toBe(ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_DRAFT);
+    expect(res.application?.adopterId).toBe('usr-1');
+    expect(res.application?.petId).toBe('pet-1');
+    expect(res.application?.rescueId).toBe('rsc-1');
+    expect(res.application?.applicationId).not.toBe('');
 
     // The pet lookup forwarded the adopter's identity as metadata.
     const metadata = getPet.mock.calls[0][1];
@@ -323,7 +323,7 @@ describe('makeStartDraft', () => {
     const res = await startDraft(deps, makePrincipal(), { adopterId: 'usr-1', petId: 'pet-1' });
 
     const stamp = query.mock.calls.find(([sql]) => /SET pet_type = \$1/.test(sql as string));
-    expect(stamp?.[1]).toEqual(['dog', 'Labrador Retriever', res.application.applicationId]);
+    expect(stamp?.[1]).toEqual(['dog', 'Labrador Retriever', res.application?.applicationId]);
   });
 
   it('maps a pets NOT_FOUND (grpc code 5) onto INVALID_ARGUMENT', async () => {
@@ -408,9 +408,9 @@ describe('makeStartDraft', () => {
 
     const res = await startDraft(deps, makePrincipal(), { adopterId: 'usr-1', petId: 'pet-1' });
 
-    expect(res.application.applicationId).toBe('app-stranded');
-    expect(res.application.status).toBe(ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_DRAFT);
-    expect(res.application.version).toBe(1);
+    expect(res.application?.applicationId).toBe('app-stranded');
+    expect(res.application?.status).toBe(ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_DRAFT);
+    expect(res.application?.version).toBe(1);
     const writes = query.mock.calls.filter(([sql]) => /^\s*(INSERT|UPDATE)/i.test(String(sql)));
     expect(writes).toEqual([]);
     expect((deps as { _publish?: ReturnType<typeof vi.fn> })._publish).toBeUndefined();
@@ -468,7 +468,7 @@ describe('submitDraft', () => {
       applicationId: 'app-1',
       expectedVersion: 1,
     } as SubmitDraftRequest);
-    expect(res.application.status).toBe(
+    expect(res.application?.status).toBe(
       ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_SUBMITTED
     );
     const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
@@ -569,7 +569,7 @@ describe('submitDraft', () => {
       applicationId: 'app-1',
       expectedVersion: 1,
     } as SubmitDraftRequest);
-    expect(res.application.status).toBe(
+    expect(res.application?.status).toBe(
       ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_SUBMITTED
     );
   });
