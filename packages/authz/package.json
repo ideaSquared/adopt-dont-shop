@@ -33,7 +33,7 @@
     "lint:fix": "eslint src --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit -p tsconfig.typecheck.json"
   },
   "dependencies": {
     "@adopt-dont-shop/lib.types": "workspace:*"
