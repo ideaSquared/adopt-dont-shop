@@ -40,7 +40,15 @@ export interface OfflineState {
   pendingActions: QueuedAction[];
 }
 
-type SyncCallback = (messages: QueuedMessage[], actions: QueuedAction[]) => Promise<void>;
+/**
+ * `isStillCurrent` turns false as soon as the signed-in user changes. A callback that issues one
+ * request per item must check it immediately before each request and stop once it is false.
+ */
+type SyncCallback = (
+  messages: QueuedMessage[],
+  actions: QueuedAction[],
+  isStillCurrent: () => boolean
+) => Promise<void>;
 type OfflineStateChangeListener = (state: OfflineState) => void;
 
 class OfflineManager {
@@ -49,6 +57,8 @@ class OfflineManager {
   private pendingMessages: QueuedMessage[] = [];
   private pendingActions: QueuedAction[] = [];
   private currentUserId: string | null = null;
+  // Bumped whenever the signed-in user changes, so a sync started for the previous user can tell.
+  private identityGeneration = 0;
   private syncCallback: SyncCallback | null = null;
   private listeners: OfflineStateChangeListener[] = [];
   private syncInterval: ReturnType<typeof setInterval> | null = null;
@@ -196,7 +206,8 @@ class OfflineManager {
     if (!this.currentUserId || !this.syncCallback) {
       return;
     }
-    const userId = this.currentUserId;
+    const generation = this.identityGeneration;
+    const isStillCurrent = () => this.identityGeneration === generation;
     this.dropExpired();
     if (!this.pendingMessages.length && !this.pendingActions.length) {
       return;
@@ -205,11 +216,11 @@ class OfflineManager {
     const messages = [...this.pendingMessages];
     const actions = [...this.pendingActions];
     try {
-      await this.syncCallback(messages, actions);
+      await this.syncCallback(messages, actions, isStillCurrent);
     } catch (error) {
       console.error('Sync failed:', error);
     }
-    if (this.currentUserId === userId) {
+    if (isStillCurrent()) {
       this.recordFailedAttempts(messages, actions);
     }
   }
@@ -224,6 +235,9 @@ class OfflineManager {
    * discarded; pass null when signed out to clear everything.
    */
   setCurrentUser(userId: string | null) {
+    if (userId !== this.currentUserId) {
+      this.identityGeneration += 1;
+    }
     this.currentUserId = userId;
     this.pendingMessages = this.pendingMessages.filter(m => m.userId === userId);
     this.pendingActions = this.pendingActions.filter(a => a.userId === userId);

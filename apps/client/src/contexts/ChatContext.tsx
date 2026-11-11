@@ -69,12 +69,22 @@ const buildOfflineAdapter = (): OfflineAdapter => {
         offlineManager.setSyncCallback(null);
         return;
       }
-      offlineManager.setSyncCallback(async (messages, actions) =>
-        callback(
-          messages.map(m => ({ id: m.id, conversationId: m.conversationId, content: m.content })),
-          actions.map(a => ({ id: a.id, type: a.type, conversationId: a.conversationId }))
-        )
-      );
+      // Hand lib.chat one item at a time so ownership can be re-checked before every request:
+      // a user switch mid-sync must not send the rest of the previous user's snapshot.
+      offlineManager.setSyncCallback(async (messages, actions, isStillCurrent) => {
+        for (const m of messages) {
+          if (!isStillCurrent()) {
+            return;
+          }
+          await callback([{ id: m.id, conversationId: m.conversationId, content: m.content }], []);
+        }
+        for (const a of actions) {
+          if (!isStillCurrent()) {
+            return;
+          }
+          await callback([], [{ id: a.id, type: a.type, conversationId: a.conversationId }]);
+        }
+      });
     },
     removeQueuedMessage: (id: string) => offlineManager.removeQueuedMessage(id),
     removeQueuedAction: (id: string) => offlineManager.removeQueuedAction(id),

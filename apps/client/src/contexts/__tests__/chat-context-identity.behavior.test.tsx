@@ -15,6 +15,10 @@ let serviceQueue: ServiceQueueItem[] = [];
 let connectedAs: string | null = null;
 let flushed: Array<{ sentAs: string; content: string }> = [];
 
+const sendMessage = vi.fn(async (_conversationId: string, _content: string) => ({
+  id: 'm1',
+}));
+
 vi.mock('@/services', () => ({
   chatService: {
     connect: vi.fn((userId: string) => {
@@ -31,6 +35,7 @@ vi.mock('@/services', () => ({
     clearMessageQueue: vi.fn(() => {
       serviceQueue = [];
     }),
+    sendMessage: (conversationId: string, content: string) => sendMessage(conversationId, content),
     getConversations: vi.fn(async () => []),
     getMessages: vi.fn(async () => ({ data: [] })),
     markAsRead: vi.fn(async () => undefined),
@@ -118,5 +123,33 @@ describe('ChatContext identity changes', () => {
     await new Promise(resolve => setTimeout(resolve, 10));
 
     expect(flushed).toEqual([]);
+  });
+
+  it('stops sending user A queued messages when user B signs in mid-sync', async () => {
+    const view = render(tree());
+    await waitFor(() => expect(connectedAs).toBe('user-a'));
+    await waitFor(() => expect(offlineManager.getCurrentState().isOnline).toBe(true));
+    offlineManager.queueMessage('c1', 'first from A');
+    offlineManager.queueMessage('c1', 'second from A');
+    offlineManager.queueMessage('c1', 'third from A');
+
+    let releaseFirst: () => void = () => undefined;
+    sendMessage.mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          releaseFirst = () => resolve({ id: 'm1' });
+        })
+    );
+    const sync = offlineManager.forceSync();
+    await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(1));
+
+    signInAs(view, userB);
+    await waitFor(() => expect(connectedAs).toBe('user-b'));
+    releaseFirst();
+    await sync;
+
+    expect(sendMessage).toHaveBeenCalledTimes(1);
+    expect(sendMessage).toHaveBeenCalledWith('c1', 'first from A');
+    expect(offlineManager.getCurrentState().pendingMessages).toEqual([]);
   });
 });
