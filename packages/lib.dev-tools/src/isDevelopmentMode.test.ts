@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 // Stub all vanilla-extract CSS files before importing the module under test.
 // lib.dev-tools' vitest config does not include the css.ts transform that the
