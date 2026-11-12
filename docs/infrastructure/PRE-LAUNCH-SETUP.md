@@ -133,14 +133,18 @@ The swap gives headroom for memory spikes. `/opt/ads` holds everything the deplo
 
 ## Step 7. Lock down SSH
 
-**Where: root SSH window.** Turn off password logins and root login over SSH:
+**Where: root SSH window.** Turn off password logins and root login over SSH, and make the server present only its ED25519 host key:
 
 ```bash
-printf 'PasswordAuthentication no\nPermitRootLogin no\nKbdInteractiveAuthentication no\n' > /etc/ssh/sshd_config.d/00-hardening.conf
-sshd -t && sshd -T | grep -Ei '^(passwordauthentication|permitrootlogin|kbdinteractiveauthentication) '
+printf 'PasswordAuthentication no\nPermitRootLogin no\nKbdInteractiveAuthentication no\nHostKeyAlgorithms ssh-ed25519\n' > /etc/ssh/sshd_config.d/00-hardening.conf
+sshd -t && sshd -T | grep -Ei '^(passwordauthentication|permitrootlogin|kbdinteractiveauthentication|hostkeyalgorithms) '
 ```
 
-Expected: three lines, each ending in `no`. Then apply it:
+Expected: three lines ending in `no`, and `hostkeyalgorithms ssh-ed25519`.
+
+The server also has ECDSA and RSA host keys, and the SSH client the deploy uses may pick one of those. The deploy checks the host key against the ED25519 fingerprint you record in step 8, so if the server can offer another key type the deploy fails with `host key fingerprint mismatch`. `HostKeyAlgorithms` stops that. (A `HostKey` line would not: `HostKey` lines from every config file add up, and netcup's image lists the RSA key.)
+
+Then apply it:
 
 ```bash
 systemctl reload ssh
@@ -168,9 +172,19 @@ From now on:
 ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub | awk '{print $2}'
 ```
 
-Copy the `SHA256:…` value. It becomes `NETCUP_HOST_FINGERPRINT` in step 10. Read it here, not over the network: GitHub uses it to make sure it is talking to your server.
+Copy the `SHA256:…` value. It becomes `NETCUP_HOST_FINGERPRINT` in step 10. Read it here, not over the network: GitHub uses it to make sure it is talking to your server. netcup's setup email also lists the host key fingerprints; use the **ED25519** `SHA256:` one, never the MD5, ECDSA or RSA ones.
 
-Then check that the fingerprint your laptop showed the first time you connected matches this value. If your netcup plan has snapshots, take one now.
+Then check that the fingerprint your laptop showed the first time you connected matches this value.
+
+**Where: laptop terminal.** Check the server now offers only that key:
+
+```bash
+ssh-keyscan <vps-ip> 2>/dev/null | ssh-keygen -lf -
+```
+
+Expected: one line ending in `(ED25519)`, with the same `SHA256:…` value.
+
+If your netcup plan has snapshots, take one now.
 
 ## Step 9. DNS
 
@@ -196,21 +210,26 @@ Ignore its "Copy these into your .env file" header: these values go into GitHub,
 
 **Where: website — GitHub, repository → Settings → Secrets and variables → Actions → Secrets.** Add:
 
-| Secret                    | Value                                                                    |
-| ------------------------- | ------------------------------------------------------------------------ |
-| `NETCUP_HOST`             | `<vps-ip>`                                                               |
-| `NETCUP_SSH_KEY`          | The whole contents of `~/.ssh/ads-deploy` (the private key, from step 1) |
-| `NETCUP_HOST_FINGERPRINT` | The `SHA256:…` value from step 8                                         |
-| `GHCR_TOKEN`              | A classic personal access token with **only** `read:packages`            |
-| `JWT_SECRET`              | From `pnpm secrets:generate`                                             |
-| `JWT_REFRESH_SECRET`      | From `pnpm secrets:generate`                                             |
-| `ENCRYPTION_KEY`          | From `pnpm secrets:generate`                                             |
-| `UPLOAD_SIGNING_SECRET`   | From `pnpm secrets:generate`                                             |
-| `DB_PASSWORD`             | The `POSTGRES_PASSWORD` value from `pnpm secrets:generate`               |
-| `PRINCIPAL_SIGNING_KEY`   | From `pnpm secrets:generate`                                             |
-| `NATS_AUTH_TOKEN`         | From `pnpm secrets:generate`                                             |
+| Secret                    | Value                                                              |
+| ------------------------- | ------------------------------------------------------------------ |
+| `NETCUP_HOST`             | `<vps-ip>`                                                         |
+| `NETCUP_SSH_KEY`          | Set with the command below, straight from the key file             |
+| `NETCUP_HOST_FINGERPRINT` | Set with the command below, using the `SHA256:…` value from step 8 |
+| `GHCR_TOKEN`              | A classic personal access token with **only** `read:packages`      |
+| `JWT_SECRET`              | From `pnpm secrets:generate`                                       |
+| `JWT_REFRESH_SECRET`      | From `pnpm secrets:generate`                                       |
+| `ENCRYPTION_KEY`          | From `pnpm secrets:generate`                                       |
+| `UPLOAD_SIGNING_SECRET`   | From `pnpm secrets:generate`                                       |
+| `DB_PASSWORD`             | The `POSTGRES_PASSWORD` value from `pnpm secrets:generate`         |
+| `PRINCIPAL_SIGNING_KEY`   | From `pnpm secrets:generate`                                       |
+| `NATS_AUTH_TOKEN`         | From `pnpm secrets:generate`                                       |
 
-To print the private key for `NETCUP_SSH_KEY`, run `cat ~/.ssh/ads-deploy` on your laptop and copy everything, including the `BEGIN` and `END` lines.
+**Where: laptop terminal**, in the repository folder. Set the two SSH secrets with `gh` rather than pasting them into the website. Copy-paste easily breaks both: a private key that loses its `BEGIN`/`END` lines or line breaks fails with `ssh: no key found`, and a fingerprint with a missing `SHA256:` prefix or a stray space fails with `host key fingerprint mismatch`.
+
+```bash
+gh secret set NETCUP_SSH_KEY < ~/.ssh/ads-deploy       # the private key file, not ads-deploy.pub
+gh secret set NETCUP_HOST_FINGERPRINT --body "SHA256:<rest of the value from step 8>"
+```
 
 **Where: website — GitHub, repository → Settings → Environments.**
 
