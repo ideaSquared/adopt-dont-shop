@@ -35,7 +35,9 @@ The `build-and-push` job:
 1. Has `permissions: id-token: write` so the runner can mint an OIDC token.
 2. After `docker push <image>:<sha>`, captures the registry digest from
    `docker inspect ... .RepoDigests`.
-3. Runs `cosign sign --yes <image>@<digest>` — this:
+3. Runs `cosign sign --yes <image>@<digest>` through `scripts/cosign-sign.sh`,
+   which retries a failed sign up to five times (the Actions OIDC token
+   endpoint occasionally answers with a non-JSON error body). Signing:
    - Mints an OIDC token from GitHub Actions.
    - Exchanges it at Fulcio for a short-lived signing cert whose SAN
      identifies the workflow + branch.
