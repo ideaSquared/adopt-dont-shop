@@ -24,6 +24,8 @@ import type { Principal } from '@adopt-dont-shop/authz';
 import type {
   ChangePasswordRequest,
   ChangePasswordResponse,
+  DeleteUnverifiedRescueOwnerRequest,
+  DeleteUnverifiedRescueOwnerResponse,
   ForgotPasswordRequest,
   ForgotPasswordResponse,
   ProvisionInvitedUserRequest,
@@ -378,6 +380,62 @@ export async function registerRescueOwner(
     }
     throw err;
   }
+}
+
+// --- DeleteUnverifiedRescueOwner --------------------------------------
+
+// Compensates RegisterRescueOwner when the gateway's follow-up
+// rescue.RegisterRescue call fails, so a failed public sign-up never leaves
+// an orphan account the user can't retry with (ADS-1474). Hard-deletes —
+// nothing meaningful was ever created on an unverified row — but only when
+// it still matches exactly what RegisterRescueOwner just produced, so a row
+// that got verified or attached to a rescue in the meantime is left alone.
+export async function deleteUnverifiedRescueOwner(
+  deps: HandlerDeps,
+  _principal: Principal | null,
+  req: DeleteUnverifiedRescueOwnerRequest
+): Promise<DeleteUnverifiedRescueOwnerResponse> {
+  void _principal;
+  if (!req.userId || !req.email) {
+    throw new HandlerError('INVALID_ARGUMENT', 'user_id and email are required');
+  }
+
+  const deleted = await withTransaction(deps, async ({ client, publish }) => {
+    const res = await client.query<{ user_id: string }>(
+      `
+      DELETE FROM auth.users
+      WHERE user_id = $1
+        AND email = $2
+        AND status = 'pending_verification'
+        AND user_type = 'rescue_staff'
+        AND email_verified = false
+      RETURNING user_id
+      `,
+      [req.userId, req.email]
+    );
+    if (res.rows.length === 0) {
+      return false;
+    }
+    publish({
+      type: 'auth.actionTaken',
+      id: `auth.actionTaken.${randomUUID()}`,
+      payload: {
+        eventId: randomUUID(),
+        service: 'service.auth',
+        subject: 'auth.actionTaken',
+        aggregateType: 'user',
+        aggregateId: req.userId,
+        actorUserId: req.userId,
+        action: 'delete',
+        outcome: 'success',
+        occurredAt: new Date().toISOString(),
+        payload: { reason: 'rescue_registration_rollback' },
+      },
+    });
+    return true;
+  });
+
+  return { deleted };
 }
 
 // Tells the holder of an already-registered email that someone tried to use it

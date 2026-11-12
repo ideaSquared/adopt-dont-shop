@@ -29,6 +29,7 @@ import {
   redeemInvitation,
   register,
   registerRescueOwner,
+  deleteUnverifiedRescueOwner,
   resendVerification,
   resetPassword,
   updateAccount,
@@ -142,6 +143,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     // Public rescue sign-up owner account: only reachable via the gateway's
     // rate-limited POST /api/v1/rescues/register.
     registerRescueOwner: adaptUnauth(registerRescueOwner, { deps, logger }),
+    deleteUnverifiedRescueOwner: adaptUnauth(deleteUnverifiedRescueOwner, { deps, logger }),
     verifyEmail: adaptUnauth(verifyEmail, { deps, logger }),
     resendVerification: adaptUnauth(resendVerification, { deps, logger }),
     forgotPassword: adaptUnauth(forgotPassword, { deps, logger }),
@@ -216,7 +218,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     deleteFieldPermission: adapt(deleteFieldPermission, { deps, logger }),
   });
 
-  logger.info('gRPC AuthService registered', { count: 59, grpcPort: config.grpcPort });
+  logger.info('gRPC AuthService registered', { count: 60, grpcPort: config.grpcPort });
 
   return server;
 };

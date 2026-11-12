@@ -7,6 +7,7 @@ import type { Permission, UserId } from '@adopt-dont-shop/lib.types';
 
 import {
   changePassword,
+  deleteUnverifiedRescueOwner,
   forgotPassword,
   provisionInvitedUser,
   redeemInvitation,
@@ -433,6 +434,53 @@ describe('registerRescueOwner', () => {
     const res = await registerRescueOwner(mocks.deps, null, OWNER_REQ);
 
     expect(res.user).toBeUndefined();
+  });
+});
+
+describe('deleteUnverifiedRescueOwner', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => vi.resetAllMocks());
+
+  const DELETE_REQ = {
+    userId: 'usr-owner',
+    email: 'owner@example.com',
+  } as Parameters<typeof deleteUnverifiedRescueOwner>[2];
+
+  it('rejects a missing user_id or email', async () => {
+    await expect(
+      deleteUnverifiedRescueOwner(mocks.deps, null, { ...DELETE_REQ, userId: '' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    await expect(
+      deleteUnverifiedRescueOwner(mocks.deps, null, { ...DELETE_REQ, email: '' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('deletes a still-unverified rescue owner and publishes an audit event', async () => {
+    mocks.clientScript([{ user_id: 'usr-owner' }]);
+
+    const res = await deleteUnverifiedRescueOwner(mocks.deps, null, DELETE_REQ);
+
+    expect(res.deleted).toBe(true);
+    const [deleteSql, params] = realQueries(mocks.clientMock.query)[0];
+    expect(String(deleteSql)).toContain('DELETE FROM auth.users');
+    expect(String(deleteSql)).toContain("status = 'pending_verification'");
+    expect(String(deleteSql)).toContain("user_type = 'rescue_staff'");
+    expect(params).toEqual(['usr-owner', 'owner@example.com']);
+    expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
+    const [subject] = mocks.natsMock.publish.mock.calls[0];
+    expect(subject).toBe('auth.actionTaken');
+  });
+
+  it('is a no-op and publishes nothing when the row no longer matches (already verified, moved on, or gone)', async () => {
+    mocks.clientScript([]);
+
+    const res = await deleteUnverifiedRescueOwner(mocks.deps, null, DELETE_REQ);
+
+    expect(res.deleted).toBe(false);
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 });
 
