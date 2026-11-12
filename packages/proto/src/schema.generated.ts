@@ -4701,6 +4701,45 @@ export const PROTO_SCHEMA: ProtoSchema = {
       fullName: 'adopt_dont_shop.auth.v1.DeleteIpRuleResponse',
       fields: [],
     },
+    'adopt_dont_shop.auth.v1.DeleteUnverifiedRescueOwnerRequest': {
+      fullName: 'adopt_dont_shop.auth.v1.DeleteUnverifiedRescueOwnerRequest',
+      fields: [
+        {
+          name: 'user_id',
+          jsonName: 'userId',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: false,
+          optional: false,
+          sensitivity: null,
+        },
+        {
+          name: 'email',
+          jsonName: 'email',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: false,
+          optional: false,
+          sensitivity: 'PII',
+        },
+      ],
+    },
+    'adopt_dont_shop.auth.v1.DeleteUnverifiedRescueOwnerResponse': {
+      fullName: 'adopt_dont_shop.auth.v1.DeleteUnverifiedRescueOwnerResponse',
+      fields: [
+        {
+          name: 'deleted',
+          jsonName: 'deleted',
+          kind: 'scalar',
+          scalarType: 'bool',
+          repeated: false,
+          optional: false,
+          sensitivity: null,
+          comment:
+            'False when the row no longer matched (already verified, already\nattached to a rescue by a retried call, or already gone) — a no-op,\nnot an error.',
+        },
+      ],
+    },
     'adopt_dont_shop.auth.v1.DisableTwoFactorRequest': {
       fullName: 'adopt_dont_shop.auth.v1.DisableTwoFactorRequest',
       fields: [
@@ -22948,6 +22987,13 @@ export const PROTO_SCHEMA: ProtoSchema = {
           outputType: 'adopt_dont_shop.auth.v1.RegisterRescueOwnerResponse',
           comment:
             'Public rescue sign-up: create the owner account of a rescue that is\nregistering. Like Register it starts pending_verification and mails a\nverification_token (no tokens issued), but the account is user_type\nrescue_staff and the new user_id is returned so the gateway can attach\nthem to the pending rescue. Enumeration-safe: an email that is already\nregistered gets an empty response (no user, no error), no account is\ncreated, and the existing holder is notified instead.\nService-internal — the gateway only exposes it behind\nPOST /api/v1/rescues/register.',
+        },
+        {
+          name: 'DeleteUnverifiedRescueOwner',
+          inputType: 'adopt_dont_shop.auth.v1.DeleteUnverifiedRescueOwnerRequest',
+          outputType: 'adopt_dont_shop.auth.v1.DeleteUnverifiedRescueOwnerResponse',
+          comment:
+            'Compensates a RegisterRescueOwner call when the RegisterRescue step that\nfollows it fails, so a public rescue sign-up never leaves an orphan\naccount behind. Deletes the row only when it still matches exactly what\nRegisterRescueOwner just created (same user_id and email, still\npending_verification, still user_type rescue_staff, still unverified) —\nnever a verified account or one already attached to a rescue. A no-op\n(deleted=false) when the row no longer matches, which the caller treats\nas "nothing to roll back" rather than an error.\nService-internal — the gateway only calls this from its\nPOST /api/v1/rescues/register compensation path.',
         },
         {
           name: 'VerifyEmail',

@@ -17,6 +17,8 @@ import {
   type AssignRoleResponse,
   type ChangePasswordRequest,
   type ChangePasswordResponse,
+  type DeleteUnverifiedRescueOwnerRequest,
+  type DeleteUnverifiedRescueOwnerResponse,
   type VerifyCredentialsRequest,
   type VerifyCredentialsResponse,
   type AuthCheckSelfErasureRequest,
@@ -153,6 +155,12 @@ export type AuthClient = {
     req: RegisterRescueOwnerRequest,
     metadata: Metadata
   ): Promise<RegisterRescueOwnerResponse>;
+  // Compensation for a RegisterRescueOwner whose follow-up rescue creation
+  // failed (ADS-1474) — deletes the orphaned owner account.
+  deleteUnverifiedRescueOwner(
+    req: DeleteUnverifiedRescueOwnerRequest,
+    metadata: Metadata
+  ): Promise<DeleteUnverifiedRescueOwnerResponse>;
   provisionInvitedUser(
     req: ProvisionInvitedUserRequest,
     metadata: Metadata
@@ -387,6 +395,10 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     register: (req, metadata) => callUnary(stub.register, req, metadata, false),
     registerRescueOwner: (req, metadata) =>
       callUnary(stub.registerRescueOwner, req, metadata, false),
+    // Idempotent: deleting an already-deleted/already-moved-on row is a safe
+    // no-op (deleted: false), so a resilience retry can't double-apply it.
+    deleteUnverifiedRescueOwner: (req, metadata) =>
+      callUnary(stub.deleteUnverifiedRescueOwner, req, metadata, true),
     provisionInvitedUser: (req, metadata) =>
       callUnary(stub.provisionInvitedUser, req, metadata, false),
     verifyEmail: (req, metadata) => callUnary(stub.verifyEmail, req, metadata, false),
