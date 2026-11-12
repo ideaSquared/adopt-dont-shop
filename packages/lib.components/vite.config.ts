@@ -39,6 +39,12 @@ export default defineConfig(({ mode }) => ({
           '@radix-ui/react-select',
           'clsx',
           'react-world-flags',
+          // recharts pulls in CommonJS (use-sync-external-store) that
+          // requires react. With react external here, bundling it compiles
+          // those requires to rolldown's runtime `require` shim, which throws
+          // in the browser and blanked every app. Left external, the app's
+          // build resolves it together with react.
+          'recharts',
         ],
         output: {
           globals: {
@@ -51,6 +57,7 @@ export default defineConfig(({ mode }) => ({
             '@radix-ui/react-select': 'RadixSelect',
             clsx: 'clsx',
             'react-world-flags': 'ReactWorldFlags',
+            recharts: 'Recharts',
           },
         },
       },

@@ -130,6 +130,13 @@ COPY --chown=viteuser:nodejs tsconfig.base.json tsconfig.cjs.base.json tsconfig.
 RUN --mount=type=cache,id=turbo-${APP_NAME},target=/app/.turbo,uid=1001 \
     NODE_ENV=production pnpm exec turbo run build --filter=...@adopt-dont-shop/app.${APP_NAME}
 
+# Fail the image build if the bundle would call `require` in the browser.
+# A CommonJS dependency bundled where its require() could not be resolved
+# ships rolldown's runtime shim, which throws on load and renders a blank
+# page; nothing else in CI loads a production bundle in a browser.
+COPY --chown=viteuser:nodejs scripts/check-runtime-require.mjs ./scripts/
+RUN node scripts/check-runtime-require.mjs /app/apps/${APP_NAME}/dist
+
 # Upload sourcemaps to Sentry using a BuildKit secret so the auth token never
 # lands in an image layer. Gracefully skips when the secret is absent so local
 # and CI builds work without Sentry credentials configured.
