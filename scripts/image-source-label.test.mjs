@@ -17,10 +17,9 @@ const productionStage = dockerfile => {
   return next === -1 ? rest : rest.slice(0, next);
 };
 
-// deploy.yml pushes these images to GHCR with the workflow's GITHUB_TOKEN. A
-// package's first push only gets access through that token when the image
-// names its source repository, so an image without the label is refused
-// ("denied") the first time its package has to be created.
+// Every image deploy.yml publishes to GHCR names its source repository, so
+// its package is linked to this repository explicitly rather than relying on
+// GHCR's implicit linking.
 describe('published images name their source repository', () => {
   it.each(['Dockerfile.service', 'Dockerfile.app'])(
     '%s production stage carries org.opencontainers.image.source',
