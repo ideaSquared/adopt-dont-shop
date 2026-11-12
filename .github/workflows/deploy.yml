@@ -361,7 +361,7 @@ jobs:
               --build-arg SERVICE_DIR="$dir" \
               -t "$ref" \
               .
-            docker push "$ref"
+            bash scripts/ghcr-push.sh "$ref"
             # ADS-673: sign by digest (immutable) via cosign keyless OIDC.
             DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$ref" | cut -d@ -f2)
             echo "Signing $IMAGE_PREFIX/$image@$DIGEST"
@@ -399,7 +399,7 @@ jobs:
             --secret id=sentry_auth,env=SENTRY_AUTH_TOKEN \
             -t $IMAGE_PREFIX/app-client:${{ github.sha }}-${{ github.event.inputs.environment }} \
             .
-          docker push $IMAGE_PREFIX/app-client:${{ github.sha }}-${{ github.event.inputs.environment }}
+          bash scripts/ghcr-push.sh "$IMAGE_PREFIX/app-client:${{ github.sha }}-${{ github.event.inputs.environment }}"
           # ADS-673: cosign keyless sign by digest.
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-client:${{ github.sha }}-${{ github.event.inputs.environment }}" | cut -d@ -f2)
           echo "Signing $IMAGE_PREFIX/app-client@$DIGEST"
@@ -425,7 +425,7 @@ jobs:
             --secret id=sentry_auth,env=SENTRY_AUTH_TOKEN \
             -t $IMAGE_PREFIX/app-admin:${{ github.sha }}-${{ github.event.inputs.environment }} \
             .
-          docker push $IMAGE_PREFIX/app-admin:${{ github.sha }}-${{ github.event.inputs.environment }}
+          bash scripts/ghcr-push.sh "$IMAGE_PREFIX/app-admin:${{ github.sha }}-${{ github.event.inputs.environment }}"
           # ADS-673: cosign keyless sign by digest.
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-admin:${{ github.sha }}-${{ github.event.inputs.environment }}" | cut -d@ -f2)
           echo "Signing $IMAGE_PREFIX/app-admin@$DIGEST"
@@ -451,7 +451,7 @@ jobs:
             --secret id=sentry_auth,env=SENTRY_AUTH_TOKEN \
             -t $IMAGE_PREFIX/app-rescue:${{ github.sha }}-${{ github.event.inputs.environment }} \
             .
-          docker push $IMAGE_PREFIX/app-rescue:${{ github.sha }}-${{ github.event.inputs.environment }}
+          bash scripts/ghcr-push.sh "$IMAGE_PREFIX/app-rescue:${{ github.sha }}-${{ github.event.inputs.environment }}"
           # ADS-673: cosign keyless sign by digest.
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-rescue:${{ github.sha }}-${{ github.event.inputs.environment }}" | cut -d@ -f2)
           echo "Signing $IMAGE_PREFIX/app-rescue@$DIGEST"
