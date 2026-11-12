@@ -91,6 +91,7 @@
   "check:tokens": "Ratchet: fail if any category of hard-coded style value (colour, font, spacing, radius, z-index) in the apps' .css.ts files exceeds its persisted ceiling (prefer vars.* tokens).",
   "check:bundle-size": "Guard: fail if any app's built dist/ (.js + .css, excluding sourcemaps) exceeds its persisted budget in scripts/check-bundle-size.mjs. Run `pnpm build:apps` first.",
   "check:runtime-require": "Guard: fail if any app's built dist/ would call `require` in the browser (rolldown's runtime shim for an unresolved CommonJS require, which blanks the page). Run `pnpm build:apps` first.",
+  "check:css-vars": "Guard: fail if any app's built dist/ CSS reads vanilla-extract theme variables that no stylesheet defines, or ships no global body styles (the app would render unstyled). Run `pnpm build:apps` first.",
   "check:dev-auth-guard": "Guard: fail if a dev-auth bypass pattern (dev_user / dev-token-) appears in production source outside its allowed DEV-gated locations.",
   "check:permission-casts": "Guard: fail if any services/**/grpc handler reintroduces a quoted-literal `as Permission` cast instead of importing the permission constant from lib.types.",
   "check:commit-messages": "Lint every commit since origin/main with commitlint (mirrors ci.yml's commit-lint job) — the local commit-msg hook only checks the message you're currently writing.",
