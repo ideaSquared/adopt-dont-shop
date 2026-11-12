@@ -137,6 +137,13 @@ RUN --mount=type=cache,id=turbo-${APP_NAME},target=/app/.turbo,uid=1001 \
 COPY --chown=viteuser:nodejs scripts/check-runtime-require.mjs ./scripts/
 RUN node scripts/check-runtime-require.mjs /app/apps/${APP_NAME}/dist
 
+# Fail the image build if the bundle would render unstyled: CSS that reads
+# theme variables nothing defines, or lib.components' global styles missing.
+# The dev server compiles lib.components from source, so only a production
+# build shows either.
+COPY --chown=viteuser:nodejs scripts/check-css-vars.mjs ./scripts/
+RUN node scripts/check-css-vars.mjs /app/apps/${APP_NAME}/dist
+
 # Upload sourcemaps to Sentry using a BuildKit secret so the auth token never
 # lands in an image layer. Gracefully skips when the secret is absent so local
 # and CI builds work without Sentry credentials configured.
