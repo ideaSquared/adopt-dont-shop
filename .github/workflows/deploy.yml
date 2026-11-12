@@ -365,7 +365,7 @@ jobs:
             # ADS-673: sign by digest (immutable) via cosign keyless OIDC.
             DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$ref" | cut -d@ -f2)
             echo "Signing $IMAGE_PREFIX/$image@$DIGEST"
-            cosign sign --yes "$IMAGE_PREFIX/$image@$DIGEST"
+            bash scripts/cosign-sign.sh "$IMAGE_PREFIX/$image@$DIGEST"
             echo "::endgroup::"
           done
 
@@ -403,7 +403,7 @@ jobs:
           # ADS-673: cosign keyless sign by digest.
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-client:${{ github.sha }}-${{ github.event.inputs.environment }}" | cut -d@ -f2)
           echo "Signing $IMAGE_PREFIX/app-client@$DIGEST"
-          cosign sign --yes "$IMAGE_PREFIX/app-client@$DIGEST"
+          bash scripts/cosign-sign.sh "$IMAGE_PREFIX/app-client@$DIGEST"
 
       - name: Build and push app.admin
         env:
@@ -429,7 +429,7 @@ jobs:
           # ADS-673: cosign keyless sign by digest.
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-admin:${{ github.sha }}-${{ github.event.inputs.environment }}" | cut -d@ -f2)
           echo "Signing $IMAGE_PREFIX/app-admin@$DIGEST"
-          cosign sign --yes "$IMAGE_PREFIX/app-admin@$DIGEST"
+          bash scripts/cosign-sign.sh "$IMAGE_PREFIX/app-admin@$DIGEST"
 
       - name: Build and push app.rescue
         env:
@@ -455,7 +455,7 @@ jobs:
           # ADS-673: cosign keyless sign by digest.
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-rescue:${{ github.sha }}-${{ github.event.inputs.environment }}" | cut -d@ -f2)
           echo "Signing $IMAGE_PREFIX/app-rescue@$DIGEST"
-          cosign sign --yes "$IMAGE_PREFIX/app-rescue@$DIGEST"
+          bash scripts/cosign-sign.sh "$IMAGE_PREFIX/app-rescue@$DIGEST"
 
   # ADS-673: Cosign signature verification gate. Runs BEFORE the deploy job
   # so a tampered or unsigned image cannot reach the production host.
