@@ -9,7 +9,8 @@
   "type": "module",
   "style": "dist/adopt-dont-shop-components.css",
   "sideEffects": [
-    "**/*.css"
+    "**/*.css",
+    "**/*.css.ts"
   ],
   "engines": {
     "node": ">=24.0.0"

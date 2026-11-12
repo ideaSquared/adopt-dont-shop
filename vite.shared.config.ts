@@ -8,12 +8,21 @@ import type { Plugin } from 'vite';
  * for hot reloading without needing to rebuild library containers
  */
 export function getLibraryAliases(appDir: string, mode: string) {
+  // lib.components is compiled from source in every mode. Its prebuilt dist
+  // ships the vanilla-extract CSS as a separate file no bundle imports (and
+  // its theme build overwrites that file), so a production build against dist
+  // rendered unstyled. The app's own vanillaExtractPlugin compiles the .css.ts
+  // files, exactly as in dev. scripts/check-css-vars.mjs guards this.
+  const componentsAlias = {
+    '@adopt-dont-shop/lib.components': resolve(appDir, '../../packages/lib.components/src'),
+  };
+
   if (mode !== 'development') {
-    return {};
+    return componentsAlias;
   }
 
   const libraryAliases = {
-    '@adopt-dont-shop/lib.components': resolve(appDir, '../../packages/lib.components/src'),
+    ...componentsAlias,
     '@adopt-dont-shop/lib.account': resolve(appDir, '../../packages/lib.account/src'),
     '@adopt-dont-shop/lib.analytics': resolve(appDir, '../../packages/lib.analytics/src'),
     '@adopt-dont-shop/lib.api': resolve(appDir, '../../packages/lib.api/src'),
