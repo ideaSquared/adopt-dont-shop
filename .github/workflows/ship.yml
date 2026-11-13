@@ -1,0 +1,88 @@
+# Deploys ADS through ideaSquared/shipper (see ship.yaml): shipper's gate, then this repo's own
+# deploy.yml (images, cosign, approvals, SSH, health gate — unchanged), then shipper's Discord
+# report, which also updates the #ship-status board.
+#
+# - Staging: automatically once CI passes on a push to main, or `ship deploy ads staging`.
+# - Production: `ship production ads` (or Actions → Ship → Run workflow → production). Shipper's
+#   gate only accepts a commit that is already live on staging; deploy.yml then runs its own CI and
+#   production-smoke gates and the production approval, as before.
+#
+# Emergency bypasses (skip_ci_check, skip_cosign_verify, allow_blind_deploy) stay on deploy.yml's
+# own Run workflow form, where they are audited.
+name: Ship
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to deploy main to
+        type: choice
+        options: [staging, production]
+        default: staging
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ship-${{ github.event_name == 'workflow_run' && 'staging' || inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  target:
+    # A CI run on main deploys staging only if it passed; a manual run deploys what was picked.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.pick.outputs.environment }}
+    steps:
+      - id: pick
+        env:
+          PICKED: ${{ inputs.environment }}
+        run: echo "environment=${PICKED:-staging}" >> "$GITHUB_OUTPUT"
+
+  gate:
+    needs: target
+    permissions:
+      contents: read
+      checks: read
+      deployments: read
+    uses: ideaSquared/shipper/.github/workflows/gate.yml@d0c19f9e3b3eb634f17ffd7cfec610d30883b1ec # v1 (shipper#10)
+    with:
+      environment: ${{ needs.target.outputs.environment }}
+      # Same commit as the uses: line (ADS pins every action to a SHA, see workflows/README.md).
+      shipper-ref: d0c19f9e3b3eb634f17ffd7cfec610d30883b1ec
+    secrets: inherit
+
+  deploy:
+    needs: [target, gate]
+    permissions:
+      contents: read
+      issues: write
+      packages: write
+      actions: read
+      checks: read
+      id-token: write
+      deployments: write
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: ${{ needs.target.outputs.environment }}
+    secrets: inherit
+
+  report:
+    needs: [target, gate, deploy]
+    if: always() && needs.gate.result == 'success'
+    permissions:
+      contents: read
+      deployments: read
+    uses: ideaSquared/shipper/.github/workflows/report.yml@d0c19f9e3b3eb634f17ffd7cfec610d30883b1ec # v1 (shipper#10)
+    with:
+      environment: ${{ needs.target.outputs.environment }}
+      outcome: ${{ needs.deploy.result }}
+      shipper-ref: d0c19f9e3b3eb634f17ffd7cfec610d30883b1ec
+    secrets: inherit
