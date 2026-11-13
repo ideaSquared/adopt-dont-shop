@@ -87,6 +87,8 @@ jobs:
               - '.npmrc'
               - 'turbo.json'
               - 'tsconfig*.json'
+              # Dockerfile.app copies it into every app image (ADS-895).
+              - 'vite.shared.config.ts'
               - 'docs/legal/**'
               - '.github/workflows/docker.yml'
             # What decides how a host boots: the files the production smoke
@@ -447,12 +449,13 @@ jobs:
     needs: changes
     # On a PR only when Dockerfile.dev's inputs changed (the `dev-image`
     # filter): a PR never publishes, and a source-only change cannot break
-    # this build. Pushes keep the broad `docker` scope so :latest stays fresh.
+    # this build. Pushes publish when either filter matches (`dev-image` also
+    # covers install inputs such as e2e/package.json) so :latest stays fresh.
     if: >-
       ${{
         github.event_name == 'workflow_dispatch' ||
         (github.event_name == 'pull_request' && needs.changes.outputs.dev-image == 'true') ||
-        (github.event_name != 'pull_request' && needs.changes.outputs.docker == 'true')
+        (github.event_name != 'pull_request' && (needs.changes.outputs.docker == 'true' || needs.changes.outputs.dev-image == 'true'))
       }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
