@@ -33,7 +33,7 @@ Reference for the GitHub Actions workflows in this directory: what each one does
 
 Main continuous integration pipeline, runs on every push and pull request to `main` / `develop`.
 
-The `ci-required` aggregator job fans in thirteen jobs (`workspace-drift`, `commit-lint`, `changes`, `build-libs`, `test-frontend`, `test-libs`, `test-packages`, `test-services`, `test-contracts`, `dev-auth-guard`, `test-e2e`, `test-e2e-smoke`, `validate-observability-config`) and is the single required status check for branch protection — see [Branch Protection](#branch-protection). The per-job breakdown lives in [CONTRIBUTING.md → Full CI matrix](../../CONTRIBUTING.md#before-opening-a-pr).
+The `ci-required` aggregator job fans in fourteen jobs (`workspace-drift`, `commit-lint`, `changes`, `build-libs`, `test-frontend`, `test-libs`, `test-packages`, `test-services`, `test-contracts`, `dev-auth-guard`, `test-e2e-shard`, `test-e2e`, `test-e2e-smoke`, `validate-observability-config`) and is the single required status check for branch protection — see [Branch Protection](#branch-protection). The per-job breakdown lives in [CONTRIBUTING.md → Full CI matrix](../../CONTRIBUTING.md#before-opening-a-pr).
 
 **E2E strategy** (ADS-386 / ADS-419, smoke gate ADS-1242 / ADS-1321):
 
@@ -56,7 +56,20 @@ smoke failure blocks merge, closing the gap where any of the headline
 journeys (auth, adoption application, chat, gateway login) could regress and
 merge green. Run `pnpm e2e:isolated` locally for the same subset on the same stack.
 
-Both e2e jobs run through the `e2e-suite` composite action against an **isolated, throwaway stack** (`docker-compose.e2e.yml`, compose project `ads-e2e`, apps on 13000-13002, gateway on 14000), driven by `scripts/e2e-isolated.mjs`: the same overlay and script a developer runs with `pnpm e2e:isolated`. The action builds the one shared dev image (`docker buildx bake`, gha cache scope `e2e-dev-image`, cache written only on non-PR runs), then the script generates fresh secrets, builds the `lib.*` packages on the host and boots the stack (the dev override's Vite dev servers on the e2e ports; no nginx, observability or ClamAV), seeds personas through the API, runs Playwright and tears down with `down -v` (the action also runs `--down` in an `always()` step). `test-e2e-smoke` runs the default `@smoke` subset; `test-e2e` passes `--full`, which also starts a second gateway with **production** rate limits for `e2e/tests/gateway-limits` (the main e2e gateway lifts its limits, so the limiter itself would otherwise go untested). Job names, triggers and the required-check wiring are unchanged. Details: [docs/DOCKER.md](../../docs/DOCKER.md#reproducing-ci-e2e-locally).
+On a push to `main` both run, side by side: `test-e2e-smoke` is the fast
+signal a staging deploy can gate on, and the full suite gates production.
+
+The full suite is **sharded four ways**: the `test-e2e-shard` matrix job runs
+`playwright test --shard=i/4` on four runners, each booting its own isolated
+stack, and the `test-e2e` job (still named **E2E Tests (Playwright)**) fans
+them in. It merges the shards' blob reports into one HTML report (artifact
+`e2e-playwright-report-merged`; each shard's traces and `docker-compose.log`
+are in `e2e-playwright-report-shard-<i>`) and fails unless every shard passed.
+Neither the shards nor the smoke job waits for `test-frontend` /
+`test-services`: they start as soon as `changes` has classified the run, and a
+unit failure still blocks merge and deploy through `ci-required`.
+
+Both e2e jobs run through the `e2e-suite` composite action against an **isolated, throwaway stack** (`docker-compose.e2e.yml`, compose project `ads-e2e`, apps on 13000-13002, gateway on 14000), driven by `scripts/e2e-isolated.mjs`: the same overlay and script a developer runs with `pnpm e2e:isolated`. The action builds the one shared dev image (`docker buildx bake`, gha cache scope `e2e-dev-image`, cache written only on non-PR runs), then the script generates fresh secrets, builds the `lib.*` packages on the host and boots the stack (the dev override's Vite dev servers on the e2e ports; no nginx, observability or ClamAV), seeds personas through the API, runs Playwright and tears down with `down -v` (the action also runs `--down` in an `always()` step). `test-e2e-smoke` runs the default `@smoke` subset; every `test-e2e-shard` passes `--full`, which also starts a second gateway with **production** rate limits for `e2e/tests/gateway-limits` (the main e2e gateway lifts its limits, so the limiter itself would otherwise go untested), so that spec runs in whichever shard Playwright assigns it. Details: [docs/DOCKER.md](../../docs/DOCKER.md#reproducing-ci-e2e-locally).
 
 **Coverage & timing report (ADS-947)**: after `test-frontend`/`test-libs`/`test-packages`/`test-services` finish, the `coverage-report` job posts a single sticky comment on the PR with per-package coverage delta vs `main` (only packages whose coverage changed) and this run's job timings — see `.github/actions/coverage-report`. It's purely informational (`continue-on-error: true`, not in `ci-required`'s needs) and degrades gracefully on forks, where the default `GITHUB_TOKEN` is read-only. The `main` baseline it diffs against is a `coverage-baseline` workflow artifact (30-day retention) written on each push to `main`, not a cache entry: the repo cache quota is dominated by buildkit blobs and evicted the baseline. Until a `main` run has uploaded one, every row shows as "(new)".
 
