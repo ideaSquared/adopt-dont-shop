@@ -45,6 +45,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       actions: read
+      contents: read
+      deployments: read
     outputs:
       environment: ${{ steps.pick.outputs.environment }}
     steps:
@@ -61,8 +63,11 @@ jobs:
             echo "environment=$PICKED" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          if [ "$RUN_SHA" != "$MAIN_SHA" ]; then
-            echo "${RUN_SHA:0:7} is no longer main's head (${MAIN_SHA:0:7}); not deploying it."
+          # github.sha (MAIN_SHA) is what deploy.yml deploys, fixed when this run was created; main
+          # may have moved on while it queued behind another deploy, so read main again now.
+          HEAD_NOW=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+          if [ "$RUN_SHA" != "$MAIN_SHA" ] || [ "$RUN_SHA" != "$HEAD_NOW" ]; then
+            echo "${RUN_SHA:0:7} is no longer main's head (${HEAD_NOW:0:7}); not deploying it."
             exit 0
           fi
           for workflow in ci.yml docker.yml; do
@@ -73,6 +78,16 @@ jobs:
               exit 0
             fi
           done
+          # CI and Docker finishing together can both get here; runs are serialised, so the second
+          # one sees the first one's deploy and stops. (A manual run can still redeploy.)
+          LIVE=$(gh api "repos/$GITHUB_REPOSITORY/deployments?environment=staging&sha=$RUN_SHA&per_page=10" --jq '.[].id' |
+            while read -r id; do
+              gh api "repos/$GITHUB_REPOSITORY/deployments/$id/statuses?per_page=1" --jq '.[0].state // empty'
+            done | grep -E '^(success|in_progress|queued|pending)$' || true)
+          if [ -n "$LIVE" ]; then
+            echo "${RUN_SHA:0:7} is already deployed (or deploying) to staging; not deploying it again."
+            exit 0
+          fi
           echo "environment=staging" >> "$GITHUB_OUTPUT"
 
   gate:
