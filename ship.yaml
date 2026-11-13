@@ -1,5 +1,5 @@
 # How ADS deploys with ideaSquared/shipper (`ship status ads`, `ship deploy ads staging`,
-# `ship production ads`, `ship rollback ads <env>`). The deploy itself is this repo's own
+# `ship deploy ads production`, `ship rollback ads <env>`). The deploy itself is this repo's own
 # .github/workflows/deploy.yml; .github/workflows/ship.yml runs shipper's gate before it and
 # shipper's Discord report after it.
 product: ads
