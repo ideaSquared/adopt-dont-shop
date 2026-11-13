@@ -41,11 +41,17 @@ const FORM_BODY = {
 
 function makeClients() {
   const registerRescueOwner = vi.fn();
+  const deleteUnverifiedRescueOwner = vi.fn().mockResolvedValue({ deleted: true });
   const registerRescue = vi.fn();
   return {
     registerRescueOwner,
+    deleteUnverifiedRescueOwner,
     registerRescue,
-    authClient: { registerRescueOwner, close: vi.fn() } as unknown as AuthClient,
+    authClient: {
+      registerRescueOwner,
+      deleteUnverifiedRescueOwner,
+      close: vi.fn(),
+    } as unknown as AuthClient,
     rescueClient: { registerRescue, close: vi.fn() } as unknown as RescueClient,
   };
 }
@@ -171,6 +177,72 @@ describe('POST /api/v1/rescues/register', () => {
     expect(existing.statusCode).toBe(fresh.statusCode);
     expect(existing.json()).toEqual(fresh.json());
     expect(m.registerRescue).toHaveBeenCalledTimes(1);
+  });
+
+  it('rolls back the owner account when rescue creation throws, then still surfaces the error', async () => {
+    m.registerRescueOwner.mockResolvedValueOnce({ user: { userId: 'usr-owner' } });
+    m.registerRescue.mockRejectedValueOnce(
+      Object.assign(new Error('duplicate key'), { code: 6 /* ALREADY_EXISTS */ })
+    );
+
+    const res = await post(FORM_BODY);
+
+    expect(res.statusCode).toBe(409);
+    expect(m.deleteUnverifiedRescueOwner).toHaveBeenCalledTimes(1);
+    expect(m.deleteUnverifiedRescueOwner.mock.calls[0][0]).toEqual({
+      userId: 'usr-owner',
+      email: 'owner@example.com',
+    });
+  });
+
+  it('rolls back the owner account when rescue creation returns no rescue', async () => {
+    m.registerRescueOwner.mockResolvedValueOnce({ user: { userId: 'usr-owner' } });
+    m.registerRescue.mockResolvedValueOnce({});
+
+    const res = await post(FORM_BODY);
+
+    expect(res.statusCode).toBe(500);
+    expect(m.deleteUnverifiedRescueOwner).toHaveBeenCalledTimes(1);
+    expect(m.deleteUnverifiedRescueOwner.mock.calls[0][0]).toEqual({
+      userId: 'usr-owner',
+      email: 'owner@example.com',
+    });
+  });
+
+  it('still surfaces the original error when the rollback itself fails', async () => {
+    m.registerRescueOwner.mockResolvedValueOnce({ user: { userId: 'usr-owner' } });
+    m.registerRescue.mockRejectedValueOnce(
+      Object.assign(new Error('duplicate key'), { code: 6 /* ALREADY_EXISTS */ })
+    );
+    m.deleteUnverifiedRescueOwner.mockRejectedValueOnce(new Error('auth unreachable'));
+
+    const res = await post(FORM_BODY);
+
+    expect(res.statusCode).toBe(409);
+  });
+
+  it('does not attempt a rollback when the owner email already existed (nothing new was created)', async () => {
+    m.registerRescueOwner.mockResolvedValueOnce({});
+
+    const res = await post(FORM_BODY);
+
+    expect(res.statusCode).toBe(201);
+    expect(m.deleteUnverifiedRescueOwner).not.toHaveBeenCalled();
+  });
+
+  it('resumes a retry by an existing rescue-less owner into a created rescue (ADS-1474)', async () => {
+    // auth answers a resumable, still-unverified rescue_staff account with
+    // its existing user, same as a brand-new one — not the empty response
+    // an already-complete account gets.
+    m.registerRescueOwner.mockResolvedValueOnce({ user: { userId: 'usr-orphan' } });
+    m.registerRescue.mockResolvedValueOnce({ rescue: RESCUE });
+
+    const res = await post(FORM_BODY);
+
+    expect(res.statusCode).toBe(201);
+    expect(m.registerRescue).toHaveBeenCalledTimes(1);
+    expect(m.registerRescue.mock.calls[0][0]).toMatchObject({ ownerUserId: 'usr-orphan' });
+    expect(m.deleteUnverifiedRescueOwner).not.toHaveBeenCalled();
   });
 
   it('caps sign-ups per owner email across IPs, so one inbox cannot be flooded', async () => {

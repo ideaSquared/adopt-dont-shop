@@ -7,6 +7,7 @@ import type { Permission, UserId } from '@adopt-dont-shop/lib.types';
 
 import {
   changePassword,
+  deleteUnverifiedRescueOwner,
   forgotPassword,
   provisionInvitedUser,
   redeemInvitation,
@@ -379,6 +380,47 @@ describe('registerRescueOwner', () => {
     expect(event.payload.userId).toBe('usr-existing');
   });
 
+  it('resumes a still-unverified rescue_staff account instead of a dead-end neutral response (ADS-1474)', async () => {
+    const orphan = userRowFixture({
+      user_id: 'usr-orphan',
+      email: 'owner@example.com',
+      user_type: 'rescue_staff',
+      status: 'pending_verification',
+      email_verified: false,
+    });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [orphan] });
+    mocks.hasherMock.hash.mockResolvedValue('$2b$10$hashed');
+
+    const res = await registerRescueOwner(mocks.deps, null, OWNER_REQ);
+
+    expect(res.user?.userId).toBe('usr-orphan');
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+    expect(
+      realQueries(mocks.clientMock.query).some(([sql]) =>
+        String(sql).includes('INSERT INTO auth.users')
+      )
+    ).toBe(false);
+  });
+
+  it('does not resume an existing account that is verified, active, or not a rescue owner', async () => {
+    const verifiedOwner = userRowFixture({
+      user_id: 'usr-verified',
+      email: 'owner@example.com',
+      user_type: 'rescue_staff',
+      status: 'active',
+      email_verified: true,
+    });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [verifiedOwner] });
+    mocks.hasherMock.hash.mockResolvedValue('$2b$10$hashed');
+
+    const res = await registerRescueOwner(mocks.deps, null, OWNER_REQ);
+
+    expect(res.user).toBeUndefined();
+    expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
+    const [subject] = mocks.natsMock.publish.mock.calls[0];
+    expect(subject).toBe('auth.rescueRegistrationAttempted');
+  });
+
   it('creates an unverified rescue_staff user and mails a verification token', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
     mocks.hasherMock.hash.mockResolvedValue('$2b$10$hashed');
@@ -433,6 +475,53 @@ describe('registerRescueOwner', () => {
     const res = await registerRescueOwner(mocks.deps, null, OWNER_REQ);
 
     expect(res.user).toBeUndefined();
+  });
+});
+
+describe('deleteUnverifiedRescueOwner', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => vi.resetAllMocks());
+
+  const DELETE_REQ = {
+    userId: 'usr-owner',
+    email: 'owner@example.com',
+  } as Parameters<typeof deleteUnverifiedRescueOwner>[2];
+
+  it('rejects a missing user_id or email', async () => {
+    await expect(
+      deleteUnverifiedRescueOwner(mocks.deps, null, { ...DELETE_REQ, userId: '' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    await expect(
+      deleteUnverifiedRescueOwner(mocks.deps, null, { ...DELETE_REQ, email: '' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('deletes a still-unverified rescue owner and publishes an audit event', async () => {
+    mocks.clientScript([{ user_id: 'usr-owner' }]);
+
+    const res = await deleteUnverifiedRescueOwner(mocks.deps, null, DELETE_REQ);
+
+    expect(res.deleted).toBe(true);
+    const [deleteSql, params] = realQueries(mocks.clientMock.query)[0];
+    expect(String(deleteSql)).toContain('DELETE FROM auth.users');
+    expect(String(deleteSql)).toContain("status = 'pending_verification'");
+    expect(String(deleteSql)).toContain("user_type = 'rescue_staff'");
+    expect(params).toEqual(['usr-owner', 'owner@example.com']);
+    expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
+    const [subject] = mocks.natsMock.publish.mock.calls[0];
+    expect(subject).toBe('auth.actionTaken');
+  });
+
+  it('is a no-op and publishes nothing when the row no longer matches (already verified, moved on, or gone)', async () => {
+    mocks.clientScript([]);
+
+    const res = await deleteUnverifiedRescueOwner(mocks.deps, null, DELETE_REQ);
+
+    expect(res.deleted).toBe(false);
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 });
 
