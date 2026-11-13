@@ -69,8 +69,10 @@ Documentation for the adopt-don't-shop monorepo, organised by audience: **Start 
 - [Deploy rollback runbook](./runbooks/deploy-rollback.md) — roll back a bad release (incident path)
 - [Backend deployment](./backend/deployment.md) — how the backend is built and shipped
 - [Container image signing](./security/image-signing.md) — Cosign / Sigstore image-signing pipeline
-- [Deployment plan](./infrastructure/DEPLOYMENT-PLAN.md) — one-time provisioning (DNS, nginx, secrets, reviewers)
-- [Pre-launch setup](./infrastructure/PRE-LAUNCH-SETUP.md) — step-by-step netcup VPS setup for the landing page and private staging
+- [Deployment plan](./infrastructure/DEPLOYMENT-PLAN.md) — hosting model, sizing, secrets reference, and the order of the setup guides
+- [Server setup](./infrastructure/SERVER-SETUP.md) — step 1: first-time netcup VPS setup (hardening, DNS, deploy access)
+- [Staging setup](./infrastructure/STAGING-SETUP.md) — step 2: staging, TLS, the gateway and the pre-launch landing page
+- [Production setup](./infrastructure/PRODUCTION-SETUP.md) — step 3: production next to staging, and the launch cutover
 
 ### Incident runbooks
 
