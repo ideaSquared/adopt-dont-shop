@@ -26,7 +26,7 @@ These are the CI failures that keep recurring. Check them locally first.
   or `.staging.yml`?** Add it to the throwaway host `.env` in
   `scripts/smoke-prod.sh`, or "Production Image Smoke" fails and blocks every
   deploy. Add it to the host `.env` blocks in
-  `docs/infrastructure/DEPLOYMENT-PLAN.md`, and call out in the PR body that
+  `docs/infrastructure/STAGING-SETUP.md` and `PRODUCTION-SETUP.md`, and call out in the PR body that
   existing hosts need it before the next deploy.
 - **Touched code covered by `describe.skipIf(!process.env.DATABASE_URL)` tests?**
   They are skipped locally and only run in CI's "Service Tests" / "Package
