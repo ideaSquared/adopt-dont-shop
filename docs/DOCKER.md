@@ -268,7 +268,7 @@ VITE_WS_BASE_URL=wss://api.your-domain.com
 
 1. `build-apps` — builds each frontend app's development and production targets via `Dockerfile.app` (matrix over the three apps).
 2. `build-services` — builds each microservice's development and production targets via `Dockerfile.service` (matrix), then runs a Trivy scan on the built image and fails on fixable CRITICAL/HIGH vulnerabilities.
-3. `build-dev-image` — builds the shared dev image and pushes it to GHCR on non-PR runs.
+3. `build-dev-image` — builds the shared dev image and pushes it to GHCR on non-PR runs. On a PR it runs only when `Dockerfile.dev`'s install inputs (root manifests, lockfile, any workspace `package.json`) change, and each `build-apps` / `build-services` matrix entry builds only when that image's own inputs changed.
 
 `docker.yml` does **not** stand up the stack — full-stack compose integration is exercised by the `test-e2e` job in `.github/workflows/ci.yml` (see [Reproducing CI E2E locally](#reproducing-ci-e2e-locally)). Both Dockerfiles use BuildKit cache mounts (see [BuildKit Optimizations](#buildkit-optimizations)) rather than an external buildx cache action.
 
