@@ -14,6 +14,7 @@ Reference for the GitHub Actions workflows in this directory: what each one does
 | `docker.yml`               | Builds the gateway / service and per-app Docker images, then tests the docker-compose stack.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `lib-test-guard.yml`       | Fails when any `lib.*` package has zero test files (ADS-186 / ADS-328 safety net).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `schema-equivalence.yml`   | Applies every service's migrations against a fresh Postgres and asserts they apply cleanly and idempotently, then replays new migrations against seeded data; also runs the ADR 0008 migration back-compat lint. Post-monolith replacement for the old Sequelize-vs-migration comparison; the `(migrate vs sync)` job name is kept for branch-protection matching.                                                                                                                                                                                                                                                                                                  |
+| `ship.yml`                 | Deploys through ideaSquared/shipper: shipper's gate, then `deploy.yml`, then shipper's Discord report. Staging runs automatically after CI passes on `main`; production via `ship production ads`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `deploy.yml`               | Manual deploy to staging or production via GHCR + SSH. Ships compose/nginx/observability config on every run, gates on per-service `/health/ready`, and fails a production run if observability is off (ADS-1307/1308/1312). Frontend images are baked per environment and tagged `app-*:<sha>-<environment>`; backend images use the bare `<sha>`.                                                                                                                                                                                                                                                                                                                 |
 | `rollback.yml`             | Manual rollback to a previously published GHCR image SHA (frontend images are looked up as `<sha>-<environment>` and the run fails if that environment never built them). At parity with `deploy.yml` (ADS-1311): same shipped config, secrets, overlays, and full-fleet health gate.                                                                                                                                                                                                                                                                                                                                                                               |
 | `release.yml`              | Builds and pushes production Docker images (gateway + 10 services + 3 apps) to Docker Hub on tag pushes (`v*`) and successful CI runs to `main`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
@@ -265,7 +266,23 @@ pnpm exec turbo test --filter=@adopt-dont-shop/app.admin
 
 ### Deploying
 
-`release.yml` only publishes images. Actual deploys run through `deploy.yml`, driven by the repo-root `Makefile`:
+Deploys go through [ideaSquared/shipper](https://github.com/ideaSquared/shipper) (`ship.yaml`, `ship.yml`):
+
+- **Staging** deploys automatically once CI passes on a push to `main`.
+- **Production** takes a commit only once it is live on staging: `ship production ads`. That runs
+  `ship.yml`, which runs shipper's gate, then `deploy.yml` (its own CI and production-smoke gates,
+  the production approval, images, cosign, SSH and health gate, all unchanged), then shipper's
+  Discord report, which also updates the `#ship-status` board.
+- `ship status ads` shows what is live where; `ship rollback ads <env>` runs `rollback.yml`.
+- Install the command with `pnpm add -g github:ideaSquared/shipper`.
+
+`ship.yml` pins shipper's reusable workflows to a commit SHA, like every other action here; bump
+the SHA and `shipper-ref` together to take a newer shipper.
+
+The emergency bypasses (`skip_ci_check`, `skip_cosign_verify`, `allow_blind_deploy`) are only on
+`deploy.yml`'s own Run workflow form, where they are audited; `ship.yml` cannot pass them.
+
+`release.yml` only publishes images. `deploy.yml` can still be run directly, driven by the repo-root `Makefile`:
 
 ```bash
 make staging                                          # deploy main to staging

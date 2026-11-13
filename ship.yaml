@@ -1,0 +1,23 @@
+# How ADS deploys with ideaSquared/shipper (`ship status ads`, `ship deploy ads staging`,
+# `ship production ads`, `ship rollback ads <env>`). The deploy itself is this repo's own
+# .github/workflows/deploy.yml; .github/workflows/ship.yml runs shipper's gate before it and
+# shipper's Discord report after it.
+product: ads
+# ideaSquared bot project: deploy messages go to its ads-github channel.
+discord: ads
+# Must have passed on the commit (shipper's gate). deploy.yml also checks the whole CI run and the
+# production image smoke test itself before it builds anything.
+checks: ['CI Required']
+dispatch:
+  workflow: ship.yml
+  environmentInput: environment
+  # rollback.yml takes `environment` and `sha` and redeploys that commit's signed images.
+  rollbackWorkflow: rollback.yml
+environments:
+  staging: {}
+  production:
+    requires: [staging]
+components:
+  stack:
+    type: external
+    workflow: .github/workflows/deploy.yml

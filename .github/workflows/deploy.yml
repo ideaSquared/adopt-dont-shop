@@ -52,6 +52,15 @@ on:
         required: false
         type: string
         default: ''
+  # ship.yml calls this between ideaSquared/shipper's gate and its Discord report. Only the
+  # environment can be passed: the skip_*/allow_* bypasses stay manual (workflow_dispatch) and
+  # audited, and read as unset here.
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Target environment (staging or production)'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -62,7 +71,7 @@ env:
   DOCKER_BUILDKIT: 1
 
 concurrency:
-  group: deploy-${{ github.event.inputs.environment }}
+  group: deploy-${{ inputs.environment }}
   cancel-in-progress: false
 
 jobs:
@@ -91,11 +100,11 @@ jobs:
     outputs:
       deploy_environment: ${{ steps.resolve-env.outputs.deploy_environment }}
     env:
-      TARGET_ENV: ${{ github.event.inputs.environment }}
-      SKIP_CI_CHECK: ${{ github.event.inputs.skip_ci_check }}
-      SKIP_COSIGN_VERIFY: ${{ github.event.inputs.skip_cosign_verify }}
-      ALLOW_BLIND_DEPLOY: ${{ github.event.inputs.allow_blind_deploy }}
-      BYPASS_REASON: ${{ github.event.inputs.bypass_reason }}
+      TARGET_ENV: ${{ inputs.environment }}
+      SKIP_CI_CHECK: ${{ inputs.skip_ci_check }}
+      SKIP_COSIGN_VERIFY: ${{ inputs.skip_cosign_verify }}
+      ALLOW_BLIND_DEPLOY: ${{ inputs.allow_blind_deploy }}
+      BYPASS_REASON: ${{ inputs.bypass_reason }}
     steps:
       # Every deploy ships from main (docs/infrastructure/DEPLOYMENT-PLAN.md).
       # verify-images already rejects images signed off-main, but
@@ -138,7 +147,7 @@ jobs:
           echo "Deploy job will run in the '$DEPLOY_ENVIRONMENT' environment."
 
       - name: Record bypass in run summary
-        if: github.event.inputs.skip_ci_check == 'true' || github.event.inputs.skip_cosign_verify == 'true' || github.event.inputs.allow_blind_deploy == 'true'
+        if: inputs.skip_ci_check || inputs.skip_cosign_verify || inputs.allow_blind_deploy
         env:
           ACTOR: ${{ github.actor }}
           DEPLOY_SHA: ${{ github.sha }}
@@ -159,7 +168,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Open deploy-bypass-audit issue
-        if: github.event.inputs.skip_ci_check == 'true' || github.event.inputs.skip_cosign_verify == 'true' || github.event.inputs.allow_blind_deploy == 'true'
+        if: inputs.skip_ci_check || inputs.skip_cosign_verify || inputs.allow_blind_deploy
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0
         env:
           DEPLOY_ENVIRONMENT: ${{ steps.resolve-env.outputs.deploy_environment }}
@@ -238,7 +247,7 @@ jobs:
     needs: preflight
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    environment: ${{ github.event.inputs.environment }}-vars
+    environment: ${{ inputs.environment }}-vars
     outputs:
       vite_api_base_url: ${{ vars.VITE_API_BASE_URL }}
       vite_ws_base_url: ${{ vars.VITE_WS_BASE_URL }}
@@ -246,7 +255,7 @@ jobs:
       vite_statsig_client_key: ${{ vars.VITE_STATSIG_CLIENT_KEY }}
     steps:
       - name: Resolved
-        run: echo "Resolved frontend build vars for the '${{ github.event.inputs.environment }}' target."
+        run: echo "Resolved frontend build vars for the '${{ inputs.environment }}' target."
 
   build-and-push:
     needs: [preflight, resolve-frontend-vars]
@@ -274,7 +283,7 @@ jobs:
       - name: Verify CI passed on this commit
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SKIP_CI_CHECK: ${{ github.event.inputs.skip_ci_check }}
+          SKIP_CI_CHECK: ${{ inputs.skip_ci_check }}
         run: |
           set -euo pipefail
           RUNS_JSON=$(curl -fsSL \
@@ -292,7 +301,7 @@ jobs:
       - name: Verify the production smoke test passed on this commit
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SKIP_CI_CHECK: ${{ github.event.inputs.skip_ci_check }}
+          SKIP_CI_CHECK: ${{ inputs.skip_ci_check }}
           CHECK_NAME: Production Image Smoke (boot)
         run: |
           set -euo pipefail
@@ -397,11 +406,11 @@ jobs:
             --build-arg SENTRY_PROJECT="${{ vars.SENTRY_PROJECT_CLIENT }}" \
             --build-arg DEPLOY_SHA="${{ github.sha }}" \
             --secret id=sentry_auth,env=SENTRY_AUTH_TOKEN \
-            -t $IMAGE_PREFIX/app-client:${{ github.sha }}-${{ github.event.inputs.environment }} \
+            -t $IMAGE_PREFIX/app-client:${{ github.sha }}-${{ inputs.environment }} \
             .
-          bash scripts/ghcr-push.sh "$IMAGE_PREFIX/app-client:${{ github.sha }}-${{ github.event.inputs.environment }}"
+          bash scripts/ghcr-push.sh "$IMAGE_PREFIX/app-client:${{ github.sha }}-${{ inputs.environment }}"
           # ADS-673: cosign keyless sign by digest.
-          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-client:${{ github.sha }}-${{ github.event.inputs.environment }}" | cut -d@ -f2)
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-client:${{ github.sha }}-${{ inputs.environment }}" | cut -d@ -f2)
           echo "Signing $IMAGE_PREFIX/app-client@$DIGEST"
           cosign sign --yes "$IMAGE_PREFIX/app-client@$DIGEST"
 
@@ -423,11 +432,11 @@ jobs:
             --build-arg SENTRY_PROJECT="${{ vars.SENTRY_PROJECT_ADMIN }}" \
             --build-arg DEPLOY_SHA="${{ github.sha }}" \
             --secret id=sentry_auth,env=SENTRY_AUTH_TOKEN \
-            -t $IMAGE_PREFIX/app-admin:${{ github.sha }}-${{ github.event.inputs.environment }} \
+            -t $IMAGE_PREFIX/app-admin:${{ github.sha }}-${{ inputs.environment }} \
             .
-          bash scripts/ghcr-push.sh "$IMAGE_PREFIX/app-admin:${{ github.sha }}-${{ github.event.inputs.environment }}"
+          bash scripts/ghcr-push.sh "$IMAGE_PREFIX/app-admin:${{ github.sha }}-${{ inputs.environment }}"
           # ADS-673: cosign keyless sign by digest.
-          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-admin:${{ github.sha }}-${{ github.event.inputs.environment }}" | cut -d@ -f2)
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-admin:${{ github.sha }}-${{ inputs.environment }}" | cut -d@ -f2)
           echo "Signing $IMAGE_PREFIX/app-admin@$DIGEST"
           cosign sign --yes "$IMAGE_PREFIX/app-admin@$DIGEST"
 
@@ -449,11 +458,11 @@ jobs:
             --build-arg SENTRY_PROJECT="${{ vars.SENTRY_PROJECT_RESCUE }}" \
             --build-arg DEPLOY_SHA="${{ github.sha }}" \
             --secret id=sentry_auth,env=SENTRY_AUTH_TOKEN \
-            -t $IMAGE_PREFIX/app-rescue:${{ github.sha }}-${{ github.event.inputs.environment }} \
+            -t $IMAGE_PREFIX/app-rescue:${{ github.sha }}-${{ inputs.environment }} \
             .
-          bash scripts/ghcr-push.sh "$IMAGE_PREFIX/app-rescue:${{ github.sha }}-${{ github.event.inputs.environment }}"
+          bash scripts/ghcr-push.sh "$IMAGE_PREFIX/app-rescue:${{ github.sha }}-${{ inputs.environment }}"
           # ADS-673: cosign keyless sign by digest.
-          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-rescue:${{ github.sha }}-${{ github.event.inputs.environment }}" | cut -d@ -f2)
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-rescue:${{ github.sha }}-${{ inputs.environment }}" | cut -d@ -f2)
           echo "Signing $IMAGE_PREFIX/app-rescue@$DIGEST"
           cosign sign --yes "$IMAGE_PREFIX/app-rescue@$DIGEST"
 
@@ -483,10 +492,10 @@ jobs:
       - name: Verify image signatures
         env:
           SHA: ${{ github.sha }}
-          ENVIRONMENT: ${{ github.event.inputs.environment }}
-          SKIP_VERIFY: ${{ github.event.inputs.skip_cosign_verify }}
+          ENVIRONMENT: ${{ inputs.environment }}
+          SKIP_VERIFY: ${{ inputs.skip_cosign_verify }}
           # Free text — passed via env, never interpolated into the script.
-          TAG_OVERRIDES: ${{ github.event.inputs.tag_overrides }}
+          TAG_OVERRIDES: ${{ inputs.tag_overrides }}
         run: |
           set -euo pipefail
           if [ "$SKIP_VERIFY" = "true" ]; then
@@ -623,13 +632,13 @@ jobs:
       # alphanumeric with dots, dashes, and underscores — no shell-injection
       # characters. This runs on the Actions runner, not the deploy host.
       - name: Validate tag_overrides input
-        if: ${{ github.event.inputs.tag_overrides != '' }}
+        if: ${{ inputs.tag_overrides != '' }}
         # Pass the free-text input via the environment, never interpolated
         # into the shell text — otherwise a value containing a single quote
         # closes the assignment and executes arbitrary commands BEFORE the
         # regex validation below ever runs.
         env:
-          TAG_OVERRIDES: ${{ github.event.inputs.tag_overrides }}
+          TAG_OVERRIDES: ${{ inputs.tag_overrides }}
         run: |
           set -euo pipefail
           overrides="$TAG_OVERRIDES"
@@ -670,7 +679,7 @@ jobs:
           key: ${{ secrets.NETCUP_SSH_KEY }}
           fingerprint: ${{ secrets.NETCUP_HOST_FINGERPRINT }}
           source: 'scripts/wait-for-services.sh,scripts/deploy-secrets.sh,scripts/deploy-pin-env.sh,scripts/deploy-release-images.sh,scripts/deploy-overlay-args.sh,scripts/deploy-glitchtip-secrets.sh,docker-compose.prod.yml,docker-compose.staging.yml,docker-compose.observability.yml,docker-compose.glitchtip.yml,nginx,observability'
-          target: /opt/ads/${{ github.event.inputs.environment }}
+          target: /opt/ads/${{ inputs.environment }}
           overwrite: true
 
       # ADS-1312: the shared edge gateway (nginx + certbot, fronting BOTH
@@ -766,11 +775,11 @@ jobs:
           SECRET_OPS_DISCORD_WEBHOOK_URL: ${{ secrets.OPS_DISCORD_WEBHOOK_URL }}
           # Forwarded via `envs:` so the server script reads it as a shell
           # variable — never interpolated into the script text (injection-safe).
-          TAG_OVERRIDES: ${{ github.event.inputs.tag_overrides }}
-          ENVIRONMENT: ${{ github.event.inputs.environment }}
+          TAG_OVERRIDES: ${{ inputs.tag_overrides }}
+          ENVIRONMENT: ${{ inputs.environment }}
           # ADS-1307 (partial): forwarded so the observability gate below can
           # tell an audited bypass from an unset flag.
-          ALLOW_BLIND_DEPLOY: ${{ github.event.inputs.allow_blind_deploy }}
+          ALLOW_BLIND_DEPLOY: ${{ inputs.allow_blind_deploy }}
           # Tags the .deploy_outcome marker, so the final step never reads one
           # left by another run or attempt.
           RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
@@ -1106,7 +1115,7 @@ jobs:
         if: always()
         continue-on-error: true
         env:
-          ENVIRONMENT: ${{ github.event.inputs.environment }}
+          ENVIRONMENT: ${{ inputs.environment }}
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2  # v1.2.5
         with:
           host: ${{ secrets.NETCUP_HOST }}
@@ -1158,7 +1167,7 @@ jobs:
       - name: Post failure to Discord
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          TARGET_ENV: ${{ github.event.inputs.environment }}
+          TARGET_ENV: ${{ inputs.environment }}
         run: |
           set -euo pipefail
           if [ -z "${DISCORD_WEBHOOK_URL:-}" ]; then
