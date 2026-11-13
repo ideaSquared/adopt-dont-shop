@@ -186,7 +186,15 @@ test.describe('client browsing journeys', () => {
   });
 
   // CLI-043
-  test('pagination moves between pages of results', async ({ page }) => {
+  test('pagination moves between pages of results', async ({ page, apiAs }) => {
+    // Search pages hold 12 pets. Create 13 so there is always a second page, whatever else
+    // this run's stack holds: with the suite sharded, each shard seeds a fresh stack and the
+    // pets other specs create may be in another shard.
+    const rescueApi = await apiAs('rescue');
+    await Array.from({ length: 13 }).reduce<Promise<unknown>>(
+      previous => previous.then(() => createAvailablePet(rescueApi, 'Paged')),
+      Promise.resolve()
+    );
     await page.goto('/search');
     const pageInfo = page.getByText(/Showing page \d+ of \d+/);
     await expect(pageInfo).toContainText('Showing page 1 of', { timeout: 20_000 });
