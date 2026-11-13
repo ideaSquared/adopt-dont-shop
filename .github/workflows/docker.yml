@@ -91,6 +91,11 @@ jobs:
             # What decides how a host boots: the files the production smoke
             # test runs a PR for (prod-image-smoke). App code is covered on
             # every push to main instead, and the deploy gate requires it.
+            # deploy.yml and rollback.yml are deliberately absent: the smoke
+            # test never runs them. scripts/smoke-prod.sh re-creates the host
+            # layout itself from the files listed here (and the deploy-*.sh
+            # helpers both workflows call), so an edit to either workflow
+            # cannot change the smoke result.
             deploy:
               - '**/Dockerfile*'
               - 'docker-compose*.yml'
@@ -102,8 +107,6 @@ jobs:
               - 'scripts/deploy-*.sh'
               - 'scripts/wait-for-services.sh'
               - '.github/workflows/docker.yml'
-              - '.github/workflows/deploy.yml'
-              - '.github/workflows/rollback.yml'
 
   # ============================================================================
   # BUILD FRONTEND APPS — dev + production images for each app
