@@ -352,6 +352,12 @@ export async function createRescue(
 // Public sign-up: no principal, no permission. The gateway only exposes it
 // behind the rate-limited POST /api/v1/rescues/register, after the owner
 // account exists. The rescue is always created 'pending' (admin approval).
+//
+// Idempotent on owner_user_id (ADS-1474): a resumed sign-up retry reuses the
+// same still-unverified owner account, so if that owner is already attached
+// to a rescue (e.g. a prior attempt succeeded but the caller retried before
+// verifying their email) this returns the existing rescue instead of
+// creating a second one for them.
 export async function registerRescue(
   deps: HandlerDeps,
   _principal: Principal | null,
@@ -365,6 +371,25 @@ export async function registerRescue(
   if (!req.ownerUserId) {
     throw new HandlerError('INVALID_ARGUMENT', 'owner_user_id is required');
   }
+
+  const existing = await deps.pool.query<RescueRow>(
+    `
+    SELECT ${RESCUES_SELECT}
+    FROM rescue.rescues
+    WHERE deleted_at IS NULL
+      AND rescue_id = (
+        SELECT rescue_id FROM rescue.staff_members
+        WHERE user_id = $1 AND deleted_at IS NULL
+        ORDER BY added_at ASC
+        LIMIT 1
+      )
+    `,
+    [req.ownerUserId]
+  );
+  if (existing.rows[0]) {
+    return { rescue: rowToProto(existing.rows[0]) };
+  }
+
   return insertPendingRescue(deps, req.rescue, req.ownerUserId, req.ownerUserId);
 }
 

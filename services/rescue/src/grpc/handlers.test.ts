@@ -240,6 +240,7 @@ describe('registerRescue', () => {
   });
 
   it('needs no principal: creates a pending rescue and its verified owner in one transaction, then publishes', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
     const order: string[] = [];
     const sqls: string[] = [];
     mocks.clientMock.query.mockImplementation(async (sql: string) => {
@@ -261,6 +262,18 @@ describe('registerRescue', () => {
       String(sql).includes('rescue.staff_members')
     )?.[1] as unknown[];
     expect(staffParams).toContain('owner-1');
+  });
+
+  it('is idempotent on owner_user_id: a retry that already has a rescue gets it back, no duplicate created', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [rescueRow({ rescue_id: 'rsc-existing' })],
+    });
+
+    const res = await registerRescue(mocks.deps, null, REGISTER);
+
+    expect(res.rescue?.rescueId).toBe('rsc-existing');
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 });
 

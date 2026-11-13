@@ -5,14 +5,22 @@
 // schema):
 //   1. auth.RegisterRescueOwner — create the owner account
 //      (pending_verification, user_type rescue_staff, verification email
-//      mailed). An already-registered email gets no user back: nothing else
-//      is created and the route answers like a new sign-up (the existing
-//      holder is notified by service.auth, not told here).
+//      mailed). An already-registered email normally gets no user back:
+//      nothing else is created and the route answers like a new sign-up
+//      (the existing holder is notified by service.auth, not told here).
+//      Exception (ADS-1474): an existing account that is itself an
+//      incomplete, still-unverified rescue sign-up IS returned, so step 2
+//      below gets a chance to finish attaching a rescue to it instead of
+//      answering a dead-end neutral success to a permanently stuck caller.
 //   2. rescue.RegisterRescue — create the rescue as PENDING (admin approval
-//      required) and attach the owner as its first staff member.
-//      If this step fails after step 1 already committed, the owner account
-//      is rolled back (auth.DeleteUnverifiedRescueOwner) so the failure
-//      never leaves an orphan the user can't retry with (ADS-1474).
+//      required) and attach the owner as its first staff member. Idempotent
+//      on the owner: if they already have a rescue (the resumed-account case
+//      above, when a rescue was in fact already created), the existing one
+//      is returned rather than creating a second.
+//      If this step fails after step 1 just committed a brand-new owner
+//      account, that account is rolled back (auth.DeleteUnverifiedRescueOwner)
+//      so the failure never leaves an orphan the user can't retry with
+//      (ADS-1474).
 //
 // No login tokens are issued: the owner verifies their email, then signs in
 // normally. Pending rescues are not usable until an admin verifies them.
