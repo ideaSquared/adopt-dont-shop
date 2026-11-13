@@ -380,6 +380,47 @@ describe('registerRescueOwner', () => {
     expect(event.payload.userId).toBe('usr-existing');
   });
 
+  it('resumes a still-unverified rescue_staff account instead of a dead-end neutral response (ADS-1474)', async () => {
+    const orphan = userRowFixture({
+      user_id: 'usr-orphan',
+      email: 'owner@example.com',
+      user_type: 'rescue_staff',
+      status: 'pending_verification',
+      email_verified: false,
+    });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [orphan] });
+    mocks.hasherMock.hash.mockResolvedValue('$2b$10$hashed');
+
+    const res = await registerRescueOwner(mocks.deps, null, OWNER_REQ);
+
+    expect(res.user?.userId).toBe('usr-orphan');
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+    expect(
+      realQueries(mocks.clientMock.query).some(([sql]) =>
+        String(sql).includes('INSERT INTO auth.users')
+      )
+    ).toBe(false);
+  });
+
+  it('does not resume an existing account that is verified, active, or not a rescue owner', async () => {
+    const verifiedOwner = userRowFixture({
+      user_id: 'usr-verified',
+      email: 'owner@example.com',
+      user_type: 'rescue_staff',
+      status: 'active',
+      email_verified: true,
+    });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [verifiedOwner] });
+    mocks.hasherMock.hash.mockResolvedValue('$2b$10$hashed');
+
+    const res = await registerRescueOwner(mocks.deps, null, OWNER_REQ);
+
+    expect(res.user).toBeUndefined();
+    expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
+    const [subject] = mocks.natsMock.publish.mock.calls[0];
+    expect(subject).toBe('auth.rescueRegistrationAttempted');
+  });
+
   it('creates an unverified rescue_staff user and mails a verification token', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
     mocks.hasherMock.hash.mockResolvedValue('$2b$10$hashed');

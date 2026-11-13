@@ -230,6 +230,21 @@ describe('POST /api/v1/rescues/register', () => {
     expect(m.deleteUnverifiedRescueOwner).not.toHaveBeenCalled();
   });
 
+  it('resumes a retry by an existing rescue-less owner into a created rescue (ADS-1474)', async () => {
+    // auth answers a resumable, still-unverified rescue_staff account with
+    // its existing user, same as a brand-new one — not the empty response
+    // an already-complete account gets.
+    m.registerRescueOwner.mockResolvedValueOnce({ user: { userId: 'usr-orphan' } });
+    m.registerRescue.mockResolvedValueOnce({ rescue: RESCUE });
+
+    const res = await post(FORM_BODY);
+
+    expect(res.statusCode).toBe(201);
+    expect(m.registerRescue).toHaveBeenCalledTimes(1);
+    expect(m.registerRescue.mock.calls[0][0]).toMatchObject({ ownerUserId: 'usr-orphan' });
+    expect(m.deleteUnverifiedRescueOwner).not.toHaveBeenCalled();
+  });
+
   it('caps sign-ups per owner email across IPs, so one inbox cannot be flooded', async () => {
     const limited = Fastify({ logger: false, trustProxy: true });
     m.registerRescueOwner.mockResolvedValue({});
