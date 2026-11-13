@@ -16,6 +16,18 @@ inputs:
       test-e2e-smoke PR job, ADS-1242 / ADS-1321).
     required: false
     default: 'full'
+  shard-index:
+    description: >-
+      With shard-total, run only this shard of the full suite (Playwright
+      `--shard=<index>/<total>`), report it as a blob report for ci.yml's
+      test-e2e job to merge, and suffix the artifact names with the index.
+      Empty (default) runs the whole selection unsharded.
+    required: false
+    default: ''
+  shard-total:
+    description: Number of shards the full suite is split into (see shard-index).
+    required: false
+    default: ''
 runs:
   using: 'composite'
   steps:
@@ -125,19 +137,27 @@ runs:
       # full logs to docker-compose.log for the artifact below.
       #
       # Two callers (ADS-1242):
-      #   - the opt-in test-e2e job (main push / `run-e2e` label / dispatch)
-      #     wants complete integration coverage -> mode: full, which also
-      #     starts the production-limits gateway for the limiter spec.
+      #   - the opt-in test-e2e-shard jobs (main push / `run-e2e` label /
+      #     dispatch) want complete integration coverage -> mode: full, which
+      #     also starts the production-limits gateway for the limiter spec.
+      #     Each runs one `--shard`; the blob reporter replaces the config's
+      #     reporters (list and github kept) so test-e2e can merge the shards.
       #   - the required test-e2e-smoke PR job runs only the @smoke-tagged
       #     headline journeys for a fast pre-merge signal -> mode: smoke.
       #
       # Retries and workers are configured in e2e/playwright.config.ts
       # (retries: CI ? 1 : 0, workers: CI ? 2 : undefined).
       shell: bash
+      env:
+        SHARD_INDEX: ${{ inputs.shard-index }}
+        SHARD_TOTAL: ${{ inputs.shard-total }}
       run: |
         if [ "${{ inputs.mode }}" = "smoke" ]; then
           echo "${{ github.event_name }} on ${{ github.ref }} - running @smoke subset"
           node scripts/e2e-isolated.mjs
+        elif [ -n "$SHARD_INDEX" ]; then
+          echo "${{ github.event_name }} on ${{ github.ref }} - running full suite, shard ${SHARD_INDEX}/${SHARD_TOTAL}"
+          node scripts/e2e-isolated.mjs --full "--shard=${SHARD_INDEX}/${SHARD_TOTAL}" --reporter=list,github,blob
         else
           echo "${{ github.event_name }} on ${{ github.ref }} - running full suite"
           node scripts/e2e-isolated.mjs --full
@@ -165,12 +185,21 @@ runs:
     - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       if: always()
       with:
-        name: e2e-playwright-report
+        name: e2e-playwright-report${{ inputs.shard-index && format('-shard-{0}', inputs.shard-index) || '' }}
         path: |
           e2e/playwright-report/
           e2e/test-results/
           docker-compose.log
         retention-days: 7
+        if-no-files-found: ignore
+
+    # Input for the merged HTML report ci.yml's test-e2e job builds.
+    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      if: always() && inputs.shard-index != ''
+      with:
+        name: e2e-blob-report-${{ inputs.shard-index }}
+        path: e2e/blob-report/
+        retention-days: 1
         if-no-files-found: ignore
 
     - name: Tear down stack

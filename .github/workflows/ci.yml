@@ -657,26 +657,33 @@ jobs:
   # ============================================================================
   # E2E — Playwright journeys against the full docker-compose stack
   # Behaviour-focused tests across app.client, app.rescue and app.admin.
-  # Runs only after the unit/integration jobs succeed to gate the more
-  # expensive browser job behind cheaper signals.
+  #
+  # The full suite is split across four shards (`--shard=i/4`), each on its own
+  # runner booting its own isolated ads-e2e stack (every shard passes --full,
+  # so every shard also starts the production-limits gateway — the
+  # gateway-limits spec works in whichever shard Playwright puts it). The
+  # shards do not wait for test-frontend / test-services: the stack build and
+  # the suite are the long pole, so they start as soon as `changes` has
+  # classified the push. A unit failure still blocks merge and deploy through
+  # ci-required, which needs every job.
   # ============================================================================
-  test-e2e:
-    name: E2E Tests (Playwright)
-    needs: [changes, test-frontend, test-services]
+  test-e2e-shard:
+    name: E2E Tests (Playwright) shard ${{ matrix.shard }}/4
+    needs: [changes]
     # E2E is opt-in on PRs (too slow to pay on every push): runs on push to
     # main, on a PR labelled `run-e2e`, or on workflow_dispatch. Otherwise
     # skipped — which `ci-required` treats as success.
     if: |
-      always() &&
-      (
-        github.event_name == 'workflow_dispatch' ||
-        (github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.e2e == 'true') ||
-        (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'run-e2e'))
-      ) &&
-      (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped') &&
-      (needs.test-services.result == 'success' || needs.test-services.result == 'skipped')
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.e2e == 'true') ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'run-e2e'))
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    strategy:
+      # Let every shard finish so one red shard still reports the others.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
 
     # ADS-1014: no TURBO_TOKEN here — this job's steps build/run via docker
     # compose and `pnpm test:e2e` directly, never `turbo run`, so the token
@@ -692,6 +699,61 @@ jobs:
       # Local composite actions can only load after the repo is checked out.
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: ./.github/actions/e2e-suite
+        with:
+          shard-index: ${{ matrix.shard }}
+          shard-total: 4
+
+  # Fans the shards back in under the job name the suite has always had, and
+  # merges the shards' blob reports into one HTML report
+  # (`e2e-playwright-report-merged`). Fails unless every shard succeeded;
+  # skipped when the shards were. The report steps are continue-on-error: the
+  # report is diagnostic, so a reporting hiccup must not fail a green suite.
+  test-e2e:
+    name: E2E Tests (Playwright)
+    needs: [test-e2e-shard]
+    if: always() && needs.test-e2e-shard.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Local composite actions can only load after the repo is checked out.
+      # Checkout and setup only serve the report, so they are best-effort too:
+      # only "Verify every shard passed" decides this job's result.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        continue-on-error: true
+      - uses: ./.github/actions/setup-workspace
+        continue-on-error: true
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        continue-on-error: true
+        with:
+          pattern: e2e-blob-report-*
+          path: e2e/all-blob-reports
+          merge-multiple: true
+
+      - name: Merge shard reports into one HTML report
+        continue-on-error: true
+        run: |
+          if [ -z "$(ls -A e2e/all-blob-reports 2>/dev/null)" ]; then
+            echo "No blob reports to merge (no shard reached Playwright)."
+            exit 0
+          fi
+          pnpm --filter @adopt-dont-shop/e2e exec playwright merge-reports --reporter html ./all-blob-reports
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        continue-on-error: true
+        with:
+          name: e2e-playwright-report-merged
+          path: e2e/playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Verify every shard passed
+        if: always()
+        env:
+          SHARDS_RESULT: ${{ needs.test-e2e-shard.result }}
+        run: |
+          echo "test-e2e-shard result: ${SHARDS_RESULT}"
+          [ "$SHARDS_RESULT" = "success" ]
 
   # ============================================================================
   # E2E SMOKE — ADS-1242: @smoke subset on PRs that change something the stack
@@ -702,9 +764,13 @@ jobs:
   # P1-15): in ci-required's needs — a smoke failure blocks merge. The full
   # test-e2e suite stays opt-in (`run-e2e` label) as before. Skipped when the
   # PR carries `run-e2e` (the full test-e2e job already covers those
-  # journeys), on non-PR events (push/workflow_dispatch — test-e2e already
-  # gates those), or when the change doesn't reach the stack — all of which
-  # ci-required's gate treats as passing.
+  # journeys), on workflow_dispatch (test-e2e already gates it), or when the
+  # change doesn't reach the stack — all of which ci-required's gate treats as
+  # passing.
+  #
+  # Also runs on pushes to main, alongside the full suite: the smoke result is
+  # the fast signal a staging deploy can gate on, while the full suite gates
+  # production.
   #
   # Deliberately does not wait for test-frontend / test-services: the stack
   # build is the long pole (~8 min), so it starts as soon as the change is
@@ -715,14 +781,16 @@ jobs:
     name: E2E Smoke (Playwright)
     needs: [changes]
     if: |
-      github.event_name == 'pull_request' &&
-      !contains(github.event.pull_request.labels.*.name, 'run-e2e') &&
-      needs.changes.outputs.e2e == 'true'
+      needs.changes.outputs.e2e == 'true' &&
+      (
+        (github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'run-e2e')) ||
+        (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
     # Same stack env as test-e2e (no TURBO_TOKEN — steps build/run via docker
-    # compose directly, never `turbo run`; see test-e2e's ADS-1014 note).
+    # compose directly, never `turbo run`; see test-e2e-shard's ADS-1014 note).
     env:
       CI: true
       DOCKER_BUILDKIT: 1
@@ -846,6 +914,9 @@ jobs:
       - test-services
       - test-contracts
       - dev-auth-guard
+      # The four full-suite shards (a matrix job's result is the aggregate of
+      # its shards: failure if any shard failed) and the job that fans them in.
+      - test-e2e-shard
       - test-e2e
       # ADS-1321: the @smoke Playwright subset now gates merge — see
       # test-e2e-smoke's own comment for why this closes P1-15.
