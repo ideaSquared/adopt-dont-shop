@@ -62,3 +62,6 @@ scripts/templates/
 # docs/README.md / packages/lib.*/README.md don't have this problem (no
 # tables) and stay in scope for Prettier.
 docs/tasks.md
+
+# Canonical copy shared byte-for-byte across ideaSquared repos; never reformat.
+.claude/skills/logging/SKILL.md
