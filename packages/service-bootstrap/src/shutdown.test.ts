@@ -1,6 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { BASE_LOG_FIELDS, createLogger, memorySink } from '@adopt-dont-shop/observability';
+import {
+  BASE_LOG_FIELDS,
+  createLogger,
+  flushLogs,
+  memorySink,
+} from '@adopt-dont-shop/observability';
+
+vi.mock('@adopt-dont-shop/observability', async importOriginal => ({
+  ...(await importOriginal<typeof import('@adopt-dont-shop/observability')>()),
+  flushLogs: vi.fn(async () => undefined),
+}));
 
 import { runServiceShutdown, withShutdownDeadline, type ShutdownDeps } from './shutdown.js';
 
@@ -284,5 +294,55 @@ describe('withShutdownDeadline', () => {
     );
 
     p.catch(() => undefined);
+  });
+});
+
+describe('shutdown log flushing', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    vi.mocked(flushLogs).mockReset();
+    vi.mocked(flushLogs).mockResolvedValue(undefined);
+  });
+
+  it('does not wait on a hung flush past the deadline on a clean shutdown', async () => {
+    vi.useFakeTimers();
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+    vi.mocked(flushLogs).mockImplementation(() => new Promise<void>(() => undefined));
+
+    let done = false;
+    const p = runServiceShutdown({
+      httpServer: fakeHttpServer(async () => undefined),
+      logger: makeLogger(),
+      timeoutMs: 25_000,
+    }).then(() => {
+      done = true;
+    });
+    await vi.advanceTimersByTimeAsync(2_001);
+
+    expect(done).toBe(true);
+    expect(exitSpy).not.toHaveBeenCalled();
+    await p;
+  });
+
+  it('exits without flushing when the deadline expires', async () => {
+    vi.useFakeTimers();
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+
+    const p = withShutdownDeadline(() => new Promise<void>(() => undefined), {
+      logger: makeLogger(),
+      timeoutMs: 10_000,
+    });
+    await vi.advanceTimersByTimeAsync(10_001);
+
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    expect(flushLogs).not.toHaveBeenCalled();
+    p.catch(() => undefined);
+  });
+
+  it('flushes logs after a clean sequence', async () => {
+    await withShutdownDeadline(async () => undefined, { logger: makeLogger() });
+
+    expect(flushLogs).toHaveBeenCalledTimes(1);
   });
 });

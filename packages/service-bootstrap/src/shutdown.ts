@@ -3,8 +3,10 @@
 //
 // An overall deadline (default 25 000 ms, overridable via timeoutMs) races
 // against the full sequence. If the sequence exceeds the deadline, the
-// function logs which step was in flight and calls process.exit(1).
-// Normal completion still exits 0 — callers are responsible for that call.
+// function logs which step was in flight and calls process.exit(1) without
+// flushing logs. On success the logs are flushed best-effort (bounded to 2 s)
+// inside the same deadline. Normal completion still exits 0 — callers are
+// responsible for that call.
 
 import type { FastifyInstance } from 'fastify';
 import type { NatsConnection } from 'nats';
@@ -24,6 +26,23 @@ export type ShutdownDeps = {
 };
 
 const DEFAULT_TIMEOUT_MS = 25_000;
+const FLUSH_TIMEOUT_MS = 2_000;
+
+// Best-effort: ship the buffered logs, but never wait on an unresponsive Loki for longer than
+// FLUSH_TIMEOUT_MS. Runs inside the deadline race, so it can never push shutdown past it.
+const flushLogsBounded = async (): Promise<void> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const bound = new Promise<void>(resolve => {
+    timer = setTimeout(resolve, FLUSH_TIMEOUT_MS);
+  });
+  try {
+    await Promise.race([flushLogs().catch(() => undefined), bound]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
+};
 
 export type ShutdownDeadlineOptions = {
   logger: BaseLogger;
@@ -56,11 +75,11 @@ export const withShutdownDeadline = async (
   });
 
   try {
-    await Promise.race([sequence(), deadline]);
+    await Promise.race([sequence().then(flushLogsBounded), deadline]);
   } catch (err) {
     const step = opts.currentStep?.();
     opts.logger.error('shutdown deadline exceeded', { step: step ?? null }, err);
-    await flushLogs();
+    // No flush here: the deadline has passed, so exit now rather than wait on another network call.
     process.exit(1);
   } finally {
     if (timer) {
@@ -112,5 +131,4 @@ export const runServiceShutdown = async (deps: ShutdownDeps): Promise<void> => {
     timeoutMs: deps.timeoutMs ?? DEFAULT_TIMEOUT_MS,
     currentStep: () => currentStep,
   });
-  await flushLogs();
 };
