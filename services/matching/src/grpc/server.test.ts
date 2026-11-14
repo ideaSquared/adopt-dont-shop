@@ -1,12 +1,12 @@
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { MatchingV1 } from '@adopt-dont-shop/proto';
 
 import type { MatchingConfig } from '../config.js';
 
-import { createGrpcServer } from './server.js';
+import { createGrpcServer, startGrpcServer } from './server.js';
 
 const quietLogger = {
   info: () => undefined,
@@ -81,5 +81,28 @@ describe('createGrpcServer', () => {
     for (const p of expectedPaths) {
       expect(handlers.has(p)).toBe(true);
     }
+  });
+
+  it('logs a fixed message with the client name in a field when a client close fails', async () => {
+    const error = vi.fn();
+    const logger = { ...quietLogger, error } as unknown as typeof quietLogger;
+    const failingPets = {
+      ...petsClient,
+      close: () => {
+        throw new Error('boom');
+      },
+    } as unknown as typeof petsClient;
+    const server = await startGrpcServer({
+      config: { ...config, grpcPort: 0 },
+      pool,
+      nats,
+      logger,
+      petsClient: failingPets,
+      rescueClient,
+    });
+
+    await server.shutdown();
+
+    expect(error).toHaveBeenCalledWith('client close error', { client: 'pets' }, expect.any(Error));
   });
 });

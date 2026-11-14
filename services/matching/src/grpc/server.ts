@@ -98,7 +98,7 @@ export const startGrpcServer = async (
             try {
               client.close();
             } catch (closeErr) {
-              logger.error(`${name} client close error`, {}, closeErr);
+              logger.error('client close error', { client: name }, closeErr);
             }
           }
           resolve();
