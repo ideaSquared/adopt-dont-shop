@@ -148,7 +148,7 @@ export const createUnlockFlow = async (
   return unlock;
 };
 
-// Staging and prod refuse unlocks unless the Discord alert is configured, so
+// Staging and prod refuse unlocks unless alerting is configured, so
 // "alerted" is only claimed there; dev unlocks are audited but not announced.
 export const renderUnlockCreated = (ctx: Ctx, env: OpsEnv, unlock: Unlock): readonly string[] => [
   ...renderSuccess(

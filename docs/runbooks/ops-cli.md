@@ -2,7 +2,7 @@
 
 > **Audience:** the maintainer who administers `pnpm ops` access, and on-call when a break-glass alert fires.
 > **Last reviewed:** 2026-11-08
-> **Related alerts:** none (the Discord message posted when an unlock is created is the alert). Design: [ADR 0016](../adr/0016-developer-ops-cli.md).
+> **Related alerts:** none (the alert posted to Discord by ideasquared-bot when an unlock is created is the alert). Design: [ADR 0016](../adr/0016-developer-ops-cli.md).
 
 `pnpm ops …` runs allow-listed gRPC RPCs against dev, staging or production through `service-ops`. This runbook is the admin side: who gets access, how the pieces are provisioned, and what to do when something about it goes wrong. For the commands themselves, see [`packages/ops-cli/README.md`](../../packages/ops-cli/README.md).
 
@@ -62,14 +62,15 @@ docker compose -f docker-compose.staging.yml ps service-ops
 
 Expected: `Up (healthy)`.
 
-### 3. Configure the Discord webhook (required for unlocks)
+### 3. Configure alerting (required for unlocks)
 
-Break-glass unlocks are refused (`UNLOCKS_DISABLED`) until an alert channel exists. This is deliberate: no alert channel, no unlock. Reads that do not touch PII work without it.
+Break-glass unlocks are refused (`UNLOCKS_DISABLED`) until alerting is configured. This is deliberate: no alert channel, no unlock. Reads that do not touch PII work without it.
 
-1. In Discord, create a webhook for a channel that you will actually see (Channel settings → Integrations → Webhooks). Use a different channel from the infra alerts so an unlock is not lost in noise.
-2. In GitHub → Settings → Environments → `staging` (and `production`) → add the secret `OPS_DISCORD_WEBHOOK_URL`.
-3. Redeploy (or dispatch `rollback.yml` to the current SHA). `deploy.yml` passes the secret as `SECRET_OPS_DISCORD_WEBHOOK_URL`, and `scripts/deploy-secrets.sh` writes `/opt/ads/<env>/secrets/ops_discord_webhook_url`.
-4. Verify: `ssh deploy@$PROD_HOST 'test -s /opt/ads/staging/secrets/ops_discord_webhook_url && echo configured || echo EMPTY'`. Then create a test unlock from staging and confirm the message arrives.
+`service-ops` sends a signed alert to ideasquared-bot's `/alert` endpoint, which posts it to the project's `ads-github` Discord channel and pings @everyone. `ALERT_URL` is committed in the compose files; only the signing key is a secret.
+
+1. In GitHub → Settings → Secrets and variables → Actions → add the repository secret `ALERT_SECRET` (or per environment under `staging` and `production`), with the same value as `ALERT_SECRET` on the ideasquared-bot Worker.
+2. Redeploy (or dispatch `rollback.yml` to the current SHA). `deploy.yml` passes the secret as `SECRET_ALERT_SECRET`, and `scripts/deploy-secrets.sh` writes `/opt/ads/<env>/secrets/alert_secret`.
+3. Verify: `ssh deploy@$PROD_HOST 'test -s /opt/ads/staging/secrets/alert_secret && echo configured || echo EMPTY'`. Then create a test unlock from staging and confirm the message arrives.
 
 The secret is optional for the deploy itself: if it is unset the file is written empty and the deploy passes.
 
@@ -151,7 +152,7 @@ If their laptop was lost or stolen, treat it as compromised: do all three steps 
 
 ## Respond to an unlock alert
 
-An alert in the Discord channel means someone created a break-glass unlock. It names the operator, the environment, the subject (a user, rescue or application id, or `any`), the reason, the ticket and the expiry. While one person maintains the system the operator approves their own unlock, so the check is after the fact:
+An alert from ideasquared-bot in the project's Discord channel means someone created a break-glass unlock. It names the operator, the environment, the subject (a user, rescue or application id, or `any`), the reason, the ticket and the expiry. While one person maintains the system the operator approves their own unlock, so the check is after the fact:
 
 1. Is it expected? Match the operator to a person who should be working that ticket right now, and the ticket to a real issue (`ADS-123`).
 2. Does the scope fit the ticket? A support case for one user should be scoped to `user:<id>`, not `any`.
@@ -222,7 +223,7 @@ To fill an existing staging rescue with sample pets, use `pnpm ops demo create-p
 `service-ops` is a developer tool. Nothing in the product depends on it, so an outage is not a user-facing incident, but a failed health check does fail a deploy (the health gate includes `service-ops:4100`), so you need to fix it to ship.
 
 1. `docker compose -f docker-compose.<env>.yml ps service-ops` and `logs --tail 100 service-ops`.
-2. **Crash loop with a config error**: the log names the variable. In `github` mode it refuses to boot without `OPS_GITHUB_CLIENT_ID`, `OPS_GITHUB_ORG` and `OPS_GITHUB_TEAM`; fix the host `.env` and run `up -d service-ops`. An empty Discord secret is not a boot error: it only disables unlocks.
+2. **Crash loop with a config error**: the log names the variable. In `github` mode it refuses to boot without `OPS_GITHUB_CLIENT_ID`, `OPS_GITHUB_ORG` and `OPS_GITHUB_TEAM`; fix the host `.env` and run `up -d service-ops`. An empty `ALERT_SECRET` is not a boot error: it only disables unlocks.
 3. **`/health/ready` failing on a dependency**: it checks the database, NATS and Redis like every other service. Follow [`5xx-spike.md`](./5xx-spike.md) and the runbook for the broken dependency.
 4. **Migration failure** (schema `ops`): follow [`migration-failure.md`](./migration-failure.md); the owning service is `service-ops`.
 5. **Blocked deploy that you cannot wait out**: roll back with [`deploy-rollback.md`](./deploy-rollback.md). To ship everything else while `service-ops` is broken, redeploy with `tag_overrides` pinning `SERVICE_OPS_TAG` to the last good SHA.

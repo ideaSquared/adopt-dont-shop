@@ -87,11 +87,11 @@ ads-ops CLI (laptop) --HTTP/JSON--> service-ops (in the env's stack) --gRPC--> s
 7. **Break-glass unlocks reveal PII, and they are loud.** An unlock needs a reason (at least 10
    characters) and a ticket (`ADS-123`). It is time-boxed (default 30, maximum 60 minutes) and
    scoped to one subject (a user, rescue or application id) or `any`. Creating one posts a Discord
-   webhook alert first, and the unlock is granted only if that alert is delivered (a failed or
+   signed alert first, and the unlock is granted only if that alert is delivered (a failed or
    non-2xx delivery refuses it with `UNLOCKS_DISABLED`); it then publishes `ops.actionTaken` (so `services/audit` records it), and appends to a
    hash-chained `ops.access_log`. Every call made under an unlock records which fields it revealed
    (names, never values). While one person maintains the system, the operator approves their own
-   unlock (see Consequences). If the Discord webhook is not configured in staging or production,
+   unlock (see Consequences). If alerting (`ALERT_URL` and `ALERT_SECRET`, ideasquared-bot's signed `/alert` endpoint) is not configured in staging or production,
    unlocks are refused with `UNLOCKS_DISABLED`: no alert channel, no unlock.
 8. **Identity and environment are pinned.** An operator is keyed by their stable GitHub user id,
    not their login, so a renamed account keeps its history and a new account that later takes an
@@ -191,7 +191,7 @@ dry-runnable.
   `.proto` sources, so a new or re-annotated field can't ship without regenerating it.
 - The dry-run adapter in `packages/service-bootstrap` has tests proving no row and no event
   survives a rollback dry run and that the `x-dry-run-applied` echo is present.
-- `scripts/deploy-secrets.test.mjs` pins the optional `ops_discord_webhook_url` secret: written
+- `scripts/deploy-secrets.test.mjs` pins the optional `alert_secret` secret: written
   when provided, empty (and the deploy still succeeds) when unset.
 - `pnpm check:workspaces`, `check:stop-grace-period` and `check:docker-pinning` cover the new
   `service-ops` blocks in `docker-compose*.yml`; `docker compose config` validates them.

@@ -54,8 +54,8 @@ It is too heavy for every PR (about 20–25 minutes), so CI runs it:
   docker/deploy/rollback workflows;
 - on **any PR labelled `run-smoke`**, and on manual dispatch.
 
-Every result, pass or fail, is posted to Discord through the
-`DISCORD_WEBHOOK_URL` secret (skipped when it isn't set). On other PRs the
+A failed or cancelled result is sent as an alert through ideasquared-bot's
+`/alert` endpoint, signed with the `ALERT_SECRET` secret (skipped when it isn't set). On other PRs the
 required `Production Image Smoke` check reports green without running.
 
 - Needs Docker with Compose v2.24+ and buildx, `openssl` and `curl`, and

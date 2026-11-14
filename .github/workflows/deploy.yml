@@ -851,7 +851,7 @@ jobs:
           SECRET_NATS_AUTH_TOKEN: ${{ secrets.NATS_AUTH_TOKEN }}
           # ADR 0016: OPTIONAL. Unset/blank is fine — deploy-secrets.sh writes an
           # empty file and service-ops then refuses break-glass unlocks.
-          SECRET_OPS_DISCORD_WEBHOOK_URL: ${{ secrets.OPS_DISCORD_WEBHOOK_URL }}
+          SECRET_ALERT_SECRET: ${{ secrets.ALERT_SECRET }}
           # Forwarded via `envs:` so the server script reads it as a shell
           # variable — never interpolated into the script text (injection-safe).
           TAG_OVERRIDES: ${{ inputs.tag_overrides }}
@@ -868,7 +868,7 @@ jobs:
           username: deploy
           key: ${{ secrets.NETCUP_SSH_KEY }}
           fingerprint: ${{ secrets.NETCUP_HOST_FINGERPRINT }}
-          envs: GHCR_TOKEN,SECRET_JWT_SECRET,SECRET_JWT_REFRESH_SECRET,SECRET_ENCRYPTION_KEY,SECRET_UPLOAD_SIGNING_SECRET,SECRET_DB_PASSWORD,SECRET_PRINCIPAL_SIGNING_KEY,SECRET_NATS_AUTH_TOKEN,SECRET_OPS_DISCORD_WEBHOOK_URL,TAG_OVERRIDES,ENVIRONMENT,ALLOW_BLIND_DEPLOY,RUN_ID
+          envs: GHCR_TOKEN,SECRET_JWT_SECRET,SECRET_JWT_REFRESH_SECRET,SECRET_ENCRYPTION_KEY,SECRET_UPLOAD_SIGNING_SECRET,SECRET_DB_PASSWORD,SECRET_PRINCIPAL_SIGNING_KEY,SECRET_NATS_AUTH_TOKEN,SECRET_ALERT_SECRET,TAG_OVERRIDES,ENVIRONMENT,ALLOW_BLIND_DEPLOY,RUN_ID
           script: |
             set -euo pipefail
             ENV="$ENVIRONMENT"
@@ -1232,32 +1232,27 @@ jobs:
 
   # ADS-1324: this workflow previously had no failure notification — a
   # broken deploy was only visible to whoever happened to check the Actions
-  # tab. Reuse the Discord webhook Alertmanager already posts critical/
-  # warning alerts to (observability/alertmanager/secrets/discord_webhook_url
-  # on the host) as a repo secret here, since a GitHub Actions job can't read
-  # a host-side file. Skips gracefully — never fails the run — when the
-  # secret hasn't been configured.
+  # tab. The alert goes through ideasquared-bot's /alert endpoint (signed with
+  # the ALERT_SECRET repo secret). Skips quietly — never fails the run — when
+  # the secret hasn't been configured.
   notify-on-failure:
     needs: [preflight, resolve-frontend-vars, build-and-push, verify-images, deploy]
     if: failure()
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Post failure to Discord
+      - name: Check out the alert script
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          sparse-checkout: scripts/send-alert.sh
+          persist-credentials: false
+
+      - name: Send failure alert
         env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          ALERT_URL: https://ideasquared-bot.idea-squared.workers.dev/alert
+          ALERT_SECRET: ${{ secrets.ALERT_SECRET }}
           TARGET_ENV: ${{ inputs.environment }}
         run: |
-          set -euo pipefail
-          if [ -z "${DISCORD_WEBHOOK_URL:-}" ]; then
-            echo "DISCORD_WEBHOOK_URL secret not set — skipping failure notification."
-            exit 0
-          fi
           RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          PAYLOAD=$(jq -n \
-            --arg env "$TARGET_ENV" \
-            --arg url "$RUN_URL" \
-            --arg sha "$GITHUB_SHA" \
-            --arg actor "$GITHUB_ACTOR" \
-            '{content: ("🚨 Deploy to **" + $env + "** failed — " + $url + " (sha " + ($sha[0:7]) + ", dispatched by " + $actor + ")")}')
-          curl -fsS -X POST -H 'Content-Type: application/json' -d "$PAYLOAD" "$DISCORD_WEBHOOK_URL"
+          ./scripts/send-alert.sh critical "Deploy to $TARGET_ENV failed" \
+            "$RUN_URL (sha ${GITHUB_SHA:0:7}, dispatched by $GITHUB_ACTOR)" "github-actions"

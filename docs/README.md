@@ -91,7 +91,7 @@ Documentation for the adopt-don't-shop monorepo, organised by audience: **Start 
 - [Secret rotation (emergency)](./runbooks/secret-rotation-emergency.md) — a signing key/secret leaked and must be rotated now
 - [Observability stack down](./runbooks/observability-stack-down.md) — Prometheus/Grafana/Loki/Tempo down; alerts may be silent
 - [Enable observability stack](./runbooks/observability-enable.md) — turn on the metrics/logs/traces/alerting + GlitchTip stack
-- [Ops CLI admin guide](./runbooks/ops-cli.md) — onboard/offboard developers, OAuth app, Discord webhook, unlock alerts, access log
+- [Ops CLI admin guide](./runbooks/ops-cli.md) — onboard/offboard developers, OAuth app, alerting, unlock alerts, access log
 - [Screen-reader smoke](./runbooks/screen-reader-smoke.md) — manual assistive-tech QA pass
 - [Dev stack troubleshooting](./runbooks/dev-stack-troubleshooting.md) — local `pnpm docker:dev` failures
 

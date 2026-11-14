@@ -63,7 +63,8 @@ const main = async (): Promise<void> => {
     const unlocks = createUnlocksService({
       env: config.env,
       store,
-      discordWebhookUrl: config.discordWebhookUrl,
+      alertUrl: config.alertUrl,
+      alertSecret: config.alertSecret,
       fetchFn: fetch,
       now,
       logger,
@@ -87,7 +88,8 @@ const main = async (): Promise<void> => {
       host: config.host,
       opsEnv: config.env,
       authMode: config.authMode,
-      unlocksEnabled: config.env === 'dev' || config.discordWebhookUrl !== undefined,
+      unlocksEnabled:
+        config.env === 'dev' || (config.alertUrl !== undefined && config.alertSecret !== undefined),
     });
 
     const teardown = async (): Promise<void> => {

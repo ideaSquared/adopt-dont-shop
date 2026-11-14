@@ -174,14 +174,14 @@ jobs:
           # was cleaned up) would leave every NATS client unable to connect.
           SECRET_NATS_AUTH_TOKEN: ${{ secrets.NATS_AUTH_TOKEN }}
           # ADR 0016: OPTIONAL (empty file written when unset; unlocks stay off).
-          SECRET_OPS_DISCORD_WEBHOOK_URL: ${{ secrets.OPS_DISCORD_WEBHOOK_URL }}
+          SECRET_ALERT_SECRET: ${{ secrets.ALERT_SECRET }}
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2  # v1.2.5
         with:
           host: ${{ secrets.NETCUP_HOST }}
           username: deploy
           key: ${{ secrets.NETCUP_SSH_KEY }}
           fingerprint: ${{ secrets.NETCUP_HOST_FINGERPRINT }}
-          envs: GHCR_TOKEN,ROLLBACK_SHA,ROLLBACK_ENV,SECRET_JWT_SECRET,SECRET_JWT_REFRESH_SECRET,SECRET_ENCRYPTION_KEY,SECRET_UPLOAD_SIGNING_SECRET,SECRET_DB_PASSWORD,SECRET_PRINCIPAL_SIGNING_KEY,SECRET_NATS_AUTH_TOKEN,SECRET_OPS_DISCORD_WEBHOOK_URL
+          envs: GHCR_TOKEN,ROLLBACK_SHA,ROLLBACK_ENV,SECRET_JWT_SECRET,SECRET_JWT_REFRESH_SECRET,SECRET_ENCRYPTION_KEY,SECRET_UPLOAD_SIGNING_SECRET,SECRET_DB_PASSWORD,SECRET_PRINCIPAL_SIGNING_KEY,SECRET_NATS_AUTH_TOKEN,SECRET_ALERT_SECRET
           script: |
             set -euo pipefail
             # Validate SHA before use to prevent shell injection.

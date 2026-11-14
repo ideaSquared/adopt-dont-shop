@@ -263,9 +263,9 @@ runner rather than SSHing to the prod host to borrow the host's own
 credentials; each job no-ops (skips, doesn't fail) when those secrets aren't
 configured, e.g. on a fork.
 
-If either job fails (or `backup.yml` does), a `notify-failure` job posts to
-Discord (the `DISCORD_WEBHOOK_URL` secret, if configured — skipped gracefully
-otherwise) and opens or updates a `backup-failure`-labelled GitHub issue
+If either job fails (or `backup.yml` does), a `notify-failure` job sends an alert
+through ideasquared-bot's `/alert` endpoint (signed with the `ALERT_SECRET` secret,
+if configured — skipped quietly otherwise) and opens or updates a `backup-failure`-labelled GitHub issue
 (ADS-1324), so a broken nightly backup or drill doesn't go unnoticed until
 someone needs the backup.
 

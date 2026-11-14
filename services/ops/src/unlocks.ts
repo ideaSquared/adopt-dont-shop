@@ -5,6 +5,7 @@ import {
   type Unlock,
 } from '@adopt-dont-shop/ops-contract';
 
+import { sendAlert } from './alert.js';
 import type { AuthContext } from './auth.js';
 import { OpsError } from './errors.js';
 import { unlockCreatedEvent } from './events.js';
@@ -16,7 +17,8 @@ const MINUTE_MS = 60_000;
 export type UnlocksDeps = {
   env: OpsEnv;
   store: OpsStore;
-  discordWebhookUrl: string | undefined;
+  alertUrl: string | undefined;
+  alertSecret: string | undefined;
   fetchFn: typeof fetch;
   now: () => Date;
   logger: ServiceLogger;
@@ -35,57 +37,48 @@ export const toUnlock = (record: UnlockRecord): Unlock => ({
 
 export const createUnlocksService = (deps: UnlocksDeps) => {
   const { store, now } = deps;
+  const alertingConfigured = deps.alertUrl !== undefined && deps.alertSecret !== undefined;
 
-  // With a webhook configured, the alert is the gate: it is posted before the
-  // unlock is recorded, and a failed alert (network error or non-2xx) means no
-  // unlock. Without one (dev only; other envs are refused earlier) there is
-  // nothing to send.
+  // With alerting configured, the alert is the gate: it is sent before the unlock
+  // is recorded, and a failed alert (network error or non-2xx) means no unlock.
+  // Without it (dev only; other envs are refused earlier) there is nothing to send.
   const alert = async (ctx: AuthContext, record: UnlockRecord): Promise<void> => {
-    if (deps.discordWebhookUrl === undefined) {
+    if (!alertingConfigured) {
       return;
     }
     const subject = record.subjectId === null ? 'any' : `${record.subjectType}:${record.subjectId}`;
-    const content = [
-      `**ops break-glass unlock** (${deps.env})`,
+    const details = [
       `operator: ${ctx.operator.login}`,
       `subject: ${subject}`,
       `ticket: ${record.ticket}`,
       `reason: ${record.reason}`,
       `expires: ${record.expiresAt.toISOString()}`,
     ].join('\n');
-    // Never log the webhook URL: it is a credential.
-    const delivered = await deps
-      .fetchFn(deps.discordWebhookUrl, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ content, allowed_mentions: { parse: [] } }),
-      })
-      .then(res => {
-        if (!res.ok) {
-          deps.logger.warn('discord alert rejected', { status: res.status });
-        }
-        return res.ok;
-      })
-      .catch(() => {
-        deps.logger.warn('discord alert failed to send');
-        return false;
-      });
+    const delivered = await sendAlert(
+      { url: deps.alertUrl, secret: deps.alertSecret, fetchFn: deps.fetchFn, logger: deps.logger },
+      {
+        severity: 'warning',
+        title: `ops break-glass unlock (${deps.env})`,
+        details,
+        source: `service-ops-${deps.env}`,
+      }
+    );
     if (!delivered) {
       throw new OpsError(
         'UNLOCKS_DISABLED',
-        'Could not alert #ops, so the unlock was not granted',
-        'Retry, or check that OPS_DISCORD_WEBHOOK_URL is valid.'
+        'Could not send the break-glass alert, so the unlock was not granted',
+        'Retry, or check that ALERT_URL and ALERT_SECRET are valid.'
       );
     }
   };
 
   const create = async (ctx: AuthContext, req: CreateUnlockRequest): Promise<Unlock> => {
     // Fail closed: outside dev, an unlock nobody is alerted about is refused.
-    if (deps.env !== 'dev' && deps.discordWebhookUrl === undefined) {
+    if (deps.env !== 'dev' && !alertingConfigured) {
       throw new OpsError(
         'UNLOCKS_DISABLED',
         `Unlocks are disabled on ${deps.env}: break-glass alerting is not configured`,
-        'Set OPS_DISCORD_WEBHOOK_URL (or _FILE) for service.ops and restart it.'
+        'Set ALERT_URL and ALERT_SECRET (or ALERT_SECRET_FILE) for service.ops and restart it.'
       );
     }
     const at = now();
