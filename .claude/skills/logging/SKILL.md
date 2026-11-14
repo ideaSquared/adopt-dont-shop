@@ -42,13 +42,14 @@ Agent Idea also sanitises what it serves, but that is the safety net. The logger
 
 ## Setup
 
-Install it pinned to a commit, over HTTPS (not `github:`, which can record an SSH clone CI cannot fetch):
+Install the released tarball (see the agent-idea releases for the latest `log-v*` version):
 
 ```bash
-pnpm add "git+https://github.com/ideaSquared/agent-idea.git#<commit>&path:/packages/log"
+pnpm add https://github.com/ideaSquared/agent-idea/releases/download/log-v0.1.0/ideasquared-log-0.1.0.tgz
 ```
 
-Check that `pnpm-lock.yaml` shows a `codeload.github.com` tarball for `@ideasquared/log`.
+The lockfile pins it with an integrity hash. Don't install from a git URL or `github:` spec: those can record an SSH
+clone CI cannot fetch, and `turbo prune` drops the subfolder path.
 
 Create one logger per service, in one file (for example `src/lib/log.ts`), and import it everywhere:
 
