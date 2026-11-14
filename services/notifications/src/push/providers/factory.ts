@@ -2,18 +2,17 @@
 // the env-driven choice (console / fcm) and surfaces config errors as
 // fatal validation rather than silent fallback.
 
-import type { createLogger } from '@adopt-dont-shop/observability';
-
 import type { PushProvider } from '../types.js';
 
 import { createConsolePushProvider } from './console.js';
 import { createFcmPushProvider, type FcmConfig } from './fcm.js';
+import { type ServiceLogger } from '../../logger.js';
 
 export type PushProviderConfig = { kind: 'console' } | { kind: 'fcm'; fcm: FcmConfig };
 
 export type ProviderFactoryDeps = {
   config: PushProviderConfig;
-  logger: ReturnType<typeof createLogger>;
+  logger: ServiceLogger;
 };
 
 export const createPushProvider = (deps: ProviderFactoryDeps): PushProvider => {

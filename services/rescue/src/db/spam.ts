@@ -15,7 +15,12 @@
 // leaves it unset to (re)populate on demand.
 
 import { createDbClient } from '@adopt-dont-shop/db';
-import { createLogger } from '@adopt-dont-shop/observability';
+import {
+  BASE_LOG_FIELDS,
+  createLogger,
+  flushLogs,
+  type Logger,
+} from '@adopt-dont-shop/observability';
 import {
   assertSpamAllowed,
   bulkInsert,
@@ -27,6 +32,9 @@ import {
 
 import { loadConfig } from '../config.js';
 import { seedLocation } from './seed-locations.js';
+
+const SPAM_LOG_FIELDS = [...BASE_LOG_FIELDS, 'rescues', 'staff', 'repaired', 'seeded'] as const;
+type SpamLogger = Pick<Logger<(typeof SPAM_LOG_FIELDS)[number]>, 'info'>;
 
 type Faker = ReturnType<typeof createSpamFaker>;
 export type QueryFn = (text: string, values: readonly unknown[]) => Promise<unknown>;
@@ -232,25 +240,25 @@ export const repairSeededLocations = async (query: QueryFn): Promise<number> => 
 export const runSpam = async (deps: {
   query: QueryFn;
   faker: Faker;
-  log?: (message: string, meta?: Record<string, unknown>) => void;
+  logger?: SpamLogger;
 }): Promise<{ seeded: boolean; rescues: number; staff: number }> => {
   const repaired = await repairSeededLocations(deps.query);
   if (repaired > 0) {
-    deps.log?.('repaired old rescue postcodes', { repaired });
+    deps.logger?.info('repaired old rescue postcodes', { repaired });
   }
   if (!(await shouldSeed(() => anchorExists(deps.query)))) {
-    deps.log?.('rescues already populated — skipping (SEED_ONLY_IF_EMPTY)');
+    deps.logger?.info('rescues already populated — skipping (SEED_ONLY_IF_EMPTY)');
     return { seeded: false, rescues: 0, staff: 0 };
   }
   const rescues = spamCount('RESCUES', 8);
   const staff = spamCount('STAFF', 20);
-  deps.log?.('spamming rescues', { rescues, staff });
+  deps.logger?.info('spamming rescues', { rescues, staff });
   const result = await spamRescues({ query: deps.query, faker: deps.faker, rescues, staff });
   return { seeded: true, ...result };
 };
 
 const main = async (): Promise<void> => {
-  const logger = createLogger({ serviceName: 'service.rescue.spam' });
+  const logger = createLogger({ serviceName: 'service.rescue.spam', fields: SPAM_LOG_FIELDS });
   assertSpamAllowed();
   const config = loadConfig();
   const pool = createDbClient({ connectionString: config.databaseUrl, schema: config.schema });
@@ -258,15 +266,12 @@ const main = async (): Promise<void> => {
     const result = await runSpam({
       query: (text, values) => pool.query(text, values as unknown[]),
       faker: createSpamFaker(),
-      log: (message, meta) => logger.info(message, meta),
+      logger,
     });
     logger.info('rescue spam complete', result);
   } catch (err) {
-    logger.error('rescue spam failed', {
-      message: (err as Error)?.message,
-      stack: (err as Error)?.stack,
-    });
-    console.error(err);
+    logger.error('rescue spam failed', {}, err);
+    await flushLogs();
     process.exitCode = 1;
   } finally {
     await pool.end();

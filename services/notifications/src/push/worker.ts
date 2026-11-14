@@ -10,7 +10,6 @@
 
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
-import type { Logger } from 'winston';
 
 import { subscribe } from '@adopt-dont-shop/events';
 
@@ -19,6 +18,7 @@ import { claimEvent } from '../processed-events.js';
 
 import { listDeviceTokensForUser, markDeviceTokenInvalid } from './device-tokens.js';
 import type { PushProvider, PushSendRequest } from './types.js';
+import { type ServiceLogger } from '../logger.js';
 
 const DURABLE = 'notifications-push-workers';
 
@@ -38,7 +38,7 @@ export type PushWorkerOptions = {
   pool: Pool;
   nats: NatsConnection;
   provider: PushProvider;
-  logger: Logger;
+  logger: ServiceLogger;
 };
 
 export type RunningPushWorker = {
@@ -53,33 +53,32 @@ const dispatchOne = async (
   tokenId: string,
   provider: PushProvider,
   pool: Pool,
-  logger: Logger
+  logger: ServiceLogger
 ): Promise<void> => {
   try {
     const result = await provider.send(request);
     if (result.success) {
       logger.info('push.worker.sent', {
         provider: provider.getName(),
-        tokenId,
-        messageId: result.messageId,
+        pushDeviceId: tokenId,
+        messageId: result.messageId ?? null,
       });
       return;
     }
     logger.warn('push.worker.failed', {
       provider: provider.getName(),
-      tokenId,
-      error: result.error,
-      tokenInvalid: result.tokenInvalid,
+      pushDeviceId: tokenId,
+      deviceInvalid: result.tokenInvalid ?? false,
     });
     if (result.tokenInvalid) {
       await markDeviceTokenInvalid(pool, tokenId, result.error ?? 'token reported invalid');
     }
   } catch (err) {
-    logger.error('push.worker.dispatch_error', {
-      provider: provider.getName(),
-      tokenId,
-      err,
-    });
+    logger.error(
+      'push.worker.dispatch_error',
+      { provider: provider.getName(), pushDeviceId: tokenId },
+      err
+    );
   }
 };
 
@@ -90,7 +89,7 @@ export const startPushWorker = (opts: PushWorkerOptions): RunningPushWorker => {
       subject: 'notifications.created',
       durable: DURABLE,
       onError: err => {
-        opts.logger.error('push.worker.subscriber_error', { err });
+        opts.logger.error('push.worker.subscriber_error', {}, err);
       },
     },
     async (ev, meta) => {

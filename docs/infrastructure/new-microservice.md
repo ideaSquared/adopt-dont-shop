@@ -80,7 +80,7 @@ fields:
   image
 - `dependencies` always include `@adopt-dont-shop/{authz, config-secrets,
 db, events, lib.types, observability, proto, service-bootstrap}`,
-  `@grpc/grpc-js`, `fastify`, `nats`, `node-pg-migrate`, `pg`, `winston`
+  `@grpc/grpc-js`, `fastify`, `nats`, `node-pg-migrate`, `pg`
 - Standard scripts: `dev` (`tsx watch ./src/index.ts`), `start` (compiled),
   `db:migrate`, `build` (`tsc`), `test`/`test:coverage`, `lint`, `type-check`
 

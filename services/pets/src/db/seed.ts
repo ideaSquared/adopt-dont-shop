@@ -13,7 +13,7 @@
 // seeder (spam.ts) imports seedBreeds as its own guarantee that breed ids exist.
 
 import { createDbClient } from '@adopt-dont-shop/db';
-import { createLogger } from '@adopt-dont-shop/observability';
+import { BASE_LOG_FIELDS, createLogger, flushLogs } from '@adopt-dont-shop/observability';
 import {
   assertNotProduction,
   BREEDS_BY_SPECIES,
@@ -51,7 +51,7 @@ export const seedBreeds = async (deps: SeedDeps): Promise<number> => {
 
 const main = async (): Promise<void> => {
   assertNotProduction();
-  const logger = createLogger({ serviceName: 'service.pets.seed' });
+  const logger = createLogger({ serviceName: 'service.pets.seed', fields: BASE_LOG_FIELDS });
   const config = loadConfig();
   const pool = createDbClient({ connectionString: config.databaseUrl, schema: config.schema });
   try {
@@ -59,13 +59,10 @@ const main = async (): Promise<void> => {
     const breeds = await seedBreeds({
       query: (text, values) => pool.query(text, values as unknown[]),
     });
-    logger.info('pets seed complete', { breeds });
+    logger.info('pets seed complete', { count: breeds });
   } catch (err) {
-    logger.error('pets seed failed', {
-      message: (err as Error)?.message,
-      stack: (err as Error)?.stack,
-    });
-    console.error(err);
+    logger.error('pets seed failed', {}, err);
+    await flushLogs();
     process.exitCode = 1;
   } finally {
     await pool.end();

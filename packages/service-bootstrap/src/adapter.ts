@@ -31,8 +31,8 @@ import {
   REQUEST_ID_HEADER_NAME,
   runWithRequestId,
   startGrpcTimer,
+  type BaseLogger,
 } from '@adopt-dont-shop/observability';
-import type { Logger } from 'winston';
 
 import { DRY_RUN_APPLIED_HEADER, DRY_RUN_HEADER, runWithDryRunDeps } from './dry-run.js';
 import { getDefaultPrincipalSigningKey, PrincipalTokenError } from './principal-token.js';
@@ -102,7 +102,7 @@ export type UnaryHandlerUnauth<Deps, Req, Res> = (
 
 export type AdaptOptions<Deps> = {
   deps: Deps;
-  logger: Logger;
+  logger: BaseLogger;
   // Signed-principal verification (ADS-800). When set — or when the
   // service has PRINCIPAL_SIGNING_KEY configured (resolved via
   // config-secrets, so the _FILE variant works) — extractPrincipal
@@ -206,7 +206,7 @@ function echoResponseHeaders<Req, Res>(
   }
 }
 
-function toServiceError(err: unknown, metadata: Metadata, logger: Logger): ServiceError {
+function toServiceError(err: unknown, metadata: Metadata, logger: BaseLogger): ServiceError {
   // MissingPrincipalError — check by name for cross-module identity safety.
   if (isMissingPrincipalError(err)) {
     return makeServiceError(status.UNAUTHENTICATED, (err as Error).message, metadata);
@@ -224,7 +224,7 @@ function toServiceError(err: unknown, metadata: Metadata, logger: Logger): Servi
     const grpcCode = CODE_TO_GRPC[code] ?? status.INTERNAL;
     return makeServiceError(grpcCode, (err as Error).message, metadata);
   }
-  logger.error('unhandled handler error', { err });
+  logger.error('unhandled handler error', {}, err);
   return makeServiceError(status.INTERNAL, 'internal error', metadata);
 }
 

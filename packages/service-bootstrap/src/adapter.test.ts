@@ -1,7 +1,7 @@
 import { Metadata, status, type ServerUnaryCall, type sendUnaryData } from '@grpc/grpc-js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { Logger } from 'winston';
+import { BASE_LOG_FIELDS, createLogger, memorySink } from '@adopt-dont-shop/observability';
 
 import { adapt, adaptUnauth, HandlerError, type HandlerDeps } from './adapter.js';
 import {
@@ -11,15 +11,9 @@ import {
 } from './principal-token.js';
 
 function makeLogger() {
-  const calls: Array<{ level: string; msg: string; meta?: unknown }> = [];
-  const logger = {
-    info: (msg: string, meta?: unknown) => calls.push({ level: 'info', msg, meta }),
-    error: (msg: string, meta?: unknown) => calls.push({ level: 'error', msg, meta }),
-    warn: (msg: string, meta?: unknown) => calls.push({ level: 'warn', msg, meta }),
-    debug: (msg: string, meta?: unknown) => calls.push({ level: 'debug', msg, meta }),
-    silly: (msg: string, meta?: unknown) => calls.push({ level: 'silly', msg, meta }),
-  } as unknown as Logger;
-  return { logger, calls };
+  const sink = memorySink();
+  const logger = createLogger({ serviceName: 'test', fields: BASE_LOG_FIELDS, sink });
+  return { logger, events: sink.events };
 }
 
 function buildMetadata(headers: Record<string, string>): Metadata {
@@ -144,7 +138,7 @@ describe('adapt — error code mapping (canonical CODE_TO_GRPC table)', () => {
     const handler = vi.fn(async () => {
       throw new Error('pg: connection lost');
     });
-    const { logger, calls } = makeLogger();
+    const { logger, events } = makeLogger();
     const wrapped = adapt('service.test', handler, { deps, logger });
 
     const callback = vi.fn() as unknown as sendUnaryData<unknown>;
@@ -154,7 +148,10 @@ describe('adapt — error code mapping (canonical CODE_TO_GRPC table)', () => {
     const [err] = vi.mocked(callback).mock.calls[0];
     expect(err).toMatchObject({ code: status.INTERNAL, details: 'internal error' });
     expect((err as Error).message).toBe('internal error');
-    expect(calls.find(c => c.level === 'error')?.msg).toContain('unhandled');
+    expect(events.find(e => e.level === 'error')).toMatchObject({
+      message: 'unhandled handler error',
+      error: { message: 'pg: connection lost' },
+    });
   });
 });
 

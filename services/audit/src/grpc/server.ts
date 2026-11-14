@@ -5,7 +5,6 @@ import { Server } from '@grpc/grpc-js';
 
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
-import type { Logger } from 'winston';
 
 import {
   startGrpcServer as startGrpcServerShared,
@@ -31,12 +30,13 @@ import {
   updateSavedReport,
   upsertReportSchedule,
 } from './reports-handlers.js';
+import { type ServiceLogger } from '../logger.js';
 
 export type CreateGrpcServerOptions = {
   config: AuditConfig;
   pool: Pool;
   nats: NatsConnection;
-  logger: Logger;
+  logger: ServiceLogger;
 };
 
 export type { RunningGrpcServer };
@@ -65,25 +65,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     getGdprErasureRequest: adapt(getGdprErasureRequest, { deps, logger }),
   });
 
-  logger.info('gRPC AuditQueryService registered', {
-    methods: [
-      'query',
-      'getByTarget',
-      'listSavedReports',
-      'getSavedReport',
-      'createSavedReport',
-      'updateSavedReport',
-      'deleteSavedReport',
-      'listReportTemplates',
-      'upsertReportSchedule',
-      'createReportShare',
-      'deleteReportSchedule',
-      'revokeReportShare',
-      'getReportShareByToken',
-      'getGdprErasureRequest',
-    ],
-    grpcPort: config.grpcPort,
-  });
+  logger.info('gRPC AuditQueryService registered', { count: 14, grpcPort: config.grpcPort });
 
   return server;
 };

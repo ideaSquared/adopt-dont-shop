@@ -28,11 +28,11 @@ import { randomUUID } from 'node:crypto';
 
 import type { NatsConnection } from 'nats';
 import type { Server as IOServer } from 'socket.io';
-import type { Logger } from 'winston';
 
 import { subscribe, type SubscriptionHandle } from '@adopt-dont-shop/events';
 
 import { getRevocationDisconnectsCounter } from './metrics.js';
+import { type ServiceLogger } from '../logger.js';
 
 // Unique per gateway process so replicas fan-out independently (each sees
 // every auth revocation event) rather than load-sharing — same discipline
@@ -42,7 +42,7 @@ const REPLICA_ID = randomUUID();
 export type RegisterAuthSubscribersOptions = {
   nats: NatsConnection;
   io: IOServer;
-  logger: Logger;
+  logger: ServiceLogger;
 };
 
 // Payload shapes mirror what service.auth publishes (session-handlers.ts /
@@ -71,10 +71,7 @@ export const registerAuthSubscribers = (
   const disconnectsTotal = getRevocationDisconnectsCounter();
 
   const onError = (err: unknown, ctx: { subject: string }): void => {
-    logger.error('auth ws subscriber failed', {
-      subject: ctx.subject,
-      err: (err as Error)?.message ?? String(err),
-    });
+    logger.error('auth ws subscriber failed', { subject: ctx.subject }, err);
   };
 
   // deliverNew: realtime eviction — a replica that was down should pick up
@@ -134,9 +131,7 @@ export const registerAuthSubscribers = (
     )
   );
 
-  logger.info('gateway auth WS subscribers registered', {
-    subjects: ['auth.sessionRevoked', 'auth.sessionRevokedByAdmin', 'auth.tokenRevoked'],
-  });
+  logger.info('gateway auth WS subscribers registered', { count: 3 });
 
   return subs;
 };

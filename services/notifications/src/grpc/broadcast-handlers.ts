@@ -215,10 +215,7 @@ export async function broadcast(
         failed++;
         if (loggedFailures < MAX_LOGGED_FAILURES) {
           loggedFailures++;
-          deps.logger?.warn('broadcast recipient write failed', {
-            userId,
-            error: err instanceof Error ? err.message : String(err),
-          });
+          deps.logger?.warn('broadcast recipient write failed', { userId }, err);
         }
       }
     }

@@ -43,6 +43,8 @@ vi.mock('../config.js', () => ({
 }));
 
 vi.mock('@adopt-dont-shop/observability', () => ({
+  BASE_LOG_FIELDS: [],
+  flushLogs: async () => undefined,
   createLogger: vi.fn(() => ({
     info: loggerInfoMock,
     error: loggerErrorMock,
@@ -322,8 +324,8 @@ describe('main (the `pnpm db:spam` CLI entry point)', () => {
       connectionString: TEST_CONFIG.databaseUrl,
       schema: TEST_CONFIG.schema,
     });
-    // The `log` callback main() passes to runSpam forwards to the real
-    // logger's .info — proves that wiring, not just that logging happened.
+    // The logger main() passes to runSpam is the real logger's .info — proves
+    // that wiring, not just that logging happened.
     expect(loggerInfoMock).toHaveBeenCalledWith(
       'spamming applications',
       expect.objectContaining({ adopters: ADOPTERS.length, pets: PETS.length })
@@ -357,6 +359,7 @@ describe('main (the `pnpm db:spam` CLI entry point)', () => {
     expect(process.exitCode).toBe(1);
     expect(loggerErrorMock).toHaveBeenCalledWith(
       'applications spam failed',
+      {},
       expect.objectContaining({ message: 'db unreachable' })
     );
   });

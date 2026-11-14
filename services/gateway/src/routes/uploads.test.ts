@@ -12,6 +12,7 @@ import {
   registerUploadsRoutes,
   sanitizeDisplayFilename,
 } from './uploads.js';
+import { quietLogger } from '../../test/helpers/test-logger.js';
 
 const SECRET = 'test-secret-12345';
 
@@ -37,6 +38,7 @@ async function buildApp(
   const { default: multipart } = await import('@fastify/multipart');
   await app.register(multipart, { limits: { fileSize: 1_000_000, files: 1 } });
   await registerUploadsRoutes(app, {
+    logger: quietLogger,
     storage: {
       provider: 'local',
       local: { directory: tmp, publicPath: '/uploads' },
@@ -254,6 +256,7 @@ describe('POST /api/v1/uploads/images', () => {
     const { default: multipart } = await import('@fastify/multipart');
     await app.register(multipart, { limits: { fileSize: 10, files: 1 } });
     await registerUploadsRoutes(app, {
+      logger: quietLogger,
       storage: { provider: 'local', local: { directory: tmp, publicPath: '/uploads' }, s3: {} },
       signingSecret: SECRET,
       avScan: CLEAN_SCAN,

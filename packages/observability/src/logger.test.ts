@@ -1,251 +1,177 @@
-import { Writable } from 'node:stream';
-
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import winston from 'winston';
 
 const { getActiveSpanMock } = vi.hoisted(() => ({ getActiveSpanMock: vi.fn() }));
 vi.mock('@opentelemetry/api', () => ({
   trace: { getActiveSpan: getActiveSpanMock },
 }));
 
-import { createLogger } from './logger.js';
-
-const flush = () => new Promise(resolve => setImmediate(resolve));
+import { BASE_LOG_FIELDS, createLogger, memorySink } from './logger.js';
 
 const ENV_KEYS = ['LOG_LEVEL', 'LOKI_URL', 'NODE_ENV'] as const;
 
-function snapshotEnv() {
-  return Object.fromEntries(ENV_KEYS.map(k => [k, process.env[k]])) as Record<
-    (typeof ENV_KEYS)[number],
-    string | undefined
-  >;
-}
-function restoreEnv(snap: ReturnType<typeof snapshotEnv>) {
-  for (const k of ENV_KEYS) {
-    if (snap[k] === undefined) {
-      delete process.env[k];
-    } else {
-      process.env[k] = snap[k];
-    }
-  }
-}
-
 describe('createLogger', () => {
-  let envSnap: ReturnType<typeof snapshotEnv>;
+  const saved = Object.fromEntries(ENV_KEYS.map(k => [k, process.env[k]]));
 
   beforeEach(() => {
-    envSnap = snapshotEnv();
     for (const k of ENV_KEYS) delete process.env[k];
     getActiveSpanMock.mockReset();
     getActiveSpanMock.mockReturnValue(undefined);
   });
 
   afterEach(() => {
-    restoreEnv(envSnap);
+    for (const k of ENV_KEYS) {
+      if (saved[k] === undefined) delete process.env[k];
+      else process.env[k] = saved[k];
+    }
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
-  it('returns a logger configured with the service name in defaultMeta', () => {
-    const logger = createLogger({ serviceName: 'service.test' });
-    expect(logger.defaultMeta).toEqual({ service: 'service.test' });
+  it('stamps the service name and declared fields on every event', () => {
+    const sink = memorySink();
+    const logger = createLogger({ serviceName: 'service.test', fields: ['petId'], sink });
+
+    logger.info('pet archived', { petId: 'p1' });
+
+    expect(sink.events).toHaveLength(1);
+    expect(sink.events[0]).toMatchObject({
+      level: 'info',
+      service: 'service.test',
+      message: 'pet archived',
+      meta: { petId: 'p1' },
+    });
+  });
+
+  it('refuses to declare a field that holds personal data', () => {
+    expect(() =>
+      createLogger({ serviceName: 'svc', fields: ['email'], sink: memorySink() })
+    ).toThrow(/personal data/);
+  });
+
+  it('keeps the base field list free of personal-data names', () => {
+    expect(() =>
+      createLogger({ serviceName: 'svc', fields: BASE_LOG_FIELDS, sink: memorySink() })
+    ).not.toThrow();
+  });
+
+  it('writes one JSON line per event to the console', () => {
+    const spy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    const logger = createLogger({ serviceName: 'svc', fields: ['count'] });
+
+    logger.info('batch done', { count: 3 });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    const line = String(spy.mock.calls[0]?.[0]);
+    expect(line.endsWith('\n')).toBe(true);
+    expect(line.trimEnd()).not.toContain('\n');
+    expect(JSON.parse(line) as unknown).toMatchObject({
+      service: 'svc',
+      message: 'batch done',
+      meta: { count: 3 },
+    });
+  });
+
+  it('logs the error passed as the third argument', () => {
+    const sink = memorySink();
+    const logger = createLogger({ serviceName: 'svc', fields: [], sink });
+
+    logger.error('job failed', {}, new Error('boom'));
+
+    expect(sink.events[0]?.error).toMatchObject({ type: 'Error', message: 'boom' });
   });
 
   it('uses `info` as the level by default outside development', () => {
     process.env.NODE_ENV = 'production';
-    const logger = createLogger({ serviceName: 'svc' });
-    expect(logger.level).toBe('info');
+    const sink = memorySink();
+    const logger = createLogger({ serviceName: 'svc', fields: [], sink });
+    logger.debug('hidden');
+    logger.info('shown');
+    expect(sink.events.map(e => e.message)).toEqual(['shown']);
   });
 
   it('uses `debug` as the level when NODE_ENV is development', () => {
     process.env.NODE_ENV = 'development';
-    const logger = createLogger({ serviceName: 'svc' });
-    expect(logger.level).toBe('debug');
+    const sink = memorySink();
+    createLogger({ serviceName: 'svc', fields: [], sink }).debug('shown');
+    expect(sink.events).toHaveLength(1);
   });
 
-  it('honours LOG_LEVEL env var when set', () => {
+  it('honours LOG_LEVEL, including the legacy `http` and `silly` names', () => {
     process.env.LOG_LEVEL = 'warn';
-    const logger = createLogger({ serviceName: 'svc' });
-    expect(logger.level).toBe('warn');
+    const warnSink = memorySink();
+    const warnLogger = createLogger({ serviceName: 'svc', fields: [], sink: warnSink });
+    warnLogger.info('hidden');
+    warnLogger.warn('shown');
+    expect(warnSink.events.map(e => e.message)).toEqual(['shown']);
+
+    process.env.LOG_LEVEL = 'silly';
+    const sillySink = memorySink();
+    createLogger({ serviceName: 'svc', fields: [], sink: sillySink }).debug('shown');
+    expect(sillySink.events).toHaveLength(1);
   });
 
   it('ignores unknown LOG_LEVEL values and falls back to the env-based default', () => {
     process.env.LOG_LEVEL = 'screaming';
     process.env.NODE_ENV = 'production';
-    const logger = createLogger({ serviceName: 'svc' });
-    expect(logger.level).toBe('info');
+    const sink = memorySink();
+    createLogger({ serviceName: 'svc', fields: [], sink }).debug('hidden');
+    expect(sink.events).toHaveLength(0);
   });
 
-  it('opts.logLevel overrides everything', () => {
+  it('opts.logLevel overrides LOG_LEVEL', () => {
     process.env.LOG_LEVEL = 'warn';
-    const logger = createLogger({ serviceName: 'svc', logLevel: 'error' });
-    expect(logger.level).toBe('error');
+    const sink = memorySink();
+    createLogger({ serviceName: 'svc', fields: [], logLevel: 'error', sink }).warn('hidden');
+    expect(sink.events).toHaveLength(0);
   });
 
-  it('uses only the console transport when LOKI_URL is unset', () => {
-    const logger = createLogger({ serviceName: 'svc' });
-    expect(logger.transports).toHaveLength(1);
-  });
-
-  it('adds the Loki transport when LOKI_URL is set', () => {
+  it('ships to Loki with service/env/level labels when LOKI_URL is set', async () => {
     process.env.LOKI_URL = 'http://loki:3100';
-    const logger = createLogger({ serviceName: 'svc' });
-    expect(logger.transports).toHaveLength(2);
-  });
+    process.env.NODE_ENV = 'production';
+    vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal('fetch', fetchMock);
+    const { flushLogs } = await import('./logger.js');
 
-  it('actually emits log lines through the configured transport without throwing', () => {
-    const logger = createLogger({ serviceName: 'svc' });
-    expect(() => logger.info('hello', { context: 'smoke' })).not.toThrow();
-  });
+    createLogger({ serviceName: 'svc', fields: [] }).info('hello');
+    await flushLogs();
 
-  it('redacts secret-shaped fields before they reach a transport', async () => {
-    const chunks: string[] = [];
-    const sink = new Writable({
-      write(chunk, _enc, cb) {
-        chunks.push(chunk.toString());
-        cb();
-      },
-    });
-    const logger = createLogger({ serviceName: 'svc' });
-    // Capture the redacted info as JSON (logger-level redaction runs before
-    // this transport's json format).
-    logger.add(new winston.transports.Stream({ stream: sink, format: winston.format.json() }));
-
-    logger.info('user login', {
-      userId: 'u1',
-      password: 'hunter2',
-      auth: { accessToken: 'jwt', nested: { 'x-api-key': 'k' } },
-      tokens: ['secret-a', 'secret-b'],
-    });
-    await flush();
-
-    const line = JSON.parse(chunks.join('')) as Record<string, unknown>;
-    // Non-secret fields survive.
-    expect(line.userId).toBe('u1');
-    expect(line.message).toBe('user login');
-    // Secret-shaped keys are redacted, recursively.
-    expect(line.password).toBe('[REDACTED]');
-    expect((line.auth as Record<string, unknown>).accessToken).toBe('[REDACTED]');
-    expect(
-      ((line.auth as Record<string, unknown>).nested as Record<string, unknown>)['x-api-key']
-    ).toBe('[REDACTED]');
-    // A key named `tokens` matches the `token` substring → value redacted wholesale.
-    expect(line.tokens).toBe('[REDACTED]');
-  });
-
-  it('masks PII-shaped fields before they reach a transport (ADS-1344)', async () => {
-    const chunks: string[] = [];
-    const sink = new Writable({
-      write(chunk, _enc, cb) {
-        chunks.push(chunk.toString());
-        cb();
-      },
-    });
-    const logger = createLogger({ serviceName: 'svc' });
-    logger.add(new winston.transports.Stream({ stream: sink, format: winston.format.json() }));
-
-    logger.info('user updated', {
-      userId: 'u1',
-      password: 'hunter2',
-      email: 'user@example.com',
-      phone: '07700900123',
-      address: '10 Downing St',
-      firstName: 'Jane',
-      lastName: 'Doe',
-      profile: { name: 'Jane Doe', postcode: 'SW1A 2AA' },
-    });
-    await flush();
-
-    const line = JSON.parse(chunks.join('')) as Record<string, unknown>;
-    // Non-PII fields survive.
-    expect(line.userId).toBe('u1');
-    // Secret-shaped keys are still fully redacted, unaffected by PII masking.
-    expect(line.password).toBe('[REDACTED]');
-    // PII-shaped keys are partially masked, not dropped.
-    expect(line.email).toBe('u***@example.com');
-    expect(line.phone).toBe('0***');
-    expect(line.address).toBe('1***');
-    expect(line.firstName).toBe('J***');
-    expect(line.lastName).toBe('D***');
-    const profile = line.profile as Record<string, unknown>;
-    expect(profile.name).toBe('J***');
-    expect(profile.postcode).toBe('S***');
-  });
-
-  it('emits a startup-retry log with the error class and code readable (errorClass is not masked as PII)', async () => {
-    const chunks: string[] = [];
-    const sink = new Writable({
-      write(chunk, _enc, cb) {
-        chunks.push(chunk.toString());
-        cb();
-      },
-    });
-    const logger = createLogger({ serviceName: 'svc' });
-    logger.add(new winston.transports.Stream({ stream: sink, format: winston.format.json() }));
-
-    logger.warn('JetStream subscribe setup failed; retrying', {
-      subject: 'pets.created',
-      durable: 'pets-workers',
-      attempt: 1,
-      errorClass: 'NatsError',
-      errorCode: 'TIMEOUT',
-    });
-    await flush();
-
-    const line = JSON.parse(chunks.join('')) as Record<string, unknown>;
-    expect(line.errorClass).toBe('NatsError');
-    expect(line.errorCode).toBe('TIMEOUT');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('http://loki:3100/loki/api/v1/push');
+    const body = JSON.parse(String(init.body)) as {
+      streams: { stream: Record<string, string>; values: string[][] }[];
+    };
+    expect(body.streams[0]?.stream).toEqual({ service: 'svc', env: 'production', level: 'info' });
   });
 
   describe('trace-context stamping (ADS-1327)', () => {
-    function captureOneLine(logger: ReturnType<typeof createLogger>): {
-      lines: Record<string, unknown>[];
-    } {
-      const lines: Record<string, unknown>[] = [];
-      const sink = new Writable({
-        write(chunk, _enc, cb) {
-          lines.push(JSON.parse(chunk.toString()) as Record<string, unknown>);
-          cb();
-        },
-      });
-      logger.add(new winston.transports.Stream({ stream: sink, format: winston.format.json() }));
-      return { lines };
-    }
-
-    it('does not add trace_id/span_id when there is no active span', async () => {
-      const logger = createLogger({ serviceName: 'svc' });
-      const { lines } = captureOneLine(logger);
-
-      logger.info('no span here');
-      await flush();
-
-      expect(lines[0]).not.toHaveProperty('trace_id');
-      expect(lines[0]).not.toHaveProperty('span_id');
+    it('does not add trace_id/span_id when there is no active span', () => {
+      const sink = memorySink();
+      createLogger({ serviceName: 'svc', fields: [], sink }).info('no span here');
+      expect(sink.events[0]?.meta).toBeUndefined();
     });
 
-    it('stamps trace_id/span_id from the active OTel span, when there is one', async () => {
+    it('stamps trace_id/span_id from the active OTel span, when there is one', () => {
       getActiveSpanMock.mockReturnValue({
         spanContext: () => ({ traceId: 'trace-abc123', spanId: 'span-def456' }),
       });
-      const logger = createLogger({ serviceName: 'svc' });
-      const { lines } = captureOneLine(logger);
-
-      logger.info('inside a trace');
-      await flush();
-
-      expect(lines[0]?.trace_id).toBe('trace-abc123');
-      expect(lines[0]?.span_id).toBe('span-def456');
+      const sink = memorySink();
+      createLogger({ serviceName: 'svc', fields: ['count'], sink }).info('in a trace', {
+        count: 1,
+      });
+      expect(sink.events[0]?.meta).toEqual({
+        count: 1,
+        trace_id: 'trace-abc123',
+        span_id: 'span-def456',
+      });
     });
 
-    it('does not stamp when the active span has no traceId', async () => {
-      getActiveSpanMock.mockReturnValue({
-        spanContext: () => ({ traceId: '', spanId: '' }),
-      });
-      const logger = createLogger({ serviceName: 'svc' });
-      const { lines } = captureOneLine(logger);
-
-      logger.info('degenerate span context');
-      await flush();
-
-      expect(lines[0]).not.toHaveProperty('trace_id');
+    it('does not stamp when the active span has no traceId', () => {
+      getActiveSpanMock.mockReturnValue({ spanContext: () => ({ traceId: '', spanId: '' }) });
+      const sink = memorySink();
+      createLogger({ serviceName: 'svc', fields: [], sink }).info('degenerate span context');
+      expect(sink.events[0]?.meta).toBeUndefined();
     });
   });
 });

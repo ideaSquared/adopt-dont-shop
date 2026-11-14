@@ -13,7 +13,6 @@
 
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
-import type { Logger } from 'winston';
 
 import {
   EXPECTED_GDPR_SERVICES,
@@ -24,6 +23,7 @@ import {
   type GdprErasureRequestedPayload,
   type SubscriptionHandle,
 } from '@adopt-dont-shop/events';
+import { type ServiceLogger } from '../logger.js';
 
 // The set of services we expect to ack each request. Once every one of
 // these has an error-free completion entry, the request flips to
@@ -41,7 +41,7 @@ const DURABLE_COMPLETION = 'audit-workers-gdpr-completion';
 export type RegisterGdprSubscribersOptions = {
   nats: NatsConnection;
   pool: Pool;
-  logger: Logger;
+  logger: ServiceLogger;
 };
 
 export const registerGdprSubscribers = (
@@ -50,10 +50,7 @@ export const registerGdprSubscribers = (
   const { nats, pool, logger } = opts;
 
   const onError = (err: unknown, ctx: { subject: string }): void => {
-    logger.error('audit gdpr subscriber handler failed', {
-      subject: ctx.subject,
-      err: (err as Error)?.message ?? String(err),
-    });
+    logger.error('audit gdpr subscriber handler failed', { subject: ctx.subject }, err);
   };
 
   return [
@@ -120,14 +117,14 @@ export async function recordRequest(
 export async function recordCompletion(
   pool: Pool,
   payload: GdprErasureCompletedPayload,
-  logger: Logger
+  logger: ServiceLogger
 ): Promise<void> {
   if (payload.error) {
-    logger.warn('gdpr erasure completion reported an error', {
-      correlationId: payload.correlationId,
-      service: payload.service,
-      error: payload.error,
-    });
+    logger.warn(
+      'gdpr erasure completion reported an error',
+      { correlationId: payload.correlationId, completedBy: payload.service },
+      new Error(payload.error)
+    );
   }
 
   const entry = {

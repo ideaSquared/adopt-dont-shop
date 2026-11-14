@@ -4,11 +4,10 @@
 
 import { Resend } from 'resend';
 
-import type { createLogger } from '@adopt-dont-shop/observability';
-
 import type { EmailProvider, ProviderSendResult, QueuedEmail } from '../types.js';
 
-import { maskRecipient, sanitizeEmail } from './base.js';
+import { sanitizeEmail } from './base.js';
+import { type ServiceLogger } from '../../logger.js';
 
 // 10s per-send budget. Resend's SDK doesn't accept an AbortSignal, so we
 // race the call against a timer (same pattern the monolith uses).
@@ -23,7 +22,7 @@ export type ResendProviderConfig = {
 
 export type ResendProviderDeps = {
   config: ResendProviderConfig;
-  logger: ReturnType<typeof createLogger>;
+  logger: ServiceLogger;
   // Injectable for tests — defaults to a real Resend client.
   client?: Pick<Resend, 'emails'>;
 };
@@ -69,25 +68,20 @@ export const createResendProvider = (deps: ResendProviderDeps): EmailProvider =>
           RESEND_SEND_TIMEOUT_MS
         );
         if (result.error !== null) {
+          // The provider's error text can echo the recipient: log its class, never the message.
           deps.logger.error('email.resend.send_failed', {
-            to: maskRecipient(sanitized.to),
             type: email.type,
-            error: result.error.message,
+            errorClass: result.error.name,
           });
           return { success: false, error: result.error.message };
         }
-        deps.logger.info('email.resend.send_ok', {
-          messageId: result.data.id,
-          to: maskRecipient(sanitized.to),
-          type: email.type,
-        });
+        deps.logger.info('email.resend.send_ok', { messageId: result.data.id, type: email.type });
         return { success: true, messageId: result.data.id };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         deps.logger.error('email.resend.send_error', {
-          to: maskRecipient(sanitized.to),
           type: email.type,
-          error: message,
+          errorClass: err instanceof Error ? err.name : null,
         });
         return { success: false, error: message };
       }

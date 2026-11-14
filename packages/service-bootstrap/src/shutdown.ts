@@ -3,32 +3,49 @@
 //
 // An overall deadline (default 25 000 ms, overridable via timeoutMs) races
 // against the full sequence. If the sequence exceeds the deadline, the
-// function logs which step was in flight and calls process.exit(1).
-// Normal completion still exits 0 — callers are responsible for that call.
+// function logs which step was in flight and calls process.exit(1) without
+// flushing logs. On success the logs are flushed best-effort (bounded to 2 s)
+// inside the same deadline. Normal completion still exits 0 — callers are
+// responsible for that call.
 
 import type { FastifyInstance } from 'fastify';
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
 
-import type { createLogger } from '@adopt-dont-shop/observability';
-
-type Logger = ReturnType<typeof createLogger>;
+import { flushLogs, type BaseLogger } from '@adopt-dont-shop/observability';
 
 export type ShutdownDeps = {
   httpServer: Pick<FastifyInstance, 'close'>;
   grpc?: { shutdown: () => Promise<void> };
   nats?: Pick<NatsConnection, 'drain'>;
   pool?: Pick<Pool, 'end'>;
-  logger: Logger;
+  logger: BaseLogger;
   /** Overall deadline in ms. Default 25 000 (under the typical 30 s
    *  orchestrator grace period). */
   timeoutMs?: number;
 };
 
 const DEFAULT_TIMEOUT_MS = 25_000;
+const FLUSH_TIMEOUT_MS = 2_000;
+
+// Best-effort: ship the buffered logs, but never wait on an unresponsive Loki for longer than
+// FLUSH_TIMEOUT_MS. Runs inside the deadline race, so it can never push shutdown past it.
+const flushLogsBounded = async (): Promise<void> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const bound = new Promise<void>(resolve => {
+    timer = setTimeout(resolve, FLUSH_TIMEOUT_MS);
+  });
+  try {
+    await Promise.race([flushLogs().catch(() => undefined), bound]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
+};
 
 export type ShutdownDeadlineOptions = {
-  logger: Logger;
+  logger: BaseLogger;
   /** Overall deadline in ms. Default 25 000. */
   timeoutMs?: number;
   /** Names the step in flight for the deadline log line (evaluated when the
@@ -58,12 +75,11 @@ export const withShutdownDeadline = async (
   });
 
   try {
-    await Promise.race([sequence(), deadline]);
+    await Promise.race([sequence().then(flushLogsBounded), deadline]);
   } catch (err) {
     const step = opts.currentStep?.();
-    opts.logger.error(`shutdown deadline exceeded${step ? ` — step in flight: ${step}` : ''}`, {
-      err,
-    });
+    opts.logger.error('shutdown deadline exceeded', { step: step ?? null }, err);
+    // No flush here: the deadline has passed, so exit now rather than wait on another network call.
     process.exit(1);
   } finally {
     if (timer) {
@@ -85,28 +101,28 @@ export const runServiceShutdown = async (deps: ShutdownDeps): Promise<void> => {
     try {
       await httpServer.close();
     } catch (err) {
-      logger.error('http close error', { err });
+      logger.error('http close error', {}, err);
     }
 
     currentStep = 'grpc';
     try {
       await grpc?.shutdown();
     } catch (err) {
-      logger.error('grpc shutdown error', { err });
+      logger.error('grpc shutdown error', {}, err);
     }
 
     currentStep = 'nats';
     try {
       await nats?.drain();
     } catch (err) {
-      logger.error('nats drain error', { err });
+      logger.error('nats drain error', {}, err);
     }
 
     currentStep = 'pool';
     try {
       await pool?.end();
     } catch (err) {
-      logger.error('pool end error', { err });
+      logger.error('pool end error', {}, err);
     }
   };
 

@@ -36,6 +36,7 @@
     "type-check": "tsc --noEmit -p tsconfig.typecheck.json"
   },
   "dependencies": {
+    "@adopt-dont-shop/observability": "workspace:*",
     "node-pg-migrate": "^8.0.4",
     "pg": "^8.22.0"
   },

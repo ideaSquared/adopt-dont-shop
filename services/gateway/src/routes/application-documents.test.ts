@@ -16,6 +16,7 @@ import {
   ALLOWED_DOCUMENT_MIME,
   registerApplicationDocumentsRoutes,
 } from './application-documents.js';
+import { quietLogger } from '../../test/helpers/test-logger.js';
 
 const SIGNING_SECRET = 'test-doc-signing-secret';
 
@@ -76,6 +77,7 @@ describe('application document routes', () => {
     const { default: multipart } = await import('@fastify/multipart');
     await app.register(multipart, { limits: { fileSize: 1_000_000, files: 1 } });
     await registerApplicationDocumentsRoutes(app, {
+      logger: quietLogger,
       client,
       storage: {
         provider: 'local',
@@ -161,6 +163,7 @@ describe('application document routes', () => {
     const { default: multipart } = await import('@fastify/multipart');
     await blockedApp.register(multipart, { limits: { fileSize: 1_000_000, files: 1 } });
     await registerApplicationDocumentsRoutes(blockedApp, {
+      logger: quietLogger,
       client: blockedClient,
       storage: { provider: 'local', local: { directory: blocker, publicPath: '/uploads' }, s3: {} },
       signingSecret: SIGNING_SECRET,
@@ -196,6 +199,7 @@ describe('application document routes', () => {
     // route's try/catch.
     await smallLimitApp.register(multipart, { limits: { fileSize: 10, files: 1 } });
     await registerApplicationDocumentsRoutes(smallLimitApp, {
+      logger: quietLogger,
       client: smallLimitClient,
       storage: { provider: 'local', local: { directory: tmp, publicPath: '/uploads' }, s3: {} },
       signingSecret: SIGNING_SECRET,
@@ -227,6 +231,7 @@ describe('application document routes', () => {
     const { default: multipart } = await import('@fastify/multipart');
     await unsignedApp.register(multipart, { limits: { fileSize: 1_000_000, files: 1 } });
     await registerApplicationDocumentsRoutes(unsignedApp, {
+      logger: quietLogger,
       client: unsignedClient,
       storage: { provider: 'local', local: { directory: tmp, publicPath: '/uploads' }, s3: {} },
       avScan: CLEAN_SCAN,
@@ -252,6 +257,7 @@ describe('application document routes', () => {
     const { default: multipart } = await import('@fastify/multipart');
     await emptySecretApp.register(multipart, { limits: { fileSize: 1_000_000, files: 1 } });
     await registerApplicationDocumentsRoutes(emptySecretApp, {
+      logger: quietLogger,
       client: emptySecretClient,
       storage: { provider: 'local', local: { directory: tmp, publicPath: '/uploads' }, s3: {} },
       signingSecret: '',
@@ -335,6 +341,7 @@ describe('application document routes', () => {
       .fn()
       .mockResolvedValue({ clean: false, signature: 'Win.Test.EICAR_HDB-1' });
     await registerApplicationDocumentsRoutes(scanApp, {
+      logger: quietLogger,
       client: scanClient,
       storage: { provider: 'local', local: { directory: tmp, publicPath: '/uploads' }, s3: {} },
       signingSecret: SIGNING_SECRET,
@@ -371,6 +378,7 @@ describe('application document routes', () => {
       .fn()
       .mockRejectedValue(new AvScanUnavailableError('AV scanner unreachable at clamav:3310'));
     await registerApplicationDocumentsRoutes(scanApp, {
+      logger: quietLogger,
       client: scanClient,
       storage: { provider: 'local', local: { directory: tmp, publicPath: '/uploads' }, s3: {} },
       signingSecret: SIGNING_SECRET,
@@ -431,6 +439,7 @@ describe('application document routes', () => {
     unsignedMocks.listDocuments.mockResolvedValue({ documents: [DOC] });
     const unsignedApp = Fastify({ logger: false });
     await registerApplicationDocumentsRoutes(unsignedApp, {
+      logger: quietLogger,
       client: unsignedClient,
       storage: { provider: 'local', local: { directory: tmp, publicPath: '/uploads' }, s3: {} },
       avScan: CLEAN_SCAN,
@@ -450,6 +459,7 @@ describe('application document routes', () => {
     emptySecretMocks.listDocuments.mockResolvedValue({ documents: [DOC] });
     const emptySecretApp = Fastify({ logger: false });
     await registerApplicationDocumentsRoutes(emptySecretApp, {
+      logger: quietLogger,
       client: emptySecretClient,
       storage: { provider: 'local', local: { directory: tmp, publicPath: '/uploads' }, s3: {} },
       signingSecret: '',

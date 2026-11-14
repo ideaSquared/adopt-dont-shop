@@ -7,6 +7,8 @@ import {
   type NatsConnection,
 } from 'nats';
 
+import { BASE_LOG_FIELDS, createLogger } from '@adopt-dont-shop/observability';
+
 import { recordDeadLetter } from './dead-letter-metrics.js';
 import type { OutboxLogger } from './outbox.js';
 import { DLQ_SUBJECT_PREFIX, DOMAIN_STREAM } from './stream.js';
@@ -95,20 +97,22 @@ const isNonTransient = (err: unknown): boolean =>
   err instanceof SyntaxError ||
   err instanceof ReferenceError;
 
-const stderrLogger: OutboxLogger = {
-  warn: (message, meta) =>
-    process.stderr.write(`${JSON.stringify({ level: 'warn', message, ...(meta as object) })}\n`),
-  error: (message, meta) =>
-    process.stderr.write(`${JSON.stringify({ level: 'error', message, ...(meta as object) })}\n`),
-};
+let fallbackLogger: OutboxLogger | undefined;
+const getFallbackLogger = (): OutboxLogger =>
+  (fallbackLogger ??= createLogger({ serviceName: 'events', fields: BASE_LOG_FIELDS }));
 
-const describeError = (err: unknown): { errorClass?: string; errorCode?: unknown } => ({
-  // `errorClass`, not `errorName`: the shared logger masks any key containing
-  // "name" as PII. The free-text message is deliberately omitted: it can carry
-  // secrets or PII and the shared logger does not redact string values.
-  errorClass: (err as { name?: string } | null)?.name,
-  errorCode: (err as { code?: unknown } | null)?.code,
-});
+const describeError = (
+  err: unknown
+): { errorClass: string | null; errorCode: string | number | null } => {
+  // `errorClass`, not `errorName`: the shared logger refuses any field containing "name".
+  // The free-text message is deliberately omitted: it can carry secrets or PII.
+  const name = (err as { name?: unknown } | null)?.name;
+  const code = (err as { code?: unknown } | null)?.code;
+  return {
+    errorClass: typeof name === 'string' ? name : null,
+    errorCode: typeof code === 'string' || typeof code === 'number' ? code : null,
+  };
+};
 
 const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -163,7 +167,7 @@ export function subscribe<T = unknown>(
   let messages: ConsumerMessages | undefined;
   let closed = false;
   const retry: SubscribeSetupRetry = { ...DEFAULT_SETUP_RETRY, ...opts.setupRetry };
-  const log = opts.logger ?? stderrLogger;
+  const log = opts.logger ?? getFallbackLogger();
   const onSetupFailure = opts.onSetupFailure ?? defaultSetupFailure;
 
   // One attempt at everything that talks to JetStream.
@@ -216,7 +220,7 @@ export function subscribe<T = unknown>(
           ...describeError(err),
         };
         if (isNonTransient(err) || attempt >= retry.attempts) {
-          log.error?.('JetStream subscribe setup failed; giving up', {
+          log.error('JetStream subscribe setup failed; giving up', {
             ...meta,
             attempts: attempt,
           });
@@ -225,7 +229,7 @@ export function subscribe<T = unknown>(
           });
         }
         const delayMs = setupRetryDelayMs(attempt, retry);
-        log.warn?.('JetStream subscribe setup failed; retrying', { ...meta, retryInMs: delayMs });
+        log.warn('JetStream subscribe setup failed; retrying', { ...meta, retryInMs: delayMs });
         await sleep(delayMs);
         if (closed) {
           return undefined;
@@ -340,7 +344,7 @@ export async function handleFailure(
   },
   raw: string,
   err: unknown,
-  logger: OutboxLogger = stderrLogger
+  logger: OutboxLogger = getFallbackLogger()
 ): Promise<void> {
   const attempt = msg.info?.redeliveryCount ?? (msg.redelivered ? 2 : 1);
   if (attempt < MAX_DELIVER) {
@@ -350,7 +354,7 @@ export async function handleFailure(
   try {
     await deadLetterWithRetry(nc, msg.subject, raw, err);
   } catch (dlqErr) {
-    logger.error?.('dead-letter publish failed; message left un-terminated', {
+    logger.error('dead-letter publish failed; message left un-terminated', {
       subject: msg.subject,
       attempts: DLQ_PUBLISH_ATTEMPTS,
       ...describeError(dlqErr),

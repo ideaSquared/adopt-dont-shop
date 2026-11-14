@@ -21,11 +21,9 @@
 import { status } from '@grpc/grpc-js';
 
 import type { AuthCohortClient } from './handlers.js';
+import type { ServiceLogger } from '../logger.js';
 
-type BootLogger = {
-  warn: (message: string, meta?: Record<string, unknown>) => void;
-  error: (message: string, meta?: Record<string, unknown>) => void;
-};
+type BootLogger = Pick<ServiceLogger, 'warn' | 'error'>;
 
 const FATAL_CODES = new Set([status.PERMISSION_DENIED, status.UNAUTHENTICATED]);
 
@@ -45,8 +43,7 @@ export async function validateAuthPrincipal(
 
     if (typeof code === 'number' && code === status.UNAVAILABLE) {
       logger.warn(
-        'service.notifications: auth service unavailable at boot — ' +
-          'system principal not verified; will retry at request time',
+        'service.notifications: auth service unavailable at boot — system principal not verified; will retry at request time',
         { code }
       );
       return;
@@ -54,9 +51,9 @@ export async function validateAuthPrincipal(
 
     if (typeof code === 'number' && FATAL_CODES.has(code)) {
       logger.error(
-        'service.notifications: system principal rejected by auth service — ' +
-          'check AUTH_GRPC_URL and the svc-notifications seed data; crashing',
-        { code, err: (err as Error).message }
+        'service.notifications: system principal rejected by auth service — check AUTH_GRPC_URL and the svc-notifications seed data; crashing',
+        { code },
+        err
       );
       throw new Error(
         `boot validation failed: auth service rejected system principal (gRPC status ${code})`
@@ -64,10 +61,11 @@ export async function validateAuthPrincipal(
     }
 
     // Unexpected error — surface it rather than silently continuing.
-    logger.error('service.notifications: unexpected error during auth principal validation', {
-      code,
-      err: (err as Error).message,
-    });
+    logger.error(
+      'service.notifications: unexpected error during auth principal validation',
+      { code },
+      err
+    );
     throw err;
   }
 }

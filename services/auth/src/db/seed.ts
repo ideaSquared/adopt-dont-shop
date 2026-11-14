@@ -12,7 +12,7 @@
 import bcrypt from 'bcryptjs';
 
 import { createDbClient } from '@adopt-dont-shop/db';
-import { createLogger } from '@adopt-dont-shop/observability';
+import { BASE_LOG_FIELDS, createLogger, flushLogs } from '@adopt-dont-shop/observability';
 import { assertNotProduction } from '@adopt-dont-shop/seed-faker';
 
 import { loadConfig } from '../config.js';
@@ -78,7 +78,7 @@ const paramsFor = (user: SeedUser, passwordHash: string): readonly unknown[] => 
 
 const main = async (): Promise<void> => {
   assertNotProduction();
-  const logger = createLogger({ serviceName: 'service.auth.seed' });
+  const logger = createLogger({ serviceName: 'service.auth.seed', fields: BASE_LOG_FIELDS });
   const config = loadConfig();
   const pool = createDbClient({ connectionString: config.databaseUrl, schema: config.schema });
   try {
@@ -90,13 +90,10 @@ const main = async (): Promise<void> => {
       query: (text, values) => pool.query(text, values as unknown[]),
       hash: password => bcrypt.hash(password, BCRYPT_ROUNDS),
     });
-    logger.info('auth seed complete', { seeded });
+    logger.info('auth seed complete', { count: seeded.length });
   } catch (err) {
-    logger.error('auth seed failed', {
-      message: (err as Error)?.message,
-      stack: (err as Error)?.stack,
-    });
-    console.error(err);
+    logger.error('auth seed failed', {}, err);
+    await flushLogs();
     process.exitCode = 1;
   } finally {
     await pool.end();

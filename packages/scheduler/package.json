@@ -35,12 +35,14 @@
     "format:check": "prettier --check \"src/**/*.ts\"",
     "type-check": "tsc --noEmit -p tsconfig.typecheck.json"
   },
+  "dependencies": {
+    "@adopt-dont-shop/observability": "workspace:*"
+  },
   "peerDependencies": {
     "pg": "^8.22.0"
   },
   "devDependencies": {
     "@types/pg": "^8.15.5",
-    "pg": "^8.22.0",
-    "winston": "^3.19.0"
+    "pg": "^8.22.0"
   }
 }

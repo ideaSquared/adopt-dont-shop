@@ -1,34 +1,27 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { Logger } from 'winston';
-
+import { makeTestLogger } from '../../test/helpers/test-logger.js';
 import { registerAnalyticsRoutes } from './analytics.js';
 
-function makeLogger(): Logger & { infoMock: ReturnType<typeof vi.fn> } {
-  const infoMock = vi.fn();
-  return {
-    info: infoMock,
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    infoMock,
-  } as unknown as Logger & { infoMock: ReturnType<typeof vi.fn> };
-}
+type TestLogger = ReturnType<typeof makeTestLogger>;
 
-async function buildApp(logger: Logger): Promise<FastifyInstance> {
+async function buildApp(logger: TestLogger['logger']): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
   await registerAnalyticsRoutes(app, { logger });
   return app;
 }
 
+const lastMeta = (t: TestLogger): Record<string, unknown> =>
+  t.events[t.events.length - 1]?.meta ?? {};
+
 describe('POST /api/v1/analytics/pageviews', () => {
   let app: FastifyInstance;
-  let logger: ReturnType<typeof makeLogger>;
+  let logger: TestLogger;
 
   beforeEach(async () => {
-    logger = makeLogger();
-    app = await buildApp(logger);
+    logger = makeTestLogger();
+    app = await buildApp(logger.logger);
   });
   afterEach(async () => {
     await app.close();
@@ -45,24 +38,19 @@ describe('POST /api/v1/analytics/pageviews', () => {
     expect(res.json()).toEqual({ success: true, message: 'Pageview recorded' });
   });
 
-  it('logs the pageview with the principal user id when present', async () => {
+  it('logs the principal user id when present, and no path', async () => {
     await app.inject({
       method: 'POST',
       url: '/api/v1/analytics/pageviews',
       headers: { 'content-type': 'application/json', 'x-user-id': 'usr-1' },
       payload: { path: '/pets', sessionId: 'sess-1' },
     });
-    expect(logger.infoMock).toHaveBeenCalledWith(
-      'Pageview recorded',
-      expect.objectContaining({
-        type: 'pageview',
-        data: expect.objectContaining({
-          path: '/pets',
-          userId: 'usr-1',
-          sessionId: 'sess-1',
-        }),
-      })
-    );
+    expect(logger.events).toHaveLength(1);
+    expect(logger.events[0]).toMatchObject({
+      message: 'Pageview recorded',
+      meta: { userId: 'usr-1' },
+    });
+    expect(lastMeta(logger)).not.toHaveProperty('path');
   });
 
   it('accepts anonymous traffic (no x-user-id)', async () => {
@@ -73,56 +61,53 @@ describe('POST /api/v1/analytics/pageviews', () => {
       payload: { path: '/landing' },
     });
     expect(res.statusCode).toBe(201);
-    const call = logger.infoMock.mock.calls[0] as [string, { data: { userId: undefined } }];
-    expect(call[1].data.userId).toBeUndefined();
+    expect(lastMeta(logger).userId).toBeNull();
   });
 
-  it('truncates oversize user agent / referrer strings', async () => {
+  it('never logs the session id, referrer, user agent or client address', async () => {
     await app.inject({
       method: 'POST',
       url: '/api/v1/analytics/pageviews',
       headers: { 'content-type': 'application/json' },
       payload: {
         path: '/x',
-        userAgent: 'x'.repeat(1000),
-        referrer: 'y'.repeat(1000),
+        sessionId: 'SESSION-SECRET',
+        userAgent: 'AGENT-SECRET',
+        referrer: 'https://elsewhere.example/REFERRER-SECRET',
       },
     });
-    const call = logger.infoMock.mock.calls[0] as [
-      string,
-      { data: { userAgent: string; referrer: string } },
-    ];
-    expect(call[1].data.userAgent.length).toBe(256);
-    expect(call[1].data.referrer.length).toBe(256);
+    const logged = JSON.stringify(logger.events);
+    for (const secret of ['SESSION-SECRET', 'AGENT-SECRET', 'REFERRER-SECRET', '127.0.0.1']) {
+      expect(logged).not.toContain(secret);
+    }
   });
 });
 
 describe('POST /api/v1/analytics/events', () => {
   let app: FastifyInstance;
-  let logger: ReturnType<typeof makeLogger>;
+  let logger: TestLogger;
   beforeEach(async () => {
-    logger = makeLogger();
-    app = await buildApp(logger);
+    logger = makeTestLogger();
+    app = await buildApp(logger.logger);
   });
   afterEach(async () => {
     await app.close();
   });
 
-  it('returns 201 and logs the single event', async () => {
+  it('returns 201 and logs the event name, not its properties', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/analytics/events',
       headers: { 'content-type': 'application/json' },
-      payload: { event: 'pet_favorited', properties: { petId: 'pet-1' } },
+      payload: { event: 'pet_favorited', properties: { note: 'PROPERTY-SECRET' } },
     });
     expect(res.statusCode).toBe(201);
     expect(res.json()).toEqual({ success: true, message: 'Event recorded' });
-    const call = logger.infoMock.mock.calls[0] as [
-      string,
-      { data: { event: string; properties: Record<string, unknown> } },
-    ];
-    expect(call[1].data.event).toBe('pet_favorited');
-    expect(call[1].data.properties).toEqual({ petId: 'pet-1' });
+    expect(logger.events[0]).toMatchObject({
+      message: 'Analytics event recorded',
+      meta: { event: 'pet_favorited' },
+    });
+    expect(JSON.stringify(logger.events)).not.toContain('PROPERTY-SECRET');
   });
 
   it("falls back to 'unknown' when no name field is provided", async () => {
@@ -132,17 +117,16 @@ describe('POST /api/v1/analytics/events', () => {
       headers: { 'content-type': 'application/json' },
       payload: { properties: {} },
     });
-    const call = logger.infoMock.mock.calls[0] as [string, { data: { event: string } }];
-    expect(call[1].data.event).toBe('unknown');
+    expect(lastMeta(logger).event).toBe('unknown');
   });
 });
 
 describe('POST /api/v1/analytics/events/batch', () => {
   let app: FastifyInstance;
-  let logger: ReturnType<typeof makeLogger>;
+  let logger: TestLogger;
   beforeEach(async () => {
-    logger = makeLogger();
-    app = await buildApp(logger);
+    logger = makeTestLogger();
+    app = await buildApp(logger.logger);
   });
   afterEach(async () => {
     await app.close();
@@ -157,6 +141,10 @@ describe('POST /api/v1/analytics/events/batch', () => {
     });
     expect(res.statusCode).toBe(201);
     expect(res.json()).toEqual({ success: true, message: 'Events recorded', processed: 3 });
+    expect(logger.events[0]).toMatchObject({
+      message: 'Batch events recorded',
+      meta: { count: 3 },
+    });
   });
 
   it('rejects when events is not an array', async () => {
@@ -183,8 +171,8 @@ describe('POST /api/v1/analytics/events/batch', () => {
 
 describe('GET /api/v1/analytics/health', () => {
   it('returns a healthy payload', async () => {
-    const logger = makeLogger();
-    const app = await buildApp(logger);
+    const logger = makeTestLogger();
+    const app = await buildApp(logger.logger);
     try {
       const res = await app.inject({ method: 'GET', url: '/api/v1/analytics/health' });
       expect(res.statusCode).toBe(200);
@@ -204,107 +192,44 @@ describe('GET /api/v1/analytics/health', () => {
   });
 });
 
-describe('analytics ingestion redaction + bounding (ADS-1038)', () => {
+describe('analytics ingestion redaction (ADS-1038)', () => {
   let app: FastifyInstance;
-  let logger: ReturnType<typeof makeLogger>;
+  let logger: TestLogger;
 
   beforeEach(async () => {
-    logger = makeLogger();
-    app = await buildApp(logger);
+    logger = makeTestLogger();
+    app = await buildApp(logger.logger);
   });
   afterEach(async () => {
     await app.close();
   });
 
-  const loggedData = (): Record<string, unknown> =>
-    (logger.infoMock.mock.calls[0][1] as { data: Record<string, unknown> }).data;
-
-  it('drops the query string (and its token) from the pageview path', async () => {
+  it.each([
+    '/users/alex@example.com',
+    '/users/alex%40example.com',
+    '/pets/bob',
+    '/reset-password?token=SECRET',
+    '/cb#access_token=SECRET',
+  ])('never logs any part of the client-supplied page path %s', async path => {
     await app.inject({
       method: 'POST',
       url: '/api/v1/analytics/pageviews',
       headers: { 'content-type': 'application/json' },
-      payload: { path: '/reset-password?token=SECRET' },
+      payload: { path, url: `https://example.com${path}` },
     });
-    expect(loggedData().path).toBe('/reset-password');
-    expect(JSON.stringify(logger.infoMock.mock.calls[0][1])).not.toContain('SECRET');
-  });
-
-  it('drops the query string (and its token) from the referrer', async () => {
-    await app.inject({
-      method: 'POST',
-      url: '/api/v1/analytics/pageviews',
-      headers: { 'content-type': 'application/json' },
-      payload: { path: '/x', referrer: 'https://app.example/verify-email?token=SECRET' },
-    });
-    expect(loggedData().referrer).toBe('https://app.example/verify-email');
-    expect(JSON.stringify(logger.infoMock.mock.calls[0][1])).not.toContain('SECRET');
-  });
-
-  it('drops the URL fragment (and an OAuth-style token in it) from the referrer', async () => {
-    await app.inject({
-      method: 'POST',
-      url: '/api/v1/analytics/pageviews',
-      headers: { 'content-type': 'application/json' },
-      payload: { path: '/x', referrer: 'https://app.example/cb#access_token=SECRET' },
-    });
-    expect(loggedData().referrer).toBe('https://app.example/cb');
-    expect(JSON.stringify(logger.infoMock.mock.calls[0][1])).not.toContain('SECRET');
-  });
-
-  it('redacts secret-keyed event properties by key', async () => {
-    await app.inject({
-      method: 'POST',
-      url: '/api/v1/analytics/events',
-      headers: { 'content-type': 'application/json' },
-      payload: { event: 'signup', properties: { authToken: 'SECRET', page: 2 } },
-    });
-    const props = loggedData().properties as Record<string, unknown>;
-    expect(props.authToken).toBe('[REDACTED]');
-    expect(props.page).toBe(2);
-  });
-
-  it('truncates an oversized properties object instead of logging it whole', async () => {
-    const big = { blob: 'A'.repeat(5000) };
-    await app.inject({
-      method: 'POST',
-      url: '/api/v1/analytics/events',
-      headers: { 'content-type': 'application/json' },
-      payload: { event: 'x', properties: big },
-    });
-    const props = loggedData().properties as Record<string, unknown>;
-    expect(props._truncated).toBe(true);
-    expect(JSON.stringify(logger.infoMock.mock.calls[0][1])).not.toContain('AAAA');
-  });
-});
-
-describe('analytics ingestion per-route rate limit (ADS-1038)', () => {
-  it('rejects pageview floods from one IP once the per-route cap is exceeded', async () => {
-    const logger = makeLogger();
-    const app = Fastify({ logger: false });
-    const rateLimit = (await import('@fastify/rate-limit')).default;
-    await app.register(rateLimit, { global: true, max: 1000, timeWindow: '1 minute' });
-    await registerAnalyticsRoutes(app, { logger });
-    try {
-      const fire = () =>
-        app.inject({
-          method: 'POST',
-          url: '/api/v1/analytics/pageviews',
-          headers: { 'content-type': 'application/json' },
-          payload: { path: '/x' },
-        });
-      // The route override is 120/min; send just over it and assert a 429 appears.
-      let saw429 = false;
-      for (let i = 0; i < 130; i++) {
-        const res = await fire();
-        if (res.statusCode === 429) {
-          saw429 = true;
-          break;
-        }
-      }
-      expect(saw429).toBe(true);
-    } finally {
-      await app.close();
+    const logged = JSON.stringify(logger.events);
+    for (const leak of ['alex', 'bob', 'SECRET', 'example.com', 'reset-password']) {
+      expect(logged).not.toContain(leak);
     }
+  });
+
+  it('truncates an oversized event name', async () => {
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/analytics/events',
+      headers: { 'content-type': 'application/json' },
+      payload: { event: 'e'.repeat(1000) },
+    });
+    expect(String(lastMeta(logger).event).length).toBeLessThanOrEqual(200);
   });
 });

@@ -1,13 +1,12 @@
 import { createMicroserviceServer, type ReadinessDeps } from '@adopt-dont-shop/service-bootstrap';
 import type { FastifyInstance } from 'fastify';
 
-import type { createLogger } from '@adopt-dont-shop/observability';
-
 import type { ApplicationsConfig } from './config.js';
+import { type ServiceLogger } from './logger.js';
 
 export type CreateServerOptions = {
   config: ApplicationsConfig;
-  logger?: ReturnType<typeof createLogger>;
+  logger?: ServiceLogger;
   isReady?: () => boolean;
   readiness?: ReadinessDeps;
 };

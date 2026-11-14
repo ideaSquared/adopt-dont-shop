@@ -18,7 +18,12 @@
 // (re)populate on demand.
 
 import { createDbClient } from '@adopt-dont-shop/db';
-import { createLogger } from '@adopt-dont-shop/observability';
+import {
+  BASE_LOG_FIELDS,
+  createLogger,
+  flushLogs,
+  type Logger,
+} from '@adopt-dont-shop/observability';
 import {
   assertSpamAllowed,
   BREEDS_BY_SPECIES,
@@ -35,6 +40,9 @@ import {
 
 import { loadConfig } from '../config.js';
 import { seedBreeds } from './seed.js';
+
+const SPAM_LOG_FIELDS = [...BASE_LOG_FIELDS, 'pets', 'ratings', 'rescues', 'seeded'] as const;
+type SpamLogger = Pick<Logger<(typeof SPAM_LOG_FIELDS)[number]>, 'info'>;
 
 type Faker = ReturnType<typeof createSpamFaker>;
 export type QueryFn = (text: string, values: readonly unknown[]) => Promise<unknown>;
@@ -243,10 +251,10 @@ const anchorExists = async (query: QueryFn): Promise<boolean> => {
 export const runSpam = async (deps: {
   query: QueryFn;
   faker: Faker;
-  log?: (message: string, meta?: Record<string, unknown>) => void;
+  logger?: SpamLogger;
 }): Promise<{ seeded: boolean; pets: number; ratings: number }> => {
   if (!(await shouldSeed(() => anchorExists(deps.query)))) {
-    deps.log?.('pets catalogue already populated — skipping (SEED_ONLY_IF_EMPTY)');
+    deps.logger?.info('pets catalogue already populated — skipping (SEED_ONLY_IF_EMPTY)');
     return { seeded: false, pets: 0, ratings: 0 };
   }
 
@@ -262,7 +270,7 @@ export const runSpam = async (deps: {
   const adopterIds = idRange('adopter', spamCount('ADOPTERS', 50));
   const pets = spamCount('PETS', 200);
   const ratings = spamCount('RATINGS', 100);
-  deps.log?.('spamming pets', { pets, ratings, rescues: rescueIds.length });
+  deps.logger?.info('spamming pets', { pets, ratings, rescues: rescueIds.length });
   const result = await spamPets({
     query: deps.query,
     faker: deps.faker,
@@ -276,7 +284,7 @@ export const runSpam = async (deps: {
 };
 
 const main = async (): Promise<void> => {
-  const logger = createLogger({ serviceName: 'service.pets.spam' });
+  const logger = createLogger({ serviceName: 'service.pets.spam', fields: SPAM_LOG_FIELDS });
   assertSpamAllowed();
   const config = loadConfig();
   const pool = createDbClient({ connectionString: config.databaseUrl, schema: config.schema });
@@ -284,15 +292,12 @@ const main = async (): Promise<void> => {
     const result = await runSpam({
       query: (text, values) => pool.query(text, values as unknown[]),
       faker: createSpamFaker(),
-      log: (message, meta) => logger.info(message, meta),
+      logger,
     });
     logger.info('pets spam complete', result);
   } catch (err) {
-    logger.error('pets spam failed', {
-      message: (err as Error)?.message,
-      stack: (err as Error)?.stack,
-    });
-    console.error(err);
+    logger.error('pets spam failed', {}, err);
+    await flushLogs();
     process.exitCode = 1;
   } finally {
     await pool.end();

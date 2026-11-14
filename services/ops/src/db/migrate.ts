@@ -7,14 +7,15 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { runMigrations } from '@adopt-dont-shop/db';
-import { createLogger } from '@adopt-dont-shop/observability';
+import { createLogger, flushLogs } from '@adopt-dont-shop/observability';
 
 import { loadDatabaseConfig } from '../config.js';
+import { LOG_FIELDS } from '../logger.js';
 
 const MIGRATIONS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'migrations');
 
 const main = async (): Promise<void> => {
-  const logger = createLogger({ serviceName: 'service.ops.migrate' });
+  const logger = createLogger({ serviceName: 'service.ops.migrate', fields: LOG_FIELDS });
   try {
     const config = loadDatabaseConfig();
     logger.info('running migrations', { schema: config.schema, migrationsDir: MIGRATIONS_DIR });
@@ -25,11 +26,8 @@ const main = async (): Promise<void> => {
     });
     logger.info('migrations complete');
   } catch (err) {
-    logger.error('migrations failed', {
-      message: (err as Error)?.message,
-      stack: (err as Error)?.stack,
-    });
-    console.error(err);
+    logger.error('migrations failed', {}, err);
+    await flushLogs();
     process.exit(1);
   }
 };

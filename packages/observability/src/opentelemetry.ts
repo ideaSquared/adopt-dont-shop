@@ -35,6 +35,8 @@ import { resourceFromAttributes } from '@opentelemetry/resources';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 
+import { BASE_LOG_FIELDS, createLogger } from './logger.js';
+
 export type OpenTelemetryOptions = {
   // The default `service.name` resource attribute. OTEL_SERVICE_NAME env
   // var still wins if set — operators override per-deploy without code
@@ -133,9 +135,10 @@ export const initializeOpenTelemetry = (opts: OpenTelemetryOptions): NodeSDK | n
 
     return sdk;
   } catch {
-    // No logger is reliably available at this stage of the boot path —
-    // stderr is the right sink for the misconfigured-exporter case.
-    console.error('OpenTelemetry SDK failed to start; continuing without traces.');
+    // No service logger exists at this stage of the boot path, so use a boot logger.
+    createLogger({ serviceName: opts.serviceName, fields: BASE_LOG_FIELDS }).error(
+      'OpenTelemetry SDK failed to start; continuing without traces'
+    );
     return null;
   }
 };

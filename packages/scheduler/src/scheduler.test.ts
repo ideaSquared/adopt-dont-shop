@@ -1,15 +1,16 @@
-import type { Logger } from 'winston';
+import { BASE_LOG_FIELDS, createLogger, memorySink } from '@adopt-dont-shop/observability';
 import { describe, expect, it, vi } from 'vitest';
 
 import { startScheduler, type ScheduledJob } from './scheduler.js';
 
-const quietLogger = (): Logger =>
-  ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  }) as unknown as Logger;
+const recordingLogger = () => {
+  const sink = memorySink();
+  return {
+    logger: createLogger({ serviceName: 'test', fields: BASE_LOG_FIELDS, sink }),
+    events: sink.events,
+  };
+};
+const quietLogger = () => recordingLogger().logger;
 
 describe('scheduler', () => {
   it('does not fire a job that is not yet due', async () => {
@@ -65,7 +66,7 @@ describe('scheduler', () => {
   });
 
   it('catches errors from a job and continues scheduling', async () => {
-    const logger = quietLogger();
+    const { logger, events } = recordingLogger();
     const jobs: ScheduledJob[] = [
       {
         name: 'flaky',
@@ -83,9 +84,13 @@ describe('scheduler', () => {
     });
     try {
       await scheduler.tick();
-      expect(logger.error).toHaveBeenCalledWith(
-        'scheduler.job_failed',
-        expect.objectContaining({ name: 'flaky', err: 'boom' })
+      expect(events).toContainEqual(
+        expect.objectContaining({
+          level: 'error',
+          message: 'scheduler job failed',
+          meta: { job: 'flaky' },
+          error: expect.objectContaining({ message: 'boom' }),
+        })
       );
     } finally {
       await scheduler.stop();
@@ -213,6 +218,41 @@ describe('scheduler', () => {
       // has elapsed.
       await vi.advanceTimersByTimeAsync(120);
       expect(runs).toEqual(['x', 'x']);
+      await scheduler.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('logs a failed tick from the timer loop and keeps scheduling', async () => {
+    vi.useFakeTimers();
+    try {
+      const { logger, events } = recordingLogger();
+      const jobs: ScheduledJob[] = [
+        {
+          name: 'flaky',
+          intervalMs: 100,
+          runOnStart: true,
+          run: async () => {
+            throw new Error('boom');
+          },
+        },
+      ];
+      // A throwing failure hook escapes the per-job catch, so the whole tick rejects.
+      const scheduler = startScheduler(jobs, {
+        logger,
+        tickIntervalMs: 50,
+        onJobFailure: () => {
+          throw new Error('metric down');
+        },
+      });
+      await vi.advanceTimersByTimeAsync(120);
+      const tickErrors = events.filter(event => event.message === 'scheduler tick error');
+      expect(tickErrors.length).toBeGreaterThanOrEqual(2);
+      expect(tickErrors[0]).toMatchObject({
+        level: 'error',
+        error: expect.objectContaining({ message: 'metric down' }),
+      });
       await scheduler.stop();
     } finally {
       vi.useRealTimers();
@@ -711,7 +751,7 @@ describe('scheduler cross-instance claim', () => {
 
   it('skips the job when the claim query errors — never risks a duplicate', async () => {
     const runs: string[] = [];
-    const logger = quietLogger();
+    const { logger, events } = recordingLogger();
     const claimRun = vi.fn(async () => {
       throw new Error('db down');
     });
@@ -735,9 +775,13 @@ describe('scheduler cross-instance claim', () => {
       const fired = await scheduler.tick();
       expect(fired).toEqual([]);
       expect(runs).toEqual([]);
-      expect(logger.error).toHaveBeenCalledWith(
-        'scheduler.claim_error',
-        expect.objectContaining({ name: 'weekly', err: 'db down' })
+      expect(events).toContainEqual(
+        expect.objectContaining({
+          level: 'error',
+          message: 'scheduler claim error',
+          meta: { job: 'weekly' },
+          error: expect.objectContaining({ message: 'db down' }),
+        })
       );
     } finally {
       await scheduler.stop();

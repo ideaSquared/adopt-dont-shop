@@ -1,5 +1,9 @@
 import { Pool, type PoolConfig } from 'pg';
 
+import { BASE_LOG_FIELDS, createLogger } from '@adopt-dont-shop/observability';
+
+const log = createLogger({ serviceName: 'db', fields: BASE_LOG_FIELDS });
+
 export type DbClientOptions = PoolConfig & {
   // Postgres schema this service owns. Every connection's search_path is set
   // to `<schema>, public` so unqualified table refs resolve service-locally
@@ -83,11 +87,11 @@ function buildPool(schema: string, config: PoolConfig): Pool {
   // as an unhandled 'error' and the process terminates → crash-loop under
   // `restart: always`, with no logged cause. A persistent listener keeps the
   // process alive and surfaces it; the query/transaction paths still observe
-  // their own failures through the returned promise. Logged to stderr (not a
-  // logger) because this low-level package can't assume one is configured —
-  // same reason as the search_path fallback below.
+  // their own failures through the returned promise. Logged through a
+  // package-local boot logger because this low-level package can't assume
+  // a service logger is configured — same reason as the search_path fallback below.
   pool.on('error', (err: Error) => {
-    console.error(`db: pool error (schema "${schema}"):`, err);
+    log.error('db pool error', { schema }, err);
   });
 
   pool.on('connect', client => {
@@ -99,7 +103,7 @@ function buildPool(schema: string, config: PoolConfig): Pool {
       if (pool.listenerCount('error') > 0) {
         pool.emit('error', err as Error, client);
       } else {
-        console.error(`db: failed to set search_path for schema "${schema}":`, err);
+        log.error('db failed to set search_path', { schema }, err);
       }
     });
   });

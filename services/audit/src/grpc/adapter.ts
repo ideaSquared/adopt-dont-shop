@@ -10,7 +10,7 @@ import {
 import type { WithTransactionDeps } from '@adopt-dont-shop/events';
 import type { Principal } from '@adopt-dont-shop/authz';
 import type { ServerUnaryCall, sendUnaryData } from '@grpc/grpc-js';
-import type { Logger } from 'winston';
+import { type ServiceLogger } from '../logger.js';
 
 const SERVICE_NAME = 'service.audit';
 
@@ -20,7 +20,7 @@ export { HandlerError };
 
 export function adapt<Req, Res>(
   handler: (deps: HandlerDeps, principal: Principal, req: Req) => Promise<Res>,
-  opts: { deps: HandlerDeps; logger: Logger }
+  opts: { deps: HandlerDeps; logger: ServiceLogger }
 ): (call: ServerUnaryCall<Req, Res>, callback: sendUnaryData<Res>) => void {
   return adaptShared<HandlerDeps, Req, Res>(SERVICE_NAME, handler, opts);
 }
@@ -31,7 +31,7 @@ export function adapt<Req, Res>(
 // stamping x-user-* metadata.
 export function adaptUnauth<Req, Res>(
   handler: (deps: HandlerDeps, principal: Principal | null, req: Req) => Promise<Res>,
-  opts: { deps: HandlerDeps; logger: Logger }
+  opts: { deps: HandlerDeps; logger: ServiceLogger }
 ): (call: ServerUnaryCall<Req, Res>, callback: sendUnaryData<Res>) => void {
   return adaptUnauthShared<HandlerDeps, Req, Res>(SERVICE_NAME, handler, opts);
 }

@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import type { Logger } from 'winston';
 import { z } from 'zod';
 
 import { createMicroserviceServer, type ReadinessDeps } from '@adopt-dont-shop/service-bootstrap';
@@ -24,10 +23,11 @@ import { httpStatusFor, OpsError, toErrorResponse } from './errors.js';
 import type { InvokeService } from './invoke.js';
 import type { OpsStore } from './store.js';
 import type { UnlocksService } from './unlocks.js';
+import { type ServiceLogger } from './logger.js';
 
 export type OpsServerDeps = {
   config: Pick<OpsConfig, 'env' | 'nodeEnv' | 'authMode'>;
-  logger: Logger;
+  logger: ServiceLogger;
   auth: AuthService;
   invoke: InvokeService;
   unlocks: UnlocksService;
@@ -77,9 +77,7 @@ export const createServer = (deps: OpsServerDeps): FastifyInstance => {
       if (typeof statusCode === 'number' && statusCode >= 400 && statusCode < 500) {
         return sendError(reply, invalid('The request could not be parsed'));
       }
-      deps.logger.error('unhandled error', {
-        message: err instanceof Error ? err.message : 'unknown',
-      });
+      deps.logger.error('unhandled error', {}, err);
       return sendError(
         reply,
         new OpsError('INTERNAL', 'Unexpected failure', 'Check the service.ops logs.')

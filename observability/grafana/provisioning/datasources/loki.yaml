@@ -12,7 +12,7 @@ datasources:
     jsonData:
       maxLines: 1000
       # ADS-1327: log -> trace correlation. packages/observability/src/
-      # logger.ts stamps `trace_id` on every log line written inside an
+      # logger.ts stamps `trace_id` (inside `meta`) on every log line written inside an
       # active OTel span; this turns that field into a clickable link to
       # the matching trace in the Tempo datasource (uid: tempo, see
       # tempo.yaml) when viewing a log line in Explore.

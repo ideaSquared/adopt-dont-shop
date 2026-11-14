@@ -11,9 +11,10 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { runMigrations } from '@adopt-dont-shop/db';
-import { createLogger } from '@adopt-dont-shop/observability';
+import { createLogger, flushLogs } from '@adopt-dont-shop/observability';
 
 import { loadConfig } from '../config.js';
+import { LOG_FIELDS } from '../logger.js';
 
 // CAD lesson #2: this path MUST resolve identically in dev (tsx) and
 // prod (bundled). In dev, import.meta.url points at .../src/db/migrate.ts
@@ -22,7 +23,10 @@ import { loadConfig } from '../config.js';
 const MIGRATIONS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'migrations');
 
 const main = async (): Promise<void> => {
-  const logger = createLogger({ serviceName: 'service.notifications.migrate' });
+  const logger = createLogger({
+    serviceName: 'service.notifications.migrate',
+    fields: LOG_FIELDS,
+  });
   try {
     const config = loadConfig();
     logger.info('running migrations', {
@@ -36,11 +40,8 @@ const main = async (): Promise<void> => {
     });
     logger.info('migrations complete');
   } catch (err) {
-    logger.error('migrations failed', {
-      message: (err as Error)?.message,
-      stack: (err as Error)?.stack,
-    });
-    console.error(err);
+    logger.error('migrations failed', {}, err);
+    await flushLogs();
     process.exit(1);
   }
 };

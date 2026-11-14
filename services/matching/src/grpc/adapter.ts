@@ -6,7 +6,7 @@ import { adapt as adaptShared, HandlerError } from '@adopt-dont-shop/service-boo
 import type { WithTransactionDeps } from '@adopt-dont-shop/events';
 import type { Principal } from '@adopt-dont-shop/authz';
 import type { Metadata, ServerUnaryCall, sendUnaryData } from '@grpc/grpc-js';
-import type { Logger } from 'winston';
+import type { BaseLogger } from '@adopt-dont-shop/observability';
 
 const SERVICE_NAME = 'service.matching';
 
@@ -19,7 +19,7 @@ export { HandlerError };
 // ip/user-agent columns). Three-parameter handlers remain assignable.
 export function adapt<Req, Res>(
   handler: (deps: HandlerDeps, principal: Principal, req: Req, metadata: Metadata) => Promise<Res>,
-  opts: { deps: HandlerDeps; logger: Logger }
+  opts: { deps: HandlerDeps; logger: BaseLogger }
 ): (call: ServerUnaryCall<Req, Res>, callback: sendUnaryData<Res>) => void {
   return adaptShared<HandlerDeps, Req, Res>(SERVICE_NAME, handler, opts);
 }

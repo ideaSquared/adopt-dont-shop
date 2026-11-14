@@ -4,7 +4,7 @@
 
 The shared ESLint flat config for the Node.js backend services. Extends
 [`@adopt-dont-shop/eslint-config-base`](../eslint-config-base/README.md) and
-layers on backend-stricter rules (`no-console: error`,
+layers on backend-stricter rules (`no-console: error` for every console method,
 `no-process-exit: error`), with a more lenient block for test files.
 
 This is a service-only shared tooling package (not a `lib.*`) — it ships

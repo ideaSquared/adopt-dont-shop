@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Logger } from 'winston';
+import { BASE_LOG_FIELDS, createLogger, memorySink } from '@adopt-dont-shop/observability';
 
 const startSchedulerMock = vi.fn();
 const claimScheduledRunMock = vi.fn();
@@ -20,7 +20,8 @@ import {
 } from './suspension-expiry-job.js';
 import type { HandlerDeps } from './grpc/handlers.js';
 
-const logger = { info: vi.fn(), error: vi.fn(), warn: vi.fn() } as unknown as Logger;
+const sink = memorySink();
+const logger = createLogger({ serviceName: 'test', fields: BASE_LOG_FIELDS, sink });
 const deps = { pool: { tag: 'pool' } } as unknown as HandlerDeps;
 
 type Job = { name: string; intervalMs: number; runOnStart?: boolean; run: () => Promise<void> };
@@ -39,7 +40,7 @@ describe('startSuspensionExpiryScheduler', () => {
     startSchedulerMock.mockReset();
     claimScheduledRunMock.mockReset();
     liftExpiredSuspensionsMock.mockReset();
-    vi.mocked(logger.info).mockReset();
+    sink.events.length = 0;
   });
 
   it('registers one job that runs every minute and also on start, so a restart catches up', () => {
@@ -74,9 +75,12 @@ describe('startSuspensionExpiryScheduler', () => {
     await job.run();
 
     expect(liftExpiredSuspensionsMock).toHaveBeenCalledWith(deps);
-    expect(logger.info).toHaveBeenCalledWith('suspension expiry sweep complete', {
-      liftedCount: 3,
-    });
+    expect(sink.events).toContainEqual(
+      expect.objectContaining({
+        message: 'suspension expiry sweep complete',
+        meta: { count: 3 },
+      })
+    );
   });
 
   it('returns the scheduler handle so shutdown can stop it', () => {
@@ -103,9 +107,12 @@ describe('stopSchedulerWithin', () => {
       await vi.advanceTimersByTimeAsync(5_000);
       await done;
 
-      expect(logger.warn).toHaveBeenCalledWith(
-        'suspension expiry scheduler did not stop in time; continuing shutdown',
-        { timeoutMs: 5_000 }
+      expect(sink.events).toContainEqual(
+        expect.objectContaining({
+          level: 'warn',
+          message: 'suspension expiry scheduler did not stop in time; continuing shutdown',
+          meta: { timeoutMs: 5_000 },
+        })
       );
     } finally {
       vi.useRealTimers();

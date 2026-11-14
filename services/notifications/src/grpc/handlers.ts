@@ -20,8 +20,6 @@
 
 import { randomUUID } from 'node:crypto';
 
-import type { Logger } from 'winston';
-
 import { hasPermission, requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
 import type { Permission, UserId } from '@adopt-dont-shop/lib.types';
@@ -58,6 +56,7 @@ import {
   type NotificationPriorityDb,
   type RelatedEntityTypeDb,
 } from './enum-map.js';
+import { type ServiceLogger } from '../logger.js';
 
 // AuthCohortClient — the slice of @adopt-dont-shop/proto's AuthServiceClient
 // the broadcast handler needs. Defined inline so handler tests can supply a
@@ -77,7 +76,7 @@ export type HandlerDeps = WithTransactionDeps & {
   authClient?: AuthCohortClient & Partial<import('./auth-client.js').AuthUserClient>;
   // Optional — only broadcast-handlers reads it (per-recipient failure
   // warns). Other handlers log via the adapt() wrapper's logger.
-  logger?: Logger;
+  logger?: ServiceLogger;
 };
 
 export type HandlerErrorCode =

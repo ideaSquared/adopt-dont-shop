@@ -13,18 +13,18 @@
 
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
-import type { Logger } from 'winston';
 
 import { recordEmailFailure } from '../metrics.js';
 import { isEmailChannelOpen } from './preferences.js';
 import { claimDueEmails, markFailed, markSent } from './queue.js';
 import type { EmailProvider, QueuedEmail } from './types.js';
+import { type ServiceLogger } from '../logger.js';
 
 export type EmailWorkerOptions = {
   pool: Pool;
   nats: NatsConnection;
   provider: EmailProvider;
-  logger: Logger;
+  logger: ServiceLogger;
   // Poll interval in ms. Default 2s — short enough for snappy dev
   // feedback, long enough that idle pool consumption is negligible.
   pollIntervalMs?: number;
@@ -53,7 +53,7 @@ const dispatchOne = async (
   pool: Pool,
   provider: EmailProvider,
   email: QueuedEmail,
-  logger: Logger
+  logger: ServiceLogger
 ): Promise<void> => {
   // Preference check (when tied to a user). Honours the channel toggles AND
   // the per-type opt-out for this email's type.
@@ -74,7 +74,7 @@ const dispatchOne = async (
          WHERE email_id = $1`,
         [email.emailId]
       );
-      logger.info('email.worker.unsubscribed', { emailId: email.emailId, userId: email.userId });
+      logger.info('email.worker.unsubscribed', { queueId: email.emailId, userId: email.userId });
       return;
     }
   }
@@ -83,20 +83,16 @@ const dispatchOne = async (
   if (result.success) {
     await markSent(pool, email.emailId, result.messageId ?? null);
     logger.info('email.worker.sent', {
-      emailId: email.emailId,
+      queueId: email.emailId,
       provider: provider.getName(),
-      messageId: result.messageId,
+      messageId: result.messageId ?? null,
     });
   } else {
     // Treat all provider failures as retriable — the markFailed query
     // terminates the row once current_retries >= max_retries.
     await markFailed(pool, email.emailId, result.error ?? 'provider returned failure', true);
     recordEmailFailure('provider');
-    logger.warn('email.worker.failed', {
-      emailId: email.emailId,
-      provider: provider.getName(),
-      error: result.error,
-    });
+    logger.warn('email.worker.failed', { queueId: email.emailId, provider: provider.getName() });
   }
 };
 
@@ -116,7 +112,7 @@ export const startEmailWorker = (opts: EmailWorkerOptions): RunningEmailWorker =
     try {
       claimed = await claimDueEmails(opts.pool, batchSize, staleSendingMs);
     } catch (err) {
-      opts.logger.error('email.worker.claim_error', { err });
+      opts.logger.error('email.worker.claim_error', {}, err);
       return 0;
     }
     if (claimed.length === 0) {
@@ -128,10 +124,7 @@ export const startEmailWorker = (opts: EmailWorkerOptions): RunningEmailWorker =
     await Promise.all(
       claimed.map(email =>
         dispatchOne(opts.pool, opts.provider, email, opts.logger).catch(err => {
-          opts.logger.error('email.worker.dispatch_error', {
-            emailId: email.emailId,
-            err,
-          });
+          opts.logger.error('email.worker.dispatch_error', { queueId: email.emailId }, err);
           recordEmailFailure('dispatch');
           // Mark as retriable failure so it doesn't get stuck in 'sending'.
           return markFailed(
@@ -153,7 +146,7 @@ export const startEmailWorker = (opts: EmailWorkerOptions): RunningEmailWorker =
     timer = setTimeout(() => {
       inflight = tick()
         .catch(err => {
-          opts.logger.error('email.worker.tick_error', { err });
+          opts.logger.error('email.worker.tick_error', {}, err);
           return 0;
         })
         .finally(() => {

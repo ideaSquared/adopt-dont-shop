@@ -10,6 +10,7 @@ import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { PetsClient } from '../grpc-clients/pets-client.js';
 
 import { mapWithConcurrency, registerReportsRoutes, WIDGET_CONCURRENCY_LIMIT } from './reports.js';
+import { quietLogger } from '../../test/helpers/test-logger.js';
 
 function makeClient(): {
   client: AuditClient;
@@ -114,7 +115,13 @@ describe('/api/v1/reports gateway routes', () => {
     petsMocks = pm;
     applicationsMocks = am;
     authMocks = authm;
-    await registerReportsRoutes(app, { client, petsClient, applicationsClient, authClient });
+    await registerReportsRoutes(app, {
+      logger: quietLogger,
+      client,
+      petsClient,
+      applicationsClient,
+      authClient,
+    });
   });
 
   afterEach(async () => {
@@ -865,6 +872,7 @@ describe('/api/v1/reports gateway routes', () => {
     const { applicationsClient } = makeApplicationsClient();
     const { authClient } = makeAuthClient();
     await registerReportsRoutes(signedApp, {
+      logger: quietLogger,
       client,
       petsClient,
       applicationsClient,

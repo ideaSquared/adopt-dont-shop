@@ -5,7 +5,6 @@ import { Server } from '@grpc/grpc-js';
 
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
-import type { Logger } from 'winston';
 
 import {
   startGrpcServer as startGrpcServerShared,
@@ -48,12 +47,13 @@ import {
   startReview,
   withdraw,
 } from './review-handlers.js';
+import { type ServiceLogger } from '../logger.js';
 
 export type CreateGrpcServerOptions = {
   config: ApplicationsConfig;
   pool: Pool;
   nats: NatsConnection;
-  logger: Logger;
+  logger: ServiceLogger;
   // Injected for StartDraft's pet → rescue lookup. Optional: when
   // omitted (createGrpcServer called directly, e.g. in tests) a lazy
   // client is built from config.petsGrpcUrl. startGrpcServer always
@@ -113,40 +113,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     listTimelineNotes: adapt(listTimelineNotes, { deps, logger }),
   });
 
-  logger.info('gRPC ApplicationService registered', {
-    methods: [
-      'startDraft',
-      'saveDraftAnswers',
-      'submitDraft',
-      'startReview',
-      'scheduleHomeVisit',
-      'completeHomeVisit',
-      'approve',
-      'reject',
-      'withdraw',
-      'markAdopted',
-      'get',
-      'list',
-      'getStats',
-      'countAdoptedAdopters',
-      'addDocument',
-      'listDocuments',
-      'removeDocument',
-      'getApplicationDefaults',
-      'updateApplicationDefaults',
-      'getApplicationDraft',
-      'saveApplicationDraft',
-      'deleteApplicationDraft',
-      'listHomeVisits',
-      'updateHomeVisit',
-      'getApplicationPreferences',
-      'updateApplicationPreferences',
-      'updateReferenceCheck',
-      'addTimelineNote',
-      'listTimelineNotes',
-    ],
-    grpcPort: config.grpcPort,
-  });
+  logger.info('gRPC ApplicationService registered', { count: 29, grpcPort: config.grpcPort });
 
   return server;
 };
@@ -166,12 +133,12 @@ export const startGrpcServer = async (
       new Promise<void>(resolve => {
         server.tryShutdown(err => {
           if (err) {
-            logger.error('gRPC server shutdown error', { err });
+            logger.error('gRPC server shutdown error', {}, err);
           }
           try {
             petsClient.close();
           } catch (closeErr) {
-            logger.error('pets client close error', { err: closeErr });
+            logger.error('pets client close error', {}, closeErr);
           }
           resolve();
         });

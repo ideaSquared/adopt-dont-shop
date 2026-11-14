@@ -56,8 +56,7 @@
     "node-pg-migrate": "^8.0.4",
     "nodemailer": "^10.0.9",
     "pg": "^8.22.0",
-    "resend": "^6.14.0",
-    "winston": "^3.19.0"
+    "resend": "^6.14.0"
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-node": "workspace:*",

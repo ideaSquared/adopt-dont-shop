@@ -1,8 +1,9 @@
 import type { Pool } from 'pg';
-import type { Logger } from 'winston';
 import { describe, expect, it, vi } from 'vitest';
 
 import { recordCompletion, recordRequest, EXPECTED_SERVICES } from './gdpr-subscribers.js';
+import { createLogger, memorySink } from '@adopt-dont-shop/observability';
+import { LOG_FIELDS } from '../logger.js';
 
 function makePool() {
   return {
@@ -11,11 +12,10 @@ function makePool() {
 }
 
 function makeLogger() {
-  return {
-    warn: vi.fn(),
-    error: vi.fn(),
-    info: vi.fn(),
-  } as unknown as Logger;
+  const sink = memorySink();
+  return Object.assign(createLogger({ serviceName: 'test', fields: LOG_FIELDS, sink }), {
+    events: sink.events,
+  });
 }
 
 function capturedCalls(pool: Pool): Array<[string, unknown[]]> {
@@ -221,22 +221,20 @@ describe('recordCompletion', () => {
     const logger = makeLogger();
 
     await recordCompletion(pool, COMPLETION_PAYLOAD, logger);
-    expect(logger.warn).not.toHaveBeenCalled();
+    expect(logger.events).toHaveLength(0);
 
     await recordCompletion(
       pool,
       { ...COMPLETION_PAYLOAD, service: 'pets', recordsErased: 0, error: 'pool timeout' },
       logger
     );
-    expect(logger.warn).toHaveBeenCalledTimes(1);
-    expect(logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('gdpr'),
-      expect.objectContaining({
-        correlationId: 'corr-1',
-        service: 'pets',
-        error: 'pool timeout',
-      })
-    );
+    expect(logger.events).toHaveLength(1);
+    expect(logger.events[0]).toMatchObject({
+      level: 'warn',
+      message: expect.stringContaining('gdpr'),
+      meta: { correlationId: 'corr-1', completedBy: 'pets' },
+      error: { message: 'pool timeout' },
+    });
   });
 
   it('a saga where 3 of 9 services ack with errors is flagged failed, not completed (ADS-777)', async () => {
@@ -280,7 +278,7 @@ describe('recordCompletion', () => {
 
     // Each errored ack stamps failed_at (COALESCE keeps the first) and
     // raises a Layer-1 warning for the operator.
-    expect(logger.warn).toHaveBeenCalledTimes(failingServices.size);
+    expect(logger.events).toHaveLength(failingServices.size);
   });
 });
 

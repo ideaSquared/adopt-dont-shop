@@ -2,20 +2,21 @@ import { type FastifyInstance } from 'fastify';
 import Redis from 'ioredis';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createLogger, memorySink } from '@adopt-dont-shop/observability';
+
 import type { GatewayConfig } from './config.js';
+import { LOG_FIELDS } from './logger.js';
 import { createServer } from './server.js';
 
-// Quiet stand-in so the test output stays readable. We don't actually
-// assert log calls here — that's covered by @adopt-dont-shop/observability's
-// own tests. Casting via `unknown` because winston's Logger type carries
-// a lot of surface we don't need to mock for the gateway smoke.
-const quietLogger = {
-  info: () => undefined,
-  error: () => undefined,
-  warn: () => undefined,
-  debug: () => undefined,
-  silly: () => undefined,
-} as unknown as ReturnType<typeof import('@adopt-dont-shop/observability').createLogger>;
+// Quiet logger so the test output stays readable; log assertions use their own memory sink.
+const makeLogger = () => {
+  const sink = memorySink();
+  return {
+    logger: createLogger({ serviceName: 'test', fields: LOG_FIELDS, sink }),
+    events: sink.events,
+  };
+};
+const quietLogger = makeLogger().logger;
 
 const baseConfig: GatewayConfig = {
   port: 0,
@@ -237,30 +238,25 @@ describe('createServer — /api/* fallback', () => {
     expect(res.json()).toMatchObject({ service: 'service.gateway' });
   });
 
-  // ADS-972: the unmatched-route warn log must not carry a query string —
-  // future routes could put a token/signature there, and redactSecretFields
-  // only redacts by object key, not by scanning string values.
-  it('logs the unmatched-route warn without the query string', async () => {
-    const warn = vi.fn();
-    server = await createServer({
-      config: baseConfig,
-      logger: { ...quietLogger, warn } as unknown as typeof quietLogger,
-    });
-    await server.inject({
-      method: 'GET',
-      url: '/api/some/unknown/path?resetToken=super-secret',
-    });
-    expect(warn).toHaveBeenCalledWith(
-      'unmatched API route',
-      expect.objectContaining({ url: '/api/some/unknown/path' })
-    );
-    // warn.mock.calls[0] isn't necessarily this call — boot logs its own
-    // warnings (e.g. "REDIS_URL not set") before any request is injected.
-    const call = warn.mock.calls.find(c => c[0] === 'unmatched API route') as [
-      string,
-      { url: string },
-    ];
-    expect(call[1].url).not.toContain('super-secret');
+  // An unmatched request path is attacker- and user-controlled: it can carry an email, a name or a
+  // token, so the warn log never carries any part of it (ADS-972).
+  it.each([
+    '/api/v1/users/alex@example.com',
+    '/api/v1/users/alex%40example.com',
+    '/api/v1/rescues/alex',
+    '/api/pets/bob',
+    '/api/some/unknown/path?resetToken=super-secret',
+  ])('logs the unmatched-route warn without any part of %s', async url => {
+    const { logger, events } = makeLogger();
+    server = await createServer({ config: baseConfig, logger });
+    await server.inject({ method: 'GET', url });
+    // Boot logs its own warnings (e.g. "REDIS_URL not set") before any request is injected.
+    const event = events.find(e => e.message === 'unmatched API route');
+    expect(event?.meta).toEqual({ method: 'GET', route: 'unmatched' });
+    const logged = JSON.stringify(event);
+    for (const leak of ['alex', 'bob', 'super-secret', 'example.com', 'unknown']) {
+      expect(logged).not.toContain(leak);
+    }
   });
 });
 
@@ -273,11 +269,8 @@ describe('createServer — error handler URL logging', () => {
   });
 
   it('logs the request-failed error without the query string', async () => {
-    const error = vi.fn();
-    server = await createServer({
-      config: baseConfig,
-      logger: { ...quietLogger, error } as unknown as typeof quietLogger,
-    });
+    const { logger, events } = makeLogger();
+    server = await createServer({ config: baseConfig, logger });
     // Malformed JSON body triggers Fastify's default JSON body parser to
     // throw before the route handler runs, which lands in setErrorHandler.
     const res = await server.inject({
@@ -287,12 +280,9 @@ describe('createServer — error handler URL logging', () => {
       payload: 'not-json',
     });
     expect(res.statusCode).toBe(400);
-    expect(error).toHaveBeenCalledWith(
-      'request failed',
-      expect.objectContaining({ url: '/api/some/path' })
-    );
-    const [, meta] = error.mock.calls[0] as [string, { url: string }];
-    expect(meta.url).not.toContain('super-secret');
+    const event = events.find(e => e.message === 'request failed');
+    expect(event?.meta).toMatchObject({ method: 'POST' });
+    expect(JSON.stringify(event)).not.toContain('super-secret');
   });
 });
 

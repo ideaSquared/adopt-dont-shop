@@ -44,8 +44,14 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
   with profiling, enabled only when `SENTRY_DSN` is set and `NODE_ENV` is
   production/staging; stamps the active trace/span id and redacts secrets in
   `beforeSend`.
-- `createLogger({ serviceName, logLevel? })` — Winston logger (console always;
-  Loki when `LOKI_URL` is set), with `serviceName` stamped on every line.
+- `createLogger({ serviceName, fields, logLevel?, sink? })` — the shared logger
+  (`@ideasquared/log`): fixed literal messages, declared `fields`, no personal
+  data. One JSON line per event on stdout; also pushed to Loki when `LOKI_URL`
+  is set (`createLokiSink`: `{service, env, level}` labels, 5s batches,
+  non-blocking, tolerates Loki being down). `service` is stamped on every event and the
+  active OTel `trace_id`/`span_id` go in `meta`. `BASE_LOG_FIELDS` / `BaseLogger` are the field
+  set shared packages log with; each service extends it. `memorySink()` is for tests;
+  `flushLogs()` pushes buffered Loki events during shutdown.
 - `getMetricsRegistry` / `registerMetrics` — the shared Prometheus registry +
   `/metrics` wiring.
 - `redactSecretFields`, `REDACTED`, `SECRET_KEY_PATTERN`, `maskPiiFields`,

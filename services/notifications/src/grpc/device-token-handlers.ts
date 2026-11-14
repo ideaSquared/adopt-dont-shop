@@ -6,8 +6,6 @@
 // `notifications.device_token.registered` so analytics can count
 // active push installs.
 
-import type { Logger } from 'winston';
-
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
 import type { Permission } from '@adopt-dont-shop/lib.types';
@@ -32,6 +30,7 @@ import {
 import type { DevicePlatform } from '../push/types.js';
 
 import { HandlerError } from './handlers.js';
+import { type ServiceLogger } from '../logger.js';
 
 // --- Permissions -----------------------------------------------------
 
@@ -115,7 +114,7 @@ const resolveTargetUserId = (
 
 // Optional logger so the RegisterDeviceToken handler can audit a device-token
 // takeover (ADS-1010) with both user ids. Injected by the server wiring.
-export type DeviceTokenDeps = WithTransactionDeps & { logger?: Logger };
+export type DeviceTokenDeps = WithTransactionDeps & { logger?: ServiceLogger };
 
 // --- RegisterDeviceToken ---------------------------------------------
 
@@ -169,7 +168,7 @@ export async function registerDeviceTokenHandler(
     // Audit the transfer — a device token moving between users is exactly the
     // hijack vector ADS-1010 hardens. Log the user ids, not the raw token.
     deps.logger?.warn('device token reassigned to a different user', {
-      tokenId: row.token_id,
+      pushDeviceId: row.token_id,
       previousUserId: replacedUserId,
       newUserId: userId,
       platform: row.platform,

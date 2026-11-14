@@ -25,7 +25,7 @@
 //     returns the existing row).
 
 import type { NatsConnection } from 'nats';
-import type { Logger } from 'winston';
+import type { BaseLogger } from '@adopt-dont-shop/observability';
 
 import { subscribe, type SubscriptionHandle } from '@adopt-dont-shop/events';
 
@@ -45,7 +45,7 @@ import { SYSTEM_PRINCIPAL } from './system-principal.js';
 export type RegisterSubscribersOptions = {
   nats: NatsConnection;
   deps: HandlerDeps;
-  logger: Logger;
+  logger: BaseLogger;
 };
 
 // Durable-consumer name prefix — all replicas bind the same durable per
@@ -73,10 +73,7 @@ const SEVERITY_TO_PROTO: Record<ScanSeverity, ModerationV1.Severity> = {
 export const registerSubscribers = (opts: RegisterSubscribersOptions): SubscriptionHandle[] => {
   const { nats, deps, logger } = opts;
   const onError = (err: unknown, ctx: { subject: string }): void => {
-    logger.error('moderation subscriber failed', {
-      subject: ctx.subject,
-      err: (err as Error)?.message ?? String(err),
-    });
+    logger.error('moderation subscriber failed', { subject: ctx.subject }, err);
   };
 
   const subscriptions: SubscriptionHandle[] = [];
@@ -151,7 +148,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
   );
 
   logger.info('moderation NATS subscribers registered', {
-    subjects: subscriptions.length,
+    count: subscriptions.length,
     durablePrefix: DURABLE_PREFIX,
   });
 

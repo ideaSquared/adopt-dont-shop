@@ -182,7 +182,7 @@ describe('createDbClient', () => {
 
   describe('idle client error handling (ADS-1040)', () => {
     it('attaches a persistent pool error listener so an idle-client error does not crash the process', () => {
-      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      const errorSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
       const pool = createDbClient({
         schema: 'test',
         connectionString: 'postgres://localhost/test',
@@ -193,7 +193,7 @@ describe('createDbClient', () => {
         // terminates the process; the persistent listener delivers it instead.
         expect(pool.listenerCount('error')).toBeGreaterThan(0);
         expect(() => pool.emit('error', new Error('idle client terminated'))).not.toThrow();
-        expect(errorSpy).toHaveBeenCalled();
+        expect(String(errorSpy.mock.calls[0]?.[0])).toContain('db pool error');
       } finally {
         errorSpy.mockRestore();
         void pool.end();

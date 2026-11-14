@@ -5,7 +5,7 @@ import { Server } from '@grpc/grpc-js';
 
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
-import type { Logger } from 'winston';
+import type { BaseLogger } from '@adopt-dont-shop/observability';
 
 import {
   startGrpcServer as startGrpcServerShared,
@@ -43,7 +43,7 @@ export type CreateGrpcServerOptions = {
   config: CmsConfig;
   pool: Pool;
   nats: NatsConnection;
-  logger: Logger;
+  logger: BaseLogger;
 };
 
 export type { RunningGrpcServer };

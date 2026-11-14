@@ -10,14 +10,7 @@ import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
 import { __TEST_INFRA_PUBLIC_PREFIXES, registerAuthenticate } from './authenticate.js';
 import { stubClient } from '../../test/helpers/stub-client.js';
-
-const quietLogger = {
-  info: () => undefined,
-  error: () => undefined,
-  warn: () => undefined,
-  debug: () => undefined,
-  silly: () => undefined,
-} as unknown as Parameters<typeof registerAuthenticate>[1]['logger'];
+import { makeTestLogger as makeSpyLogger, quietLogger } from '../../test/helpers/test-logger.js';
 
 type ValidatedHeaders = {
   'x-user-id'?: string;
@@ -77,25 +70,6 @@ async function makeApp(
     metricsBearerToken,
   });
   return app;
-}
-
-// Spy variant of quietLogger — same silent no-op behaviour, but warn/error
-// calls are recorded so tests can assert on the metadata that was logged.
-function makeSpyLogger(): {
-  logger: Parameters<typeof registerAuthenticate>[1]['logger'];
-  warn: ReturnType<typeof vi.fn>;
-  error: ReturnType<typeof vi.fn>;
-} {
-  const warn = vi.fn();
-  const error = vi.fn();
-  const logger = {
-    info: () => undefined,
-    error,
-    warn,
-    debug: () => undefined,
-    silly: () => undefined,
-  } as unknown as Parameters<typeof registerAuthenticate>[1]['logger'];
-  return { logger, warn, error };
 }
 
 // Minimal RescueClient stub — the enrichment only ever calls
@@ -674,7 +648,7 @@ describe('registerAuthenticate — signed principal token (ADS-800)', () => {
 describe('registerAuthenticate — log redaction (ADS-1295)', () => {
   it('does not log the raw query string when rejecting a tokenless request on a protected path', async () => {
     const { client } = makeAuthClient();
-    const { logger, warn } = makeSpyLogger();
+    const { logger, events } = makeSpyLogger();
     const app = await makeApp(client, undefined, undefined, logger);
     try {
       const res = await app.inject({
@@ -683,9 +657,9 @@ describe('registerAuthenticate — log redaction (ADS-1295)', () => {
       });
 
       expect(res.statusCode).toBe(401);
-      expect(warn).toHaveBeenCalledTimes(1);
-      const [, meta] = warn.mock.calls[0] as [string, Record<string, unknown>];
-      expect(meta.url).toBe('/api/echo');
+      expect(events.filter(e => e.level === 'warn')).toHaveLength(1);
+      const meta = events.find(e => e.level === 'warn')?.meta ?? {};
+      expect(meta.route).toBe('/api/echo');
       expect(JSON.stringify(meta)).not.toContain('victim@example.com');
     } finally {
       await app.close();
@@ -695,7 +669,7 @@ describe('registerAuthenticate — log redaction (ADS-1295)', () => {
   it('does not log the raw query string when rejecting an invalid/expired token', async () => {
     const { client, validateMock } = makeAuthClient();
     validateMock.mockRejectedValueOnce(Object.assign(new Error('expired'), { code: 16 }));
-    const { logger, warn } = makeSpyLogger();
+    const { logger, events } = makeSpyLogger();
     const app = await makeApp(client, undefined, undefined, logger);
     try {
       const res = await app.inject({
@@ -705,9 +679,9 @@ describe('registerAuthenticate — log redaction (ADS-1295)', () => {
       });
 
       expect(res.statusCode).toBe(401);
-      expect(warn).toHaveBeenCalledTimes(1);
-      const [, meta] = warn.mock.calls[0] as [string, Record<string, unknown>];
-      expect(meta.url).toBe('/api/echo');
+      expect(events.filter(e => e.level === 'warn')).toHaveLength(1);
+      const meta = events.find(e => e.level === 'warn')?.meta ?? {};
+      expect(meta.route).toBe('/api/echo');
       expect(JSON.stringify(meta)).not.toContain('super-secret-value');
     } finally {
       await app.close();
@@ -717,7 +691,7 @@ describe('registerAuthenticate — log redaction (ADS-1295)', () => {
   it('does not log the raw query string when ValidateToken throws an unrelated (500) error', async () => {
     const { client, validateMock } = makeAuthClient();
     validateMock.mockRejectedValueOnce(new Error('network unreachable'));
-    const { logger, error } = makeSpyLogger();
+    const { logger, events } = makeSpyLogger();
     const app = await makeApp(client, undefined, undefined, logger);
     try {
       const res = await app.inject({
@@ -727,9 +701,9 @@ describe('registerAuthenticate — log redaction (ADS-1295)', () => {
       });
 
       expect(res.statusCode).toBe(500);
-      expect(error).toHaveBeenCalledTimes(1);
-      const [, meta] = error.mock.calls[0] as [string, Record<string, unknown>];
-      expect(meta.url).toBe('/api/echo');
+      expect(events.filter(e => e.level === 'error')).toHaveLength(1);
+      const meta = events.find(e => e.level === 'error')?.meta ?? {};
+      expect(meta.route).toBe('/api/echo');
       expect(JSON.stringify(meta)).not.toContain('super-secret-value');
     } finally {
       await app.close();
@@ -741,7 +715,7 @@ describe('registerAuthenticate — log redaction (ADS-1295)', () => {
     // Contract-drift guard: ValidateToken resolves without throwing but
     // omits `principal` — see the 'shouldn't happen' branch in authenticate.ts.
     validateMock.mockResolvedValueOnce({ expiresAt: '2026-06-05T18:30:00Z' } as never);
-    const { logger, warn } = makeSpyLogger();
+    const { logger, events } = makeSpyLogger();
     const app = await makeApp(client, undefined, undefined, logger);
     try {
       const res = await app.inject({
@@ -751,9 +725,9 @@ describe('registerAuthenticate — log redaction (ADS-1295)', () => {
       });
 
       expect(res.statusCode).toBe(401);
-      expect(warn).toHaveBeenCalledTimes(1);
-      const [, meta] = warn.mock.calls[0] as [string, Record<string, unknown>];
-      expect(meta.url).toBe('/api/echo');
+      expect(events.filter(e => e.level === 'warn')).toHaveLength(1);
+      const meta = events.find(e => e.level === 'warn')?.meta ?? {};
+      expect(meta.route).toBe('/api/echo');
       expect(JSON.stringify(meta)).not.toContain('victim@example.com');
     } finally {
       await app.close();

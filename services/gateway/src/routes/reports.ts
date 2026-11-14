@@ -65,8 +65,10 @@ import type { PetsClient } from '../grpc-clients/pets-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 import { parsePagination } from '../middleware/pagination.js';
+import type { ServiceLogger } from '../logger.js';
 
 export type ReportsRoutesOptions = {
+  logger: ServiceLogger;
   client: AuditClient;
   petsClient: PetsClient;
   applicationsClient: ApplicationsClient;
@@ -289,7 +291,7 @@ function callerIsPlatformAdmin(metadata: Metadata): boolean {
     .some(r => PLATFORM_ADMIN_ROLES.has(r));
 }
 
-type WidgetLogger = { info: (obj: Record<string, unknown>, msg: string) => void };
+type WidgetLogger = Pick<ServiceLogger, 'info' | 'error'>;
 
 // Widget → aggregation RPC dispatch. See the file-header comment for the
 // full metric/chartType → RPC mapping table.
@@ -375,10 +377,9 @@ async function computeWidgetData(
 
   if (metric === 'user' && chartType === 'metric-card') {
     if (!callerIsPlatformAdmin(metadata)) {
-      log.info(
-        { widgetId: typeof widget.id === 'string' ? widget.id : '' },
-        'Dropping user-statistics widget for non-platform-admin principal (ADS-939)'
-      );
+      log.info('Dropping user-statistics widget for non-platform-admin principal (ADS-939)', {
+        widgetId: typeof widget.id === 'string' ? widget.id : '',
+      });
       return [];
     }
     const res = await clients.authClient.getUserStatistics({}, metadata);
@@ -397,7 +398,7 @@ async function executeConfig(
   config: ReportConfigInput,
   clients: AggregationClients,
   metadata: Metadata,
-  log: WidgetLogger & { error: (obj: Record<string, unknown>, msg: string) => void }
+  log: WidgetLogger
 ): Promise<Record<string, unknown>> {
   const filters = config.filters ?? {};
   const widgets = config.widgets ?? [];
@@ -417,14 +418,12 @@ async function executeConfig(
     const widget = widgets[i];
     const widgetId = typeof widget?.id === 'string' ? widget.id : '';
     const metric = typeof widget?.metric === 'string' ? widget.metric : '';
-    const errorMessage =
-      result.reason instanceof Error ? result.reason.message : String(result.reason ?? 'unknown');
     // ADS-977: the full message (which can carry SQL fragments, table/DNS
     // names, or gRPC status text) stays server-side in the log, correlated
     // by widgetId/metric. The client only ever sees a fixed, caller-safe
     // string — the SPA treats status:'error' as the render trigger, so the
     // text itself is cosmetic and doesn't need to be specific.
-    log.error({ widgetId, metric, error: errorMessage }, 'Widget aggregation failed');
+    log.error('Widget aggregation failed', { widgetId, metric }, result.reason);
     return {
       id: widgetId,
       data: [],
@@ -551,6 +550,7 @@ export const registerReportsRoutes = async (
   opts: ReportsRoutesOptions
 ): Promise<void> => {
   const { client, petsClient, applicationsClient, authClient, principalSigningKey } = opts;
+  const log = opts.logger;
   const aggregationClients: AggregationClients = { petsClient, applicationsClient, authClient };
 
   // GET /api/v1/reports — paginated list. Self-scoped at the service.
@@ -892,7 +892,7 @@ export const registerReportsRoutes = async (
           configInput,
           aggregationClients,
           buildMetadata(req),
-          req.log
+          log
         );
         return reply.send({ success: true, data: result });
       } catch (err) {
@@ -935,7 +935,7 @@ export const registerReportsRoutes = async (
         if (widgetsError) {
           return reply.code(400).send({ success: false, error: widgetsError });
         }
-        const result = await executeConfig(config, aggregationClients, metadata, req.log);
+        const result = await executeConfig(config, aggregationClients, metadata, log);
         return reply.send({ success: true, data: result });
       } catch (err) {
         return handleGrpcError(err, reply);
@@ -1206,7 +1206,7 @@ export const registerReportsRoutes = async (
           config,
           aggregationClients,
           buildSharedExecMetadata(report, principalSigningKey, req),
-          req.log
+          log
         );
         return reply.send({
           success: true,

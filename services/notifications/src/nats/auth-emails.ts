@@ -23,7 +23,6 @@ import { createHash, randomUUID } from 'node:crypto';
 
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
-import type { Logger } from 'winston';
 
 import { subscribe, type SubscriptionHandle } from '@adopt-dont-shop/events';
 
@@ -35,6 +34,7 @@ import type {
   AuthEmailChangeRequestedEvent,
   RescueStaffInvitedEvent,
 } from './event-types.js';
+import { type ServiceLogger } from '../logger.js';
 
 export type AuthEmailConfig = {
   // Client app origin the links point at (FRONTEND_URL).
@@ -51,7 +51,7 @@ export type AuthEmailConfig = {
 export type RegisterAuthEmailSubscribersOptions = {
   nats: NatsConnection;
   pool: Pool;
-  logger: Logger;
+  logger: ServiceLogger;
   config: AuthEmailConfig;
   onError: (err: unknown, ctx: { subject: string }) => void;
   // Injectable clock for tests.

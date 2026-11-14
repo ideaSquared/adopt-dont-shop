@@ -79,8 +79,10 @@ import type { ApplicationsClient } from '../grpc-clients/applications-client.js'
 import { documentToView } from './applications-view.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
+import type { ServiceLogger } from '../logger.js';
 
 export type ApplicationDocumentsRoutesOptions = {
+  logger: ServiceLogger;
   client: ApplicationsClient;
   storage: StorageConfig;
   // AV scan chokepoint (ADS-1241 / ADS-848 step 3). Required — every route
@@ -179,7 +181,7 @@ export const registerApplicationDocumentsRoutes = async (
           }
         }
       } catch (err) {
-        req.log.error({ err }, 'multipart parse failed');
+        opts.logger.error('multipart parse failed', {}, err);
         return reply.code(400).send({ error: 'invalid multipart request' });
       }
 
@@ -238,7 +240,7 @@ export const registerApplicationDocumentsRoutes = async (
       try {
         upload = await provider.uploadFile(buffer, filename, mimetype, 'documents');
       } catch (err) {
-        req.log.error({ err }, 'storage write failed');
+        opts.logger.error('storage write failed', {}, err);
         return reply.code(500).send({ error: 'storage_write_failed' });
       }
 

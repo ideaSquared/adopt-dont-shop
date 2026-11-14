@@ -1,11 +1,8 @@
-// Minimal logger contract. Providers accept any object with these optional
-// methods (e.g. a Winston logger) and fall back to a no-op when omitted, so the
-// package stays decoupled from any one logging implementation.
-export type StorageLogger = {
-  info?: (message: string, meta?: unknown) => void;
-  warn?: (message: string, meta?: unknown) => void;
-  error?: (message: string, meta?: unknown) => void;
-};
+import type { BaseLogger } from '@adopt-dont-shop/observability';
+
+// Providers accept any shared logger (or a subset of its methods) and fall back
+// to a no-op when omitted.
+export type StorageLogger = Partial<Pick<BaseLogger, 'info' | 'warn' | 'error'>>;
 
 export type LocalStorageConfig = {
   directory: string;

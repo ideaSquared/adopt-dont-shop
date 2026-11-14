@@ -33,8 +33,10 @@ import {
 } from '@adopt-dont-shop/storage';
 
 import { verifyUploadContent } from './upload-content-checks.js';
+import type { ServiceLogger } from '../logger.js';
 
 export type UploadsRoutesOptions = {
+  logger: ServiceLogger;
   storage: StorageConfig;
   // AV scan chokepoint (ADS-1241 / ADS-848 step 3). Required — every route
   // that writes to storage must scan first. server.ts builds one shared
@@ -148,7 +150,7 @@ export const registerUploadsRoutes = async (
           }
         }
       } catch (err) {
-        req.log.error({ err }, 'multipart parse failed');
+        opts.logger.error('multipart parse failed', {}, err);
         return reply.code(400).send({ error: 'invalid multipart request' });
       }
 
@@ -204,7 +206,7 @@ export const registerUploadsRoutes = async (
       try {
         upload = await provider.uploadFile(buffer, originalName, mimetype, 'pets');
       } catch (err) {
-        req.log.error({ err }, 'storage write failed');
+        opts.logger.error('storage write failed', {}, err);
         return reply.code(500).send({ error: 'storage_write_failed' });
       }
 

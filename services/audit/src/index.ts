@@ -21,11 +21,12 @@ import { createGdprSagaMetrics, recordGdprSagaStates } from './nats/gdpr-metrics
 import { runGdprSweep, GDPR_SAGA_DEADLINE_MS, GDPR_SAGA_MAX_RETRIES } from './nats/gdpr-sweep.js';
 import { registerSubscribers } from './nats/subscribers.js';
 import { createServer } from './server.js';
+import { LOG_FIELDS } from './logger.js';
 
 const GDPR_SWEEP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 const main = async (): Promise<void> => {
-  const logger = createLogger({ serviceName: 'service.audit' });
+  const logger = createLogger({ serviceName: 'service.audit', fields: LOG_FIELDS });
 
   let nats: NatsConnection | undefined;
   let pool: ReturnType<typeof createDbClient> | undefined;
@@ -122,11 +123,10 @@ const main = async (): Promise<void> => {
     await httpServer.listen({ port: config.port, host: config.host });
 
     logger.info('service.audit running', {
-      http: { port: config.port, host: config.host },
-      grpc: { port: grpc.port, host: config.host },
+      httpPort: config.port,
+      grpcPort: grpc.port,
+      host: config.host,
       schema: config.schema,
-      natsUrl: config.natsUrl,
-      natsSubscriptions: subscriptions.length,
       environment: config.environment,
     });
 
@@ -138,7 +138,7 @@ const main = async (): Promise<void> => {
       try {
         await scheduler?.stop();
       } catch (err) {
-        logger.error('scheduler stop error', { err });
+        logger.error('scheduler stop error', {}, err);
       }
       await teardown();
       process.exit(0);
@@ -152,7 +152,7 @@ const main = async (): Promise<void> => {
     // instead of crashing the process undrained under `restart: always`.
     installProcessErrorHandlers({ logger, onFatal: teardown });
   } catch (err) {
-    logger.error('service.audit failed to start', { err });
+    logger.error('service.audit failed to start', {}, err);
     try {
       await grpc?.shutdown();
     } catch {

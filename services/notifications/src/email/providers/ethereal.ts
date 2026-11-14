@@ -5,18 +5,17 @@
 
 import nodemailer, { type Transporter } from 'nodemailer';
 
-import type { createLogger } from '@adopt-dont-shop/observability';
-
 import type { EmailProvider, ProviderSendResult, QueuedEmail } from '../types.js';
 
-import { maskRecipient, sanitizeEmail } from './base.js';
+import { sanitizeEmail } from './base.js';
+import { type ServiceLogger } from '../../logger.js';
 
 // Match the monolith — without these caps a hung SMTP socket would
 // stall the queue worker indefinitely.
 const SMTP_TIMEOUT_MS = 10_000;
 
 export type EtherealProviderDeps = {
-  logger: ReturnType<typeof createLogger>;
+  logger: ServiceLogger;
 };
 
 type EtherealAccount = {
@@ -43,10 +42,7 @@ export const createEtherealProvider = (deps: EtherealProviderDeps): EmailProvide
       return transporter;
     }
     const account = await nodemailer.createTestAccount();
-    deps.logger.info('email.ethereal.account', {
-      user: account.user,
-      web: 'https://ethereal.email',
-    });
+    deps.logger.info('email.ethereal.account created');
     transporter = await createTransporter({ user: account.user, pass: account.pass });
     return transporter;
   };
@@ -57,19 +53,13 @@ export const createEtherealProvider = (deps: EtherealProviderDeps): EmailProvide
         const t = await ensureTransporter();
         const sanitized = sanitizeEmail(email);
         const info = await t.sendMail(sanitized);
-        deps.logger.info('email.ethereal.send_ok', {
-          messageId: info.messageId,
-          to: maskRecipient(sanitized.to),
-          subject: sanitized.subject,
-          previewUrl: nodemailer.getTestMessageUrl(info),
-        });
+        deps.logger.info('email.ethereal.send_ok', { messageId: info.messageId });
         return { success: true, messageId: info.messageId };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         deps.logger.error('email.ethereal.send_error', {
-          to: maskRecipient(email.toEmail),
-          subject: email.subject,
-          error: message,
+          type: email.type,
+          errorClass: err instanceof Error ? err.name : null,
         });
         return { success: false, error: message };
       }

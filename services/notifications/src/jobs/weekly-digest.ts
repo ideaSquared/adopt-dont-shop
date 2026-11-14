@@ -22,8 +22,6 @@
 // enforcement (preferences-gate.ts) for free, on top of this job's own
 // digest-specific consent check.
 
-import type { Logger } from 'winston';
-
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
 import {
   ApplicationsV1,
@@ -39,6 +37,7 @@ import { loadWeeklyDigestConsentedUserIds } from '../email/preferences.js';
 import { createNotification } from '../grpc/handlers.js';
 import { SYSTEM_PRINCIPAL } from '../nats/system-principal.js';
 import { runSummaryActionTaken } from './run-summary-audit.js';
+import { type ServiceLogger } from '../logger.js';
 
 // --- Fan-out client slices this job needs ------------------------------
 
@@ -58,7 +57,7 @@ export type WeeklyDigestDeps = WithTransactionDeps & {
   authClient: WeeklyDigestAuthClient;
   petsClient: WeeklyDigestPetsClient;
   applicationsClient: WeeklyDigestApplicationsClient;
-  logger: Logger;
+  logger: ServiceLogger;
 };
 
 export type WeeklyDigestResult = {
@@ -249,10 +248,7 @@ export async function runWeeklyDigest(
       sent++;
     } catch (err) {
       failed++;
-      deps.logger.warn('weekly-digest.recipient_failed', {
-        userId,
-        error: err instanceof Error ? err.message : String(err),
-      });
+      deps.logger.warn('weekly-digest.recipient_failed', { userId }, err);
     }
   }
 

@@ -11,12 +11,10 @@
 // signal-driven shutdown would, and exits non-zero so the orchestrator
 // restarts a *drained* process rather than a mid-flight one.
 
-import type { createLogger } from '@adopt-dont-shop/observability';
-
-type Logger = ReturnType<typeof createLogger>;
+import type { BaseLogger } from '@adopt-dont-shop/observability';
 
 export type ProcessErrorHandlerDeps = {
-  logger: Logger;
+  logger: BaseLogger;
   // Best-effort teardown run before exiting. Should resolve; any throw is
   // logged and swallowed so the process still exits. Typically the same
   // `runServiceShutdown` call used on SIGTERM/SIGINT.
@@ -43,12 +41,12 @@ export const installProcessErrorHandlers = (deps: ProcessErrorHandlerDeps): void
         return;
       }
       handling = true;
-      deps.logger.error(`fatal ${kind} — draining and exiting`, { err });
+      deps.logger.error('fatal process error — draining and exiting', { reason: kind }, err);
       void (async () => {
         try {
           await deps.onFatal();
         } catch (teardownErr) {
-          deps.logger.error('teardown during fatal handler failed', { err: teardownErr });
+          deps.logger.error('teardown during fatal handler failed', {}, teardownErr);
         }
         exit(1);
       })();

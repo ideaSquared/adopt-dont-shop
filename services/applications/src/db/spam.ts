@@ -20,7 +20,12 @@
 // submitted/under_review with a tail of approved/rejected/withdrawn.
 
 import { createDbClient } from '@adopt-dont-shop/db';
-import { createLogger } from '@adopt-dont-shop/observability';
+import {
+  BASE_LOG_FIELDS,
+  createLogger,
+  flushLogs,
+  type Logger,
+} from '@adopt-dont-shop/observability';
 import {
   assertSpamAllowed,
   bulkInsert,
@@ -31,6 +36,9 @@ import {
 
 import { loadConfig } from '../config.js';
 import type { ApplicationEvent } from '../domain/index.js';
+
+const SPAM_LOG_FIELDS = [...BASE_LOG_FIELDS, 'applications', 'adopters', 'pets', 'seeded'] as const;
+type SpamLogger = Pick<Logger<(typeof SPAM_LOG_FIELDS)[number]>, 'info'>;
 
 type Faker = ReturnType<typeof createSpamFaker>;
 export type QueryFn = (text: string, values: readonly unknown[]) => Promise<unknown>;
@@ -260,7 +268,7 @@ export const spamApplications = async (deps: {
 export const runSpam = async (deps: {
   query: QueryFn;
   faker: Faker;
-  log?: (message: string, meta?: Record<string, unknown>) => void;
+  logger?: SpamLogger;
 }): Promise<{ applications: number }> => {
   const adopters = (await deps.query(
     `SELECT user_id FROM auth.users WHERE user_type = 'adopter' AND email LIKE '%@example.test'`,
@@ -285,7 +293,7 @@ export const runSpam = async (deps: {
   }
 
   const applications = spamCount('APPLICATIONS', 400);
-  deps.log?.('spamming applications', {
+  deps.logger?.info('spamming applications', {
     applications,
     adopters: adopterIds.length,
     pets: pets.rows.length,
@@ -300,7 +308,10 @@ export const runSpam = async (deps: {
 };
 
 export const main = async (): Promise<void> => {
-  const logger = createLogger({ serviceName: 'service.applications.spam' });
+  const logger = createLogger({
+    serviceName: 'service.applications.spam',
+    fields: SPAM_LOG_FIELDS,
+  });
   assertSpamAllowed();
   const config = loadConfig();
   const pool = createDbClient({ connectionString: config.databaseUrl, schema: config.schema });
@@ -308,15 +319,12 @@ export const main = async (): Promise<void> => {
     const result = await runSpam({
       query: (text, values) => pool.query(text, values as unknown[]),
       faker: createSpamFaker(),
-      log: (message, meta) => logger.info(message, meta),
+      logger,
     });
     logger.info('applications spam complete', result);
   } catch (err) {
-    logger.error('applications spam failed', {
-      message: (err as Error)?.message,
-      stack: (err as Error)?.stack,
-    });
-    console.error(err);
+    logger.error('applications spam failed', {}, err);
+    await flushLogs();
     process.exitCode = 1;
   } finally {
     await pool.end();

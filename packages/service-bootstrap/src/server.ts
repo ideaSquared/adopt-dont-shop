@@ -9,10 +9,12 @@
 
 import { readSecret } from '@adopt-dont-shop/config-secrets';
 import {
+  BASE_LOG_FIELDS,
   createLogger,
   initializeSentry,
   registerMetrics,
   registerRequestId,
+  type BaseLogger,
 } from '@adopt-dont-shop/observability';
 import Fastify, { type FastifyInstance } from 'fastify';
 
@@ -43,7 +45,7 @@ export type CreateServerConfig = {
 export type CreateServerOptions = {
   serviceName: string;
   config: CreateServerConfig;
-  logger?: ReturnType<typeof createLogger>;
+  logger?: BaseLogger;
   // Liveness gate — /health/simple returns 503 until this returns true.
   // Defaults to () => true so call-sites that don't gate on gRPC readiness
   // compile unchanged.
@@ -59,7 +61,7 @@ export const createMicroserviceServer = (
   env: NodeJS.ProcessEnv = process.env
 ): FastifyInstance => {
   const { serviceName, config } = opts;
-  const logger = opts.logger ?? createLogger({ serviceName });
+  const logger = opts.logger ?? createLogger({ serviceName, fields: BASE_LOG_FIELDS });
   const isReady = opts.isReady ?? (() => true);
   const metricsBearerToken = readOptionalMetricsBearerToken(env);
 
@@ -68,7 +70,7 @@ export const createMicroserviceServer = (
   // call unconditionally at boot — this is the call site the SDK was missing.
   initializeSentry({ serviceName, logger });
 
-  // Disable Fastify's built-in pino — winston handles service-level lines
+  // Disable Fastify's built-in pino — the shared logger handles service-level lines
   // (boot, shutdown, error handler) and OTel's HTTP auto-instrumentation
   // covers per-request spans. Same shape as all extracted services.
   const server = Fastify({
@@ -77,11 +79,11 @@ export const createMicroserviceServer = (
   });
 
   server.setErrorHandler((err: Error & { statusCode?: number }, req, reply) => {
-    logger.error('request failed', {
-      method: req.method,
-      url: req.url,
-      message: err.message,
-    });
+    logger.error(
+      'request failed',
+      { method: req.method, route: req.routeOptions?.url ?? null, requestId: req.requestId },
+      err
+    );
     void reply.status(err.statusCode ?? 500).send({ error: 'internal_error' });
   });
 

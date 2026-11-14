@@ -1,7 +1,7 @@
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { Logger } from 'winston';
+import { createLogger, memorySink } from '@adopt-dont-shop/observability';
 
 import type { Principal } from '@adopt-dont-shop/authz';
 import type { Permission, UserId } from '@adopt-dont-shop/lib.types';
@@ -9,6 +9,15 @@ import { NotificationsV1 } from '@adopt-dont-shop/proto';
 
 import { broadcast, isInQuietHours } from './broadcast-handlers.js';
 import type { AuthCohortClient, HandlerDeps } from './handlers.js';
+import { LOG_FIELDS, type ServiceLogger } from '../logger.js';
+
+const makeMemoryLogger = () => {
+  const sink = memorySink();
+  return {
+    logger: createLogger({ serviceName: 'test', fields: LOG_FIELDS, sink }),
+    events: sink.events,
+  };
+};
 
 const BROADCASTER: Principal = {
   userId: 'svc-bcast' as UserId,
@@ -22,7 +31,7 @@ const NO_PERMS: Principal = {
   permissions: [],
 };
 
-function makeMocks(authClient?: AuthCohortClient, logger?: Logger) {
+function makeMocks(authClient?: AuthCohortClient, logger?: ServiceLogger) {
   const clientScript: Array<{ rows: unknown[] }> = [];
   const client = {
     query: vi.fn(async (sql: string, _params?: unknown[]) => {
@@ -253,7 +262,7 @@ describe('broadcast', () => {
     expect(res.failed).toBe(1);
   });
 
-  it('logs a warn with the userId and error message when a recipient write fails', async () => {
+  it('logs a warn with the userId and the error when a recipient write fails', async () => {
     const authClient: AuthCohortClient = {
       listUserIdsByCohort: vi.fn().mockResolvedValue({
         userIds: ['u-1', 'u-2'],
@@ -262,8 +271,7 @@ describe('broadcast', () => {
         totalPages: 1,
       }),
     };
-    const warn = vi.fn();
-    const logger = { warn } as unknown as Logger;
+    const { logger, events } = makeMemoryLogger();
     const mocks = makeMocks(authClient, logger);
     // u-1's INSERT throws; u-2's succeeds.
     let insertCount = 0;
@@ -302,10 +310,12 @@ describe('broadcast', () => {
 
     expect(res.delivered).toBe(1);
     expect(res.failed).toBe(1);
-    expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn).toHaveBeenCalledWith('broadcast recipient write failed', {
-      userId: 'u-1',
-      error: 'boom',
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      level: 'warn',
+      message: 'broadcast recipient write failed',
+      meta: { userId: 'u-1' },
+      error: { message: 'boom' },
     });
   });
 
@@ -319,8 +329,7 @@ describe('broadcast', () => {
         totalPages: 1,
       }),
     };
-    const warn = vi.fn();
-    const logger = { warn } as unknown as Logger;
+    const { logger, events } = makeMemoryLogger();
     const mocks = makeMocks(authClient, logger);
     // Every INSERT fails; prefs upserts succeed for everyone.
     mocks.clientMock.query = vi.fn(async (sql: string) => {
@@ -347,7 +356,7 @@ describe('broadcast', () => {
     });
 
     expect(res.failed).toBe(60);
-    expect(warn).toHaveBeenCalledTimes(50);
+    expect(events).toHaveLength(50);
   });
 
   it('defers when scheduledFor is set (passes Date through to INSERT)', async () => {

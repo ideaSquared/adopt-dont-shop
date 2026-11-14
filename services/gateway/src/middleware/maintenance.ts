@@ -16,11 +16,9 @@
 import { existsSync } from 'node:fs';
 
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import type { Logger } from 'winston';
-
-import { redactUrl } from '@adopt-dont-shop/observability';
 
 import { constantTimeEquals } from '../utils/constant-time.js';
+import { type ServiceLogger } from '../logger.js';
 
 export const MAINTENANCE_BYPASS_HEADER = 'x-maintenance-bypass';
 
@@ -34,7 +32,7 @@ export type MaintenanceOptions = {
   // Shared-secret bypass via the x-maintenance-bypass header. Undefined
   // disables the token bypass entirely (no header value can match).
   bypassToken?: string;
-  logger: Logger;
+  logger: ServiceLogger;
   // Injectable for tests — defaults to node:fs existsSync. Avoids every
   // test needing a real file on disk.
   fileExists?: (path: string) => boolean;
@@ -77,7 +75,7 @@ export const registerMaintenanceMode = (app: FastifyInstance, opts: MaintenanceO
     }
 
     opts.logger.info('maintenance mode active — rejecting request', {
-      url: redactUrl(req.url),
+      route: req.routeOptions?.url ?? null,
     });
     reply.header('Retry-After', '60');
     return reply.code(503).send({

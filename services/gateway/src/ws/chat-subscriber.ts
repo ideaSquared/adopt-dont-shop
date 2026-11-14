@@ -27,11 +27,11 @@
 import { randomUUID } from 'node:crypto';
 
 import type { NatsConnection } from 'nats';
-import type { Logger } from 'winston';
 
 import { subscribe, type SubscriptionHandle } from '@adopt-dont-shop/events';
 
 import type { SocketRegistry } from './socket-registry.js';
+import { type ServiceLogger } from '../logger.js';
 
 // Unique per gateway process so replicas fan-out independently (each sees
 // every chat event) rather than load-sharing.
@@ -40,7 +40,7 @@ const REPLICA_ID = randomUUID();
 export type RegisterChatSubscribersOptions = {
   nats: NatsConnection;
   registry: SocketRegistry;
-  logger: Logger;
+  logger: ServiceLogger;
 };
 
 // Common base: every chat.* event carries the participants so the
@@ -103,10 +103,7 @@ export const registerChatSubscribers = (
   const { nats, registry, logger } = opts;
 
   const onError = (err: unknown, ctx: { subject: string }): void => {
-    logger.error('chat ws subscriber failed', {
-      subject: ctx.subject,
-      err: (err as Error)?.message ?? String(err),
-    });
+    logger.error('chat ws subscriber failed', { subject: ctx.subject }, err);
   };
 
   // deliverNew: realtime fan-out — replicas pick up from "now", not replay a
@@ -168,14 +165,7 @@ export const registerChatSubscribers = (
     )
   );
 
-  logger.info('gateway chat WS subscribers registered', {
-    subjects: [
-      'chat.messageCreated',
-      'chat.messageRead',
-      'chat.reactionAdded',
-      'chat.reactionRemoved',
-    ],
-  });
+  logger.info('gateway chat WS subscribers registered', { count: 4 });
 
   return subs;
 };
