@@ -45,7 +45,7 @@ Agent Idea also sanitises what it serves, but that is the safety net. The logger
 Install the released tarball (see the agent-idea releases for the latest `log-v*` version):
 
 ```bash
-pnpm add https://github.com/ideaSquared/agent-idea/releases/download/log-v0.1.0/ideasquared-log-0.1.0.tgz
+pnpm add https://github.com/ideaSquared/agent-idea/releases/download/log-v0.1.1/ideasquared-log-0.1.1.tgz
 ```
 
 The lockfile pins it with an integrity hash. Don't install from a git URL or `github:` spec: those can record an SSH
@@ -74,8 +74,9 @@ request.info('pick served', { count: 1 });
 ```
 
 Need a new field? Add it to the logger's `fields` list. If the logger refuses the name, the data is probably
-personal: log an id or a count instead. If it is genuinely not personal (a host name, say), pick a clear name
-the rule allows (`siteHost`) and mention it in the PR.
+personal: log an id or a count instead. `hostname`, `filename` and `pathname` are allowed despite ending in
+`name`. For anything else that is genuinely not personal, pick a clear name the rule allows and mention it in the
+PR; widening the allowlist is a change to `@ideasquared/log` itself.
 
 ## Testing
 

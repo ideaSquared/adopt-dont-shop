@@ -37,7 +37,7 @@
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.14.5",
-    "@ideasquared/log": "https://github.com/ideaSquared/agent-idea/releases/download/log-v0.1.0/ideasquared-log-0.1.0.tgz",
+    "@ideasquared/log": "https://github.com/ideaSquared/agent-idea/releases/download/log-v0.1.1/ideasquared-log-0.1.1.tgz",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/auto-instrumentations-node": "^0.79.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.221.0",
