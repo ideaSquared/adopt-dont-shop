@@ -128,6 +128,11 @@ services:
       - ./observability/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - ./observability/alertmanager/secrets:/etc/alertmanager/secrets:ro
       - alertmanager_data:/alertmanager
+    # Bearer token for the ideasquared-bot webhook (alertmanager.yml,
+    # credentials_file). Same file service-ops uses; mounted as a Docker
+    # secret so it never appears in `docker inspect`.
+    secrets:
+      - alert_secret
     ports:
       # Loopback-only — not publicly reachable; reach the UI via an SSH tunnel.
       - '127.0.0.1:9093:9093'
@@ -483,7 +488,7 @@ volumes:
   grafana_data:
     driver: local
 
-# db_password/redis_password are declared in docker-compose.prod.yml /
+# db_password/redis_password/alert_secret are declared in docker-compose.prod.yml /
 # docker-compose.staging.yml (this overlay is always deployed layered on one
 # of them — see the header comment). Redeclared here, pointing at the
 # identical host paths, only so
@@ -495,6 +500,8 @@ secrets:
     file: ./secrets/db_password
   redis_password:
     file: ./secrets/redis_password
+  alert_secret:
+    file: ./secrets/alert_secret
   # ADS-1376: an `environment`-sourced secret, not `file`-sourced like the
   # two above — Grafana's admin password only ever lived in the host .env
   # (GF_SECURITY_ADMIN_PASSWORD), never a materialised file, so this reads

@@ -153,35 +153,28 @@ runbook to open on fire.
 As of ADS-1041 the rules are **loaded** by Prometheus and routed by
 Alertmanager on their `severity` label in the deployed observability stack
 (`docker-compose.observability.yml` / dev `observability` profile). `critical`
-and `warning` each deliver to **Discord** via their **own** incoming webhook
-(split as of ADS-1307 — a critical escalation channel can differ from routine
-chat); a third, always-firing `severity: none` alert (`Watchdog`,
-`watchdog.yml`) goes to `deadman`, a generic webhook pointed at an external
-dead-man's-switch service (Healthchecks.io/Cronitor-style — see below). Every
-webhook URL is read from its own file secret so it never lands in
-`docker inspect` (`observability/alertmanager/alertmanager.yml`,
-`webhook_url_file:` / `url_file:`). There is **no PagerDuty and no
-Slack/SMTP** — Discord (for the two paged severities) plus one generic
-webhook (for the dead-man's switch) are the only sinks.
+and `warning` both go to the `ads-bot` receiver, a webhook to the
+ideasquared-bot Worker that posts to **Discord** (firing alerts ping
+`@everyone`, resolved ones don't; severity comes from the `severity` label); a
+third, always-firing `severity: none` alert (`Watchdog`, `watchdog.yml`) goes
+to `deadman`, a generic webhook pointed at an external dead-man's-switch
+service (Healthchecks.io/Cronitor-style — see below). Secrets are files so they
+never land in `docker inspect` (`observability/alertmanager/alertmanager.yml`,
+`credentials_file:` / `url_file:`). There is **no PagerDuty and no
+Slack/SMTP** — the bot (for the two paged severities) plus one generic webhook
+(for the dead-man's switch) are the only sinks.
 
-Alertmanager will not start until **all three** secret files exist. To wire
-them up (also in
-[`runbooks/observability-enable.md`](./runbooks/observability-enable.md)):
+`ads-bot` authenticates with `ALERT_SECRET`, the same value as service-ops'
+alerts (`alert_secret` Docker secret, written by `scripts/deploy-secrets.sh`).
+Alertmanager will not start until the dead-man's-switch file exists. To wire it
+up (also in [`runbooks/observability-enable.md`](./runbooks/observability-enable.md)):
 
-1. Create two Discord incoming webhooks (one per severity — or point both
-   secret files at the same URL if you haven't split channels yet) and a
-   check on a dead-man's-switch service.
-2. Drop each into its host secret file:
+1. Create a check on a dead-man's-switch service.
+2. Drop its ping URL into the host secret file:
    ```bash
-   printf '%s' '<critical-discord-webhook-url>' \
-     > /opt/ads/<env>/observability/alertmanager/secrets/discord_webhook_url_critical
-   printf '%s' '<warning-discord-webhook-url>' \
-     > /opt/ads/<env>/observability/alertmanager/secrets/discord_webhook_url_warning
    printf '%s' '<deadman-switch-ping-url>' \
      > /opt/ads/<env>/observability/alertmanager/secrets/deadman_webhook_url
-   chmod 600 /opt/ads/<env>/observability/alertmanager/secrets/discord_webhook_url_critical \
-     /opt/ads/<env>/observability/alertmanager/secrets/discord_webhook_url_warning \
-     /opt/ads/<env>/observability/alertmanager/secrets/deadman_webhook_url
+   chmod 600 /opt/ads/<env>/observability/alertmanager/secrets/deadman_webhook_url
    ```
 3. Reload: `docker compose … kill -s HUP alertmanager`.
 4. Validate: `amtool check-config observability/alertmanager/alertmanager.yml`.
@@ -192,8 +185,8 @@ Three severities are defined:
 
 | Severity   | Alertmanager receiver | Sink                       | Response                                                                                                                                                                                                                                                 |
 | ---------- | --------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `critical` | `critical-pager`      | Discord                    | Ack within 5 min. **Escalation path** (there is no PagerDuty/on-call rotation tool): DM the secondary on-call directly on Discord/Slack; if they don't ack within 15 min, DM the team lead. Both are named in the on-call handoff doc, not in this repo. |
-| `warning`  | `warning-chat`        | Discord                    | Review within 30 min; no escalation unless it repeats or is ignored past a shift                                                                                                                                                                         |
+| `critical` | `ads-bot`             | Discord (via bot)          | Ack within 5 min. **Escalation path** (there is no PagerDuty/on-call rotation tool): DM the secondary on-call directly on Discord/Slack; if they don't ack within 15 min, DM the team lead. Both are named in the on-call handoff doc, not in this repo. |
+| `warning`  | `ads-bot`             | Discord (via bot)          | Review within 30 min; no escalation unless it repeats or is ignored past a shift                                                                                                                                                                         |
 | `none`     | `deadman`             | External dead-man's switch | No human response to the alert itself — the _external_ service pages if its ping stops arriving, which means the whole pipeline (or host) is down; see `runbooks/observability-stack-down.md`                                                            |
 
 A firing `critical` inhibits the same alert's `warning` (see the `inhibit_rules` in `alertmanager.yml`).

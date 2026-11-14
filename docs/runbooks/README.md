@@ -95,16 +95,17 @@ The order is always:
 
 Prometheus rules (`infra/prometheus/rules/`) carry three severities.
 Alertmanager (`observability/alertmanager/alertmanager.yml`) routes `critical`
-and `warning` to their **own** Discord webhook each (split as of ADS-1307);
-the always-firing `Watchdog` alert (`none`) goes to an external dead-man's
-switch instead of Discord. There is no PagerDuty, no `#oncall-page` tool, and
+and `warning` to one receiver, `ads-bot`, which posts to the ideasquared-bot
+Worker; the bot relays them to Discord (firing alerts ping `@everyone`,
+resolved ones don't) using each alert's `severity` label. The always-firing
+`Watchdog` alert (`none`) goes to an external dead-man's switch instead. There is no PagerDuty, no `#oncall-page` tool, and
 no `info` tier. See [`docs/slo.md`](../slo.md#severity--on-call) for the
 authoritative table.
 
 | Severity   | Alertmanager receiver | Destination                                                                                | Response                                                                                                            |
 | ---------- | --------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| `critical` | `critical-pager`      | Its own Discord webhook (fast group, 1h repeat)                                            | Ack in 5 min, open the runbook in the alert's `runbook` annotation, start mitigating                                |
-| `warning`  | `warning-chat`        | Its own Discord webhook (4h repeat)                                                        | Review within 30 min; investigate, don't necessarily escalate                                                       |
+| `critical` | `ads-bot`             | ideasquared-bot, then Discord (fast group, 1h repeat)                                      | Ack in 5 min, open the runbook in the alert's `runbook` annotation, start mitigating                                |
+| `warning`  | `ads-bot`             | ideasquared-bot, then Discord (4h repeat)                                                  | Review within 30 min; investigate, don't necessarily escalate                                                       |
 | `none`     | `deadman`             | External dead-man's-switch service (Healthchecks.io/Cronitor-style, `repeat_interval: 5m`) | Not actioned directly — the external service pages if the ping _stops_, meaning the pipeline or host itself is down |
 
 **Escalation path** for a `critical` that isn't acked in 5 minutes: DM the
