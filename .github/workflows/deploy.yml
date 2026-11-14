@@ -313,9 +313,6 @@ jobs:
           export RUNS_JSON
           scripts/deploy-ci-gate.sh
 
-      - name: Setup workspace (Node + pnpm)
-        uses: ./.github/actions/setup-workspace
-
       - name: Log in to GHCR
         uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0  # v4.4.0
         with:
@@ -323,14 +320,87 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # ADS-673: install cosign before any push so we can sign each image
-      # by digest after `docker push`. Keyless mode uses the job's OIDC
+      # ADS-673: install cosign before the image lookup below (which verifies
+      # signatures) and before any push (to sign each image by digest). Keyless mode uses the job's OIDC
       # token (id-token: write) — no secrets required. SHA-pinned to match
       # the rest of this workflow's pinning strategy.
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6  # v4.1.2
 
+      # Build once, deploy many: docker.yml's publish-images job pushes (and
+      # cosign-signs) the 12 service images as <sha> and the 3 frontend images
+      # as <sha>-staging for every commit on main, after its smoke test and
+      # Trivy scans pass. Reuse whatever is already in GHCR for this commit
+      # and environment, and build only what is missing (a manual run of an
+      # old SHA, production frontends — their VITE_* values come from
+      # production-vars, so docker.yml never builds them —, or a failed
+      # publish). Any lookup failure counts as missing: the cost is a slower
+      # build, never a skipped one. An image is reused only if its digest
+      # also passes the same cosign identity/issuer check as verify-images
+      # (a publish that stopped after pushing but before signing leaves an
+      # unsigned tag; reusing it would fail verify-images on every retry), so
+      # an unsigned image is rebuilt and signed here like a missing one.
+      # verify-images below remains the final gate.
+      - name: Find images already published for this commit
+        id: existing
+        env:
+          SHA: ${{ github.sha }}
+          ENVIRONMENT: ${{ inputs.environment }}
+          SKIP_VERIFY: ${{ inputs.skip_cosign_verify }}
+        run: |
+          set -uo pipefail
+          # Same identity and issuer as verify-images.
+          IDENTITY_REGEX='^https://github.com/ideaSquared/adopt-dont-shop/\.github/workflows/.+@refs/heads/main$'
+          ISSUER='https://token.actions.githubusercontent.com'
+          all=true
+          for image in service-gateway service-auth service-notifications service-pets \
+            service-rescue service-applications service-chat service-moderation \
+            service-matching service-audit service-cms service-ops \
+            app-client app-admin app-rescue; do
+            case "$image" in
+              app-*) tag="$SHA-$ENVIRONMENT" ;;
+              *) tag="$SHA" ;;
+            esac
+            ref="$IMAGE_PREFIX/$image:$tag"
+            reusable=false
+            if digest=$(docker buildx imagetools inspect "$ref" --format '{{.Manifest.Digest}}' 2>/dev/null) && [ -n "$digest" ]; then
+              if [ "$SKIP_VERIFY" = "true" ] ||
+                cosign verify \
+                  --certificate-identity-regexp "$IDENTITY_REGEX" \
+                  --certificate-oidc-issuer "$ISSUER" \
+                  "$IMAGE_PREFIX/$image@$digest" > /dev/null 2>&1; then
+                reusable=true
+              fi
+            fi
+            if [ "$reusable" = "true" ]; then
+              echo "Reusing $image:$tag"
+              echo "$image=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "::notice title=Building $image::$image:$tag is missing or unsigned in GHCR; building it here."
+              all=false
+            fi
+          done
+          echo "all=$all" >> "$GITHUB_OUTPUT"
+
+      - name: Setup workspace (Node + pnpm)
+        if: steps.existing.outputs.all != 'true'
+        uses: ./.github/actions/setup-workspace
+
       - name: Build and push gateway + services
+        if: steps.existing.outputs.all != 'true'
+        env:
+          EXISTING_GATEWAY: ${{ steps.existing.outputs.service-gateway }}
+          EXISTING_AUTH: ${{ steps.existing.outputs.service-auth }}
+          EXISTING_NOTIFICATIONS: ${{ steps.existing.outputs.service-notifications }}
+          EXISTING_PETS: ${{ steps.existing.outputs.service-pets }}
+          EXISTING_RESCUE: ${{ steps.existing.outputs.service-rescue }}
+          EXISTING_APPLICATIONS: ${{ steps.existing.outputs.service-applications }}
+          EXISTING_CHAT: ${{ steps.existing.outputs.service-chat }}
+          EXISTING_MODERATION: ${{ steps.existing.outputs.service-moderation }}
+          EXISTING_MATCHING: ${{ steps.existing.outputs.service-matching }}
+          EXISTING_AUDIT: ${{ steps.existing.outputs.service-audit }}
+          EXISTING_CMS: ${{ steps.existing.outputs.service-cms }}
+          EXISTING_OPS: ${{ steps.existing.outputs.service-ops }}
         run: |
           # ADS-1322: no :latest tag. Every deploy — staging or production —
           # pins docker-compose.prod.yml / .staging.yml to an explicit
@@ -362,6 +432,12 @@ jobs:
           for entry in "${SERVICES[@]}"; do
             read -r image pkg dir <<< "$entry"
             ref="$IMAGE_PREFIX/$image:${{ github.sha }}"
+            # Already published by docker.yml for this commit: reuse it.
+            existing_var="EXISTING_$(printf '%s' "${image#service-}" | tr 'a-z' 'A-Z')"
+            if [ "${!existing_var:-}" = "true" ]; then
+              echo "Skipping $image: $ref is already published"
+              continue
+            fi
             echo "::group::Build $image"
             docker build \
               -f Dockerfile.service \
@@ -379,6 +455,7 @@ jobs:
           done
 
       - name: Build and push app.client
+        if: steps.existing.outputs.app-client != 'true'
         env:
           # ADS-1319: the Dockerfile.app secret is sourced from this env var
           # (--secret id=sentry_auth,env=SENTRY_AUTH_TOKEN below) — it was
@@ -415,6 +492,7 @@ jobs:
           cosign sign --yes "$IMAGE_PREFIX/app-client@$DIGEST"
 
       - name: Build and push app.admin
+        if: steps.existing.outputs.app-admin != 'true'
         env:
           # ADS-1319: see app.client for why this is needed.
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -441,6 +519,7 @@ jobs:
           cosign sign --yes "$IMAGE_PREFIX/app-admin@$DIGEST"
 
       - name: Build and push app.rescue
+        if: steps.existing.outputs.app-rescue != 'true'
         env:
           # ADS-1319: see app.client for why this is needed.
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
