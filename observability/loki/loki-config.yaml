@@ -4,7 +4,7 @@
 # local-config.yaml; prod/staging mount THIS file instead so retention and
 # on-disk layout are pinned rather than left at the image default. Single-binary
 # filesystem mode — no object store, no clustering — which suits the
-# single-host deploy. All services ship logs here via winston-loki when
+# single-host deploy. All services ship logs here via the Loki sink in @adopt-dont-shop/observability when
 # LOKI_URL=http://loki:3100 is set (packages/observability/src/logger.ts).
 auth_enabled: false
 

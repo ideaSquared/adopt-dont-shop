@@ -123,8 +123,11 @@ Backend
   calls `requirePermission(principal, PERMISSION)` itself. The gateway gate is not enough.
 - Permission constants come from `@adopt-dont-shop/lib.types`
   (`packages/lib.types/src/types/rescue-permissions.ts`). Never inline permission strings.
-- Never log secrets or PII except through the redaction helpers in
-  `@adopt-dont-shop/observability` (`redactSecretFields`, `redactUrl`).
+- Server code logs through `@ideasquared/log` only (via `createLogger` from
+  `@adopt-dont-shop/observability`): never `console.*`, never Winston. Messages are fixed string
+  literals, data goes in fields declared where the logger is created, no personal data or secrets
+  in logs: log ids, not people. Routes are logged as patterns, never raw paths. See the `logging`
+  skill. `no-console` is an error in `eslint-config-node`.
 - State changes that need a forensic trail publish `<domain>.actionTaken` inside
   `withTransaction` so the event fires only on commit.
 
@@ -193,6 +196,7 @@ as `ApiError`.
 | Audit trail for a state change              | `audit-logging`            | `services/audit/src/nats/event-types.ts`                                |
 | Events between services, copying their data | `event-driven`             | `packages/events/README.md`                                             |
 | Errors and HTTP status mapping              | `error-handling`           | `services/gateway/src/middleware/grpc-error.ts`                         |
+| Logging, log fields, no PII in logs         | `logging`                  | `.claude/skills/logging/SKILL.md`                                       |
 | Field-level read/write masking (backend)    | `field-permissions`        | `docs/adr/0006-field-permission-enforcement.md`                         |
 | Backend tests (handlers, routes)            | `backend-test`             | `docs/testing.md`                                                       |
 | Frontend tests (components, hooks, MSW)     | `frontend-test`            | `docs/testing.md`                                                       |

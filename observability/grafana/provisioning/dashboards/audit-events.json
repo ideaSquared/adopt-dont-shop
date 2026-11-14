@@ -28,7 +28,7 @@
         {
           "datasource": { "type": "loki", "uid": "Loki" },
           "editorMode": "code",
-          "expr": "sum(count_over_time({service=\"service.audit\"} |= \"audit event persisted\" | json | audit=\"true\" [1h]))",
+          "expr": "sum(count_over_time({service=\"service.audit\"} |= \"audit event persisted\" | json | meta_audit=\"true\" [1h]))",
           "queryType": "instant",
           "refId": "A"
         }
@@ -52,7 +52,7 @@
         {
           "datasource": { "type": "loki", "uid": "Loki" },
           "editorMode": "code",
-          "expr": "sum(count_over_time({service=\"service.audit\"} |= \"audit event persisted\" | json | audit=\"true\" | outcome=\"failure\" [1h]))",
+          "expr": "sum(count_over_time({service=\"service.audit\"} |= \"audit event persisted\" | json | meta_audit=\"true\" | meta_outcome=\"failure\" [1h]))",
           "queryType": "instant",
           "refId": "A"
         }
@@ -88,7 +88,7 @@
         {
           "datasource": { "type": "loki", "uid": "Loki" },
           "editorMode": "code",
-          "expr": "sum by (action) (count_over_time({service=\"service.audit\"} |= \"audit event persisted\" | json | audit=\"true\" [$__interval]))",
+          "expr": "sum by (meta_action) (count_over_time({service=\"service.audit\"} |= \"audit event persisted\" | json | meta_audit=\"true\" [$__interval]))",
           "queryType": "range",
           "refId": "A"
         }
@@ -114,7 +114,7 @@
         {
           "datasource": { "type": "loki", "uid": "Loki" },
           "editorMode": "code",
-          "expr": "{service=\"service.audit\"} |= \"audit event persisted\" | json | audit=\"true\"",
+          "expr": "{service=\"service.audit\"} |= \"audit event persisted\" | json | meta_audit=\"true\"",
           "queryType": "range",
           "refId": "A"
         }
@@ -145,7 +145,7 @@
         {
           "datasource": { "type": "loki", "uid": "Loki" },
           "editorMode": "code",
-          "expr": "sum by (actorUserId) (count_over_time({service=\"service.audit\"} |= \"audit event persisted\" | json | audit=\"true\" [$__interval]))",
+          "expr": "sum by (meta_actorUserId) (count_over_time({service=\"service.audit\"} |= \"audit event persisted\" | json | meta_audit=\"true\" [$__interval]))",
           "queryType": "range",
           "refId": "A"
         }
