@@ -38,7 +38,7 @@ describe('POST /api/v1/analytics/pageviews', () => {
     expect(res.json()).toEqual({ success: true, message: 'Pageview recorded' });
   });
 
-  it('logs the pageview path and the principal user id when present', async () => {
+  it('logs the principal user id when present, and no path', async () => {
     await app.inject({
       method: 'POST',
       url: '/api/v1/analytics/pageviews',
@@ -48,8 +48,9 @@ describe('POST /api/v1/analytics/pageviews', () => {
     expect(logger.events).toHaveLength(1);
     expect(logger.events[0]).toMatchObject({
       message: 'Pageview recorded',
-      meta: { path: '/pets', userId: 'usr-1' },
+      meta: { userId: 'usr-1' },
     });
+    expect(lastMeta(logger)).not.toHaveProperty('path');
   });
 
   it('accepts anonymous traffic (no x-user-id)', async () => {
@@ -203,26 +204,23 @@ describe('analytics ingestion redaction (ADS-1038)', () => {
     await app.close();
   });
 
-  it('drops the query string (and its token) from the pageview path', async () => {
+  it.each([
+    '/users/alex@example.com',
+    '/users/alex%40example.com',
+    '/pets/bob',
+    '/reset-password?token=SECRET',
+    '/cb#access_token=SECRET',
+  ])('never logs any part of the client-supplied page path %s', async path => {
     await app.inject({
       method: 'POST',
       url: '/api/v1/analytics/pageviews',
       headers: { 'content-type': 'application/json' },
-      payload: { path: '/reset-password?token=SECRET' },
+      payload: { path, url: `https://example.com${path}` },
     });
-    expect(lastMeta(logger).path).toBe('/reset-password');
-    expect(JSON.stringify(logger.events)).not.toContain('SECRET');
-  });
-
-  it('drops the URL fragment (and an OAuth-style token in it) from the pageview path', async () => {
-    await app.inject({
-      method: 'POST',
-      url: '/api/v1/analytics/pageviews',
-      headers: { 'content-type': 'application/json' },
-      payload: { path: '/cb#access_token=SECRET' },
-    });
-    expect(lastMeta(logger).path).toBe('/cb');
-    expect(JSON.stringify(logger.events)).not.toContain('SECRET');
+    const logged = JSON.stringify(logger.events);
+    for (const leak of ['alex', 'bob', 'SECRET', 'example.com', 'reset-password']) {
+      expect(logged).not.toContain(leak);
+    }
   });
 
   it('truncates an oversized event name', async () => {

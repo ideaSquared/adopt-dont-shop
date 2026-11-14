@@ -238,20 +238,25 @@ describe('createServer — /api/* fallback', () => {
     expect(res.json()).toMatchObject({ service: 'service.gateway' });
   });
 
-  // ADS-972: the unmatched-route warn log must not carry a query string —
-  // future routes could put a token/signature there, and redactSecretFields
-  // only redacts by object key, not by scanning string values.
-  it('logs the unmatched-route warn without the query string', async () => {
+  // An unmatched request path is attacker- and user-controlled: it can carry an email, a name or a
+  // token, so the warn log never carries any part of it (ADS-972).
+  it.each([
+    '/api/v1/users/alex@example.com',
+    '/api/v1/users/alex%40example.com',
+    '/api/v1/rescues/alex',
+    '/api/pets/bob',
+    '/api/some/unknown/path?resetToken=super-secret',
+  ])('logs the unmatched-route warn without any part of %s', async url => {
     const { logger, events } = makeLogger();
     server = await createServer({ config: baseConfig, logger });
-    await server.inject({
-      method: 'GET',
-      url: '/api/some/unknown/path?resetToken=super-secret',
-    });
+    await server.inject({ method: 'GET', url });
     // Boot logs its own warnings (e.g. "REDIS_URL not set") before any request is injected.
     const event = events.find(e => e.message === 'unmatched API route');
-    expect(event?.meta).toMatchObject({ path: '/api/some/unknown/path' });
-    expect(JSON.stringify(event)).not.toContain('super-secret');
+    expect(event?.meta).toEqual({ method: 'GET', route: 'unmatched' });
+    const logged = JSON.stringify(event);
+    for (const leak of ['alex', 'bob', 'super-secret', 'example.com', 'unknown']) {
+      expect(logged).not.toContain(leak);
+    }
   });
 });
 

@@ -26,7 +26,6 @@
 import {
   createLogger,
   getMetricsRegistry,
-  toRouteTemplate,
   registerMetrics,
   registerRequestId,
 } from '@adopt-dont-shop/observability';
@@ -990,9 +989,9 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // calling a path that doesn't exist. Without this line the failure is
   // invisible in the logs (Fastify's own request logging is disabled).
   const apiNotFound = async (req: FastifyRequest, reply: FastifyReply) => {
-    // ADS-972: strip query string / signed-URL secrets before logging — see
-    // the setErrorHandler comment above for why req.url isn't safe verbatim.
-    logger.warn('unmatched API route', { method: req.method, path: toRouteTemplate(req.url) });
+    // No path is logged: nothing matched, so there is no route template, and a raw segment can be
+    // an email, a name or a token. The method and a fixed route value are enough to spot the 404.
+    logger.warn('unmatched API route', { method: req.method, route: 'unmatched' });
     return reply.code(404).send({ error: 'not_found' });
   };
   server.get('/api/*', apiNotFound);

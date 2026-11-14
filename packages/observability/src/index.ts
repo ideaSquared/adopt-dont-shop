@@ -22,7 +22,6 @@ export {
   maskPiiValue,
   redactSecretFields,
   redactUrl,
-  toRouteTemplate,
   PII_KEY_PATTERN,
   REDACTED,
   SECRET_KEY_PATTERN,

@@ -150,16 +150,3 @@ export const redactUrl = (url: string): string => {
   }
   return path;
 };
-
-const ID_SEGMENT =
-  /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\d+|[0-9a-zA-Z_-]{24,})$/i;
-
-// A raw URL path turned into something safe to log as a route template: the query string and
-// fragment are dropped, secret-bearing prefixes are masked (redactUrl), and any segment that looks
-// like an identifier (UUID, number, long opaque token) becomes `:id`. For paths a framework could
-// not match to a route, so there is no route pattern to log instead.
-export const toRouteTemplate = (url: string): string =>
-  redactUrl((url.split('#')[0] ?? '').trim())
-    .split('/')
-    .map(segment => (ID_SEGMENT.test(segment) ? ':id' : segment))
-    .join('/');

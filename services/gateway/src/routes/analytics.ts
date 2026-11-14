@@ -16,7 +16,6 @@
 // required); the principal-headers populated by the authenticate
 // middleware are forwarded to the log line as `userId` when present.
 
-import { toRouteTemplate } from '@adopt-dont-shop/observability';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { type ServiceLogger } from '../logger.js';
 
@@ -30,15 +29,6 @@ export type AnalyticsRoutesOptions = {
 // (up to MAX_BATCH events per request) so it's tighter.
 const ANALYTICS_RATE_LIMIT = { max: 120, timeWindow: '1 minute' } as const;
 const ANALYTICS_BATCH_RATE_LIMIT = { max: 60, timeWindow: '1 minute' } as const;
-
-type PageviewBody = {
-  path?: string;
-  url?: string;
-  timestamp?: string;
-  sessionId?: string;
-  referrer?: string;
-  userAgent?: string;
-};
 
 type EventBody = {
   event?: string;
@@ -70,13 +60,6 @@ const cap = (s: string | undefined): string | undefined => {
   }
   return s.length > sessionLengthCap ? s.slice(0, sessionLengthCap) : s;
 };
-
-// A URL/path/referrer safe to log: the fragment is dropped first (an OAuth-style
-// `#access_token=...` or a hash-routed `#/verify-email?token=...` carries the
-// same secret risk as the query string), then redactUrl drops the query string
-// (ADS-972/ADS-1038) and masks known secret-bearing path segments, then it's
-// length-capped. Undefined in, undefined out.
-const safeUrl = (s: string | undefined): string | undefined => (s ? cap(toRouteTemplate(s)) : s);
 
 export const registerAnalyticsRoutes = async (
   app: FastifyInstance,
@@ -115,15 +98,9 @@ export const registerAnalyticsRoutes = async (
       },
     },
     async (req, reply) => {
-      const body = (req.body ?? {}) as PageviewBody;
-      const pagePath = body.path || body.url || req.url || 'unknown';
-      // Only the path (query string dropped — reset/verify/invite routes carry a live token there,
-      // ADS-1038) and the caller's id are logged. Session ids, referrers, user agents, IPs and
-      // client-supplied properties never reach the log.
-      logger.info('Pageview recorded', {
-        path: safeUrl(pagePath) ?? null,
-        userId: userIdFromHeaders(req) ?? null,
-      });
+      // The page path is client-supplied and can carry an email, a name or a token, so it is
+      // never logged. Only the caller's id is.
+      logger.info('Pageview recorded', { userId: userIdFromHeaders(req) ?? null });
       return reply.code(201).send({ success: true, message: 'Pageview recorded' });
     }
   );
