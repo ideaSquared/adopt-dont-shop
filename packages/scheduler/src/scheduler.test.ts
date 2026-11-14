@@ -224,6 +224,41 @@ describe('scheduler', () => {
     }
   });
 
+  it('logs a failed tick from the timer loop and keeps scheduling', async () => {
+    vi.useFakeTimers();
+    try {
+      const { logger, events } = recordingLogger();
+      const jobs: ScheduledJob[] = [
+        {
+          name: 'flaky',
+          intervalMs: 100,
+          runOnStart: true,
+          run: async () => {
+            throw new Error('boom');
+          },
+        },
+      ];
+      // A throwing failure hook escapes the per-job catch, so the whole tick rejects.
+      const scheduler = startScheduler(jobs, {
+        logger,
+        tickIntervalMs: 50,
+        onJobFailure: () => {
+          throw new Error('metric down');
+        },
+      });
+      await vi.advanceTimersByTimeAsync(120);
+      const tickErrors = events.filter(event => event.message === 'scheduler tick error');
+      expect(tickErrors.length).toBeGreaterThanOrEqual(2);
+      expect(tickErrors[0]).toMatchObject({
+        level: 'error',
+        error: expect.objectContaining({ message: 'metric down' }),
+      });
+      await scheduler.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('refires a due job on a subsequent tick once interval has elapsed', async () => {
     const runs: number[] = [];
     let now = 1_000_000;
