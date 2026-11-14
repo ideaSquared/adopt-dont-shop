@@ -45,7 +45,9 @@ export type OpsConfig = {
   principalSigningKey: string;
   authMode: 'github' | 'local';
   github: { clientId: string; org: string; team: string } | null;
-  discordWebhookUrl: string | undefined;
+  // ideasquared-bot's /alert endpoint and the secret that signs its requests.
+  alertUrl: string | undefined;
+  alertSecret: string | undefined;
   sessionTtlHours: number;
   grpcTargets: Record<ServiceName, string>;
 };
@@ -146,7 +148,8 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): OpsConfig => {
     principalSigningKey,
     authMode,
     github: authMode === 'github' ? requireGithub(env) : null,
-    discordWebhookUrl: clean(readSecret('OPS_DISCORD_WEBHOOK_URL', env)),
+    alertUrl: clean(env.ALERT_URL),
+    alertSecret: clean(readSecret('ALERT_SECRET', env)),
     sessionTtlHours: parseSessionTtlHours(env.OPS_SESSION_TTL_HOURS),
     grpcTargets: loadGrpcTargets(env),
   };

@@ -203,28 +203,19 @@ jobs:
       contents: read
       issues: write
     env:
-      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      ALERT_URL: https://ideasquared-bot.idea-squared.workers.dev/alert
+      ALERT_SECRET: ${{ secrets.ALERT_SECRET }}
     steps:
-      - name: Check Discord webhook is configured
-        id: discord
-        run: |
-          if [[ -n "$DISCORD_WEBHOOK_URL" ]]; then
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::notice::DISCORD_WEBHOOK_URL secret not configured — skipping Discord notification, filing a GitHub issue instead."
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-          fi
+      - name: Check out the alert script
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          sparse-checkout: scripts/send-alert.sh
+          persist-credentials: false
 
-      - name: Post failure to Discord
-        if: steps.discord.outputs.configured == 'true'
+      - name: Send failure alert
         run: |
-          set -euo pipefail
           RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          PAYLOAD="$(printf '{"content":"🔴 **%s** failed on %s — %s"}' \
-            "${GITHUB_WORKFLOW}" "${GITHUB_REPOSITORY}" "${RUN_URL}")"
-          curl -sS --fail -X POST "$DISCORD_WEBHOOK_URL" \
-            -H 'Content-Type: application/json' \
-            -d "$PAYLOAD"
+          ./scripts/send-alert.sh critical "${GITHUB_WORKFLOW} failed" "${RUN_URL}" "github-actions"
 
       - name: Open or update backup-failure issue
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0

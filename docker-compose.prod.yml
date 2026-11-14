@@ -646,15 +646,17 @@ services:
       OPS_GITHUB_ORG: ${OPS_GITHUB_ORG:-}
       OPS_GITHUB_TEAM: ${OPS_GITHUB_TEAM:-}
       OPS_SESSION_TTL_HOURS: ${OPS_SESSION_TTL_HOURS:-8}
-      # Optional: an empty secrets/ops_discord_webhook_url disables break-glass
-      # unlocks (fail closed: no alert channel, no unlock).
-      OPS_DISCORD_WEBHOOK_URL_FILE: /run/secrets/ops_discord_webhook_url
+      # Break-glass unlock alerts go through ideasquared-bot's /alert endpoint,
+      # signed with alert_secret. An empty secrets/alert_secret disables unlocks
+      # (fail closed: no alert channel, no unlock).
+      ALERT_URL: https://ideasquared-bot.idea-squared.workers.dev/alert
+      ALERT_SECRET_FILE: /run/secrets/alert_secret
     secrets:
       - database_url
       - redis_url
       - principal_signing_key
       - nats_auth_token
-      - ops_discord_webhook_url
+      - alert_secret
     ports:
       - "127.0.0.1:4102:4100"
     # Needs the domain services' gRPC endpoints at call time; `service_started`
@@ -833,10 +835,10 @@ secrets:
     file: ./secrets/principal_signing_key
   nats_auth_token:
     file: ./secrets/nats_auth_token
-  # ADR 0016: Discord webhook for break-glass unlock alerts (service-ops).
-  # Optional: deploy-secrets.sh writes an empty file when unset.
-  ops_discord_webhook_url:
-    file: ./secrets/ops_discord_webhook_url
+  # ADR 0016: HMAC key shared with ideasquared-bot, signing break-glass unlock
+  # alerts (service-ops). Optional: deploy-secrets.sh writes an empty file when unset.
+  alert_secret:
+    file: ./secrets/alert_secret
   # ADS-1302: third-party provider credentials for service-notifications.
   resend_api_key:
     file: ./secrets/resend_api_key

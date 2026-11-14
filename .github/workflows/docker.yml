@@ -703,20 +703,27 @@ jobs:
             cosign sign --yes "$ref"
           done
 
-  # Posts every production smoke result (pass or fail) to Discord, using the
-  # same DISCORD_WEBHOOK_URL secret as deploy/backup alerts. Skipped when the
-  # smoke job didn't run, and a no-op when the secret isn't set (fork PRs
-  # never see it). Never fails the workflow.
+  # Alerts through ideasquared-bot's /alert endpoint when the production smoke
+  # test did not pass (a pass is not an alert: the endpoint pings @everyone).
+  # Skipped when the smoke job didn't run, and a no-op when ALERT_SECRET isn't
+  # set (fork PRs never see it). Never fails the workflow.
   prod-image-smoke-notify:
     name: Production Image Smoke (report)
     needs: prod-image-smoke
-    if: ${{ always() && needs.prod-image-smoke.result != 'skipped' }}
+    if: ${{ always() && needs.prod-image-smoke.result != 'skipped' && needs.prod-image-smoke.result != 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Post the result to Discord
+      - name: Check out the alert script
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          sparse-checkout: scripts/send-alert.sh
+          persist-credentials: false
+
+      - name: Send the result as an alert
         env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          ALERT_URL: https://ideasquared-bot.idea-squared.workers.dev/alert
+          ALERT_SECRET: ${{ secrets.ALERT_SECRET }}
           RESULT: ${{ needs.prod-image-smoke.result }}
           # Free text (PR title) — passed via env, never interpolated.
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -724,29 +731,21 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           REF_NAME: ${{ github.ref_name }}
         run: |
-          set -euo pipefail
-          if [ -z "${DISCORD_WEBHOOK_URL:-}" ]; then
-            echo "DISCORD_WEBHOOK_URL secret not set — skipping the smoke report."
-            exit 0
+          if [ "$RESULT" = failure ]; then
+            title="Production smoke test FAILED"
+            severity=critical
+          else
+            title="Production smoke test $RESULT"
+            severity=warning
           fi
-          case "$RESULT" in
-            success) headline="✅ Production smoke test passed" ;;
-            failure) headline="❌ Production smoke test FAILED" ;;
-            *)       headline="⚠️ Production smoke test $RESULT" ;;
-          esac
           if [ -n "$PR_NUMBER" ]; then
             where="PR #$PR_NUMBER: $PR_TITLE"
           else
             where="$REF_NAME"
           fi
           RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          PAYLOAD=$(jq -n \
-            --arg headline "$headline" --arg where "$where" \
-            --arg sha "${HEAD_SHA:0:7}" --arg url "$RUN_URL" \
-            '{content: ($headline + " — " + $where + " (" + $sha + ")\n" + $url),
-              allowed_mentions: {parse: []}}')
-          curl -fsS -X POST -H 'Content-Type: application/json' -d "$PAYLOAD" "$DISCORD_WEBHOOK_URL" ||
-            echo "::warning::Could not post the smoke report to Discord."
+          ./scripts/send-alert.sh "$severity" "$title" \
+            "$where (${HEAD_SHA:0:7})"$'\n'"$RUN_URL" "github-actions"
 
   # ============================================================================
   # PRODUCTION IMAGE SMOKE GATE — ADS-1400: the job that reports the required

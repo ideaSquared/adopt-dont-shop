@@ -189,7 +189,12 @@ export const makeFakeGrpc = (script: GrpcScript, opts: { honourDryRun?: boolean 
   return { call, calls };
 };
 
-export type FetchCall = { url: string; method: string; body: string | undefined };
+export type FetchCall = {
+  url: string;
+  method: string;
+  body: string | undefined;
+  headers: Record<string, string>;
+};
 export type FetchRoute = (call: FetchCall) => Response | Promise<Response>;
 
 export const jsonResponse = (body: unknown, status = 200): Response =>
@@ -203,6 +208,7 @@ export const makeFakeFetch = (routes: Record<string, FetchRoute>) => {
       url,
       method: init?.method ?? 'GET',
       body: typeof init?.body === 'string' ? init.body : undefined,
+      headers: Object.fromEntries(new Headers(init?.headers).entries()),
     };
     calls.push(recorded);
     const route = routes[url];
@@ -217,7 +223,8 @@ export const makeFakeFetch = (routes: Record<string, FetchRoute>) => {
 export type HarnessOptions = {
   env?: OpsEnv;
   authMode?: 'github' | 'local';
-  discordWebhookUrl?: string;
+  alertUrl?: string;
+  alertSecret?: string;
   fetchFn?: typeof fetch;
   grpc?: GrpcScript;
   honourDryRun?: boolean;
@@ -256,7 +263,8 @@ export const makeHarness = (opts: HarnessOptions = {}) => {
   const unlocks = createUnlocksService({
     env,
     store,
-    discordWebhookUrl: opts.discordWebhookUrl,
+    alertUrl: opts.alertUrl,
+    alertSecret: opts.alertSecret,
     fetchFn,
     now,
     logger: SILENT_LOGGER,

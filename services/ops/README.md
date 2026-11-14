@@ -48,17 +48,17 @@ pnpm ops login && pnpm ops pets         # drive it with the CLI
 
 ## Environment variables consumed
 
-| Variable                                                         | Notes                                                                                                                                  |
-| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `OPS_ENV`                                                        | **Required**: `dev`, `staging` or `prod`. Never inferred.                                                                              |
-| `OPS_HTTP_PORT`                                                  | Default `4100` (inside the container).                                                                                                 |
-| `DATABASE_URL`, `NATS_URL`, `NATS_AUTH_TOKEN`                    | As other services.                                                                                                                     |
-| `PRINCIPAL_SIGNING_KEY` / `_FILE`                                | **Required in every environment**, at least 32 bytes. Roleless principals only work signed.                                            |
-| `OPS_AUTH_MODE`                                                  | `github` (default) or `local`. `local` throws unless `NODE_ENV=development` and `OPS_ENV=dev`.                                         |
-| `OPS_GITHUB_CLIENT_ID`, `OPS_GITHUB_ORG`, `OPS_GITHUB_TEAM`      | Required in github mode. Device flow must be enabled on the OAuth app; scope `read:org`.                                               |
-| `OPS_DISCORD_WEBHOOK_URL` / `_FILE`                              | Required for unlocks on staging/prod (`UNLOCKS_DISABLED` otherwise). The alert is posted first; if it fails the unlock is not granted. |
-| `OPS_SESSION_TTL_HOURS`                                          | Default `8`.                                                                                                                           |
-| `AUTH_GRPC_URL`, `PETS_GRPC_URL`, ... (gateway's names/defaults) | gRPC targets.                                                                                                                          |
+| Variable                                                         | Notes                                                                                                                                                                                                                           |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OPS_ENV`                                                        | **Required**: `dev`, `staging` or `prod`. Never inferred.                                                                                                                                                                       |
+| `OPS_HTTP_PORT`                                                  | Default `4100` (inside the container).                                                                                                                                                                                          |
+| `DATABASE_URL`, `NATS_URL`, `NATS_AUTH_TOKEN`                    | As other services.                                                                                                                                                                                                              |
+| `PRINCIPAL_SIGNING_KEY` / `_FILE`                                | **Required in every environment**, at least 32 bytes. Roleless principals only work signed.                                                                                                                                     |
+| `OPS_AUTH_MODE`                                                  | `github` (default) or `local`. `local` throws unless `NODE_ENV=development` and `OPS_ENV=dev`.                                                                                                                                  |
+| `OPS_GITHUB_CLIENT_ID`, `OPS_GITHUB_ORG`, `OPS_GITHUB_TEAM`      | Required in github mode. Device flow must be enabled on the OAuth app; scope `read:org`.                                                                                                                                        |
+| `ALERT_URL`, `ALERT_SECRET` / `_FILE`                            | Both required for unlocks on staging/prod (`UNLOCKS_DISABLED` otherwise). `ALERT_URL` is ideasquared-bot's `/alert` endpoint; `ALERT_SECRET` signs the request. The alert is sent first; if it fails the unlock is not granted. |
+| `OPS_SESSION_TTL_HOURS`                                          | Default `8`.                                                                                                                                                                                                                    |
+| `AUTH_GRPC_URL`, `PETS_GRPC_URL`, ... (gateway's names/defaults) | gRPC targets.                                                                                                                                                                                                                   |
 
 ## REST / gRPC contract
 
@@ -87,10 +87,10 @@ id; never the token or its hash) in the same transaction as the session row.
 - **Dry-run modes**: `rollback` sends `x-dry-run: 1` and requires the `x-dry-run-applied` echo
   (otherwise `INTERNAL`, and the write may have applied); `native` sets the request's own `dryRun`
   true for the preview and false on execute; `preview-only` calls nothing.
-- **Unlocks** (`POST /v1/unlocks`): with a webhook configured, the Discord alert is posted
-  before anything is recorded. A network error or non-2xx means no unlock and `UNLOCKS_DISABLED`
-  ("Could not alert #ops, so the unlock was not granted"). Dev without a webhook records the unlock
-  with no alert.
+- **Unlocks** (`POST /v1/unlocks`): with `ALERT_URL` and `ALERT_SECRET` configured, a signed
+  alert is sent to ideasquared-bot's `/alert` endpoint before anything is recorded. A network error
+  or non-2xx means no unlock and `UNLOCKS_DISABLED` ("Could not send the break-glass alert, so the
+  unlock was not granted"). Dev without alerting records the unlock with no alert.
 - **PII lookups** (a registry `piiRequestFields` field set) need an active unlock.
 - **Masking** follows the proto `sensitivity` option (see `src/masking.ts`); hidden values become
   `{"$hidden": true}`. An unlock matching the registry `subject` (or `any`) reveals them and logs

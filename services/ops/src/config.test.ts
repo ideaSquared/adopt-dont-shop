@@ -26,6 +26,13 @@ describe('loadConfig', () => {
     expect(config.grpcTargets.pets).toBe('service-pets:6003');
   });
 
+  it('reads the alert url from ALERT_URL and the signing secret from ALERT_SECRET or its file', () => {
+    expect(loadConfig(base)).toMatchObject({ alertUrl: undefined, alertSecret: undefined });
+    expect(
+      loadConfig({ ...base, ALERT_URL: 'https://bot.example/alert', ALERT_SECRET: 's3cret' })
+    ).toMatchObject({ alertUrl: 'https://bot.example/alert', alertSecret: 's3cret' });
+  });
+
   it('honours gRPC target overrides', () => {
     expect(loadConfig({ ...base, PETS_GRPC_URL: 'localhost:9' }).grpcTargets.pets).toBe(
       'localhost:9'

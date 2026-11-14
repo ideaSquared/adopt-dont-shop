@@ -1,3 +1,5 @@
+import { createHmac } from 'node:crypto';
+
 import { describe, expect, it } from 'vitest';
 
 import { AuthV1, NotificationsV1, PetsV1 } from '@adopt-dont-shop/proto';
@@ -453,7 +455,7 @@ describe('unlocks', () => {
     ticket: 'ADS-123',
   };
 
-  it('is refused on prod when no Discord webhook is configured', async () => {
+  it('is refused on prod when alerting is not configured', async () => {
     const h = await setup({ env: 'prod' });
     const res = await h.post(h.session.token, '/v1/unlocks', createBody);
     expect(res.statusCode).toBe(503);
@@ -461,43 +463,55 @@ describe('unlocks', () => {
     expect(h.store.unlocks).toHaveLength(0);
   });
 
-  const HOOK = 'https://discord.example/hook';
+  const HOOK = 'https://bot.example/alert';
+  const ALERT_SECRET = 'shared-test-secret';
+  const alerting = { alertUrl: HOOK, alertSecret: ALERT_SECRET };
   const unlockEvents = (h: { store: { events: { payload: unknown }[] } }) =>
     h.store.events.filter(e => JSON.stringify(e.payload).includes('unlock.created'));
 
-  it('posts a Discord alert, then records and audits the unlock', async () => {
+  it('sends a signed alert, then records and audits the unlock', async () => {
     const fake = makeFakeFetch({ [HOOK]: () => jsonResponse({}, 200) });
-    const h = await setup({ env: 'prod', discordWebhookUrl: HOOK, fetchFn: fake.fetchFn });
+    const h = await setup({ env: 'prod', ...alerting, fetchFn: fake.fetchFn });
     const res = await h.post(h.session.token, '/v1/unlocks', createBody);
     expect(res.statusCode).toBe(201);
     expect(res.json().unlock).toMatchObject({ subjectType: 'user', ticket: 'ADS-123' });
-    const alert = JSON.parse(fake.calls[0].body ?? '{}') as { content: string };
-    expect(alert.content).toContain('ADS-123');
-    expect(alert.content).toContain('prod');
+    const alert = JSON.parse(fake.calls[0].body ?? '{}') as {
+      project: string;
+      title: string;
+      details: string;
+    };
+    expect(alert.project).toBe('ads');
+    expect(alert.title).toContain('prod');
+    expect(alert.details).toContain('ADS-123');
+    expect(fake.calls[0].headers['x-alert-signature-256']).toBe(
+      `sha256=${createHmac('sha256', ALERT_SECRET)
+        .update(fake.calls[0].body ?? '')
+        .digest('hex')}`
+    );
     expect(h.store.unlocks).toHaveLength(1);
     expect(unlockEvents(h)).toHaveLength(1);
   });
 
-  it('grants no unlock when the Discord alert is rejected', async () => {
+  it('grants no unlock when the alert is rejected', async () => {
     const fake = makeFakeFetch({ [HOOK]: () => jsonResponse({}, 500) });
-    const h = await setup({ env: 'prod', discordWebhookUrl: HOOK, fetchFn: fake.fetchFn });
+    const h = await setup({ env: 'prod', ...alerting, fetchFn: fake.fetchFn });
     const res = await h.post(h.session.token, '/v1/unlocks', createBody);
     expect(res.statusCode).toBe(503);
     expect(errorOf(res)).toMatchObject({
       code: 'UNLOCKS_DISABLED',
-      message: 'Could not alert #ops, so the unlock was not granted',
+      message: 'Could not send the break-glass alert, so the unlock was not granted',
     });
     expect(h.store.unlocks).toHaveLength(0);
     expect(unlockEvents(h)).toHaveLength(0);
   });
 
-  it('grants no unlock when the Discord alert cannot be sent', async () => {
+  it('grants no unlock when the alert cannot be sent', async () => {
     const fake = makeFakeFetch({
       [HOOK]: () => {
         throw new Error('ECONNREFUSED');
       },
     });
-    const h = await setup({ env: 'prod', discordWebhookUrl: HOOK, fetchFn: fake.fetchFn });
+    const h = await setup({ env: 'prod', ...alerting, fetchFn: fake.fetchFn });
     const res = await h.post(h.session.token, '/v1/unlocks', createBody);
     expect(res.statusCode).toBe(503);
     expect(errorOf(res).code).toBe('UNLOCKS_DISABLED');
@@ -505,7 +519,7 @@ describe('unlocks', () => {
     expect(unlockEvents(h)).toHaveLength(0);
   });
 
-  it('records the unlock in dev without a webhook and sends no alert', async () => {
+  it('records the unlock in dev without alerting and sends no alert', async () => {
     const h = await setup();
     const res = await h.post(h.session.token, '/v1/unlocks', createBody);
     expect(res.statusCode).toBe(201);
