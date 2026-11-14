@@ -76,19 +76,18 @@ These files are now **loaded** by Prometheus (`rule_files:` in
 (`observability/alertmanager/alertmanager.yml`) in both the dev `observability`
 profile and the prod/staging overlay (`docker-compose.observability.yml`).
 
-Routing keys off the `severity` label: `critical` → the `critical-pager`
-receiver, `warning` → `warning-chat`, `none` (the always-firing `Watchdog`
-alert, `watchdog.yml`) → `deadman`. `critical-pager` and `warning-chat` each
-deliver to their **own** Discord webhook (split — ADS-1307b); `deadman` posts
-to an external dead-man's-switch service (Healthchecks.io/Cronitor-style).
-Every URL is a file secret, read via `*_file` so it stays out of
-`docker inspect`:
+Routing keys off the `severity` label: `critical` and `warning` both go to
+the `ads-bot` receiver (a webhook to the ideasquared-bot Worker, which posts to
+Discord and reads severity from the alert's labels), `none` (the always-firing
+`Watchdog` alert, `watchdog.yml`) → `deadman`, which posts to an external
+dead-man's-switch service (Healthchecks.io/Cronitor-style). Secrets are files
+so they stay out of `docker inspect`:
 
-- `observability/alertmanager/secrets/discord_webhook_url_critical`
-- `observability/alertmanager/secrets/discord_webhook_url_warning`
+- `ALERT_SECRET` (bearer token for `ads-bot`): the `alert_secret` Docker secret,
+  `secrets/alert_secret` on the host, mounted at `/run/secrets/alert_secret`
 - `observability/alertmanager/secrets/deadman_webhook_url`
 
-Alertmanager will not start until all three exist. See
+Alertmanager will not start until the deadman file exists. See
 `docs/runbooks/observability-enable.md` §4 for how to provision them and
 `docs/runbooks/README.md`'s severity section / `docs/slo.md` for the
 severity → routing → escalation convention.

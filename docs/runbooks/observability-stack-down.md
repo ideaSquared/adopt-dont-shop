@@ -59,8 +59,8 @@ DC="docker compose -f docker-compose.prod.yml -f docker-compose.observability.ym
   ```bash
   $DC logs --tail=100 --no-color <prometheus|grafana|alertmanager|loki|tempo>
   ```
-  Alertmanager specifically fails to start if its Discord webhook secret file is
-  missing (`/etc/alertmanager/secrets/discord_webhook_url`) — see
+  Alertmanager specifically fails to start if its dead-man's-switch secret file is
+  missing (`/etc/alertmanager/secrets/deadman_webhook_url`) — see
   [`observability-enable.md`](./observability-enable.md) step 4.
 - **All five absent** → the overlay isn't in the running compose. Confirm
   `OBSERVABILITY_ENABLED=true` in `/opt/ads/production/.env` and that the deploy
@@ -81,11 +81,11 @@ DC="docker compose -f docker-compose.prod.yml -f docker-compose.observability.ym
 
    Expected: each returns to `Up`. For a single crashed one, `$DC restart <name>`.
 
-2. **Alertmanager won't start** → ensure the webhook secret file exists, then
+2. **Alertmanager won't start** → ensure the dead-man's-switch secret file exists, then
    restart (full procedure in [`observability-enable.md`](./observability-enable.md)):
 
    ```bash
-   ls -l observability/alertmanager/secrets/discord_webhook_url
+   ls -l observability/alertmanager/secrets/deadman_webhook_url
    $DC up -d alertmanager
    ```
 
@@ -98,7 +98,7 @@ DC="docker compose -f docker-compose.prod.yml -f docker-compose.observability.ym
 - `$DC ps` shows all five overlay services `Up`.
 - Prometheus → Status → Targets shows the `service-*` jobs `UP`.
 - Grafana **service-overview** repopulates.
-- Alertmanager → Status is reachable; a test alert reaches the Discord channel
+- Alertmanager → Status is reachable; a test alert reaches the Discord channel (via ideasquared-bot)
   (`amtool` from [`observability-enable.md`](./observability-enable.md)).
 
 ## Rollback

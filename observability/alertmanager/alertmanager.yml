@@ -1,18 +1,23 @@
 # Alertmanager routing for the deployed observability stack (ADS-1041 / ADS-1052 / ADS-1307).
 #
 # Routes the SLO alert rules (infra/prometheus/rules/, loaded by Prometheus) by
-# their `severity` label. `critical-pager` and `warning-chat` each deliver to
-# their own Discord incoming webhook (split — ADS-1307b — so a critical
-# escalation channel can differ from routine chat); `deadman` pings an
-# external dead-man's-switch service. There is no Slack/email/PagerDuty path.
+# their `severity` label. `critical` and `warning` both deliver to the
+# ideasquared-bot Worker (`ads-bot`), which posts them to Discord: firing alerts
+# with an @everyone ping, resolved notifications without one. The bot reads the
+# severity from each alert's `severity` label, so one receiver serves both
+# routes; the routes below differ only in timing. `deadman` pings an external
+# dead-man's-switch service. There is no Slack/email/PagerDuty path, and
+# Alertmanager no longer talks to Discord directly.
 #
-# Every webhook URL is a file secret, never inline in this file:
-#   observability/alertmanager/secrets/discord_webhook_url_critical
-#   observability/alertmanager/secrets/discord_webhook_url_warning
-#   observability/alertmanager/secrets/deadman_webhook_url
-# (gitignored, mounted read-only at /etc/alertmanager/secrets/). Alertmanager
-# reads them via *_file so they never land in `docker inspect`, and it will
-# NOT start until all three files exist. Reload after editing with
+# Secrets are files, never inline in this file:
+#   - ALERT_SECRET, the bearer token for the bot, is the `alert_secret` Docker
+#     secret (secrets/alert_secret on the host, written by
+#     scripts/deploy-secrets.sh and shared with service-ops). It is mounted at
+#     /run/secrets/alert_secret and read via `credentials_file`.
+#   - observability/alertmanager/secrets/deadman_webhook_url (gitignored,
+#     mounted read-only at /etc/alertmanager/secrets/), read via `url_file`.
+# Neither lands in `docker inspect`. The deadman file must exist before the
+# container starts. Reload after editing with
 # `docker compose kill -s HUP alertmanager` (or restart). See
 # docs/runbooks/observability-enable.md §4 and docs/runbooks/README.md's
 # severity section.
@@ -27,12 +32,12 @@ route:
   group_interval: 5m
   repeat_interval: 4h
   # Default sink — inert. Every alert also matches a child route below.
-  receiver: 'warning-chat'
+  receiver: 'ads-bot'
   routes:
     # The Watchdog alert (infra/prometheus/rules/watchdog.yml) always fires
     # with severity="none" — route it to the dead-man's-switch receiver
-    # only, never to Discord. `continue: false` (the default) so it doesn't
-    # also fall through to warning-chat.
+    # only, never to the bot. `continue: false` (the default) so it doesn't
+    # also fall through to ads-bot.
     - matchers:
         - severity = "none"
       receiver: 'deadman'
@@ -45,13 +50,13 @@ route:
       repeat_interval: 5m
     - matchers:
         - severity = "critical"
-      receiver: 'critical-pager'
+      receiver: 'ads-bot'
       # Page fast and re-page more often for criticals.
       group_wait: 10s
       repeat_interval: 1h
     - matchers:
         - severity = "warning"
-      receiver: 'warning-chat'
+      receiver: 'ads-bot'
 
 # Suppress a warning for the same alertname/job once its critical is already
 # firing (e.g. don't send "high latency" warning while "service down" pages).
@@ -61,28 +66,17 @@ inhibit_rules:
     equal: ['alertname', 'job']
 
 receivers:
-  # ---- CRITICAL → its own Discord channel/webhook ------------------------
-  - name: 'critical-pager'
-    discord_configs:
-      - webhook_url_file: /etc/alertmanager/secrets/discord_webhook_url_critical
+  # ---- CRITICAL + WARNING -> ideasquared-bot -> Discord --------------------
+  # Body is Alertmanager's standard webhook JSON (version 4), unchanged. The
+  # bot @everyone-pings on firing and stays quiet on resolved.
+  - name: 'ads-bot'
+    webhook_configs:
+      - url: https://ideasquared-bot.idea-squared.workers.dev/alert/alertmanager/ads
         send_resolved: true
-        title: '[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
-        message: >-
-          {{ range .Alerts }}{{ .Annotations.summary }}
-          {{ .Annotations.description }}
-          {{ if .Annotations.runbook }}Runbook: {{ .Annotations.runbook }}{{ end }}
-          {{ end }}
-
-  # ---- WARNING → its own Discord channel/webhook -------------------------
-  - name: 'warning-chat'
-    discord_configs:
-      - webhook_url_file: /etc/alertmanager/secrets/discord_webhook_url_warning
-        send_resolved: true
-        title: '[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
-        message: >-
-          {{ range .Alerts }}{{ .Annotations.summary }}
-          {{ .Annotations.description }}
-          {{ end }}
+        http_config:
+          authorization:
+            type: Bearer
+            credentials_file: /run/secrets/alert_secret
 
   # ---- Dead-man's switch (ADS-1307a) --------------------------------------
   # A generic webhook, not Discord: point it at a Healthchecks.io or

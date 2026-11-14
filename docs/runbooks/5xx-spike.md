@@ -16,7 +16,7 @@ See [`README.md`](./README.md#preconditions): prod SSH, `cd /opt/ads/production`
 
 ## Symptoms
 
-- Alertmanager (`warning-chat`): `HighErrorRate — service-<name> HTTP 5xx rate >1% (5m)`.
+- Alertmanager (`ads-bot`): `HighErrorRate — service-<name> HTTP 5xx rate >1% (5m)`.
 - Grafana "Error rate by route" panel shows one or more routes climbing.
 - Users / support reporting "internal server error".
 - `/health/simple` may still return 200 (LB probe is liveness-only).

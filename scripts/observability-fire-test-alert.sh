@@ -56,9 +56,9 @@ echo
 echo "Posted. Now confirm the pipeline end to end:"
 echo "  1. ${ALERTMANAGER_URL} (or its SSH tunnel) -> Alerts -> ${ALERTNAME} should show as firing within a few seconds."
 echo "  2. Within ~$([ "$SEVERITY" = critical ] && echo 10 || echo 30) seconds (this severity's group_wait), the"
-echo "     '$([ "$SEVERITY" = critical ] && echo critical-pager || echo warning-chat)' Discord channel should receive a message"
-echo "     titled '[FIRING:1] ${ALERTNAME}'."
+echo "     'ads-bot' (ideasquared-bot) should post a $SEVERITY alert for ${ALERTNAME} to Discord."
 echo "  3. It self-resolves in ~5 minutes (endsAt above); a '[RESOLVED]' message confirms send_resolved is working too."
 echo
-echo "No message arrived? Check the receiver's webhook secret file exists and Alertmanager reloaded it — see"
+echo "No message arrived? Check secrets/alert_secret is non-empty and mounted into Alertmanager, and that the bot's"
+echo "/alert/alertmanager/ads endpoint is deployed — see"
 echo "docs/runbooks/observability-enable.md §4."
