@@ -15,6 +15,8 @@ import {
   registerDeviceTokenHandler,
   unregisterDeviceTokenHandler,
 } from './device-token-handlers.js';
+import { createLogger, memorySink } from '@adopt-dont-shop/observability';
+import { LOG_FIELDS } from '../logger.js';
 
 // RegisterDeviceToken runs registerDeviceToken inside withTransaction; the mock
 // runs the callback against a client whose query is the scripted pool mock.
@@ -91,16 +93,18 @@ const makeMocks = () => {
     }),
     connect: vi.fn(),
   };
-  const logger = { warn: vi.fn(), info: vi.fn(), error: vi.fn() };
+  const sink = memorySink();
+  const logger = createLogger({ serviceName: 'test', fields: LOG_FIELDS, sink });
   return {
     pool: pool as unknown as Pool,
     poolMock: pool,
     poolScript,
     logger,
+    events: sink.events,
     deps: {
       pool: pool as unknown as Pool,
       nats: {} as unknown as NatsConnection,
-      logger: logger as unknown as import('winston').Logger,
+      logger,
     },
   };
 };
@@ -222,9 +226,12 @@ describe('registerDeviceTokenHandler', () => {
     // prior row was unregistered rather than left as a second active mapping.
     expect(mocks.poolMock.query).toHaveBeenCalledTimes(4);
     // The transfer is audited at warn with both user ids (not the raw token).
-    expect(mocks.logger.warn).toHaveBeenCalledWith(
-      'device token reassigned to a different user',
-      expect.objectContaining({ previousUserId: 'usr-other', newUserId: 'usr-adopter' })
+    expect(mocks.events).toContainEqual(
+      expect.objectContaining({
+        level: 'warn',
+        message: 'device token reassigned to a different user',
+        meta: expect.objectContaining({ previousUserId: 'usr-other', newUserId: 'usr-adopter' }),
+      })
     );
   });
 
@@ -235,7 +242,7 @@ describe('registerDeviceTokenHandler', () => {
     const res = await registerDeviceTokenHandler(mocks.deps, ADOPTER_PRINCIPAL, BASE_REGISTER);
 
     expect(res.alreadyRegistered).toBe(true);
-    expect(mocks.logger.warn).not.toHaveBeenCalled();
+    expect(mocks.events).toHaveLength(0);
   });
 });
 

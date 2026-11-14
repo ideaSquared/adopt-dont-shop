@@ -2,17 +2,13 @@ import { Metadata, type ServerUnaryCall, type sendUnaryData } from '@grpc/grpc-j
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
 import { describe, expect, it, vi } from 'vitest';
-import type { Logger } from 'winston';
+
+import { BASE_LOG_FIELDS, createLogger, memorySink } from '@adopt-dont-shop/observability';
 
 import { adapt, adaptUnauth, HandlerError, type HandlerDeps } from './adapter.js';
 import { DRY_RUN_APPLIED_HEADER, DRY_RUN_HEADER } from './index.js';
 
-const logger = {
-  error: vi.fn(),
-  info: vi.fn(),
-  warn: vi.fn(),
-  debug: vi.fn(),
-} as unknown as Logger;
+const logger = createLogger({ serviceName: 'test', fields: BASE_LOG_FIELDS, sink: memorySink() });
 
 const HEADERS = {
   'x-user-id': 'usr-1',

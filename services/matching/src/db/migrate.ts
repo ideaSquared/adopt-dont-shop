@@ -10,14 +10,14 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { runMigrations } from '@adopt-dont-shop/db';
-import { createLogger } from '@adopt-dont-shop/observability';
+import { BASE_LOG_FIELDS, createLogger, flushLogs } from '@adopt-dont-shop/observability';
 
 import { loadConfig } from '../config.js';
 
 const MIGRATIONS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'migrations');
 
 const main = async (): Promise<void> => {
-  const logger = createLogger({ serviceName: 'service.matching.migrate' });
+  const logger = createLogger({ serviceName: 'service.matching.migrate', fields: BASE_LOG_FIELDS });
   try {
     const config = loadConfig();
     logger.info('running migrations', {
@@ -31,11 +31,8 @@ const main = async (): Promise<void> => {
     });
     logger.info('migrations complete');
   } catch (err) {
-    logger.error('migrations failed', {
-      message: (err as Error)?.message,
-      stack: (err as Error)?.stack,
-    });
-    console.error(err);
+    logger.error('migrations failed', {}, err);
+    await flushLogs();
     process.exit(1);
   }
 };

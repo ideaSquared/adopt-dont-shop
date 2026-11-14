@@ -5,7 +5,7 @@ import { Server } from '@grpc/grpc-js';
 
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
-import type { Logger } from 'winston';
+import type { BaseLogger } from '@adopt-dont-shop/observability';
 
 import {
   startGrpcServer as startGrpcServerShared,
@@ -63,7 +63,7 @@ export type CreateGrpcServerOptions = {
   config: RescueConfig;
   pool: Pool;
   nats: NatsConnection;
-  logger: Logger;
+  logger: BaseLogger;
   // Injectable for tests; defaults to a real client at config.petsGrpcUrl.
   petsClient?: PetsClient;
   // Injectable for tests; defaults to postcodes.io. Geocodes rescue
@@ -122,44 +122,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     cancelRescueInvitation: adapt(cancelRescueInvitation, { deps, logger }),
   });
 
-  logger.info('gRPC RescueService registered', {
-    methods: [
-      'create',
-      'registerRescue',
-      'get',
-      'list',
-      'getRescueLocations',
-      'update',
-      'verify',
-      'delete',
-      'inviteStaff',
-      'getMyStaffMembership',
-      'checkSelfErasure',
-      'listStaffMembers',
-      'createStaffMember',
-      'updateStaffMember',
-      'removeStaffMember',
-      'createFosterPlacement',
-      'listFosterPlacements',
-      'getFosterPlacement',
-      'endFosterPlacement',
-      'getInvitationByToken',
-      'acceptInvitation',
-      'listApplicationQuestions',
-      'createApplicationQuestion',
-      'updateApplicationQuestion',
-      'deleteApplicationQuestion',
-      'reorderApplicationQuestions',
-      'updateRescuePlan',
-      'getRescueStatistics',
-      'countRescues',
-      'getRescueNames',
-      'sendRescueEmail',
-      'listRescueInvitations',
-      'cancelRescueInvitation',
-    ],
-    grpcPort: config.grpcPort,
-  });
+  logger.info('gRPC RescueService registered', { count: 33, grpcPort: config.grpcPort });
 
   return server;
 };
@@ -179,12 +142,12 @@ export const startGrpcServer = async (
       new Promise<void>(resolve => {
         server.tryShutdown(err => {
           if (err) {
-            logger.error('gRPC server shutdown error', { err });
+            logger.error('gRPC server shutdown error', {}, err);
           }
           try {
             petsClient.close();
           } catch (closeErr) {
-            logger.error('pets client close error', { err: closeErr });
+            logger.error('pets client close error', {}, closeErr);
           }
           resolve();
         });

@@ -21,11 +21,11 @@
 
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
-import type { Logger } from 'winston';
 
 import { GDPR_ERASURE_REQUESTED, type GdprErasureRequestedPayload } from '@adopt-dont-shop/events';
 
 import { EXPECTED_SERVICES } from './gdpr-subscribers.js';
+import { type ServiceLogger } from '../logger.js';
 
 export { GDPR_ERASURE_REQUESTED };
 
@@ -40,7 +40,7 @@ export const GDPR_SAGA_MAX_RETRIES = 3;
 export type GdprSweepOptions = {
   pool: Pool;
   nats: NatsConnection;
-  logger: Logger;
+  logger: ServiceLogger;
   // Milliseconds since requested_at before a still-in-flight saga is
   // considered timed out. Defaults to GDPR_SAGA_DEADLINE_MS (30 min).
   deadlineMs?: number;
@@ -116,8 +116,8 @@ export const runGdprSweep = async (opts: GdprSweepOptions): Promise<void> => {
     logger.error('gdpr saga timed out — services never acked', {
       correlationId: row.correlation_id,
       userId: row.user_id,
-      requestedAt: row.requested_at,
-      missingServices,
+      requestedAt: new Date(row.requested_at).toISOString(),
+      missingServices: missingServices.join(','),
     });
   }
 
@@ -215,14 +215,14 @@ export const runGdprSweep = async (opts: GdprSweepOptions): Promise<void> => {
       logger.info('gdpr saga retry published', {
         correlationId: row.correlation_id,
         retryCount: nextRetryCount,
-        msgID,
+        msgId: msgID,
       });
     } catch (err) {
-      logger.error('gdpr saga retry publish failed', {
-        correlationId: row.correlation_id,
-        retryCount: nextRetryCount,
-        err: err instanceof Error ? err.message : String(err),
-      });
+      logger.error(
+        'gdpr saga retry publish failed',
+        { correlationId: row.correlation_id, retryCount: nextRetryCount },
+        err
+      );
 
       // The claim above already cleared failed_at and bumped retry_count.
       // If publish never went out, nothing will ever re-stamp failed_at, so

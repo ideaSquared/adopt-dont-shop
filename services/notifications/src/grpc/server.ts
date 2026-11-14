@@ -5,7 +5,6 @@ import { Server } from '@grpc/grpc-js';
 
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
-import type { Logger } from 'winston';
 
 import {
   startGrpcServer as startGrpcServerShared,
@@ -49,12 +48,13 @@ import {
   resetNotificationPreferences,
   updateNotificationPreferences,
 } from './notification-prefs-handlers.js';
+import { type ServiceLogger } from '../logger.js';
 
 export type CreateGrpcServerOptions = {
   config: NotificationsConfig;
   pool: Pool;
   nats: NatsConnection;
-  logger: Logger;
+  logger: ServiceLogger;
   // Optional cross-service client. Broadcast reads listUserIdsByCohort;
   // SendEmail reads adminGetUser to bind user_id → to_email (ADS-1008).
   // Wiring it in production happens from index.ts. Smoke tests + unit tests
@@ -115,36 +115,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     broadcast: adapt(broadcast, { deps, logger }),
   });
 
-  logger.info('gRPC NotificationService registered', {
-    methods: [
-      'create',
-      'list',
-      'dismiss',
-      'getNotification',
-      'getUnreadCount',
-      'markAllRead',
-      'deleteNotification',
-      'bulkCreateNotifications',
-      'getNotificationPreferences',
-      'updateNotificationPreferences',
-      'resetNotificationPreferences',
-      'cleanupExpiredNotifications',
-      'sendEmail',
-      'getEmailPreferences',
-      'updateEmailPreferences',
-      'registerDeviceToken',
-      'unregisterDeviceToken',
-      'listDeviceTokens',
-      'listEmailTemplates',
-      'getEmailTemplate',
-      'createEmailTemplate',
-      'updateEmailTemplate',
-      'deleteEmailTemplate',
-      'previewEmailTemplate',
-      'broadcast',
-    ],
-    grpcPort: config.grpcPort,
-  });
+  logger.info('gRPC NotificationService registered', { count: 25, grpcPort: config.grpcPort });
 
   return server;
 };

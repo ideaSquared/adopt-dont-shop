@@ -1,21 +1,15 @@
 import { Metadata, status, type ServerUnaryCall, type sendUnaryData } from '@grpc/grpc-js';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { Logger } from 'winston';
+import { BASE_LOG_FIELDS, createLogger, memorySink } from '@adopt-dont-shop/observability';
 
 import { adapt, adaptUnauth } from './adapter.js';
 import { HandlerError, type HandlerDeps } from './handlers.js';
 
 function makeLogger() {
-  const calls: Array<{ level: string; msg: string; meta?: unknown }> = [];
-  const logger = {
-    info: (msg: string, meta?: unknown) => calls.push({ level: 'info', msg, meta }),
-    error: (msg: string, meta?: unknown) => calls.push({ level: 'error', msg, meta }),
-    warn: (msg: string, meta?: unknown) => calls.push({ level: 'warn', msg, meta }),
-    debug: (msg: string, meta?: unknown) => calls.push({ level: 'debug', msg, meta }),
-    silly: (msg: string, meta?: unknown) => calls.push({ level: 'silly', msg, meta }),
-  } as unknown as Logger;
-  return { logger, calls };
+  const sink = memorySink();
+  const logger = createLogger({ serviceName: 'test', fields: BASE_LOG_FIELDS, sink });
+  return { logger, calls: sink.events };
 }
 
 function buildMetadata(headers: Record<string, string>): Metadata {
@@ -124,7 +118,7 @@ describe('adapt — error code mapping', () => {
     expect(err).toMatchObject({ code: status.INTERNAL, details: 'internal error' });
     expect((err as Error).message).toBe('internal error');
     const errorCall = calls.find(c => c.level === 'error');
-    expect(errorCall?.msg).toContain('unhandled');
+    expect(errorCall?.message).toContain('unhandled');
   });
 });
 

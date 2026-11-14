@@ -10,16 +10,14 @@ import type { FastifyInstance } from 'fastify';
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
 
-import type { createLogger } from '@adopt-dont-shop/observability';
-
-type Logger = ReturnType<typeof createLogger>;
+import { flushLogs, type BaseLogger } from '@adopt-dont-shop/observability';
 
 export type ShutdownDeps = {
   httpServer: Pick<FastifyInstance, 'close'>;
   grpc?: { shutdown: () => Promise<void> };
   nats?: Pick<NatsConnection, 'drain'>;
   pool?: Pick<Pool, 'end'>;
-  logger: Logger;
+  logger: BaseLogger;
   /** Overall deadline in ms. Default 25 000 (under the typical 30 s
    *  orchestrator grace period). */
   timeoutMs?: number;
@@ -28,7 +26,7 @@ export type ShutdownDeps = {
 const DEFAULT_TIMEOUT_MS = 25_000;
 
 export type ShutdownDeadlineOptions = {
-  logger: Logger;
+  logger: BaseLogger;
   /** Overall deadline in ms. Default 25 000. */
   timeoutMs?: number;
   /** Names the step in flight for the deadline log line (evaluated when the
@@ -61,9 +59,8 @@ export const withShutdownDeadline = async (
     await Promise.race([sequence(), deadline]);
   } catch (err) {
     const step = opts.currentStep?.();
-    opts.logger.error(`shutdown deadline exceeded${step ? ` — step in flight: ${step}` : ''}`, {
-      err,
-    });
+    opts.logger.error('shutdown deadline exceeded', { step: step ?? null }, err);
+    await flushLogs();
     process.exit(1);
   } finally {
     if (timer) {
@@ -85,28 +82,28 @@ export const runServiceShutdown = async (deps: ShutdownDeps): Promise<void> => {
     try {
       await httpServer.close();
     } catch (err) {
-      logger.error('http close error', { err });
+      logger.error('http close error', {}, err);
     }
 
     currentStep = 'grpc';
     try {
       await grpc?.shutdown();
     } catch (err) {
-      logger.error('grpc shutdown error', { err });
+      logger.error('grpc shutdown error', {}, err);
     }
 
     currentStep = 'nats';
     try {
       await nats?.drain();
     } catch (err) {
-      logger.error('nats drain error', { err });
+      logger.error('nats drain error', {}, err);
     }
 
     currentStep = 'pool';
     try {
       await pool?.end();
     } catch (err) {
-      logger.error('pool end error', { err });
+      logger.error('pool end error', {}, err);
     }
   };
 
@@ -115,4 +112,5 @@ export const runServiceShutdown = async (deps: ShutdownDeps): Promise<void> => {
     timeoutMs: deps.timeoutMs ?? DEFAULT_TIMEOUT_MS,
     currentStep: () => currentStep,
   });
+  await flushLogs();
 };

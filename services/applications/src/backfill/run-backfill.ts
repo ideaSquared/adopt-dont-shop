@@ -25,6 +25,7 @@ import { createLogger } from '@adopt-dont-shop/observability';
 import type { PoolClient } from 'pg';
 
 import { loadConfig } from '../config.js';
+import { LOG_FIELDS, type ServiceLogger } from '../logger.js';
 
 import { backfillApplication } from './backfill-event-store.js';
 import { rowToInput, type MonolithApplicationRow } from './read-monolith-row.js';
@@ -87,17 +88,17 @@ type RunSummary = {
 async function processRow(
   client: PoolClient,
   row: MonolithApplicationRow,
-  logger: ReturnType<typeof createLogger>
+  logger: ServiceLogger
 ): Promise<number | null> {
   let input;
   try {
     input = rowToInput(row);
   } catch (err) {
-    logger.warn('skipping application with unmappable status', {
-      applicationId: row.application_id,
-      status: row.status,
-      err,
-    });
+    logger.warn(
+      'skipping application with unmappable status',
+      { applicationId: row.application_id, status: row.status },
+      err
+    );
     return null;
   }
 
@@ -114,7 +115,7 @@ async function processRow(
 
 export async function runBackfill(
   pool: ReturnType<typeof createDbClient>,
-  logger: ReturnType<typeof createLogger>
+  logger: ServiceLogger
 ): Promise<RunSummary> {
   const { rows } = await pool.query<MonolithApplicationRow>(SELECT_MONOLITH_APPLICATIONS);
   logger.info('backfill: monolith applications read', { count: rows.length });
@@ -140,7 +141,10 @@ export async function runBackfill(
 }
 
 const main = async (): Promise<void> => {
-  const logger = createLogger({ serviceName: 'service.applications.backfill' });
+  const logger = createLogger({
+    serviceName: 'service.applications.backfill',
+    fields: LOG_FIELDS,
+  });
   let pool: ReturnType<typeof createDbClient> | undefined;
   // The backfill does NOT publish NATS events — downstream consumers
   // (notifications) must not re-fire for historical applications. We
@@ -152,9 +156,9 @@ const main = async (): Promise<void> => {
 
     logger.info('backfill: starting', { schema: config.schema });
     const summary = await runBackfill(pool, logger);
-    logger.info('backfill: complete', summary);
+    logger.info('backfill: complete', { ...summary });
   } catch (err) {
-    logger.error('backfill: failed', { err });
+    logger.error('backfill: failed', {}, err);
     process.exitCode = 1;
   } finally {
     try {

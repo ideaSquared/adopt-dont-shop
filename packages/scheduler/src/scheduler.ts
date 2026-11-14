@@ -22,7 +22,7 @@
 // the nextRunAt seeding comment below) that fired its jobs on every replica
 // and re-fired on every restart.
 
-import type { Logger } from 'winston';
+import type { BaseLogger } from '@adopt-dont-shop/observability';
 
 export type ScheduledJob = {
   name: string;
@@ -54,7 +54,7 @@ export type ScheduledJob = {
 };
 
 export type SchedulerOptions = {
-  logger: Logger;
+  logger: BaseLogger;
   // Tick frequency in ms. Default 60s — short enough that jobs run
   // close to their nominal cadence, long enough that idle CPU is
   // negligible. Tests pass a smaller value.
@@ -161,8 +161,8 @@ export const startScheduler = (jobs: ScheduledJob[], opts: SchedulerOptions): Ru
     try {
       const won = await opts.claimRun(job.name, scheduledFor);
       if (!won) {
-        opts.logger.info('scheduler.job_claimed_elsewhere', {
-          name: job.name,
+        opts.logger.info('scheduler job claimed elsewhere', {
+          job: job.name,
           scheduledFor: scheduledFor.toISOString(),
         });
       }
@@ -170,10 +170,7 @@ export const startScheduler = (jobs: ScheduledJob[], opts: SchedulerOptions): Ru
     } catch (err) {
       // A claim error means we can't prove we're the sole runner — skip
       // rather than risk a duplicate run; the next interval retries.
-      opts.logger.error('scheduler.claim_error', {
-        name: job.name,
-        err: err instanceof Error ? err.message : String(err),
-      });
+      opts.logger.error('scheduler claim error', { job: job.name }, err);
       return false;
     }
   };
@@ -205,12 +202,9 @@ export const startScheduler = (jobs: ScheduledJob[], opts: SchedulerOptions): Ru
       fired.push(job.name);
       try {
         await job.run();
-        opts.logger.info('scheduler.job_ok', { name: job.name });
+        opts.logger.info('scheduler job ok', { job: job.name });
       } catch (err) {
-        opts.logger.error('scheduler.job_failed', {
-          name: job.name,
-          err: err instanceof Error ? err.message : String(err),
-        });
+        opts.logger.error('scheduler job failed', { job: job.name }, err);
         opts.onJobFailure?.(job.name);
       }
     }
@@ -224,7 +218,7 @@ export const startScheduler = (jobs: ScheduledJob[], opts: SchedulerOptions): Ru
     timer = setTimeout(() => {
       inflight = tick()
         .catch(err => {
-          opts.logger.error('scheduler.tick_error', { err });
+          opts.logger.error('scheduler tick error', {}, err);
           return [] as string[];
         })
         .then(() => undefined)
@@ -235,10 +229,7 @@ export const startScheduler = (jobs: ScheduledJob[], opts: SchedulerOptions): Ru
   };
 
   schedule();
-  opts.logger.info('scheduler started', {
-    jobs: jobs.map(j => ({ name: j.name, intervalMs: j.intervalMs })),
-    tickIntervalMs,
-  });
+  opts.logger.info('scheduler started', { jobCount: jobs.length, intervalMs: tickIntervalMs });
 
   return {
     tick,

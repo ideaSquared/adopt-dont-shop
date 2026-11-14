@@ -1,7 +1,7 @@
 import type { NatsConnection } from 'nats';
 
 import { createDbClient } from '@adopt-dont-shop/db';
-import { createLogger } from '@adopt-dont-shop/observability';
+import { BASE_LOG_FIELDS, createLogger } from '@adopt-dont-shop/observability';
 import {
   connectNats,
   installProcessErrorHandlers,
@@ -14,7 +14,7 @@ import { registerSubscribers } from './nats/subscribers.js';
 import { createServer } from './server.js';
 
 const main = async (): Promise<void> => {
-  const logger = createLogger({ serviceName: 'service.moderation' });
+  const logger = createLogger({ serviceName: 'service.moderation', fields: BASE_LOG_FIELDS });
 
   let nats: NatsConnection | undefined;
   let pool: ReturnType<typeof createDbClient> | undefined;
@@ -56,7 +56,7 @@ const main = async (): Promise<void> => {
       pool,
       service: 'moderation',
       erase: eraseModeration,
-      onError: (err, subject) => logger.error('gdpr erasure subscriber error', { subject, err }),
+      onError: (err, subject) => logger.error('gdpr erasure subscriber error', { subject }, err),
     });
 
     // Phase 8.4: content-scan + auto-report subscribers on
@@ -74,10 +74,10 @@ const main = async (): Promise<void> => {
     await httpServer.listen({ port: config.port, host: config.host });
 
     logger.info('service.moderation running', {
-      http: { port: config.port, host: config.host },
-      grpc: { port: grpc.port, host: config.host },
+      httpPort: config.port,
+      grpcPort: grpc.port,
+      host: config.host,
       schema: config.schema,
-      natsUrl: config.natsUrl,
       environment: config.environment,
     });
 
@@ -100,7 +100,7 @@ const main = async (): Promise<void> => {
     // instead of crashing the process undrained under `restart: always`.
     installProcessErrorHandlers({ logger, onFatal: teardown });
   } catch (err) {
-    logger.error('service.moderation failed to start', { err });
+    logger.error('service.moderation failed to start', {}, err);
     try {
       await grpc?.shutdown();
     } catch {

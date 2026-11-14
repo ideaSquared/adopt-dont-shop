@@ -26,9 +26,10 @@ import { registerPetUpdatesSubscriber } from './nats/pet-updates.js';
 const PET_SEARCH_FIELDS_BACKFILL_INTERVAL_MS = 60 * 60 * 1000;
 const PET_SEARCH_FIELDS_BACKFILL_BATCH_SIZE = 100;
 import { createServer } from './server.js';
+import { LOG_FIELDS } from './logger.js';
 
 const main = async (): Promise<void> => {
-  const logger = createLogger({ serviceName: 'service.applications' });
+  const logger = createLogger({ serviceName: 'service.applications', fields: LOG_FIELDS });
 
   let nats: NatsConnection | undefined;
   let pool: ReturnType<typeof createDbClient> | undefined;
@@ -73,20 +74,20 @@ const main = async (): Promise<void> => {
       pool,
       service: 'applications',
       erase: eraseApplications,
-      onError: (err, subject) => logger.error('gdpr erasure subscriber error', { subject, err }),
+      onError: (err, subject) => logger.error('gdpr erasure subscriber error', { subject }, err),
     });
     // Keeps the denormalised pet type / breed on applications current (migration 016).
     const petUpdates = registerPetUpdatesSubscriber({
       nats,
       pool,
-      onError: (err, subject) => logger.error('pets.updated subscriber error', { subject, err }),
+      onError: (err, subject) => logger.error('pets.updated subscriber error', { subject }, err),
     });
     // Keeps the denormalised applicant name / email current with the account (migration 016).
     const applicantUpdates = registerApplicantUpdatesSubscriber({
       nats,
       pool,
       onError: (err, subject) =>
-        logger.error('auth.userProfileChanged subscriber error', { subject, err }),
+        logger.error('auth.userProfileChanged subscriber error', { subject }, err),
     });
 
     // Application-drafts retention purge (ADS-1320) — see
@@ -138,10 +139,10 @@ const main = async (): Promise<void> => {
     await httpServer.listen({ port: config.port, host: config.host });
 
     logger.info('service.applications running', {
-      http: { port: config.port, host: config.host },
-      grpc: { port: grpc.port, host: config.host },
+      httpPort: config.port,
+      grpcPort: grpc.port,
+      host: config.host,
       schema: config.schema,
-      natsUrl: config.natsUrl,
       environment: config.environment,
     });
 
@@ -167,7 +168,7 @@ const main = async (): Promise<void> => {
     // instead of crashing the process undrained under `restart: always`.
     installProcessErrorHandlers({ logger, onFatal: teardown });
   } catch (err) {
-    logger.error('service.applications failed to start', { err });
+    logger.error('service.applications failed to start', {}, err);
     try {
       await grpc?.shutdown();
     } catch {

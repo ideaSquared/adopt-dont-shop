@@ -4,7 +4,6 @@ import type { AddressInfo } from 'node:net';
 import type { NatsConnection } from 'nats';
 import { io as ioClient, type Socket as ClientSocket } from 'socket.io-client';
 import type { Server as IOServer } from 'socket.io';
-import type { Logger } from 'winston';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getMetricsRegistry } from '@adopt-dont-shop/observability';
@@ -24,16 +23,9 @@ import {
   type AttachSocketServerOptions,
   type RedisAdapterClient,
 } from './socket-server.js';
+import { makeTestLogger } from '../../test/helpers/test-logger.js';
 
-function quietLogger(): Logger {
-  return {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    silly: vi.fn(),
-  } as unknown as Logger;
-}
+const quietLogger = () => makeTestLogger().logger;
 
 // Minimal config slice the socket server reads (cors + environment). Tests
 // that don't care about origin policy use this permissive dev default.

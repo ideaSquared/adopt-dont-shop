@@ -2,15 +2,8 @@ import cookie from '@fastify/cookie';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { makeTestLogger, quietLogger } from '../../test/helpers/test-logger.js';
 import { CSRF_COOKIE_NAME, registerCsrfProtection, verifyCsrfToken } from './csrf.js';
-
-const quietLogger = {
-  info: () => undefined,
-  error: () => undefined,
-  warn: () => undefined,
-  debug: () => undefined,
-  silly: () => undefined,
-} as unknown as Parameters<typeof registerCsrfProtection>[1]['logger'];
 
 async function makeApp(
   logger: Parameters<typeof registerCsrfProtection>[1]['logger'] = quietLogger
@@ -24,23 +17,6 @@ async function makeApp(
   app.patch('/api/v1/things', async () => ({ patched: true }));
   app.delete('/api/v1/things', async () => ({ deleted: true }));
   return app;
-}
-
-// Spy variant of quietLogger — same silent no-op behaviour, but warn calls
-// are recorded so tests can assert on the metadata that was logged.
-function makeSpyLogger(): {
-  logger: Parameters<typeof registerCsrfProtection>[1]['logger'];
-  warn: ReturnType<typeof vi.fn>;
-} {
-  const warn = vi.fn();
-  const logger = {
-    info: () => undefined,
-    error: () => undefined,
-    warn,
-    debug: () => undefined,
-    silly: () => undefined,
-  } as unknown as Parameters<typeof registerCsrfProtection>[1]['logger'];
-  return { logger, warn };
 }
 
 describe('CSRF protection — opportunistic double-submit enforcement (ADS-919 Phase 0)', () => {
@@ -358,7 +334,7 @@ describe('verifyCsrfToken', () => {
 
 describe('CSRF protection — log redaction (ADS-1295)', () => {
   it('does not log the raw query string when rejecting a CSRF failure', async () => {
-    const { logger, warn } = makeSpyLogger();
+    const { logger, events } = makeTestLogger();
     const app = await makeApp(logger);
     try {
       const res = await app.inject({
@@ -368,9 +344,9 @@ describe('CSRF protection — log redaction (ADS-1295)', () => {
       });
 
       expect(res.statusCode).toBe(403);
-      expect(warn).toHaveBeenCalledTimes(1);
-      const [, meta] = warn.mock.calls[0] as [string, Record<string, unknown>];
-      expect(meta.url).toBe('/api/v1/things');
+      expect(events.filter(e => e.level === 'warn')).toHaveLength(1);
+      const meta = events.find(e => e.level === 'warn')?.meta ?? {};
+      expect(meta.route).toBe('/api/v1/things');
       const serialized = JSON.stringify(meta);
       expect(serialized).not.toContain('victim@example.com');
       expect(serialized).not.toContain('super-secret-value');

@@ -1,5 +1,3 @@
-import type { Logger } from 'winston';
-
 import {
   UNLOCK_DEFAULT_TTL_MINUTES,
   type CreateUnlockRequest,
@@ -11,6 +9,7 @@ import type { AuthContext } from './auth.js';
 import { OpsError } from './errors.js';
 import { unlockCreatedEvent } from './events.js';
 import type { OpsStore, UnlockRecord } from './store.js';
+import { type ServiceLogger } from './logger.js';
 
 const MINUTE_MS = 60_000;
 
@@ -20,7 +19,7 @@ export type UnlocksDeps = {
   discordWebhookUrl: string | undefined;
   fetchFn: typeof fetch;
   now: () => Date;
-  logger: Logger;
+  logger: ServiceLogger;
   newId: () => string;
 };
 
@@ -116,7 +115,7 @@ export const createUnlocksService = (deps: UnlocksDeps) => {
       })
     );
     deps.logger.info('unlock created', {
-      operator: ctx.operator.login,
+      operatorId: ctx.operator.operatorId,
       subjectType: record.subjectType,
       ticket: record.ticket,
     });

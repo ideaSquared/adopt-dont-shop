@@ -20,11 +20,11 @@
 import { randomUUID } from 'node:crypto';
 
 import type { NatsConnection } from 'nats';
-import type { Logger } from 'winston';
 
 import { subscribe, type SubscriptionHandle } from '@adopt-dont-shop/events';
 
 import type { SocketRegistry } from './socket-registry.js';
+import { type ServiceLogger } from '../logger.js';
 
 // Unique per gateway process so replicas don't load-share the fan-out.
 const REPLICA_ID = randomUUID();
@@ -32,7 +32,7 @@ const REPLICA_ID = randomUUID();
 export type RegisterNotificationSubscribersOptions = {
   nats: NatsConnection;
   registry: SocketRegistry;
-  logger: Logger;
+  logger: ServiceLogger;
 };
 
 // Payload shapes mirror what service.notifications publishes (handlers.ts).
@@ -56,10 +56,7 @@ export const registerNotificationSubscribers = (
   const { nats, registry, logger } = opts;
 
   const onError = (err: unknown, ctx: { subject: string }): void => {
-    logger.error('ws subscriber failed', {
-      subject: ctx.subject,
-      err: (err as Error)?.message ?? String(err),
-    });
+    logger.error('ws subscriber failed', { subject: ctx.subject }, err);
   };
 
   const subs: SubscriptionHandle[] = [];
@@ -100,9 +97,7 @@ export const registerNotificationSubscribers = (
     )
   );
 
-  logger.info('gateway WS subscribers registered', {
-    subjects: ['notifications.created', 'notifications.dismissed'],
-  });
+  logger.info('gateway WS subscribers registered', { count: 2 });
 
   return subs;
 };

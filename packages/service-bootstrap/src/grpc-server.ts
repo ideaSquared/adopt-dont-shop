@@ -8,7 +8,7 @@
 import { promisify } from 'node:util';
 
 import { Server, ServerCredentials } from '@grpc/grpc-js';
-import type { Logger } from 'winston';
+import type { BaseLogger } from '@adopt-dont-shop/observability';
 
 import { getDefaultPrincipalSigningKey } from './principal-token.js';
 import { assertPrincipalVerificationConfig } from './principal.js';
@@ -27,7 +27,7 @@ export type RunningGrpcServer = {
 export const startGrpcServer = async (
   server: Server,
   config: GrpcServerConfig,
-  logger: Logger
+  logger: BaseLogger
 ): Promise<RunningGrpcServer> => {
   // Fail closed in production if signed-principal verification can't be
   // enforced (no PRINCIPAL_SIGNING_KEY) — otherwise the service would trust
@@ -56,7 +56,7 @@ export const startGrpcServer = async (
       new Promise<void>(resolve => {
         server.tryShutdown(err => {
           if (err) {
-            logger.error('gRPC server shutdown error', { err });
+            logger.error('gRPC server shutdown error', {}, err);
           }
           resolve();
         });

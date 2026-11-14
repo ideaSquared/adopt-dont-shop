@@ -5,7 +5,7 @@ import { Server } from '@grpc/grpc-js';
 
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
-import type { Logger } from 'winston';
+import type { BaseLogger } from '@adopt-dont-shop/observability';
 
 import {
   startGrpcServer as startGrpcServerShared,
@@ -49,7 +49,7 @@ export type CreateGrpcServerOptions = {
   config: ModerationConfig;
   pool: Pool;
   nats: NatsConnection;
-  logger: Logger;
+  logger: BaseLogger;
   authClient?: AuthClient;
 };
 
@@ -91,7 +91,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
   });
 
   logger.info('gRPC ModerationService registered', {
-    methodCount: 22,
+    count: 22,
     grpcPort: config.grpcPort,
   });
 
@@ -113,7 +113,7 @@ export const startGrpcServer = async (
       try {
         authClient.close();
       } catch (closeErr) {
-        logger.error('auth client close error', { err: closeErr });
+        logger.error('auth client close error', {}, closeErr);
       }
     },
   };

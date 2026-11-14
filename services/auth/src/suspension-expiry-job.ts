@@ -12,7 +12,7 @@ import {
   type RunningScheduler,
 } from '@adopt-dont-shop/scheduler';
 
-import type { Logger } from 'winston';
+import type { BaseLogger } from '@adopt-dont-shop/observability';
 
 import type { HandlerDeps } from './grpc/handlers.js';
 import { liftExpiredSuspensions } from './grpc/suspension-expiry.js';
@@ -22,14 +22,14 @@ const SUSPENSION_EXPIRY_INTERVAL_MS = 60_000;
 
 export type StartSuspensionExpirySchedulerOptions = {
   deps: HandlerDeps;
-  logger: Logger;
+  logger: BaseLogger;
 };
 
 // Stop the scheduler, but never let an in-flight sweep hold shutdown past the
 // time budget (the process has a fixed grace period for HTTP, gRPC and NATS).
 export const stopSchedulerWithin = async (
   scheduler: RunningScheduler,
-  opts: { timeoutMs: number; logger: Logger }
+  opts: { timeoutMs: number; logger: BaseLogger }
 ): Promise<void> => {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timedOut = new Promise<'timeout'>(resolve => {
@@ -43,7 +43,7 @@ export const stopSchedulerWithin = async (
       });
     }
   } catch (err) {
-    opts.logger.error('suspension expiry scheduler stop error', { err });
+    opts.logger.error('suspension expiry scheduler stop error', {}, err);
   } finally {
     clearTimeout(timer);
   }
@@ -61,7 +61,7 @@ export const startSuspensionExpiryScheduler = (
         run: async () => {
           const { liftedCount } = await liftExpiredSuspensions(opts.deps);
           // A count only: never the users, their emails or tokens.
-          opts.logger.info('suspension expiry sweep complete', { liftedCount });
+          opts.logger.info('suspension expiry sweep complete', { count: liftedCount });
         },
       },
     ],

@@ -36,6 +36,7 @@
     "type-check": "tsc --noEmit -p tsconfig.typecheck.json"
   },
   "dependencies": {
+    "@adopt-dont-shop/observability": "workspace:*",
     "@aws-sdk/client-s3": "^3.1073.0",
     "@aws-sdk/s3-request-presigner": "^3.1073.0",
     "fs-extra": "^11.3.5",

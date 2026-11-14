@@ -1,17 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { BASE_LOG_FIELDS, createLogger, memorySink } from '@adopt-dont-shop/observability';
+
 import { installProcessErrorHandlers } from './process-handlers.js';
 
 const makeLogger = () => {
-  const errorCalls: Array<[string, unknown]> = [];
-  const logger = {
-    info: () => undefined,
-    error: (msg: string, meta?: unknown) => errorCalls.push([msg, meta]),
-    warn: () => undefined,
-    debug: () => undefined,
-    silly: () => undefined,
-  } as unknown as ReturnType<typeof import('@adopt-dont-shop/observability').createLogger>;
-  return Object.assign(logger, { errorCalls });
+  const sink = memorySink();
+  const logger = createLogger({ serviceName: 'test', fields: BASE_LOG_FIELDS, sink });
+  return Object.assign(logger, { events: sink.events });
 };
 
 // Flush the microtask + immediate queue so the handler's async teardown IIFE
@@ -60,7 +56,9 @@ describe('installProcessErrorHandlers', () => {
 
     expect(onFatal).toHaveBeenCalledTimes(1);
     expect(exit).toHaveBeenCalledWith(1);
-    expect(logger.errorCalls.some(([msg]) => msg.includes('uncaughtException'))).toBe(true);
+    expect(
+      logger.events.some(e => e.level === 'error' && e.meta?.reason === 'uncaughtException')
+    ).toBe(true);
   });
 
   it('on unhandledRejection: logs the cause, drains, then exits non-zero', async () => {
@@ -75,7 +73,9 @@ describe('installProcessErrorHandlers', () => {
 
     expect(onFatal).toHaveBeenCalledTimes(1);
     expect(exit).toHaveBeenCalledWith(1);
-    expect(logger.errorCalls.some(([msg]) => msg.includes('unhandledRejection'))).toBe(true);
+    expect(
+      logger.events.some(e => e.level === 'error' && e.meta?.reason === 'unhandledRejection')
+    ).toBe(true);
   });
 
   it('still exits non-zero when the teardown itself throws', async () => {
@@ -91,9 +91,9 @@ describe('installProcessErrorHandlers', () => {
     await flush();
 
     expect(exit).toHaveBeenCalledWith(1);
-    expect(
-      logger.errorCalls.some(([msg]) => msg.includes('teardown during fatal handler failed'))
-    ).toBe(true);
+    expect(logger.events.some(e => e.message === 'teardown during fatal handler failed')).toBe(
+      true
+    );
   });
 
   it('does not re-enter teardown when a second fatal event fires mid-drain', async () => {

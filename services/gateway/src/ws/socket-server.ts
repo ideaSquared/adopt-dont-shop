@@ -60,13 +60,13 @@ import { getMetricsRegistry } from '@adopt-dont-shop/observability';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { Counter } from 'prom-client';
 import { Server as IOServer, type Socket } from 'socket.io';
-import type { Logger } from 'winston';
 
 import type { GatewayConfig } from '../config.js';
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 
 import { getRevocationDisconnectsCounter } from './metrics.js';
 import type { SocketRegistry } from './socket-registry.js';
+import { type ServiceLogger } from '../logger.js';
 
 // Only the validateToken method is needed here — narrow the dependency so
 // tests can supply a one-method stub, mirroring authenticate.ts.
@@ -208,7 +208,7 @@ export type RedisAdapterClient = {
 export type AttachSocketServerOptions = {
   httpServer: HttpServer;
   registry: SocketRegistry;
-  logger: Logger;
+  logger: ServiceLogger;
   // Gateway config — the socket layer reads the CORS origin allowlist
   // (config.cors.origins) for its handshake origin policy (ADS-843). The
   // dev-vs-prod distinction lives in loadConfig(): dev gets localhost
@@ -311,7 +311,7 @@ export const attachSocketServer = (opts: AttachSocketServerOptions): IOServer =>
     );
     if (!handshakeLimiter.tryConsume(ip)) {
       handshakeRejectsTotal.inc();
-      logger.warn('socket handshake rate limit exceeded', { ip });
+      logger.warn('socket handshake rate limit exceeded');
       next(new Error('rate limit exceeded'));
       return;
     }
@@ -370,10 +370,7 @@ export const attachSocketServer = (opts: AttachSocketServerOptions): IOServer =>
     const existing = registry.socketsFor(userId);
     if (existing.length >= MAX_SOCKETS_PER_USER) {
       existing[0]?.disconnect(true);
-      logger.warn('socket cap exceeded — evicted oldest', {
-        userId,
-        cap: MAX_SOCKETS_PER_USER,
-      });
+      logger.warn('socket cap exceeded — evicted oldest', { userId, cap: MAX_SOCKETS_PER_USER });
     }
 
     registry.add(userId, socket);
@@ -430,7 +427,7 @@ export const emitToUser = (io: IOServer, userId: string, event: string, payload:
 type AuthenticateHandshakeDeps = {
   authClient?: SocketAuthClient;
   allowUnauthenticated: boolean;
-  logger: Logger;
+  logger: ServiceLogger;
 };
 
 // The authenticated userId plus, on the real authClient path, the handshake
@@ -480,7 +477,7 @@ type ScheduleRevalidationOptions = {
   socket: Socket;
   token: string;
   authClient: SocketAuthClient;
-  logger: Logger;
+  logger: ServiceLogger;
   minMs: number;
   maxMs: number;
   onFailure: () => void;
@@ -517,9 +514,10 @@ function scheduleRevalidation(opts: ScheduleRevalidationOptions): { cancel: () =
             if (cancelled) {
               return;
             }
+            const revalidatedUserId: unknown = socket.data.userId;
             logger.info('socket revalidation failed — disconnecting', {
               socketId: socket.id,
-              userId: socket.data.userId,
+              userId: typeof revalidatedUserId === 'string' ? revalidatedUserId : null,
             });
             onFailure();
             socket.disconnect(true);

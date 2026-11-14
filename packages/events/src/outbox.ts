@@ -28,7 +28,12 @@ import { randomUUID } from 'node:crypto';
 import type { JetStreamClient, NatsConnection } from 'nats';
 import type { Pool, PoolClient } from 'pg';
 
-import { Counter, Gauge, getMetricsRegistry } from '@adopt-dont-shop/observability';
+import {
+  Counter,
+  Gauge,
+  getMetricsRegistry,
+  type BaseLogger,
+} from '@adopt-dont-shop/observability';
 
 import { OUTBOX_TABLE } from './outbox-schema.js';
 import type { DomainEvent } from './publish.js';
@@ -49,10 +54,7 @@ export type OutboxRecord = {
 
 // Optional structured logger — the relay logs a swept tick's failures if given
 // one, but never requires it (kept dependency-light on purpose).
-export type OutboxLogger = {
-  warn?: (message: string, meta?: unknown) => void;
-  error?: (message: string, meta?: unknown) => void;
-};
+export type OutboxLogger = Pick<BaseLogger, 'warn' | 'error'>;
 
 export type OutboxRelayDeps = {
   pool: Pool;
@@ -150,10 +152,7 @@ export const flushInline = async (
       // is non-fatal (the row waits for the relay) but it IS a publish failure,
       // and hiding it would understate the true failure rate.
       recordOutboxFailure();
-      logger?.warn?.('outbox inline publish failed; relay will retry', {
-        subject: rec.subject,
-        err,
-      });
+      logger?.warn('outbox inline publish failed; relay will retry', { subject: rec.subject }, err);
       return;
     }
   }
@@ -275,7 +274,7 @@ export const relayOutboxOnce = async (
       );
       if (quarantine) {
         recordOutboxQuarantined();
-        logger?.error?.('outbox row quarantined after repeated publish failures', {
+        logger?.error('outbox row quarantined after repeated publish failures', {
           subject: rec.subject,
           outboxId: rec.outboxId,
           attempts: attempts + 1,
@@ -352,7 +351,7 @@ export const startOutboxRelay = (
       } while (published === batchSize);
       await updatePendingGauge(deps.pool);
     } catch (err) {
-      deps.logger?.error?.('outbox relay tick failed', { err });
+      deps.logger?.error('outbox relay tick failed', {}, err);
     } finally {
       ticking = false;
     }

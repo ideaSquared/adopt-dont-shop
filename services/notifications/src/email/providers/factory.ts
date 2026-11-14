@@ -6,13 +6,12 @@
 // email would disappear into stdout. Callers (loadProvider() at boot)
 // surface the error so the process can exit non-zero.
 
-import type { createLogger } from '@adopt-dont-shop/observability';
-
 import type { EmailProvider } from '../types.js';
 
 import { createConsoleProvider } from './console.js';
 import { createEtherealProvider } from './ethereal.js';
 import { createResendProvider, type ResendProviderConfig } from './resend.js';
+import { type ServiceLogger } from '../../logger.js';
 
 export type EmailProviderConfig =
   | { kind: 'console' }
@@ -21,7 +20,7 @@ export type EmailProviderConfig =
 
 export type ProviderFactoryDeps = {
   config: EmailProviderConfig;
-  logger: ReturnType<typeof createLogger>;
+  logger: ServiceLogger;
 };
 
 export const createProvider = (deps: ProviderFactoryDeps): EmailProvider => {

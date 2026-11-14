@@ -38,12 +38,10 @@
 import { timingSafeEqual } from 'node:crypto';
 
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import type { Logger } from 'winston';
-
-import { redactUrl } from '@adopt-dont-shop/observability';
 
 import { ACCESS_TOKEN_COOKIE_NAME } from './auth-cookies.js';
 import { extractBearerToken } from './authenticate.js';
+import { type ServiceLogger } from '../logger.js';
 
 export const CSRF_COOKIE_NAME = 'csrfToken';
 export const CSRF_HEADER_NAME = 'x-csrf-token';
@@ -68,7 +66,7 @@ export const verifyCsrfToken = (req: FastifyRequest): boolean => {
 };
 
 export type CsrfProtectionOptions = {
-  logger: Logger;
+  logger: ServiceLogger;
 };
 
 // Registers the onRequest hook that enforces the double-submit check on
@@ -98,10 +96,10 @@ export const registerCsrfProtection = (app: FastifyInstance, opts: CsrfProtectio
       // ADS-1295: log only the path, not the full req.url — a query string
       // can carry a secret (e.g. ?email=... or ?token=...), and
       // redactSecretFields only redacts by object key, not by scanning
-      // string values for embedded tokens. See redactUrl / server.ts.
+      // string values for embedded tokens. Routes are logged as patterns.
       opts.logger.warn('rejecting request: missing/invalid CSRF token', {
         method: req.method,
-        url: redactUrl(req.url),
+        route: req.routeOptions?.url ?? null,
       });
       return reply.code(403).send({ error: 'invalid csrf token' });
     }

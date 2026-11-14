@@ -12,16 +12,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { GatewayConfig } from './config.js';
 import { createServer } from './server.js';
-
-// Same quiet logger pattern as server.test.ts — winston logger surface
-// is irrelevant to this suite.
-const quietLogger = {
-  info: () => undefined,
-  error: () => undefined,
-  warn: () => undefined,
-  debug: () => undefined,
-  silly: () => undefined,
-} as unknown as ReturnType<typeof import('@adopt-dont-shop/observability').createLogger>;
+import { quietLogger } from '../test/helpers/test-logger.js';
 
 const baseConfig: GatewayConfig = {
   port: 0,

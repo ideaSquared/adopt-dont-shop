@@ -20,7 +20,7 @@ import type { Pool } from 'pg';
 
 import { createDbClient } from '@adopt-dont-shop/db';
 import { ensureStream } from '@adopt-dont-shop/events';
-import { createLogger } from '@adopt-dont-shop/observability';
+import { BASE_LOG_FIELDS, createLogger, type BaseLogger } from '@adopt-dont-shop/observability';
 import { connectNats } from '@adopt-dont-shop/service-bootstrap';
 
 import { loadConfig } from '../config.js';
@@ -41,10 +41,7 @@ export type BootstrapCliDeps = {
   hash: (password: string) => Promise<string>;
   out: (text: string) => void;
   err: (text: string) => void;
-  log: {
-    info: (message: string, meta: Record<string, unknown>) => void;
-    error: (message: string, meta: Record<string, unknown>) => void;
-  };
+  log: Pick<BaseLogger, 'info' | 'error'>;
 };
 
 // Strip only the trailing newline added by echo/here-strings.
@@ -78,7 +75,7 @@ export const runBootstrapCli = async (deps: BootstrapCliDeps): Promise<number> =
     return 0;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    deps.log.error('bootstrap-admin failed', { message });
+    deps.log.error('bootstrap-admin failed', {}, error);
     deps.err(`bootstrap-admin failed: ${message}\n${USAGE}\n`);
     return 1;
   } finally {
@@ -99,7 +96,10 @@ const isEntryPoint = (): boolean =>
   process.argv[1] !== undefined && fileURLToPath(import.meta.url) === resolve(process.argv[1]);
 
 if (isEntryPoint()) {
-  const logger = createLogger({ serviceName: 'service.auth.bootstrap-admin' });
+  const logger = createLogger({
+    serviceName: 'service.auth.bootstrap-admin',
+    fields: BASE_LOG_FIELDS,
+  });
   // loadConfig runs inside openPool/openNats (called within runBootstrapCli's
   // try) so a missing DATABASE_URL prints the usage instead of a stack trace.
   void runBootstrapCli({

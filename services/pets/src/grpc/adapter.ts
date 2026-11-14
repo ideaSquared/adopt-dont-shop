@@ -9,7 +9,7 @@ import {
 
 import type { Principal } from '@adopt-dont-shop/authz';
 import type { ServerUnaryCall, sendUnaryData } from '@grpc/grpc-js';
-import type { Logger } from 'winston';
+import type { BaseLogger } from '@adopt-dont-shop/observability';
 
 import type { HandlerDeps } from './handlers.js';
 
@@ -17,7 +17,7 @@ const SERVICE_NAME = 'service.pets';
 
 export function adapt<Req, Res>(
   handler: (deps: HandlerDeps, principal: Principal, req: Req) => Promise<Res>,
-  opts: { deps: HandlerDeps; logger: Logger }
+  opts: { deps: HandlerDeps; logger: BaseLogger }
 ): (call: ServerUnaryCall<Req, Res>, callback: sendUnaryData<Res>) => void {
   return adaptShared<HandlerDeps, Req, Res>(SERVICE_NAME, handler, opts);
 }
@@ -28,7 +28,7 @@ export function adapt<Req, Res>(
 // listBreeds / getSimilarPets) so logged-out visitors can browse.
 export function adaptUnauth<Req, Res>(
   handler: (deps: HandlerDeps, principal: Principal | null, req: Req) => Promise<Res>,
-  opts: { deps: HandlerDeps; logger: Logger }
+  opts: { deps: HandlerDeps; logger: BaseLogger }
 ): (call: ServerUnaryCall<Req, Res>, callback: sendUnaryData<Res>) => void {
   return adaptUnauthShared<HandlerDeps, Req, Res>(SERVICE_NAME, handler, opts);
 }

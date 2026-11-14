@@ -1,3 +1,9 @@
+import {
+  BASE_LOG_FIELDS,
+  createLogger,
+  memorySink,
+  type LogEvent,
+} from '@adopt-dont-shop/observability';
 import { describe, expect, it, vi } from 'vitest';
 
 import { runBootstrapCli, stripTrailingNewline, type BootstrapCliDeps } from './bootstrap-admin.js';
@@ -24,7 +30,7 @@ const makeDeps = (
   errors: string[];
   pool: { end: ReturnType<typeof vi.fn> };
   nats: { drain: ReturnType<typeof vi.fn> };
-  logged: unknown[];
+  logged: LogEvent[];
 } => {
   const query = vi.fn(async (sql: string) => {
     if (sql.includes('FROM auth.users') && sql.includes("'super_admin'")) {
@@ -45,7 +51,8 @@ const makeDeps = (
   };
   const output: string[] = [];
   const errors: string[] = [];
-  const logged: unknown[] = [];
+  const sink = memorySink();
+  const logged = sink.events;
   return {
     argv: opts.argv ?? ARGS,
     env: {},
@@ -58,10 +65,7 @@ const makeDeps = (
     hash: async password => `hashed:${password}`,
     out: text => output.push(text),
     err: text => errors.push(text),
-    log: {
-      info: (message, meta) => logged.push({ message, meta }),
-      error: (message, meta) => logged.push({ message, meta }),
-    },
+    log: createLogger({ serviceName: 'test', fields: BASE_LOG_FIELDS, sink }),
     output,
     errors,
     pool,

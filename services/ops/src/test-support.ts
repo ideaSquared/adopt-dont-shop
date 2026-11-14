@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto';
 
 import { Metadata } from '@grpc/grpc-js';
 import type { InjectOptions } from 'fastify';
-import winston from 'winston';
+import { createLogger, memorySink } from '@adopt-dont-shop/observability';
 
 import type { DomainEvent } from '@adopt-dont-shop/events';
 import { DRY_RUN_APPLIED_HEADER, DRY_RUN_HEADER } from '@adopt-dont-shop/service-bootstrap';
@@ -32,9 +32,14 @@ import type {
   SessionRecord,
   UnlockRecord,
 } from './store.js';
+import { LOG_FIELDS } from './logger.js';
 import { createUnlocksService } from './unlocks.js';
 
-export const SILENT_LOGGER = winston.createLogger({ silent: true });
+export const SILENT_LOGGER = createLogger({
+  serviceName: 'service.ops.test',
+  fields: LOG_FIELDS,
+  sink: memorySink(),
+});
 
 export type FakeStore = OpsStore & {
   events: DomainEvent[];

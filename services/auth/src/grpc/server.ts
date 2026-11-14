@@ -5,7 +5,7 @@ import { Server } from '@grpc/grpc-js';
 
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
-import type { Logger } from 'winston';
+import type { BaseLogger } from '@adopt-dont-shop/observability';
 
 import {
   startGrpcServer as startGrpcServerShared,
@@ -101,7 +101,7 @@ export type CreateGrpcServerOptions = {
   nats: NatsConnection;
   passwordHasher: HandlerDeps['passwordHasher'];
   tokenIssuer: HandlerDeps['tokenIssuer'];
-  logger: Logger;
+  logger: BaseLogger;
   // Injectable for tests; otherwise dialled from config.applicationsGrpcUrl.
   applicationsClient?: ApplicationsClient;
   // Injectable for tests; otherwise dialled from config.rescueGrpcUrl.
@@ -216,70 +216,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     deleteFieldPermission: adapt(deleteFieldPermission, { deps, logger }),
   });
 
-  logger.info('gRPC AuthService registered', {
-    methods: [
-      'login',
-      'logout',
-      'refreshToken',
-      'validateToken',
-      'getMe',
-      'assignRole',
-      'register',
-      'provisionInvitedUser',
-      'registerRescueOwner',
-      'verifyEmail',
-      'resendVerification',
-      'forgotPassword',
-      'resetPassword',
-      'redeemInvitation',
-      'changePassword',
-      'verifyCredentials',
-      'updateAccount',
-      'requestEmailChange',
-      'confirmEmailChange',
-      'listSessions',
-      'revokeSession',
-      'getPrivacyPreferences',
-      'updatePrivacyPreferences',
-      'resetPrivacyPreferences',
-      'recordConsent',
-      'getConsentStatus',
-      'searchUsers',
-      'adminGetUser',
-      'getApplicantProfile',
-      'listColleagueProfiles',
-      'getUserName',
-      'adminCreateUser',
-      'adminUpdateUser',
-      'deactivateUser',
-      'applyUserSanction',
-      'reactivateUser',
-      'getUserStatistics',
-      'getUserPermissions',
-      'bulkUpdateUsers',
-      'adminResetPassword',
-      'exportUserData',
-      'requestAccountDeletion',
-      'checkSelfErasure',
-      'listUserIdsByCohort',
-      'adminListSessions',
-      'adminRevokeSession',
-      'adminRevokeAllUserSessions',
-      'adminLockAccount',
-      'adminUnlockAccount',
-      'listIpRules',
-      'createIpRule',
-      'deleteIpRule',
-      'getFieldPermissionDefaults',
-      'getFieldPermissionDefaultsForRole',
-      'listFieldPermissionOverrides',
-      'listFieldPermissionOverridesForRole',
-      'upsertFieldPermission',
-      'bulkUpsertFieldPermissions',
-      'deleteFieldPermission',
-    ],
-    grpcPort: config.grpcPort,
-  });
+  logger.info('gRPC AuthService registered', { count: 59, grpcPort: config.grpcPort });
 
   return server;
 };
@@ -302,13 +239,13 @@ export const startGrpcServer = async (
       new Promise<void>(resolve => {
         server.tryShutdown(err => {
           if (err) {
-            logger.error('gRPC server shutdown error', { err });
+            logger.error('gRPC server shutdown error', {}, err);
           }
           try {
             applicationsClient.close();
             rescueClient.close();
           } catch (closeErr) {
-            logger.error('cross-service client close error', { err: closeErr });
+            logger.error('cross-service client close error', {}, closeErr);
           }
           resolve();
         });

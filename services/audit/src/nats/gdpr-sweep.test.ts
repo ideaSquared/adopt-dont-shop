@@ -13,22 +13,21 @@
 
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
-import type { Logger } from 'winston';
 import { describe, expect, it, vi } from 'vitest';
 
 import { GDPR_ERASURE_REQUESTED, GDPR_SAGA_MAX_RETRIES, runGdprSweep } from './gdpr-sweep.js';
+import { createLogger, memorySink } from '@adopt-dont-shop/observability';
+import { LOG_FIELDS } from '../logger.js';
 
 // ---------------------------------------------------------------------------
 // Test doubles
 // ---------------------------------------------------------------------------
 
-function makeLogger(): Logger {
-  return {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  } as unknown as Logger;
+function makeLogger() {
+  const sink = memorySink();
+  return Object.assign(createLogger({ serviceName: 'test', fields: LOG_FIELDS, sink }), {
+    events: sink.events,
+  });
 }
 
 function makeNats(): { js: ReturnType<typeof vi.fn>; nc: NatsConnection } {
@@ -106,9 +105,12 @@ describe('runGdprSweep — timeout', () => {
     expect(updateCall![1]).toContain('corr-1');
 
     // Must log at error level (alertable signal).
-    expect(logger.error).toHaveBeenCalledWith(
-      expect.stringContaining('gdpr'),
-      expect.objectContaining({ correlationId: 'corr-1' })
+    expect(logger.events).toContainEqual(
+      expect.objectContaining({
+        level: 'error',
+        message: expect.stringContaining('gdpr'),
+        meta: expect.objectContaining({ correlationId: 'corr-1' }),
+      })
     );
   });
 
@@ -158,20 +160,18 @@ describe('runGdprSweep — timeout', () => {
       maxRetries: 3,
     });
 
-    expect(logger.error).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({
-        missingServices: expect.arrayContaining([
-          'notifications',
-          'chat',
-          'applications',
-          'matching',
-          'moderation',
-          'cms',
-          'rescue',
-        ]),
-      })
-    );
+    const timedOut = logger.events.find(e => e.level === 'error');
+    for (const service of [
+      'notifications',
+      'chat',
+      'applications',
+      'matching',
+      'moderation',
+      'cms',
+      'rescue',
+    ]) {
+      expect(String(timedOut?.meta?.missingServices).split(',')).toContain(service);
+    }
   });
 
   it('does not return already-timed-out sagas from the timeout SELECT (query guards timed_out_at IS NULL)', async () => {
@@ -290,9 +290,11 @@ describe('runGdprSweep — retry', () => {
     });
 
     expect(publishFn).not.toHaveBeenCalled();
-    expect(logger.info).toHaveBeenCalledWith(
-      'gdpr saga retry claim lost — already handled by a concurrent sweep run',
-      expect.objectContaining({ correlationId: 'corr-1' })
+    expect(logger.events).toContainEqual(
+      expect.objectContaining({
+        message: 'gdpr saga retry claim lost — already handled by a concurrent sweep run',
+        meta: expect.objectContaining({ correlationId: 'corr-1' }),
+      })
     );
   });
 
@@ -566,9 +568,12 @@ describe('runGdprSweep — retry', () => {
       maxRetries: 3,
     });
 
-    expect(logger.error).toHaveBeenCalledWith(
-      'gdpr saga retry publish failed',
-      expect.objectContaining({ correlationId: 'corr-1', retryCount: 1 })
+    expect(logger.events).toContainEqual(
+      expect.objectContaining({
+        level: 'error',
+        message: 'gdpr saga retry publish failed',
+        meta: expect.objectContaining({ correlationId: 'corr-1', retryCount: 1 }),
+      })
     );
 
     // A recovery UPDATE must re-stamp failed_at, guarded on the retry_count

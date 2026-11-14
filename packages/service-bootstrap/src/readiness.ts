@@ -13,9 +13,7 @@
 
 import type { FastifyInstance } from 'fastify';
 
-import type { createLogger } from '@adopt-dont-shop/observability';
-
-type Logger = ReturnType<typeof createLogger>;
+import type { BaseLogger } from '@adopt-dont-shop/observability';
 
 // Dependency handles a service hands to the readiness probe. Every field is
 // optional — a service wires only the backing services it actually uses, and
@@ -78,7 +76,7 @@ const withTimeout = async (
 // than throwing out of the whole readiness evaluation.
 export const checkReadiness = async (
   deps: ReadinessDeps,
-  opts: { timeoutMs?: number; logger?: Logger } = {}
+  opts: { timeoutMs?: number; logger?: BaseLogger } = {}
 ): Promise<ReadinessResult> => {
   const timeoutMs = opts.timeoutMs ?? DEFAULT_CHECK_TIMEOUT_MS;
 
@@ -130,7 +128,7 @@ export const checkReadiness = async (
           await run();
           return [name, 'ok', critical] as const;
         } catch (err) {
-          opts.logger?.warn('readiness probe failed', { check: name, err });
+          opts.logger?.warn('readiness probe failed', { check: name }, err);
           return [name, 'error', critical] as const;
         }
       }
@@ -148,7 +146,7 @@ export type RegisterReadinessRouteOptions = {
   serviceName: string;
   environment: string;
   deps: ReadinessDeps;
-  logger?: Logger;
+  logger?: BaseLogger;
   timeoutMs?: number;
 };
 

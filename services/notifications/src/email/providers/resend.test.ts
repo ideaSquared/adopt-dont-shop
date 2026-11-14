@@ -1,16 +1,21 @@
+import { createLogger, memorySink } from '@adopt-dont-shop/observability';
 import type { Resend } from 'resend';
 import { describe, expect, it, vi } from 'vitest';
 
+import { LOG_FIELDS } from '../../logger.js';
 import type { QueuedEmail } from '../types.js';
 
 import { createResendProvider, type ResendProviderConfig } from './resend.js';
 
-const quietLogger = {
-  info: () => undefined,
-  warn: () => undefined,
-  error: () => undefined,
-  debug: () => undefined,
-} as unknown as Parameters<typeof createResendProvider>[0]['logger'];
+const makeMemoryLogger = () => {
+  const sink = memorySink();
+  return {
+    logger: createLogger({ serviceName: 'test', fields: LOG_FIELDS, sink }),
+    events: sink.events,
+  };
+};
+
+const quietLogger = makeMemoryLogger().logger;
 
 const config: ResendProviderConfig = {
   apiKey: 'test-key',
@@ -79,14 +84,8 @@ describe('resend provider — idempotency', () => {
 });
 
 describe('resend provider — log hygiene (ADS-1257)', () => {
-  it('masks the recipient and logs email.type instead of the raw subject', async () => {
-    const info = vi.fn();
-    const logger = {
-      info,
-      warn: () => undefined,
-      error: () => undefined,
-      debug: () => undefined,
-    } as unknown as Parameters<typeof createResendProvider>[0]['logger'];
+  it('never logs the recipient and logs email.type instead of the raw subject', async () => {
+    const { logger, events } = makeMemoryLogger();
     const { client } = makeClient();
     const provider = createResendProvider({ config, logger, client });
 
@@ -94,34 +93,27 @@ describe('resend provider — log hygiene (ADS-1257)', () => {
       queuedEmail({ toEmail: 'adopter@example.com', subject: 'Reset your password' })
     );
 
-    const [event, meta] = info.mock.calls[0] as [string, Record<string, unknown>];
-    expect(event).toBe('email.resend.send_ok');
+    expect(events[0]?.message).toBe('email.resend.send_ok');
+    const meta = events[0]?.meta ?? {};
     expect(meta.messageId).toBe('provider-msg-1');
-    expect(meta.to).toBe('a***@example.com');
+    expect(meta.to).toBeUndefined();
     expect(meta.type).toBe('transactional');
     expect(meta.subject).toBeUndefined();
-    const serialized = JSON.stringify(meta);
+    const serialized = JSON.stringify(events);
     expect(serialized).not.toContain('adopter@example.com');
     expect(serialized).not.toContain('Reset your password');
   });
 
-  it('masks the recipient on the failure path too', async () => {
-    const error = vi.fn();
-    const logger = {
-      info: () => undefined,
-      warn: () => undefined,
-      error,
-      debug: () => undefined,
-    } as unknown as Parameters<typeof createResendProvider>[0]['logger'];
+  it('never logs the recipient on the failure path either', async () => {
+    const { logger, events } = makeMemoryLogger();
     const send = vi.fn().mockResolvedValue({ data: null, error: { message: 'rejected' } });
     const client = { emails: { send } } as unknown as Pick<Resend, 'emails'>;
     const provider = createResendProvider({ config, logger, client });
 
     await provider.send(queuedEmail({ toEmail: 'adopter@example.com' }));
 
-    const [event, meta] = error.mock.calls[0] as [string, Record<string, unknown>];
-    expect(event).toBe('email.resend.send_failed');
-    expect(meta.to).toBe('a***@example.com');
-    expect(JSON.stringify(meta)).not.toContain('adopter@example.com');
+    expect(events[0]?.message).toBe('email.resend.send_failed');
+    expect(events[0]?.meta?.to).toBeUndefined();
+    expect(JSON.stringify(events)).not.toContain('adopter@example.com');
   });
 });

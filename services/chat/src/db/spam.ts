@@ -15,7 +15,12 @@
 // spread across the chats, alternating adopter/staff senders.
 
 import { createDbClient } from '@adopt-dont-shop/db';
-import { createLogger } from '@adopt-dont-shop/observability';
+import {
+  BASE_LOG_FIELDS,
+  createLogger,
+  flushLogs,
+  type Logger,
+} from '@adopt-dont-shop/observability';
 import {
   assertSpamAllowed,
   bulkInsert,
@@ -25,6 +30,9 @@ import {
 } from '@adopt-dont-shop/seed-faker';
 
 import { loadConfig } from '../config.js';
+
+const SPAM_LOG_FIELDS = [...BASE_LOG_FIELDS, 'chats', 'messages', 'seeds', 'participants'] as const;
+type SpamLogger = Pick<Logger<(typeof SPAM_LOG_FIELDS)[number]>, 'info'>;
 
 type Faker = ReturnType<typeof createSpamFaker>;
 export type QueryFn = (text: string, values: readonly unknown[]) => Promise<unknown>;
@@ -170,7 +178,7 @@ export const spamChats = async (deps: {
 };
 
 const main = async (): Promise<void> => {
-  const logger = createLogger({ serviceName: 'service.chat.spam' });
+  const logger = createLogger({ serviceName: 'service.chat.spam', fields: SPAM_LOG_FIELDS });
   assertSpamAllowed();
   const config = loadConfig();
   const pool = createDbClient({ connectionString: config.databaseUrl, schema: config.schema });
@@ -212,11 +220,8 @@ const main = async (): Promise<void> => {
     const out = await spamChats({ query, faker: createSpamFaker(), chats, messages, seeds });
     logger.info('chat spam complete', out);
   } catch (err) {
-    logger.error('chat spam failed', {
-      message: (err as Error)?.message,
-      stack: (err as Error)?.stack,
-    });
-    console.error(err);
+    logger.error('chat spam failed', {}, err);
+    await flushLogs();
     process.exitCode = 1;
   } finally {
     await pool.end();

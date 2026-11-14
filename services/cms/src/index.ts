@@ -1,7 +1,7 @@
 import type { NatsConnection } from 'nats';
 
 import { createDbClient } from '@adopt-dont-shop/db';
-import { createLogger } from '@adopt-dont-shop/observability';
+import { BASE_LOG_FIELDS, createLogger } from '@adopt-dont-shop/observability';
 import {
   connectNats,
   installProcessErrorHandlers,
@@ -13,7 +13,7 @@ import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
 import { createServer } from './server.js';
 
 const main = async (): Promise<void> => {
-  const logger = createLogger({ serviceName: 'service.cms' });
+  const logger = createLogger({ serviceName: 'service.cms', fields: BASE_LOG_FIELDS });
 
   let nats: NatsConnection | undefined;
   let pool: Awaited<ReturnType<typeof createDbClient>> | undefined;
@@ -47,7 +47,7 @@ const main = async (): Promise<void> => {
       pool,
       service: 'cms',
       erase: eraseCms,
-      onError: (err, subject) => logger.error('gdpr erasure subscriber error', { subject, err }),
+      onError: (err, subject) => logger.error('gdpr erasure subscriber error', { subject }, err),
     });
 
     const httpServer = createServer({
@@ -59,10 +59,10 @@ const main = async (): Promise<void> => {
     await httpServer.listen({ port: config.port, host: config.host });
 
     logger.info('service.cms running', {
-      http: { port: config.port, host: config.host },
-      grpc: { port: grpc.port, host: config.host },
+      httpPort: config.port,
+      grpcPort: grpc.port,
+      host: config.host,
       schema: config.schema,
-      natsUrl: config.natsUrl,
       environment: config.environment,
     });
 
@@ -85,7 +85,7 @@ const main = async (): Promise<void> => {
     // instead of crashing the process undrained under `restart: always`.
     installProcessErrorHandlers({ logger, onFatal: teardown });
   } catch (err) {
-    logger.error('service.cms failed to start', { err });
+    logger.error('service.cms failed to start', {}, err);
     try {
       await grpc?.shutdown();
     } catch {

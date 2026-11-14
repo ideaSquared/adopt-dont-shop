@@ -22,16 +22,16 @@
 
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
-import type { Logger } from 'winston';
 
 import { subscribe, redactAuditPayload, type SubscriptionHandle } from '@adopt-dont-shop/events';
 
 import type { AuditEventPayload } from './event-types.js';
+import { type ServiceLogger } from '../logger.js';
 
 export type RegisterSubscribersOptions = {
   nats: NatsConnection;
   pool: Pool;
-  logger: Logger;
+  logger: ServiceLogger;
 };
 
 // Durable consumer name — all replicas bind the same durable so JetStream
@@ -53,10 +53,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
   const { nats, pool, logger } = opts;
 
   const onError = (err: unknown, ctx: { subject: string }): void => {
-    logger.error('audit subscriber handler failed', {
-      subject: ctx.subject,
-      err: (err as Error)?.message ?? String(err),
-    });
+    logger.error('audit subscriber handler failed', { subject: ctx.subject }, err);
   };
 
   return [
@@ -76,7 +73,7 @@ export async function persistAuditEvent(
   pool: Pool,
   payload: AuditEventPayload,
   natsSubject: string,
-  logger?: Logger
+  logger?: ServiceLogger
 ): Promise<void> {
   // The producer's payload.subject is what we trust; if it's missing,
   // fall back to the NATS-level subject (e.g. 'auth.actionTaken'). This

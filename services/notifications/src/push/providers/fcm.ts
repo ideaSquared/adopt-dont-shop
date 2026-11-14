@@ -9,9 +9,8 @@
 import { cert, getApps, initializeApp, type App } from 'firebase-admin/app';
 import { getMessaging } from 'firebase-admin/messaging';
 
-import type { createLogger } from '@adopt-dont-shop/observability';
-
 import type { PushProvider, PushSendRequest, PushSendResult } from '../types.js';
+import { type ServiceLogger } from '../../logger.js';
 
 export type FcmConfig = {
   // GCP service-account JSON, supplied via FCM_SERVICE_ACCOUNT_JSON env.
@@ -22,7 +21,7 @@ export type FcmConfig = {
 
 export type FcmDeps = {
   config: FcmConfig;
-  logger: ReturnType<typeof createLogger>;
+  logger: ServiceLogger;
 };
 
 // FCM error codes that mean the token is permanently dead (app
@@ -124,27 +123,27 @@ export const createFcmPushProvider = (deps: FcmDeps): PushProvider => {
 
   return {
     async send(request: PushSendRequest): Promise<PushSendResult> {
-      const tokenPreview = `${request.token.slice(0, 10)}…`;
       try {
         const messageId = await getMessaging(getOrCreateApp()).send({
           token: request.token,
           notification: { title: request.title, body: request.body },
           data: toDataPayload(request.data),
         });
-        deps.logger.info('push.fcm.send_ok', { tokenPreview, messageId });
+        deps.logger.info('push.fcm.send_ok', { messageId });
         return { success: true, messageId };
       } catch (err) {
         const firebaseError = asFirebaseError(err);
         if (firebaseError && TOKEN_INVALID_ERROR_CODES.has(firebaseError.code)) {
-          deps.logger.warn('push.fcm.token_invalid', {
-            tokenPreview,
-            code: firebaseError.code,
-          });
+          deps.logger.warn('push.fcm.token_invalid', { code: firebaseError.code });
           return { success: false, error: firebaseError.message, tokenInvalid: true };
         }
         const message =
           firebaseError?.message ?? (err instanceof Error ? err.message : String(err));
-        deps.logger.error('push.fcm.send_error', { tokenPreview, error: message });
+        if (firebaseError) {
+          deps.logger.error('push.fcm.send_error', { code: firebaseError.code });
+        } else {
+          deps.logger.error('push.fcm.send_error', {}, err);
+        }
         return { success: false, error: message };
       }
     },

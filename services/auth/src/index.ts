@@ -1,7 +1,7 @@
 import type { NatsConnection } from 'nats';
 
 import { createDbClient } from '@adopt-dont-shop/db';
-import { createLogger } from '@adopt-dont-shop/observability';
+import { BASE_LOG_FIELDS, createLogger } from '@adopt-dont-shop/observability';
 import {
   connectNats,
   installProcessErrorHandlers,
@@ -19,7 +19,7 @@ import { startSuspensionExpiryScheduler, stopSchedulerWithin } from './suspensio
 const SCHEDULER_STOP_TIMEOUT_MS = 5_000;
 
 const main = async (): Promise<void> => {
-  const logger = createLogger({ serviceName: 'service.auth' });
+  const logger = createLogger({ serviceName: 'service.auth', fields: BASE_LOG_FIELDS });
 
   let nats: NatsConnection | undefined;
   let pool: ReturnType<typeof createDbClient> | undefined;
@@ -74,7 +74,7 @@ const main = async (): Promise<void> => {
       pool,
       service: 'auth',
       erase: eraseAuth,
-      onError: (err, subject) => logger.error('gdpr erasure subscriber error', { subject, err }),
+      onError: (err, subject) => logger.error('gdpr erasure subscriber error', { subject }, err),
     });
 
     // Lift ended timed suspensions (the login path also lifts lazily).
@@ -92,10 +92,10 @@ const main = async (): Promise<void> => {
     await httpServer.listen({ port: config.port, host: config.host });
 
     logger.info('service.auth running', {
-      http: { port: config.port, host: config.host },
-      grpc: { port: grpc.port, host: config.host },
+      httpPort: config.port,
+      grpcPort: grpc.port,
+      host: config.host,
       schema: config.schema,
-      natsUrl: config.natsUrl,
       environment: config.environment,
     });
 
@@ -122,7 +122,7 @@ const main = async (): Promise<void> => {
     // instead of crashing the process undrained under `restart: always`.
     installProcessErrorHandlers({ logger, onFatal: teardown });
   } catch (err) {
-    logger.error('service.auth failed to start', { err });
+    logger.error('service.auth failed to start', {}, err);
     try {
       await grpc?.shutdown();
     } catch {

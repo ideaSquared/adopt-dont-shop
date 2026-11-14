@@ -21,9 +21,10 @@ import { createPgStore } from './pg-store.js';
 import { createMethodResolver } from './proto-methods.js';
 import { createServer } from './server.js';
 import { createUnlocksService } from './unlocks.js';
+import { LOG_FIELDS } from './logger.js';
 
 const main = async (): Promise<void> => {
-  const logger = createLogger({ serviceName: 'service.ops' });
+  const logger = createLogger({ serviceName: 'service.ops', fields: LOG_FIELDS });
 
   let nats: NatsConnection | undefined;
   let pool: Awaited<ReturnType<typeof createDbClient>> | undefined;
@@ -82,7 +83,8 @@ const main = async (): Promise<void> => {
     });
     await httpServer.listen({ port: config.port, host: config.host });
     logger.info('service.ops running', {
-      http: { port: config.port, host: config.host },
+      httpPort: config.port,
+      host: config.host,
       opsEnv: config.env,
       authMode: config.authMode,
       unlocksEnabled: config.env === 'dev' || config.discordWebhookUrl !== undefined,
@@ -102,9 +104,7 @@ const main = async (): Promise<void> => {
     process.once('SIGINT', () => void shutdown('SIGINT'));
     installProcessErrorHandlers({ logger, onFatal: teardown });
   } catch (err) {
-    logger.error('service.ops failed to start', {
-      message: err instanceof Error ? err.message : 'unknown',
-    });
+    logger.error('service.ops failed to start', {}, err);
     await nats?.drain().catch(() => undefined);
     await pool?.end().catch(() => undefined);
     process.exit(1);

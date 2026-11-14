@@ -33,9 +33,7 @@
 
 import { status as grpcStatus, Metadata } from '@grpc/grpc-js';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import type { Logger } from 'winston';
 
-import { redactUrl } from '@adopt-dont-shop/observability';
 import { signPrincipalToken } from '@adopt-dont-shop/service-bootstrap';
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
@@ -43,6 +41,7 @@ import type { RescueClient } from '../grpc-clients/rescue-client.js';
 import { constantTimeEquals } from '../utils/constant-time.js';
 
 import { extractAccessTokenFromCookie } from './auth-cookies.js';
+import { type ServiceLogger } from '../logger.js';
 
 // ADS-1255: routes that are reachable WITHOUT an authenticated principal opt
 // in explicitly via `config: { public: true }`. The authenticate onRequest
@@ -59,7 +58,7 @@ declare module 'fastify' {
 
 export type AuthMiddlewareOptions = {
   authClient: AuthClient;
-  logger: Logger;
+  logger: ServiceLogger;
   // ADS-800: when set, a signed x-principal-token is stamped alongside
   // the x-user-* headers after ValidateToken succeeds, signed over the
   // same principal. buildMetadata forwards it so downstream services
@@ -98,7 +97,7 @@ async function resolveRescueId(
   permissions: string[],
   rescueClient: RescueClient,
   principalSigningKey: string | undefined,
-  logger: Logger
+  logger: ServiceLogger
 ): Promise<string | null> {
   const cached = rescueIdCache.get(userId);
   if (cached && cached.expiresAt > Date.now()) {
@@ -122,10 +121,7 @@ async function resolveRescueId(
   } catch (err) {
     const code = (err as { code?: number }).code;
     if (code !== grpcStatus.NOT_FOUND) {
-      logger.warn('rescueId enrichment failed', {
-        userId,
-        err: (err as Error)?.message ?? String(err),
-      });
+      logger.warn('rescueId enrichment failed', { userId }, err);
     }
     rescueId = null;
   }
@@ -203,9 +199,9 @@ export const registerAuthenticate = async (
       // ADS-1295: log only the path, not the full req.url — a query string
       // can carry a secret (e.g. ?email=... or ?token=...), and
       // redactSecretFields only redacts by object key, not by scanning
-      // string values for embedded tokens. See redactUrl / server.ts.
+      // string values for embedded tokens. Routes are logged as patterns.
       logger.warn('rejecting request: authentication required on protected path', {
-        url: redactUrl(req.url),
+        route: req.routeOptions?.url ?? null,
       });
       return reply.code(401).send({ error: 'authentication required' });
     }
@@ -224,7 +220,7 @@ export const registerAuthenticate = async (
         // closed instead of silently forwarding unauth as auth.
         if (!isPublic) {
           logger.warn('rejecting request: token validated but no principal returned', {
-            url: redactUrl(req.url),
+            route: req.routeOptions?.url ?? null,
           });
           return reply.code(401).send({ error: 'invalid token' });
         }
@@ -288,12 +284,9 @@ export const registerAuthenticate = async (
         // Invalid / expired / revoked token on a protected path. Log at
         // warn so a flood of 401s (e.g. a stale SPA session) is visible in
         // the gateway logs instead of failing silently.
-        logger.warn('rejecting request: invalid token', { url: redactUrl(req.url) });
+        logger.warn('rejecting request: invalid token', { route: req.routeOptions?.url ?? null });
       } else {
-        logger.error('ValidateToken upstream error', {
-          err: (err as Error)?.message ?? String(err),
-          url: redactUrl(req.url),
-        });
+        logger.error('ValidateToken upstream error', { route: req.routeOptions?.url ?? null }, err);
       }
       return reply.code(httpStatus).send({
         error: httpStatus === 401 ? 'invalid token' : 'internal_error',

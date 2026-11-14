@@ -8,7 +8,7 @@
 // the next run. Lookups are sequential to stay polite to the free geocoder.
 
 import { createDbClient } from '@adopt-dont-shop/db';
-import { createLogger } from '@adopt-dont-shop/observability';
+import { BASE_LOG_FIELDS, createLogger } from '@adopt-dont-shop/observability';
 import type { Pool } from 'pg';
 
 import { loadConfig } from '../config.js';
@@ -68,13 +68,17 @@ export const formatBackfillSummary = ({
       'postcode) and have no distance yet. Re-run when online: ' +
       'pnpm --filter @adopt-dont-shop/service.rescue backfill:coordinates';
 
+const logger = createLogger({ serviceName: 'service.rescue', fields: BASE_LOG_FIELDS });
+
 const main = async (): Promise<void> => {
-  const logger = createLogger({ serviceName: 'service.rescue' });
   const config = loadConfig();
   const pool = createDbClient({ connectionString: config.databaseUrl, schema: config.schema });
   try {
     const result = await backfillRescueCoordinates(pool, createPostcodesIoGeocoder());
-    logger.info('rescue coordinates backfill complete', result);
+    logger.info('rescue coordinates backfill complete', {
+      updatedCount: result.updated,
+      skippedCount: result.skipped,
+    });
     process.stdout.write(`${formatBackfillSummary(result)}\n`);
   } finally {
     await pool.end();
@@ -83,7 +87,7 @@ const main = async (): Promise<void> => {
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'))) {
   main().catch(err => {
-    console.error(err);
+    logger.error('rescue coordinates backfill failed', {}, err);
     process.exitCode = 1;
   });
 }

@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { maskPiiFields, maskPiiValue, redactSecretFields, redactUrl, REDACTED } from './redact.js';
+import {
+  maskPiiFields,
+  maskPiiValue,
+  redactSecretFields,
+  redactUrl,
+  REDACTED,
+  toRouteTemplate,
+} from './redact.js';
 
 describe('redactSecretFields', () => {
   it('redacts secret-shaped top-level keys regardless of casing or affixes', () => {
@@ -242,5 +249,25 @@ describe('redacting a logged Error', () => {
 
     expect(out.name).toBe('J***');
     expect(out.code).toBe('X1');
+  });
+});
+
+describe('toRouteTemplate', () => {
+  it('collapses identifier-like segments and drops the query string and fragment', () => {
+    expect(
+      toRouteTemplate(
+        '/api/v1/pets/3f2b8c1e-1a2b-4c3d-8e9f-0a1b2c3d4e5f/photos/42?token=SECRET#frag'
+      )
+    ).toBe('/api/v1/pets/:id/photos/:id');
+  });
+
+  it('keeps plain word segments', () => {
+    expect(toRouteTemplate('/api/some/unknown/path')).toBe('/api/some/unknown/path');
+  });
+
+  it('masks signed-upload signatures', () => {
+    expect(toRouteTemplate('/uploads-signed/1700000000/abcdef/file.png')).toBe(
+      '/uploads-signed/[REDACTED]'
+    );
   });
 });

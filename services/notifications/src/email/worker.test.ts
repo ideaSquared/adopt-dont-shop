@@ -1,21 +1,20 @@
 import type { Pool } from 'pg';
-import type { Logger } from 'winston';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getMetricsRegistry, __resetMetricsForTest } from '@adopt-dont-shop/observability';
+import {
+  createLogger,
+  getMetricsRegistry,
+  memorySink,
+  __resetMetricsForTest,
+} from '@adopt-dont-shop/observability';
 
 import { __resetNotificationsMetricsForTest } from '../metrics.js';
 import { startEmailWorker } from './worker.js';
 import type { EmailProvider, ProviderSendResult, QueuedEmail } from './types.js';
+import { LOG_FIELDS } from '../logger.js';
 
-const quietLogger = (): Logger => {
-  return {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  } as unknown as Logger;
-};
+const quietLogger = () =>
+  createLogger({ serviceName: 'test', fields: LOG_FIELDS, sink: memorySink() });
 
 const queuedFixture = (overrides: Partial<QueuedEmail> = {}): QueuedEmail => ({
   emailId: 'em-1',

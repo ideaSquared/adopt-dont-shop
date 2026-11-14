@@ -20,16 +20,17 @@
 import { trace } from '@opentelemetry/api';
 import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
-import type { Logger } from 'winston';
+
+import { BASE_LOG_FIELDS, createLogger, type BaseLogger } from './logger.js';
 
 export type SentryOptions = {
   // Used as `serverName` on Sentry events when HOSTNAME isn't set, and
   // surfaced in the logger lines emitted when init starts / fails.
   serviceName: string;
-  // Optional Winston logger for boot-path messages. If omitted, falls
-  // back to console — useful when this is called BEFORE the logger
+  // Optional logger for boot-path messages. If omitted, a
+  // boot logger writes to the console — useful when this is called BEFORE the logger
   // exists (rare, but the boot order is allowed to permit it).
-  logger?: Pick<Logger, 'info' | 'error'>;
+  logger?: Pick<BaseLogger, 'info' | 'error'>;
 };
 
 type SentryConfig = {
@@ -198,7 +199,8 @@ const getSentryConfig = (): SentryConfig => {
 
 export const initializeSentry = (opts: SentryOptions): void => {
   const config = getSentryConfig();
-  const log = opts.logger ?? console;
+  const log =
+    opts.logger ?? createLogger({ serviceName: opts.serviceName, fields: BASE_LOG_FIELDS });
 
   if (!config.enabled) {
     log.info('Sentry is disabled (no DSN configured or NODE_ENV not production/staging)');
@@ -255,13 +257,8 @@ export const initializeSentry = (opts: SentryOptions): void => {
       },
     });
 
-    log.info('Sentry initialized successfully', {
-      service: opts.serviceName,
-      environment: config.environment,
-      tracesSampleRate: config.tracesSampleRate,
-      profilesSampleRate: config.profilesSampleRate,
-    });
+    log.info('Sentry initialized successfully');
   } catch (error) {
-    log.error('Failed to initialize Sentry', { error });
+    log.error('Failed to initialize Sentry', {}, error);
   }
 };

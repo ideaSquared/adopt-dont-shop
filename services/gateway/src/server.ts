@@ -26,7 +26,7 @@
 import {
   createLogger,
   getMetricsRegistry,
-  redactUrl,
+  toRouteTemplate,
   registerMetrics,
   registerRequestId,
 } from '@adopt-dont-shop/observability';
@@ -98,6 +98,7 @@ import { registerStaffFosterRoutes } from './routes/staff-foster.js';
 import { registerTestTokenPeekRoutes } from './routes/test-token-peek.js';
 import { registerUploadsRoutes } from './routes/uploads.js';
 import { registerUsersRoutes } from './routes/users.js';
+import { type ServiceLogger, LOG_FIELDS } from './logger.js';
 
 // ADS-1378: Content-Security-Policy directives, in Helmet's camelCase form.
 // Mirrors the API-host policy in deploy/gateway/nginx.conf — see the helmet
@@ -188,7 +189,7 @@ export type CreateServerOptions = {
   // suite output stays readable. Real boot uses createLogger so the
   // service emits structured lines through the same pipeline as the
   // rest of the stack.
-  logger?: ReturnType<typeof createLogger>;
+  logger?: ServiceLogger;
   // gRPC client to service.notifications. Optional so smoke tests
   // that only exercise /health/simple don't have to wire the gRPC
   // transport — when omitted, /api/notifications/* routes aren't
@@ -235,10 +236,11 @@ export type CreateServerOptions = {
 
 export const createServer = async (opts: CreateServerOptions): Promise<FastifyInstance> => {
   const { config } = opts;
-  const logger = opts.logger ?? createLogger({ serviceName: 'service.gateway' });
+  const logger =
+    opts.logger ?? createLogger({ serviceName: 'service.gateway', fields: LOG_FIELDS });
 
   // Fastify's built-in pino logger is disabled — we route service-level
-  // lines (boot, shutdown, errors) through our winston logger directly.
+  // lines (boot, shutdown, errors) through our shared logger directly.
   // Per-request access logging lands when we wire onRequest/onResponse
   // hooks for routes that need it; pino's everything-by-default would
   // double-log on top of the OTel auto-instrumentation.
@@ -278,11 +280,11 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     // signed-URL path segment (e.g. /uploads-signed/*) can carry a secret,
     // and redactSecretFields only redacts by object key, not by scanning
     // string values for embedded tokens.
-    logger.error('request failed', {
-      method: req.method,
-      url: redactUrl(req.url),
-      message: err.message,
-    });
+    logger.error(
+      'request failed',
+      { method: req.method, route: req.routeOptions?.url ?? null, requestId: req.requestId },
+      err
+    );
     void reply.status(err.statusCode ?? 500).send({ error: 'internal_error' });
   });
 
@@ -329,7 +331,7 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // fails closed in production/staging when CORS_ORIGIN is unset (ADS-967),
   // so logging the effective allowlist here lets operators confirm at
   // boot that it isn't the localhost dev fallback.
-  logger.info('cors allowlist configured', { origins: config.cors?.origins ?? [] });
+  logger.info('cors allowlist configured', { origins: (config.cors?.origins ?? []).join(',') });
   await server.register(cors, {
     origin: config.cors?.origins ?? [],
     credentials: true,
@@ -385,21 +387,15 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
           enableOfflineQueue: false,
         });
         rateLimitRedis.on('error', (err: Error) => {
-          logger.warn('rate-limit Redis error — falling back to in-memory store', {
-            message: err.message,
-          });
+          logger.warn('rate-limit Redis error — falling back to in-memory store', {}, err);
         });
         // Attempt a connection so we know early whether Redis is reachable.
         await rateLimitRedis.connect().catch((err: Error) => {
-          logger.warn('rate-limit Redis unreachable at boot — using in-memory store', {
-            message: err.message,
-          });
+          logger.warn('rate-limit Redis unreachable at boot — using in-memory store', {}, err);
           rateLimitRedis = undefined;
         });
       } catch (err) {
-        logger.warn('rate-limit Redis setup failed — using in-memory store', {
-          message: (err as Error).message,
-        });
+        logger.warn('rate-limit Redis setup failed — using in-memory store', {}, err);
         rateLimitRedis = undefined;
       }
     } else {
@@ -415,12 +411,12 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
       ...(rateLimitRedis ? { redis: rateLimitRedis } : {}),
       skipOnError: true,
       keyGenerator: req => req.ip,
-      onExceeded: (_req, key) => {
-        // `key` is the generated rate-limit key (ip or composite); the
+      onExceeded: _req => {
+        // The generated rate-limit key is an IP or composite of one, so it is not logged; the
         // route is resolved from routeOptions.url at hook time.
         const route = (_req.routeOptions?.url as string | undefined) ?? 'unknown';
         rateLimitHitsTotal.inc({ route });
-        logger.warn('rate limit exceeded', { key, route });
+        logger.warn('rate limit exceeded', { route });
       },
     });
   }
@@ -750,6 +746,7 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // service.auth, so all four clients are required.
   if (opts.auditClient && opts.petsClient && opts.applicationsClient && opts.authClient) {
     await registerReportsRoutes(server, {
+      logger,
       client: opts.auditClient,
       petsClient: opts.petsClient,
       applicationsClient: opts.applicationsClient,
@@ -824,6 +821,7 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // go to @adopt-dont-shop/storage, no upstream service. The matching
   // signed-serve route mounts at /uploads-signed/* (also gateway-only).
   await registerUploadsRoutes(server, {
+    logger,
     storage: storageConfig,
     signingSecret: config.storage.signingSecret,
     avScan: avScanClient,
@@ -843,6 +841,7 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     // signingSecret (ADS-1034): documents are private, so reads/writes mint
     // /uploads-signed URLs instead of persisting a raw storage URL.
     await registerApplicationDocumentsRoutes(server, {
+      logger,
       client: opts.applicationsClient,
       storage: storageConfig,
       signingSecret: config.storage.signingSecret,
@@ -993,7 +992,7 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   const apiNotFound = async (req: FastifyRequest, reply: FastifyReply) => {
     // ADS-972: strip query string / signed-URL secrets before logging — see
     // the setErrorHandler comment above for why req.url isn't safe verbatim.
-    logger.warn('unmatched API route', { method: req.method, url: redactUrl(req.url) });
+    logger.warn('unmatched API route', { method: req.method, path: toRouteTemplate(req.url) });
     return reply.code(404).send({ error: 'not_found' });
   };
   server.get('/api/*', apiNotFound);

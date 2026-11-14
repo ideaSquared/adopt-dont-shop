@@ -2,8 +2,6 @@ import { randomUUID } from 'node:crypto';
 
 import { Metadata } from '@grpc/grpc-js';
 
-import type { Logger } from 'winston';
-
 import type { Principal } from '@adopt-dont-shop/authz';
 import type { DomainEvent } from '@adopt-dont-shop/events';
 import {
@@ -42,6 +40,7 @@ import {
   type RegistryEntry,
 } from './registry.js';
 import type { OpsStore } from './store.js';
+import { type ServiceLogger } from './logger.js';
 
 export const PLAN_TTL_MS = 10 * 60 * 1000;
 const GRPC_TIMEOUT_MS = 15_000;
@@ -55,7 +54,7 @@ export type InvokeDeps = {
   callGrpc: GrpcCaller;
   signingKey: string;
   now: () => Date;
-  logger: Logger;
+  logger: ServiceLogger;
 };
 
 type Trace = Pick<
@@ -632,11 +631,11 @@ export const createInvokeService = (deps: InvokeDeps) => {
     };
     const events = 'ok' in outcome ? outcome.ok.events : [];
     await store.appendAccessLog(entry, events).catch((err: unknown) => {
-      deps.logger.error('access log append failed', {
-        rpc: body.rpc,
-        operator: ctx.operator.login,
-        message: err instanceof Error ? err.message : 'unknown',
-      });
+      deps.logger.error(
+        'access log append failed',
+        { rpc: body.rpc, operatorId: ctx.operator.operatorId },
+        err
+      );
       throw new OpsError(
         'INTERNAL',
         entry.mode === 'execute' && 'ok' in outcome
@@ -648,11 +647,11 @@ export const createInvokeService = (deps: InvokeDeps) => {
 
     deps.logger.info('invoke', {
       rpc: body.rpc,
-      operator: ctx.operator.login,
+      operatorId: ctx.operator.operatorId,
       kind: entry.kind,
       mode: entry.mode,
       outcome: entry.outcome,
-      errorCode: entry.errorCode,
+      errorCode: entry.errorCode ?? null,
       revealedFieldCount: entry.revealedFields.length,
       durationMs: Math.round(performance.now() - started),
     });

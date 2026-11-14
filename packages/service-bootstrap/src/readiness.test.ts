@@ -1,3 +1,4 @@
+import { BASE_LOG_FIELDS, createLogger, memorySink } from '@adopt-dont-shop/observability';
 import { describe, expect, it, vi } from 'vitest';
 
 import { checkReadiness } from './readiness.js';
@@ -77,20 +78,17 @@ describe('checkReadiness', () => {
   });
 
   it('logs a warning naming the failed dependency', async () => {
-    const warn = vi.fn();
-    const logger = {
-      info: () => undefined,
-      error: () => undefined,
-      warn,
-      debug: () => undefined,
-      silly: () => undefined,
-    } as unknown as ReturnType<typeof import('@adopt-dont-shop/observability').createLogger>;
+    const sink = memorySink();
+    const logger = createLogger({ serviceName: 'test', fields: BASE_LOG_FIELDS, sink });
 
     await checkReadiness({ nats: { isClosed: () => true } }, { logger });
 
-    expect(warn).toHaveBeenCalledWith(
-      'readiness probe failed',
-      expect.objectContaining({ check: 'nats' })
+    expect(sink.events).toContainEqual(
+      expect.objectContaining({
+        level: 'warn',
+        message: 'readiness probe failed',
+        meta: { check: 'nats' },
+      })
     );
   });
 

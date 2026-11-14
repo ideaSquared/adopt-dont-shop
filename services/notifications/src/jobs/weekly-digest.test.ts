@@ -26,6 +26,8 @@ import {
   WEEKLY_DIGEST_INTERVAL_MS,
   type WeeklyDigestDeps,
 } from './weekly-digest.js';
+import { createLogger, memorySink } from '@adopt-dont-shop/observability';
+import { LOG_FIELDS } from '../logger.js';
 
 // ADS-1127 grid-drift regression, applied to this job specifically: an
 // un-anchored 7-day scheduler job lands on the Unix epoch's weekday
@@ -253,7 +255,8 @@ function makeDeps(opts: {
     listByUser: vi.fn(async (userId: string) => opts.applicationsByUser?.[userId] ?? []),
   };
 
-  const logger = { warn: vi.fn(), info: vi.fn(), error: vi.fn() };
+  const sink = memorySink();
+  const logger = createLogger({ serviceName: 'test', fields: LOG_FIELDS, sink });
 
   const deps: WeeklyDigestDeps = {
     pool: pool as unknown as Pool,
@@ -261,7 +264,7 @@ function makeDeps(opts: {
     authClient,
     petsClient,
     applicationsClient,
-    logger: logger as never,
+    logger,
   };
 
   return {
@@ -273,6 +276,7 @@ function makeDeps(opts: {
     petsClient,
     applicationsClient,
     logger,
+    events: sink.events,
   };
 }
 
@@ -354,9 +358,12 @@ describe('runWeeklyDigest', () => {
 
     expect(result.failed).toBe(1);
     expect(result.sent).toBe(1);
-    expect(mocks.logger.warn).toHaveBeenCalledWith(
-      'weekly-digest.recipient_failed',
-      expect.objectContaining({ userId: 'usr-bad' })
+    expect(mocks.events).toContainEqual(
+      expect.objectContaining({
+        level: 'warn',
+        message: 'weekly-digest.recipient_failed',
+        meta: { userId: 'usr-bad' },
+      })
     );
   });
 

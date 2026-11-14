@@ -5,7 +5,6 @@
 import type { NatsConnection } from 'nats';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Pool } from 'pg';
-import type { Logger } from 'winston';
 
 const subscribeMock = vi.fn();
 vi.mock('@adopt-dont-shop/events', async () => {
@@ -20,6 +19,8 @@ vi.mock('../email/queue.js', () => ({
 }));
 
 import { registerAuthEmailSubscribers } from './auth-emails.js';
+import { createLogger, memorySink } from '@adopt-dont-shop/observability';
+import { LOG_FIELDS } from '../logger.js';
 
 const TOKEN = 'tok_AbC-123_secretValue';
 
@@ -32,17 +33,9 @@ const CONFIG = {
 };
 
 const makeLogger = () => {
-  const calls: unknown[][] = [];
-  const record = (...args: unknown[]) => {
-    calls.push(args);
-  };
-  const logger = {
-    info: record,
-    warn: record,
-    error: record,
-    debug: record,
-  } as unknown as Logger;
-  return { logger, calls };
+  const sink = memorySink();
+  const logger = createLogger({ serviceName: 'test', fields: LOG_FIELDS, sink });
+  return { logger, calls: sink.events };
 };
 
 type Handler = (payload: unknown, meta: { id?: string }) => Promise<void>;

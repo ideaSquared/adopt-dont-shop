@@ -28,9 +28,10 @@ import { registerNotificationSubscribers } from './ws/notifications-subscriber.j
 import { trackSocketAdapterRedis } from './ws/metrics.js';
 import { SocketRegistry } from './ws/socket-registry.js';
 import { attachSocketServer } from './ws/socket-server.js';
+import { LOG_FIELDS } from './logger.js';
 
 const main = async (): Promise<void> => {
-  const logger = createLogger({ serviceName: 'service.gateway' });
+  const logger = createLogger({ serviceName: 'service.gateway', fields: LOG_FIELDS });
 
   // ADS-1041: initialize backend error tracking (GlitchTip/Sentry SDK). No-op
   // unless SENTRY_DSN is set AND NODE_ENV is production/staging. The gateway
@@ -79,7 +80,7 @@ const main = async (): Promise<void> => {
         client?.close();
       } catch (err) {
         if (log) {
-          logger.error(`${label} close error`, { err });
+          logger.error('client close error', { client: label }, err);
         }
       }
     }
@@ -146,10 +147,10 @@ const main = async (): Promise<void> => {
       socketAdapterPub = new Redis(config.rateLimit.redisUrl, { lazyConnect: false });
       socketAdapterSub = socketAdapterPub.duplicate();
       socketAdapterPub.on('error', (err: Error) =>
-        logger.warn('socket adapter Redis (pub) error', { message: err.message })
+        logger.warn('socket adapter Redis (pub) error', {}, err)
       );
       socketAdapterSub.on('error', (err: Error) =>
-        logger.warn('socket adapter Redis (sub) error', { message: err.message })
+        logger.warn('socket adapter Redis (sub) error', {}, err)
       );
       // ADS-1251: expose the adapter's cross-replica pub/sub health on
       // /metrics (gateway_ws_redis_adapter_up) so an alert can fire when
@@ -174,17 +175,6 @@ const main = async (): Promise<void> => {
     logger.info('service.gateway listening', {
       port: config.port,
       host: config.host,
-      natsUrl: config.natsUrl,
-      notificationsGrpcUrl: config.notificationsGrpcUrl,
-      authGrpcUrl: config.authGrpcUrl,
-      petsGrpcUrl: config.petsGrpcUrl,
-      rescueGrpcUrl: config.rescueGrpcUrl,
-      auditGrpcUrl: config.auditGrpcUrl,
-      matchingGrpcUrl: config.matchingGrpcUrl,
-      moderationGrpcUrl: config.moderationGrpcUrl,
-      applicationsGrpcUrl: config.applicationsGrpcUrl,
-      chatGrpcUrl: config.chatGrpcUrl,
-      cmsGrpcUrl: config.cmsGrpcUrl,
       environment: config.environment,
     });
 
@@ -201,23 +191,23 @@ const main = async (): Promise<void> => {
               await new Promise<void>(resolve => io!.close(() => resolve()));
             }
           } catch (err) {
-            logger.error('socket.io close error', { err });
+            logger.error('socket.io close error', {}, err);
           }
           try {
             socketAdapterPub?.disconnect();
             socketAdapterSub?.disconnect();
           } catch (err) {
-            logger.error('socket adapter redis close error', { err });
+            logger.error('socket adapter redis close error', {}, err);
           }
           try {
             await server.close();
           } catch (err) {
-            logger.error('http close error', { err });
+            logger.error('http close error', {}, err);
           }
           try {
             await nats?.drain();
           } catch (err) {
-            logger.error('nats drain error', { err });
+            logger.error('nats drain error', {}, err);
           }
           closeGrpcClients(true);
         },
@@ -240,10 +230,7 @@ const main = async (): Promise<void> => {
   } catch (err) {
     // Error's message/stack are non-enumerable — logging { err } serializes
     // to {} and hides the cause.
-    logger.error('service.gateway failed to start', {
-      message: err instanceof Error ? err.message : String(err),
-      stack: err instanceof Error ? err.stack : undefined,
-    });
+    logger.error('service.gateway failed to start', {}, err);
     try {
       await nats?.drain();
     } catch {

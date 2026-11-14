@@ -6,7 +6,7 @@ import { Server } from '@grpc/grpc-js';
 
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
-import type { Logger } from 'winston';
+import type { BaseLogger } from '@adopt-dont-shop/observability';
 
 import {
   startGrpcServer as startGrpcServerShared,
@@ -44,7 +44,7 @@ export type CreateGrpcServerOptions = {
   config: ChatConfig;
   pool: Pool;
   nats: NatsConnection;
-  logger: Logger;
+  logger: BaseLogger;
   // Injected for OpenChat's application/staff relationship checks
   // (ADS-918). Optional: when omitted (createGrpcServer called directly,
   // e.g. in tests) lazy clients are built from config. startGrpcServer
@@ -94,27 +94,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     adminListChats: adapt(adminListChats, { deps, logger }),
   });
 
-  logger.info('gRPC ChatService registered', {
-    methods: [
-      'openChat',
-      'openPetEnquiry',
-      'sendMessage',
-      'listMessages',
-      'listChats',
-      'markRead',
-      'react',
-      'searchChats',
-      'searchMessages',
-      'getChatUnreadCount',
-      'deleteMessage',
-      'getChat',
-      'deleteChat',
-      'updateChatStatus',
-      'getChatStats',
-      'adminListChats',
-    ],
-    grpcPort: config.grpcPort,
-  });
+  logger.info('gRPC ChatService registered', { count: 16, grpcPort: config.grpcPort });
 
   return server;
 };
@@ -138,14 +118,14 @@ export const startGrpcServer = async (
       new Promise<void>(resolve => {
         server.tryShutdown(err => {
           if (err) {
-            logger.error('gRPC server shutdown error', { err });
+            logger.error('gRPC server shutdown error', {}, err);
           }
           try {
             applicationsClient.close();
             rescueClient.close();
             petsClient.close();
           } catch (closeErr) {
-            logger.error('cross-service client close error', { err: closeErr });
+            logger.error('cross-service client close error', {}, closeErr);
           }
           resolve();
         });

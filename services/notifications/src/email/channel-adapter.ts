@@ -17,7 +17,6 @@ import { randomUUID } from 'node:crypto';
 
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
-import type { Logger } from 'winston';
 
 import { subscribe, type SubscriptionHandle } from '@adopt-dont-shop/events';
 
@@ -25,6 +24,7 @@ import { loadNotificationPrefs, shouldDeliver } from '../preferences-gate.js';
 
 import { escapeHtml } from './escape-html.js';
 import { insertEmail } from './queue.js';
+import { type ServiceLogger } from '../logger.js';
 
 const DURABLE = 'notifications-email-channel';
 
@@ -67,7 +67,7 @@ type NotificationRowLite = {
 export type EmailChannelWorkerOptions = {
   pool: Pool;
   nats: NatsConnection;
-  logger: Logger;
+  logger: ServiceLogger;
   resolveRecipient: ResolveRecipient;
   fromEmail: string;
   fromName: string;
@@ -86,7 +86,7 @@ export const startEmailChannelWorker = (
     {
       subject: 'notifications.created',
       durable: DURABLE,
-      onError: err => opts.logger.error('email.channel.subscriber_error', { err }),
+      onError: err => opts.logger.error('email.channel.subscriber_error', {}, err),
     },
     async ev => {
       if (!ev.userId || !EMAIL_WORTHY_TYPES.has(ev.type)) {

@@ -25,7 +25,6 @@
 // a fresh notification_id per call.
 
 import type { NatsConnection } from 'nats';
-import type { Logger } from 'winston';
 
 import { subscribe, type SubscriptionHandle } from '@adopt-dont-shop/events';
 
@@ -56,11 +55,12 @@ import type {
 } from './event-types.js';
 import { SYSTEM_PRINCIPAL } from './system-principal.js';
 import { registerAuthEmailSubscribers, type AuthEmailConfig } from './auth-emails.js';
+import { type ServiceLogger } from '../logger.js';
 
 export type RegisterSubscribersOptions = {
   nats: NatsConnection;
   deps: HandlerDeps;
-  logger: Logger;
+  logger: ServiceLogger;
   // Cross-service clients for recipient discovery. Optional — when a
   // client is absent (its gRPC URL isn't configured) the corresponding
   // fan-out no-ops gracefully, exactly like Broadcast degrades without
@@ -145,10 +145,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
   const { nats, deps, logger, petsClient, rescueClient, authEmail } = opts;
 
   const onError = (err: unknown, ctx: { subject: string }): void => {
-    logger.error('subscriber handler failed', {
-      subject: ctx.subject,
-      err: (err as Error)?.message ?? String(err),
-    });
+    logger.error('subscriber handler failed', { subject: ctx.subject }, err);
   };
 
   const subscriptions: SubscriptionHandle[] = [];
@@ -220,11 +217,11 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
               perRecipientDedup('pets.statusChanged', meta, userId)
             );
           } catch (err) {
-            logger.warn('pets.statusChanged notification create failed', {
-              petId: payload.petId,
-              recipientUserId: userId,
-              err: (err as Error)?.message ?? String(err),
-            });
+            logger.warn(
+              'pets.statusChanged notification create failed',
+              { petId: payload.petId, recipientUserId: userId },
+              err
+            );
           }
         }
       }
@@ -273,11 +270,11 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
               perRecipientDedup('rescue.verified', meta, userId)
             );
           } catch (err) {
-            logger.warn('rescue.verified notification create failed', {
-              rescueId: payload.rescueId,
-              recipientUserId: userId,
-              err: (err as Error)?.message ?? String(err),
-            });
+            logger.warn(
+              'rescue.verified notification create failed',
+              { rescueId: payload.rescueId, recipientUserId: userId },
+              err
+            );
           }
         }
       }
@@ -306,11 +303,11 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
               perRecipientDedup('rescue.rejected', meta, userId)
             );
           } catch (err) {
-            logger.warn('rescue.rejected notification create failed', {
-              rescueId: payload.rescueId,
-              recipientUserId: userId,
-              err: (err as Error)?.message ?? String(err),
-            });
+            logger.warn(
+              'rescue.rejected notification create failed',
+              { rescueId: payload.rescueId, recipientUserId: userId },
+              err
+            );
           }
         }
       }
@@ -366,12 +363,11 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
               dedup
             );
           } catch (err) {
-            logger.warn('chat.messageCreated notification create failed', {
-              chatId: payload.chatId,
-              messageId: payload.messageId,
-              recipientUserId: userId,
-              err: (err as Error)?.message ?? String(err),
-            });
+            logger.warn(
+              'chat.messageCreated notification create failed',
+              { chatId: payload.chatId, messageId: payload.messageId, recipientUserId: userId },
+              err
+            );
           }
         }
       }
@@ -379,7 +375,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
   );
 
   logger.info('NATS subscribers registered', {
-    subjects: subscriptions.length,
+    count: subscriptions.length,
     durablePrefix: DURABLE_PREFIX,
   });
 

@@ -39,9 +39,10 @@ import { registerSubscribers } from './nats/subscribers.js';
 import { createPushProvider } from './push/providers/factory.js';
 import { startPushWorker, type RunningPushWorker } from './push/worker.js';
 import { createServer } from './server.js';
+import { LOG_FIELDS } from './logger.js';
 
 const main = async (): Promise<void> => {
-  const logger = createLogger({ serviceName: 'service.notifications' });
+  const logger = createLogger({ serviceName: 'service.notifications', fields: LOG_FIELDS });
 
   let nats: NatsConnection | undefined;
   let pool: Awaited<ReturnType<typeof createDbClient>> | undefined;
@@ -139,7 +140,7 @@ const main = async (): Promise<void> => {
       pool,
       service: 'notifications',
       erase: eraseNotifications,
-      onError: (err, subject) => logger.error('gdpr erasure subscriber error', { subject, err }),
+      onError: (err, subject) => logger.error('gdpr erasure subscriber error', { subject }, err),
     });
     // Email worker drains the email_queue table. Enabled by default;
     // tests + the migrations-only smoke set EMAIL_WORKER_ENABLED=false
@@ -259,7 +260,7 @@ const main = async (): Promise<void> => {
           runOnStart: false,
           run: async () => {
             const result = await runWeeklyDigest(digestDeps);
-            logger.info('weekly-digest complete', result);
+            logger.info('weekly-digest complete', { ...result });
           },
         });
       } else {
@@ -287,10 +288,10 @@ const main = async (): Promise<void> => {
     await httpServer.listen({ port: config.port, host: config.host });
 
     logger.info('service.notifications running', {
-      http: { port: config.port, host: config.host },
-      grpc: { port: grpc.port, host: config.host },
+      httpPort: config.port,
+      grpcPort: grpc.port,
+      host: config.host,
       schema: config.schema,
-      natsUrl: config.natsUrl,
       environment: config.environment,
     });
 
@@ -305,22 +306,22 @@ const main = async (): Promise<void> => {
       try {
         await emailWorker?.stop();
       } catch (err) {
-        logger.error('email worker stop error', { err });
+        logger.error('email worker stop error', {}, err);
       }
       try {
         await emailChannelWorker?.stop();
       } catch (err) {
-        logger.error('email channel worker stop error', { err });
+        logger.error('email channel worker stop error', {}, err);
       }
       try {
         await pushWorker?.stop();
       } catch (err) {
-        logger.error('push worker stop error', { err });
+        logger.error('push worker stop error', {}, err);
       }
       try {
         await scheduler?.stop();
       } catch (err) {
-        logger.error('scheduler stop error', { err });
+        logger.error('scheduler stop error', {}, err);
       }
       await teardown();
       process.exit(0);
@@ -334,7 +335,7 @@ const main = async (): Promise<void> => {
     // instead of crashing the process undrained under `restart: always`.
     installProcessErrorHandlers({ logger, onFatal: teardown });
   } catch (err) {
-    logger.error('service.notifications failed to start', { err });
+    logger.error('service.notifications failed to start', {}, err);
     try {
       await grpc?.shutdown();
     } catch {

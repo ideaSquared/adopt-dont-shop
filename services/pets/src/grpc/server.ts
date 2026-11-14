@@ -5,7 +5,7 @@ import { Server } from '@grpc/grpc-js';
 
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
-import type { Logger } from 'winston';
+import type { BaseLogger } from '@adopt-dont-shop/observability';
 
 import {
   startGrpcServer as startGrpcServerShared,
@@ -50,7 +50,7 @@ export type CreateGrpcServerOptions = {
   config: PetsConfig;
   pool: Pool;
   nats: NatsConnection;
-  logger: Logger;
+  logger: BaseLogger;
   // Injected in tests; defaults to a real client for config.rescueGrpcUrl.
   rescueClient?: RescueClient;
 };
@@ -91,33 +91,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     getViewsToday: adapt(getViewsToday, { deps, logger }),
   });
 
-  logger.info('gRPC PetService registered', {
-    methods: [
-      'create',
-      'get',
-      'list',
-      'update',
-      'updateStatus',
-      'delete',
-      'getStats',
-      'getAdoptionTrend',
-      'getAdoptionsByType',
-      'getTopRescuesByAdoptions',
-      'getTopBreedsByAdoptions',
-      'listFavoriters',
-      'addFavorite',
-      'removeFavorite',
-      'getFavoriteStatus',
-      'listUserFavorites',
-      'listFavoritesForUser',
-      'getSearchSuggestions',
-      'getPetFacets',
-      'getAdoptionStats',
-      'recordPetView',
-      'getViewsToday',
-    ],
-    grpcPort: config.grpcPort,
-  });
+  logger.info('gRPC PetService registered', { count: 22, grpcPort: config.grpcPort });
 
   return server;
 };

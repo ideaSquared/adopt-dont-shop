@@ -3,12 +3,11 @@
 // clients would have received. ADS-549-style guard lives in the
 // factory: production refuses 'console'.
 
-import type { createLogger } from '@adopt-dont-shop/observability';
-
 import type { PushProvider, PushSendRequest, PushSendResult } from '../types.js';
+import { type ServiceLogger } from '../../logger.js';
 
 export type ConsolePushDeps = {
-  logger: ReturnType<typeof createLogger>;
+  logger: ServiceLogger;
 };
 
 const generateMessageId = (): string =>
@@ -20,10 +19,6 @@ export const createConsolePushProvider = (deps: ConsolePushDeps): PushProvider =
     deps.logger.info('push.console.send', {
       messageId,
       platform: request.platform,
-      // Token preview only — never log the full token even in dev.
-      tokenPreview: `${request.token.slice(0, 10)}…`,
-      title: request.title,
-      body: request.body,
       hasData: Boolean(request.data && Object.keys(request.data).length),
     });
     return { success: true, messageId };

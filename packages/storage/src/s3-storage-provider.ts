@@ -116,11 +116,11 @@ export class S3StorageProvider implements StorageProvider {
 
       // Do not log `url` — for private categories the URL is a credential-equivalent
       // identifier. Key + size are enough for ops correlation.
-      this.logger.info('File uploaded to S3', { key, size: file.length, category });
+      this.logger.info('file uploaded to S3', { key, size: file.length, category });
 
       return { url, filename, size: file.length };
     } catch (error) {
-      this.logger.error('Failed to upload file to S3:', error);
+      this.logger.error('failed to upload file to S3', { key, category }, error);
       throw error;
     }
   }
@@ -135,9 +135,9 @@ export class S3StorageProvider implements StorageProvider {
           Key: key,
         })
       );
-      this.logger.info(`File deleted from S3: ${key}`);
+      this.logger.info('file deleted from S3', { key });
     } catch (error) {
-      this.logger.error('Failed to delete file from S3:', error);
+      this.logger.error('failed to delete file from S3', { key }, error);
       throw error;
     }
   }
@@ -164,7 +164,7 @@ export class S3StorageProvider implements StorageProvider {
       if (S3StorageProvider.isNotFoundError(error)) {
         return { exists: false };
       }
-      this.logger.error('S3 HeadObject failed:', error);
+      this.logger.error('S3 HeadObject failed', { key }, error);
       throw error;
     }
   }

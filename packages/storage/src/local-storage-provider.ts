@@ -57,11 +57,10 @@ export class LocalStorageProvider implements StorageProvider {
 
       const url = `${this.publicPath}/${relativePath.replace(/\\/g, '/')}`;
 
-      this.logger.info(`File uploaded locally: ${filename}`, {
-        originalName,
+      this.logger.info('file uploaded locally', {
+        key: relativePath,
         size: processedBuffer.length,
         category,
-        url,
       });
 
       return {
@@ -70,7 +69,7 @@ export class LocalStorageProvider implements StorageProvider {
         size: processedBuffer.length,
       };
     } catch (error) {
-      this.logger.error('Failed to upload file to local storage:', error);
+      this.logger.error('failed to upload file to local storage', { category }, error);
       throw error;
     }
   }
@@ -98,7 +97,7 @@ export class LocalStorageProvider implements StorageProvider {
 
       return buffer;
     } catch (error) {
-      this.logger.warn('Image processing failed, using original:', error);
+      this.logger.warn('image processing failed, using original', {}, error);
       return buffer;
     }
   }
@@ -110,9 +109,9 @@ export class LocalStorageProvider implements StorageProvider {
     try {
       const filePath = path.join(this.uploadDir, category, filename);
       await fs.remove(filePath);
-      this.logger.info(`File deleted: ${filename}`);
+      this.logger.info('file deleted locally', { key: `${category}/${filename}` });
     } catch (error) {
-      this.logger.error('Failed to delete file:', error);
+      this.logger.error('failed to delete local file', { key: `${category}/${filename}` }, error);
       throw error;
     }
   }

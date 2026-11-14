@@ -17,7 +17,12 @@
 // leaves it unset to (re)populate on demand.
 
 import { createDbClient } from '@adopt-dont-shop/db';
-import { createLogger } from '@adopt-dont-shop/observability';
+import {
+  BASE_LOG_FIELDS,
+  createLogger,
+  flushLogs,
+  type Logger,
+} from '@adopt-dont-shop/observability';
 import {
   assertSpamAllowed,
   bulkInsert,
@@ -29,6 +34,9 @@ import {
 import bcrypt from 'bcryptjs';
 
 import { loadConfig } from '../config.js';
+
+const SPAM_LOG_FIELDS = [...BASE_LOG_FIELDS, 'adopters', 'staff', 'seeded'] as const;
+type SpamLogger = Pick<Logger<(typeof SPAM_LOG_FIELDS)[number]>, 'info'>;
 
 const BCRYPT_ROUNDS = 12;
 const SPAM_PASSWORD = process.env.SPAM_PASSWORD ?? 'DevPassword123!';
@@ -144,15 +152,15 @@ export const runSpam = async (deps: {
   query: QueryFn;
   faker: Faker;
   hash: (password: string) => Promise<string>;
-  log?: (message: string, meta?: Record<string, unknown>) => void;
+  logger?: SpamLogger;
 }): Promise<{ seeded: boolean; adopters: number; staff: number }> => {
   if (!(await shouldSeed(() => anchorExists(deps.query)))) {
-    deps.log?.('auth users already populated — skipping (SEED_ONLY_IF_EMPTY)');
+    deps.logger?.info('auth users already populated — skipping (SEED_ONLY_IF_EMPTY)');
     return { seeded: false, adopters: 0, staff: 0 };
   }
   const adopters = spamCount('ADOPTERS', 50);
   const staff = spamCount('STAFF', 20);
-  deps.log?.('spamming auth users', { adopters, staff });
+  deps.logger?.info('spamming auth users', { adopters, staff });
   const passwordHash = await deps.hash(SPAM_PASSWORD);
   const result = await spamUsers({
     query: deps.query,
@@ -165,7 +173,7 @@ export const runSpam = async (deps: {
 };
 
 const main = async (): Promise<void> => {
-  const logger = createLogger({ serviceName: 'service.auth.spam' });
+  const logger = createLogger({ serviceName: 'service.auth.spam', fields: SPAM_LOG_FIELDS });
   assertSpamAllowed();
   const config = loadConfig();
   const pool = createDbClient({ connectionString: config.databaseUrl, schema: config.schema });
@@ -174,15 +182,12 @@ const main = async (): Promise<void> => {
       query: (text, values) => pool.query(text, values as unknown[]),
       faker: createSpamFaker(),
       hash: password => bcrypt.hash(password, BCRYPT_ROUNDS),
-      log: (message, meta) => logger.info(message, meta),
+      logger,
     });
     logger.info('auth spam complete', result);
   } catch (err) {
-    logger.error('auth spam failed', {
-      message: (err as Error)?.message,
-      stack: (err as Error)?.stack,
-    });
-    console.error(err);
+    logger.error('auth spam failed', {}, err);
+    await flushLogs();
     process.exitCode = 1;
   } finally {
     await pool.end();

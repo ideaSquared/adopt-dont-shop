@@ -1,24 +1,16 @@
 import type { NatsConnection } from 'nats';
 import type { Socket } from 'socket.io';
-import type { Logger } from 'winston';
 import { describe, expect, it, vi } from 'vitest';
 
 import { registerNotificationSubscribers } from './notifications-subscriber.js';
 import { SocketRegistry } from './socket-registry.js';
+import { makeTestLogger } from '../../test/helpers/test-logger.js';
 
 function fakeSocket(): Socket & { emit: ReturnType<typeof vi.fn> } {
   return { emit: vi.fn() } as unknown as Socket & { emit: ReturnType<typeof vi.fn> };
 }
 
-function quietLogger(): Logger {
-  return {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    silly: vi.fn(),
-  } as unknown as Logger;
-}
+const quietLogger = () => makeTestLogger().logger;
 
 type AddedConsumer = { durable_name?: string; filter_subject?: string; deliver_policy?: string };
 

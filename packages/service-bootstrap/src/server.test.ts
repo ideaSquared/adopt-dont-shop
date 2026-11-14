@@ -1,19 +1,19 @@
 import { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { BASE_LOG_FIELDS, createLogger, memorySink } from '@adopt-dont-shop/observability';
+
 import { createMicroserviceServer } from './server.js';
 
 type MinimalConfig = {
   environment: string;
 };
 
-const quietLogger = {
-  info: () => undefined,
-  error: () => undefined,
-  warn: () => undefined,
-  debug: () => undefined,
-  silly: () => undefined,
-} as unknown as ReturnType<typeof import('@adopt-dont-shop/observability').createLogger>;
+const quietLogger = createLogger({
+  serviceName: 'test',
+  fields: BASE_LOG_FIELDS,
+  sink: memorySink(),
+});
 
 const baseConfig: MinimalConfig = {
   environment: 'test',
@@ -274,16 +274,8 @@ describe('createMicroserviceServer — Sentry initialization (ADS-1041)', () => 
     // initialize Sentry". The /sentry/i matcher below covers all three, so this
     // proves the boot path now invokes initializeSentry (the call site it was
     // missing) regardless of NODE_ENV / SENTRY_DSN, without reaching into the SDK.
-    const infoMessages: string[] = [];
-    const capturingLogger = {
-      info: (msg: string) => {
-        infoMessages.push(msg);
-      },
-      error: () => undefined,
-      warn: () => undefined,
-      debug: () => undefined,
-      silly: () => undefined,
-    } as unknown as ReturnType<typeof import('@adopt-dont-shop/observability').createLogger>;
+    const sink = memorySink();
+    const capturingLogger = createLogger({ serviceName: 'test', fields: BASE_LOG_FIELDS, sink });
 
     const server = createMicroserviceServer({
       serviceName: 'service.test',
@@ -291,7 +283,7 @@ describe('createMicroserviceServer — Sentry initialization (ADS-1041)', () => 
       logger: capturingLogger,
     });
     try {
-      expect(infoMessages.some(msg => /sentry/i.test(msg))).toBe(true);
+      expect(sink.events.some(event => /sentry/i.test(event.message))).toBe(true);
     } finally {
       await server.close();
     }
