@@ -1,56 +1,118 @@
 # CODEOWNERS
 #
-# Teams are not yet created on the org. Once the following teams exist,
-# replace @paragonjenko in the matching sections with the team handle:
+# Every directory is listed separately so ownership can be split later
+# without restructuring. Today the whole repo belongs to one team.
 #
-#   @adopt-dont-shop/backend   → /services/, backend-facing packages
-#   @adopt-dont-shop/frontend  → /apps/, /packages/lib.components/
-#   @adopt-dont-shop/libs      → all other /packages/lib.*/
-#   @adopt-dont-shop/infra     → /.github/, Docker/nginx/CI files
-#
-# See ADS-392: https://linear.app/ideasquared/issue/ADS-392
-#
-# When teams exist, also configure branch protection on `main` to require
-# a review from the relevant CODEOWNERS team (repo Settings → Branches).
+# Also configure branch protection on `main` to require a review from the
+# CODEOWNERS team (repo Settings → Branches).
 
 # ──────────────────────────────────────────────
 # Global fallback — catches anything not matched below
 # ──────────────────────────────────────────────
-*                           @paragonjenko
+*  @ideaSquared/adoptdontshop
 
 # ──────────────────────────────────────────────
 # Frontend apps
-# Future owner: @adopt-dont-shop/frontend
 # ──────────────────────────────────────────────
-/apps/                      @paragonjenko
+/apps/         @ideaSquared/adoptdontshop
+/apps/admin/   @ideaSquared/adoptdontshop
+/apps/client/  @ideaSquared/adoptdontshop
+/apps/rescue/  @ideaSquared/adoptdontshop
 
 # ──────────────────────────────────────────────
 # Backend services
-# Future owner: @adopt-dont-shop/backend
 # ──────────────────────────────────────────────
-/services/                  @paragonjenko
+/services/                @ideaSquared/adoptdontshop
+/services/applications/   @ideaSquared/adoptdontshop
+/services/audit/          @ideaSquared/adoptdontshop
+/services/auth/           @ideaSquared/adoptdontshop
+/services/chat/           @ideaSquared/adoptdontshop
+/services/cms/            @ideaSquared/adoptdontshop
+/services/gateway/        @ideaSquared/adoptdontshop
+/services/matching/       @ideaSquared/adoptdontshop
+/services/moderation/     @ideaSquared/adoptdontshop
+/services/notifications/  @ideaSquared/adoptdontshop
+/services/ops/            @ideaSquared/adoptdontshop
+/services/pets/           @ideaSquared/adoptdontshop
+/services/rescue/         @ideaSquared/adoptdontshop
 
 # ──────────────────────────────────────────────
 # Shared packages
-# Future owner: @adopt-dont-shop/frontend (packages/lib.components)
-#               @adopt-dont-shop/backend  (packages/lib.types, packages/lib.validation)
-#               @adopt-dont-shop/libs     (all others)
 # ──────────────────────────────────────────────
-/packages/                  @paragonjenko
+/packages/                      @ideaSquared/adoptdontshop
+/packages/authz/                @ideaSquared/adoptdontshop
+/packages/config-secrets/       @ideaSquared/adoptdontshop
+/packages/db/                   @ideaSquared/adoptdontshop
+/packages/eslint-config-base/   @ideaSquared/adoptdontshop
+/packages/eslint-config-node/   @ideaSquared/adoptdontshop
+/packages/eslint-config-react/  @ideaSquared/adoptdontshop
+/packages/events/               @ideaSquared/adoptdontshop
+/packages/lib.account/          @ideaSquared/adoptdontshop
+/packages/lib.analytics/        @ideaSquared/adoptdontshop
+/packages/lib.api/              @ideaSquared/adoptdontshop
+/packages/lib.applications/     @ideaSquared/adoptdontshop
+/packages/lib.audit-logs/       @ideaSquared/adoptdontshop
+/packages/lib.auth/             @ideaSquared/adoptdontshop
+/packages/lib.av-scan/          @ideaSquared/adoptdontshop
+/packages/lib.chat/             @ideaSquared/adoptdontshop
+/packages/lib.components/       @ideaSquared/adoptdontshop
+/packages/lib.dev-tools/        @ideaSquared/adoptdontshop
+/packages/lib.discovery/        @ideaSquared/adoptdontshop
+/packages/lib.feature-flags/    @ideaSquared/adoptdontshop
+/packages/lib.invitations/      @ideaSquared/adoptdontshop
+/packages/lib.legal/            @ideaSquared/adoptdontshop
+/packages/lib.matching/         @ideaSquared/adoptdontshop
+/packages/lib.moderation/       @ideaSquared/adoptdontshop
+/packages/lib.notifications/    @ideaSquared/adoptdontshop
+/packages/lib.observability/    @ideaSquared/adoptdontshop
+/packages/lib.permissions/      @ideaSquared/adoptdontshop
+/packages/lib.pets/             @ideaSquared/adoptdontshop
+/packages/lib.rescue/           @ideaSquared/adoptdontshop
+/packages/lib.search/           @ideaSquared/adoptdontshop
+/packages/lib.support-tickets/  @ideaSquared/adoptdontshop
+/packages/lib.types/            @ideaSquared/adoptdontshop
+/packages/lib.utils/            @ideaSquared/adoptdontshop
+/packages/lib.validation/       @ideaSquared/adoptdontshop
+/packages/observability/        @ideaSquared/adoptdontshop
+/packages/ops-cli/              @ideaSquared/adoptdontshop
+/packages/ops-contract/         @ideaSquared/adoptdontshop
+/packages/proto/                @ideaSquared/adoptdontshop
+/packages/scheduler/            @ideaSquared/adoptdontshop
+/packages/seed-faker/           @ideaSquared/adoptdontshop
+/packages/service-bootstrap/    @ideaSquared/adoptdontshop
+/packages/storage/              @ideaSquared/adoptdontshop
+/packages/test-utils/           @ideaSquared/adoptdontshop
 
 # ──────────────────────────────────────────────
 # Infrastructure & CI
-# Future owner: @adopt-dont-shop/infra
 # ──────────────────────────────────────────────
-/.github/                   @paragonjenko
-/docker-compose*.yml        @paragonjenko
-/Dockerfile*                @paragonjenko
-/nginx/                     @paragonjenko
-/turbo.json                 @paragonjenko
+/.github/             @ideaSquared/adoptdontshop
+/docker-compose*.yml  @ideaSquared/adoptdontshop
+/Dockerfile*          @ideaSquared/adoptdontshop
+/nginx/               @ideaSquared/adoptdontshop
+/turbo.json           @ideaSquared/adoptdontshop
+/deploy/              @ideaSquared/adoptdontshop
+/infra/               @ideaSquared/adoptdontshop
+/observability/       @ideaSquared/adoptdontshop
+/secrets/             @ideaSquared/adoptdontshop
+/pacts/               @ideaSquared/adoptdontshop
+
+# ──────────────────────────────────────────────
+# Testing and scripts
+# ──────────────────────────────────────────────
+/e2e/      @ideaSquared/adoptdontshop
+/scripts/  @ideaSquared/adoptdontshop
+
+# ──────────────────────────────────────────────
+# Developer tooling
+# ──────────────────────────────────────────────
+/.claude/        @ideaSquared/adoptdontshop
+/.devcontainer/  @ideaSquared/adoptdontshop
+/.husky/         @ideaSquared/adoptdontshop
+/.vscode/        @ideaSquared/adoptdontshop
 
 # ──────────────────────────────────────────────
 # Documentation
-# Future owner: @adopt-dont-shop/infra (or whole-team)
 # ──────────────────────────────────────────────
-/docs/                      @paragonjenko
-/README.md                  @paragonjenko
+/docs/      @ideaSquared/adoptdontshop
+/README.md  @ideaSquared/adoptdontshop
