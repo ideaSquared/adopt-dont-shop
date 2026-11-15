@@ -22,6 +22,7 @@ import { createMethodResolver } from './proto-methods.js';
 import { createServer } from './server.js';
 import { createUnlocksService } from './unlocks.js';
 import { LOG_FIELDS } from './logger.js';
+import { createSharedOpsHandler } from './shared-ops.js';
 
 const main = async (): Promise<void> => {
   const logger = createLogger({ serviceName: 'service.ops', fields: LOG_FIELDS });
@@ -42,10 +43,11 @@ const main = async (): Promise<void> => {
     const store = createPgStore(pool, nats);
     const now = (): Date => new Date();
     const grpc = createGrpcCaller(config.grpcTargets);
+    const github =
+      config.github === null ? null : createGithubClient({ fetchFn: fetch, ...config.github });
     const auth = createAuthService({
       store,
-      github:
-        config.github === null ? null : createGithubClient({ fetchFn: fetch, ...config.github }),
+      github,
       localLoginEnabled: config.authMode === 'local',
       sessionTtlHours: config.sessionTtlHours,
       now,
@@ -79,6 +81,16 @@ const main = async (): Promise<void> => {
       unlocks,
       store,
       schema: PROTO_SCHEMA,
+      sharedOps: createSharedOpsHandler({
+        env: config.env,
+        schema: PROTO_SCHEMA,
+        store,
+        invoke,
+        github,
+        fetchFn: fetch,
+        now,
+        logger,
+      }),
       now,
       readiness: { pool, nats },
     });

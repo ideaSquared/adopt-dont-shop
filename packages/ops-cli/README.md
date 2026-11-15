@@ -275,6 +275,13 @@ and `pnpm ops logout` revokes them. Staging and prod sign in with a GitHub devic
 membership of the environment's ops team. History keeps only the command line you typed, never
 responses.
 
+## `eng ops ads`
+
+`pnpm ops` is the full tool. The same `service.ops` also serves the shared `@ideasquared/ops` contract at `/ops/v1`
+so `eng ops ads` can use it with just `gh auth token`: reads, previews and (outside prod) writes of the registry's
+commands. Unlocks, history, `demo.*` and prod writes are not available there, and masked output stays masked. Details:
+`docs/runbooks/ops-cli.md`.
+
 ## Troubleshooting
 
 Run `pnpm ops doctor`. It checks, in order, and stops short with a next step:

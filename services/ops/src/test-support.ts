@@ -24,6 +24,7 @@ import { createGithubClient } from './github.js';
 import { createInvokeService } from './invoke.js';
 import { createMethodResolver, type GrpcCall, type GrpcResult } from './proto-methods.js';
 import { createServer } from './server.js';
+import { createSharedOpsHandler } from './shared-ops.js';
 import type {
   HistoryRecord,
   OperatorRecord,
@@ -270,6 +271,16 @@ export const makeHarness = (opts: HarnessOptions = {}) => {
     logger: SILENT_LOGGER,
     newId: randomUUID,
   });
+  const sharedOps = createSharedOpsHandler({
+    env,
+    schema: PROTO_SCHEMA,
+    store,
+    invoke,
+    github,
+    fetchFn,
+    now,
+    logger: SILENT_LOGGER,
+  });
   const app = createServer({
     config: { env, nodeEnv: 'test', authMode },
     logger: SILENT_LOGGER,
@@ -278,6 +289,7 @@ export const makeHarness = (opts: HarnessOptions = {}) => {
     unlocks,
     store,
     schema: PROTO_SCHEMA,
+    sharedOps,
     now,
   });
 

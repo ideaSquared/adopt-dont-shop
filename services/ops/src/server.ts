@@ -15,6 +15,7 @@ import {
   WhoamiResponseSchema,
 } from '@adopt-dont-shop/ops-contract';
 import type { ProtoSchema } from '@adopt-dont-shop/proto';
+import type { OpsHandler } from '@ideasquared/ops';
 
 import type { AuthContext, AuthService } from './auth.js';
 import { buildCatalog } from './catalog.js';
@@ -24,6 +25,7 @@ import type { InvokeService } from './invoke.js';
 import type { OpsStore } from './store.js';
 import type { UnlocksService } from './unlocks.js';
 import { type ServiceLogger } from './logger.js';
+import { SHARED_OPS_BASE_PATH } from './shared-ops.js';
 
 export type OpsServerDeps = {
   config: Pick<OpsConfig, 'env' | 'nodeEnv' | 'authMode'>;
@@ -33,6 +35,8 @@ export type OpsServerDeps = {
   unlocks: UnlocksService;
   store: OpsStore;
   schema: ProtoSchema;
+  // The shared @ideasquared/ops contract, served under /ops/v1 beside the /v1 API.
+  sharedOps?: OpsHandler;
   now: () => Date;
   isReady?: () => boolean;
   readiness?: ReadinessDeps;
@@ -64,6 +68,37 @@ export const createServer = (deps: OpsServerDeps): FastifyInstance => {
   server.setNotFoundHandler((_req, reply) =>
     sendError(reply, new OpsError('NOT_FOUND', 'No such route', 'Routes live under /v1.'))
   );
+
+  const { sharedOps } = deps;
+  if (sharedOps !== undefined) {
+    // Its own plugin: the /v1 env-header hook and error handler must not apply, and the body is kept as text so
+    // the handler (not fastify) answers a malformed one in the contract's error shape.
+    server.register(async shared => {
+      shared.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) =>
+        done(null, body)
+      );
+      shared.route({
+        method: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+        url: `${SHARED_OPS_BASE_PATH}/*`,
+        handler: async (req, reply) => {
+          const hasBody = typeof req.body === 'string' && req.method !== 'GET';
+          const response = await sharedOps(
+            new Request(`http://${req.headers.host ?? 'localhost'}${req.url}`, {
+              method: req.method,
+              headers: Object.entries(req.headers).flatMap(([k, v]) =>
+                typeof v === 'string' ? [[k, v] as [string, string]] : []
+              ),
+              ...(hasBody ? { body: String(req.body) } : {}),
+            }),
+            SHARED_OPS_BASE_PATH
+          );
+          reply.status(response.status);
+          response.headers.forEach((value, key) => reply.header(key, value));
+          return reply.send(await response.text());
+        },
+      });
+    });
+  }
 
   server.register(async api => {
     // Every error on the HTTP surface is an ErrorResponse, including framework

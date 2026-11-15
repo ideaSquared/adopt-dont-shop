@@ -45,6 +45,12 @@ export type DeviceCode = {
 
 export type GithubIdentity = { login: string; githubId: number; name: string | null };
 
+// The verdict on a GitHub token presented directly (no device flow): who it belongs to and whether they are an
+// active member of the ops team. Same lookups, same rules as the device flow.
+export type TokenAccess =
+  | { outcome: 'unauthenticated' }
+  | { outcome: 'allowed' | 'denied'; identity: GithubIdentity };
+
 export type DevicePollResult =
   | { status: 'pending' }
   | { status: 'slow_down'; interval: number }
@@ -143,6 +149,21 @@ export const createGithubClient = ({ fetchFn, clientId, org, team }: GithubClien
     return parsed.data.state === 'active';
   };
 
+  const authorizeToken = async (token: string): Promise<TokenAccess> => {
+    const identity = await fetchIdentity(token).catch((err: unknown) => {
+      if (err instanceof OpsError && err.code === 'UNAUTHENTICATED') {
+        return null;
+      }
+      throw err;
+    });
+    if (identity === null) {
+      return { outcome: 'unauthenticated' };
+    }
+    return (await isActiveTeamMember(token, identity.login))
+      ? { outcome: 'allowed', identity }
+      : { outcome: 'denied', identity };
+  };
+
   const poll = async (deviceCode: string): Promise<DevicePollResult> => {
     const parsed = TokenResponseSchema.safeParse(
       await postForm(ACCESS_TOKEN_URL, {
@@ -182,7 +203,7 @@ export const createGithubClient = ({ fetchFn, clientId, org, team }: GithubClien
     }
   };
 
-  return { start, poll };
+  return { start, poll, authorizeToken };
 };
 
 export type GithubClient = ReturnType<typeof createGithubClient>;

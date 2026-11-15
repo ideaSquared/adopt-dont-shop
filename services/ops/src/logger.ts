@@ -4,6 +4,7 @@ import { BASE_LOG_FIELDS, type Logger } from '@adopt-dont-shop/observability';
 export const LOG_FIELDS = [
   ...BASE_LOG_FIELDS,
   'operatorId',
+  'command',
   'rpc',
   'kind',
   'mode',
