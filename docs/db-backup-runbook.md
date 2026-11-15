@@ -55,9 +55,9 @@ options; nothing in this repo currently archives WAL.
 
 ## Schedule
 
-> **Paused until production launches.** `/opt/ads/production` has no stack yet, so the
-> nightly backup and restore drill schedules are commented out in their workflows; run them by
-> hand (`gh workflow run backup.yml`) if needed, and uncomment both `schedule:` blocks at launch.
+> **Off until production launches.** `/opt/ads/production` has no stack yet, so the backup
+> and restore-drill jobs only run when the repo variable `BACKUPS_ENABLED` is `true`; otherwise
+> the nightly runs skip quietly. At launch: `gh variable set BACKUPS_ENABLED --body true`.
 
 | Job                                          | Cadence                     | Retention                       |
 | -------------------------------------------- | --------------------------- | ------------------------------- |

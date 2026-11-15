@@ -46,10 +46,8 @@ name: Backup Restore Drill
 # environment table and .github/workflows/README.md.
 
 on:
-  # Paused until production launches: /opt/ads/production has no stack yet (only the landing page),
-  # so every nightly run failed and alerted. Uncomment the schedule when production goes live.
-  # schedule:
-  #   - cron: '30 3 * * *' # after backup.yml's 02:00 UTC snapshot has uploaded
+  schedule:
+    - cron: '30 3 * * *' # after backup.yml's 02:00 UTC snapshot has uploaded
   workflow_dispatch: {}
 
 concurrency:
@@ -61,6 +59,8 @@ permissions:
 
 jobs:
   restore-drill:
+    # Off until production launches: set the repo variable BACKUPS_ENABLED=true to turn it on.
+    if: vars.BACKUPS_ENABLED == 'true'
     name: Restore latest Postgres snapshot into a scratch DB
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -154,6 +154,8 @@ jobs:
         run: docker compose -f "$COMPOSE_FILE" down -v
 
   restore-drill-uploads:
+    # Off until production launches: set the repo variable BACKUPS_ENABLED=true to turn it on.
+    if: vars.BACKUPS_ENABLED == 'true'
     name: Restore latest uploads snapshot to a temp directory
     runs-on: ubuntu-latest
     timeout-minutes: 30

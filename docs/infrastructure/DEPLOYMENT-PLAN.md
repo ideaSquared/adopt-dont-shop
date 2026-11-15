@@ -262,7 +262,7 @@ For the production launch. Pre-launch setup is covered by [PRE-LAUNCH-SETUP.md](
 - [ ] The production stack boots and serves end to end: `Production Image Smoke` is green on `main`, or run `pnpm smoke:prod` locally (see [testing.md](../testing.md#production-smoke-test))
 - [ ] GitHub environments created: `staging`, `production`, `production-bypass` (reviewers + prevent self-review on the latter two)
 - [ ] `staging-vars` / `production-vars` environments created, **no** required reviewers, each with `VITE_API_BASE_URL`, `VITE_WS_BASE_URL`, `VITE_SENTRY_DSN`, `VITE_STATSIG_CLIENT_KEY` set to that target's values (ADS-1318)
-- [ ] Infra secrets added: `NETCUP_HOST`, `NETCUP_HOST_FINGERPRINT`, `NETCUP_SSH_KEY`, `GHCR_TOKEN` (**`read:packages` only**); repo variables `BACKUP_BUCKET`, `AWS_REGION`; optional `DISCORD_WEBHOOK_URL` secret for deploy failure notifications (ADS-1324)
+- [ ] Infra secrets added: `NETCUP_HOST`, `NETCUP_HOST_FINGERPRINT`, `NETCUP_SSH_KEY`, `GHCR_TOKEN` (**`read:packages` only**); `ALERT_SECRET` (same value as on the ideasquared-bot Worker) so deploy, backup and smoke failures alert in the ADS Discord channel (ADS-1324)
 - [ ] Seven application secrets added: `JWT_SECRET`, `JWT_REFRESH_SECRET`, `ENCRYPTION_KEY`, `UPLOAD_SIGNING_SECRET`, `DB_PASSWORD`, `PRINCIPAL_SIGNING_KEY`, `NATS_AUTH_TOKEN`; optional build-time `SENTRY_AUTH_TOKEN` (ADS-1319)
 - [ ] Host hardened (updates, ufw 22/80/443, key-only SSH, no root login, swap) — see [PRE-LAUNCH-SETUP.md](./PRE-LAUNCH-SETUP.md) steps 4–7
 - [ ] Host provisioned, `deploy` user + Docker installed, `/opt/ads/*` created
@@ -278,4 +278,12 @@ For the production launch. Pre-launch setup is covered by [PRE-LAUNCH-SETUP.md](
 - [ ] First deploy: `make prod` (approve in the Actions UI); with staging, `make staging` first and verify end-to-end
 - [ ] Certificate issued and edge gateway started — see "DNS & TLS" (after the first deploy: the gateway joins the network it creates)
 - [ ] First `super_admin` created with `node dist/db/bootstrap-admin.js` — see "First super_admin" (without one nobody can verify rescues)
-- [ ] Backups configured (`BACKUP_BUCKET`/`AWS_REGION` + host AWS credentials) — until then the nightly `backup.yml` run fails
+- [ ] **Backups (Cloudflare R2)** — see [db-backup-runbook.md](../db-backup-runbook.md#using-cloudflare-r2):
+  - [ ] R2 bucket created (EU jurisdiction), with lifecycle rules (`postgres/` 30 days, `uploads/` 90, `nats/` 14) and a bucket lock rule
+  - [ ] Repo variables `BACKUP_BUCKET`, `AWS_REGION=auto`, `BACKUP_ENDPOINT_URL=https://<account id>.eu.r2.cloudflarestorage.com`
+  - [ ] `backups` environment holds `NETCUP_HOST`, `NETCUP_SSH_KEY`, `NETCUP_HOST_FINGERPRINT`; for the restore drill, `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (the R2 token)
+  - [ ] On the host: AWS CLI v2.13+ installed system-wide, and `aws configure` run **as `deploy`** with the R2 token and region `auto`
+  - [ ] Turn backups on: `gh variable set BACKUPS_ENABLED --body true`, then run `backup.yml` once by hand and check `postgres/`, `uploads/` and `nats/` appear in the bucket
+- [ ] **Alerts reach Discord** — deploy the observability overlay, then fire a test alert through Alertmanager (`scripts/observability-fire-test-alert.sh warning`, see [observability-enable.md](../runbooks/observability-enable.md)) and confirm it posts in the ADS channel with `@everyone`; resolved alerts post without a ping
+- [ ] **ClamAV healthy after the first deploy** — `docker inspect ads_prod_clamav --format 'OOMKilled={{.State.OOMKilled}} health={{.State.Health.Status}}'` shows `OOMKilled=false health=healthy` (its signature reloads need up to 3 GB; keep the swap file)
+- [ ] **Old Discord webhooks gone** — delete the `OPS_DISCORD_WEBHOOK_URL` / `DISCORD_WEBHOOK_URL` repo secrets and any `discord_webhook_url_*` files under `observability/alertmanager/secrets/` on the host
