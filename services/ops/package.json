@@ -48,7 +48,7 @@
     "@adopt-dont-shop/proto": "workspace:*",
     "@adopt-dont-shop/service-bootstrap": "workspace:*",
     "@grpc/grpc-js": "^1.14.5",
-    "@ideasquared/ops": "file:/home/user/wt-ops-authz/packages/ops",
+    "@ideasquared/ops": "https://github.com/ideaSquared/agent-idea/releases/download/ops-v0.2.0/ideasquared-ops-0.2.0.tgz",
     "fastify": "^5.12.5",
     "nats": "^2.29.3",
     "node-pg-migrate": "^8.0.4",

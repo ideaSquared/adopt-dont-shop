@@ -16,8 +16,8 @@ dev:    pnpm ops  ──HTTP──►  127.0.0.1:4100 (compose publishes it dire
 | Environment | Host loopback port (VPS) | CLI reaches it via                             | GitHub team (`OPS_GITHUB_TEAM` in that host's `.env`) |
 | ----------- | ------------------------ | ---------------------------------------------- | ----------------------------------------------------- |
 | dev         | `127.0.0.1:4100`         | direct `http://127.0.0.1:4100`, no login       | none (`OPS_AUTH_MODE=local`)                          |
-| staging     | `127.0.0.1:4101`         | `ssh -N -L 14101:127.0.0.1:4101 <user>@<host>` | the staging ops team                                  |
-| prod        | `127.0.0.1:4102`         | `ssh -N -L 14102:127.0.0.1:4102 <user>@<host>` | the production ops team                               |
+| staging     | `127.0.0.1:4101`         | `ssh -N -L 14101:127.0.0.1:4101 <user>@<host>` | `adoptdontshop`                                       |
+| prod        | `127.0.0.1:4102`         | `ssh -N -L 14102:127.0.0.1:4102 <user>@<host>` | `adoptdontshop`                                       |
 
 `service-ops` is never behind nginx or the edge gateway. If you ever see it in `nginx/` or `deploy/gateway/`, remove it.
 
@@ -48,7 +48,7 @@ $EDITOR .env
 ```
 OPS_GITHUB_CLIENT_ID=<client id from step 1>
 OPS_GITHUB_ORG=ideaSquared
-OPS_GITHUB_TEAM=ops-staging          # ops-production in /opt/ads/production
+OPS_GITHUB_TEAM=adoptdontshop        # the ADS product team, in both /opt/ads/staging and /opt/ads/production
 ```
 
 **Set these before the first deploy that includes `service-ops`.** In `github` auth mode the service refuses to boot without all three, and `deploy.yml` stops before `up -d` if any is missing from the host `.env`. A deploy that got past that check with bad values would leave `service-ops` crash-looping and fail the health gate.

@@ -2399,8 +2399,8 @@ importers:
         specifier: ^1.14.5
         version: 1.14.5
       '@ideasquared/ops':
-        specifier: file:/home/user/wt-ops-authz/packages/ops
-        version: file:../wt-ops-authz/packages/ops
+        specifier: https://github.com/ideaSquared/agent-idea/releases/download/ops-v0.2.0/ideasquared-ops-0.2.0.tgz
+        version: https://github.com/ideaSquared/agent-idea/releases/download/ops-v0.2.0/ideasquared-ops-0.2.0.tgz
       fastify:
         specifier: ^5.12.5
         version: 5.12.5
@@ -3773,8 +3773,9 @@ packages:
     resolution: {integrity: sha512-3Tg2K14xin6bHZXy8ppttvxgzQgiMvzKndaH9SoMRmG1kknJm4pEo//QOIGYvL9DtLq8squkHGuXJps2tStnQA==, tarball: https://github.com/ideaSquared/agent-idea/releases/download/log-v0.1.1/ideasquared-log-0.1.1.tgz}
     version: 0.1.1
 
-  '@ideasquared/ops@file:../wt-ops-authz/packages/ops':
-    resolution: {directory: ../wt-ops-authz/packages/ops, type: directory}
+  '@ideasquared/ops@https://github.com/ideaSquared/agent-idea/releases/download/ops-v0.2.0/ideasquared-ops-0.2.0.tgz':
+    resolution: {integrity: sha512-N5dsruT+CAqDe6MoFdhWnB3YUtwqDZpNbWMFYMnzyb0IaUCDofWJMPWEEii5YL7/9PZjVRh/UQyPYF8sHG0R0g==, tarball: https://github.com/ideaSquared/agent-idea/releases/download/ops-v0.2.0/ideasquared-ops-0.2.0.tgz}
+    version: 0.2.0
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -11486,7 +11487,7 @@ snapshots:
 
   '@ideasquared/log@https://github.com/ideaSquared/agent-idea/releases/download/log-v0.1.1/ideasquared-log-0.1.1.tgz': {}
 
-  '@ideasquared/ops@file:../wt-ops-authz/packages/ops':
+  '@ideasquared/ops@https://github.com/ideaSquared/agent-idea/releases/download/ops-v0.2.0/ideasquared-ops-0.2.0.tgz':
     dependencies:
       zod: 4.6.7
 
