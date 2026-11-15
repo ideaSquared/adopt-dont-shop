@@ -80,6 +80,9 @@ x-service-common: &service-common
 
 x-service-env: &service-env
   NODE_ENV: production
+  # NODE_ENV is production on staging and prod alike; DEPLOY_ENV is the `env` label on Loki
+  # streams and the Sentry/GlitchTip `environment` (packages/observability deployEnvironment).
+  DEPLOY_ENV: production
   # See the comment block above the anchor — the loader prefers the *_FILE
   # path and only consults the raw env var as a documented escape hatch.
   DATABASE_URL_FILE: /run/secrets/database_url
@@ -389,6 +392,7 @@ services:
     container_name: ads_prod_gateway
     environment:
       NODE_ENV: production
+      DEPLOY_ENV: production
       # ADS-1365: the HTTP trust-proxy predicate (one hop of X-Forwarded-For)
       # only applies when this is on — it is also what the WebSocket handshake
       # reads. The gateway is `expose`d only and always sits behind the

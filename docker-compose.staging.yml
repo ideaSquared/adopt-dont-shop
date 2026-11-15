@@ -72,6 +72,9 @@ x-service-common: &service-common
 
 x-service-env: &service-env
   NODE_ENV: production
+  # NODE_ENV is production on staging and prod alike; DEPLOY_ENV is the `env` label on Loki
+  # streams and the Sentry/GlitchTip `environment` (packages/observability deployEnvironment).
+  DEPLOY_ENV: staging
   # The loader (@adopt-dont-shop/config-secrets) reads ${NAME}_FILE when set
   # and falls back to ${NAME} otherwise. Staging gives every service the file
   # path; the deploy workflow materialises ./secrets/<name> on the host before
@@ -367,6 +370,7 @@ services:
     container_name: ads_staging_gateway
     environment:
       NODE_ENV: production
+      DEPLOY_ENV: staging
       # ADS-1365: the HTTP trust-proxy predicate (one hop of X-Forwarded-For)
       # only applies when this is on — it is also what the WebSocket handshake
       # reads. The gateway is `expose`d only and always sits behind the

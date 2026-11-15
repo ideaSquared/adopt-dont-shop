@@ -13,7 +13,7 @@ import * as Sentry from '@sentry/node';
 
 import { initializeSentry, redactSentryEvent } from './sentry.js';
 
-const ENV_KEYS = ['SENTRY_DSN', 'NODE_ENV', 'SENTRY_RELEASE', 'HOSTNAME'] as const;
+const ENV_KEYS = ['SENTRY_DSN', 'NODE_ENV', 'SENTRY_RELEASE', 'HOSTNAME', 'DEPLOY_ENV'] as const;
 
 function snapshotEnv() {
   return Object.fromEntries(ENV_KEYS.map(k => [k, process.env[k]])) as Record<
@@ -227,6 +227,19 @@ describe('initializeSentry', () => {
 
     const callArg = vi.mocked(Sentry.init).mock.calls[0][0]!;
     expect(callArg.serverName).toBe('pod-abc-123');
+  });
+
+  it('reports DEPLOY_ENV as the environment while keeping production sampling', () => {
+    process.env.SENTRY_DSN = 'https://example.ingest.sentry.io/123';
+    process.env.NODE_ENV = 'production';
+    process.env.DEPLOY_ENV = 'staging';
+    const log = { info: vi.fn(), error: vi.fn() };
+
+    initializeSentry({ serviceName: 'svc', logger: log });
+
+    const callArg = vi.mocked(Sentry.init).mock.calls[0][0]!;
+    expect(callArg.environment).toBe('staging');
+    expect(callArg.tracesSampleRate).toBe(0.1);
   });
 
   it('uses staging sample rates when NODE_ENV is staging', () => {
