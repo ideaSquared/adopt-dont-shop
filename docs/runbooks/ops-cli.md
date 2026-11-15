@@ -237,8 +237,8 @@ same SSH tunnel it is `http://127.0.0.1:14101/ops/v1/catalog` (staging) and `/op
 - **Available**: every registry read (`<service>.<command>`, for example `pets.get`, `auth.admin-get-user`);
   previews of writes (the real dry run, nothing changes); and running a write, which previews first and then
   executes that plan, so a failed dry run stops it. Fields are the request message's scalar fields.
-- **Not available**: unlocks (masked fields stay masked here even if you hold an unlock, and PII lookup fields such as
-  `auth.search-users --search` are not offered), history, `whoami`, the `demo.*` flows, requests with nested or
+- **Not available**: unlocks (masked fields stay masked here even if you hold an unlock, and request fields annotated PII or SPECIAL, or unannotated free text, such as
+  every `--search` and a write's `--reason`, are not offered), history, `whoami`, the `demo.*` flows, requests with nested or
   repeated fields (`notifications.broadcast`), and **every write in prod** (it needs `pnpm ops --confirm prod`). Use
   `pnpm ops` for those.
 - One log line per call (`command`, `mode`, `outcome`, `durationMs`); no login, arguments or results are logged.

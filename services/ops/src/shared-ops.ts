@@ -85,13 +85,24 @@ const mapEnum = (field: CatalogField, enums: Record<string, CatalogEnum>): Field
       };
 };
 
+// Fail closed, the way masking does: a PII or SPECIAL field is never offered, and neither is free text nobody
+// annotated (masking would hide it in a response, so it is treated as personal data in a request too).
+const isPersonalOrUndetermined = (field: CatalogField): boolean =>
+  field.sensitivity === 'PII' ||
+  field.sensitivity === 'SPECIAL' ||
+  (field.sensitivity === null && field.kind === 'scalar' && field.scalarType === 'string');
+
 const mapField = (
   field: CatalogField,
   method: CatalogMethod,
   enums: Record<string, CatalogEnum>
 ): FieldVerdict => {
   const isNativeDryRunFlag = method.dryRun === 'native' && field.jsonName === NATIVE_DRY_RUN_FIELD;
-  if (isNativeDryRunFlag || method.piiRequestFields.includes(field.jsonName)) {
+  if (
+    isNativeDryRunFlag ||
+    method.piiRequestFields.includes(field.jsonName) ||
+    isPersonalOrUndetermined(field)
+  ) {
     return { verdict: 'omit' };
   }
   if (field.repeated || field.kind === 'map' || field.kind === 'message') {

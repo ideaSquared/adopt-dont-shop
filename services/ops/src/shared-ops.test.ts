@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { AuthV1, PetsV1, PROTO_SCHEMA } from '@adopt-dont-shop/proto';
 import type { OpsEnv } from '@adopt-dont-shop/ops-contract';
 
+import { buildCatalog } from './catalog.js';
 import { unlockCreatedEvent } from './events.js';
 import { buildSharedCommands } from './shared-ops.js';
 import { jsonResponse, makeFakeFetch, makeHarness, type HarnessOptions } from './test-support.js';
@@ -241,6 +242,53 @@ describe('catalog derivation', () => {
       expect(built.excluded.every(e => e.reason.length > 0)).toBe(true);
       expect(h.app).toBeDefined();
     });
+  });
+});
+
+describe('PII and special-category request fields', () => {
+  const catalogFor = async (env: OpsEnv) => {
+    const res = await setup({ env }).ops('GET', '/catalog', 'good');
+    return res.json<{ commands: { id: string; fields: { name: string }[] }[] }>().commands;
+  };
+  const fieldNames = async (id: string) =>
+    (await catalogFor('dev')).find(c => c.id === id)?.fields.map(f => f.name) ?? [];
+
+  it.each(['applications.list', 'audit.query'])('does not offer %s a search field', async id => {
+    expect(await fieldNames(id)).not.toContain('search');
+  });
+
+  it.each([
+    ['applications.list', 'applications.List'],
+    ['audit.query', 'audit.Query'],
+  ])('rejects %s --search without calling the service', async (id, rpc) => {
+    const h = setup({ grpc: userScript });
+    const res = await h.invoke(id, { search: 'jo@example.com' }, 'run');
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toMatchObject({ error: { code: 'invalid_argument' } });
+    expect(h.grpc.calls.filter(c => c.rpc === rpc)).toHaveLength(0);
+  });
+
+  it('offers no request field that is annotated PII or SPECIAL, or free text with no annotation', async () => {
+    const catalog = buildCatalog('dev', PROTO_SCHEMA);
+    const risky = new Set(
+      catalog.services.flatMap(service =>
+        service.methods.flatMap(method =>
+          (catalog.messages[method.inputType]?.fields ?? [])
+            .filter(
+              f =>
+                f.sensitivity === 'PII' ||
+                f.sensitivity === 'SPECIAL' ||
+                (f.sensitivity === null && f.kind === 'scalar' && f.scalarType === 'string')
+            )
+            .map(f => `${service.name}.${method.command}:${f.jsonName}`)
+        )
+      )
+    );
+    expect(risky.size).toBeGreaterThan(0);
+    for (const env of ['dev', 'staging', 'prod'] as const) {
+      const offered = (await catalogFor(env)).flatMap(c => c.fields.map(f => `${c.id}:${f.name}`));
+      expect(offered.filter(key => risky.has(key))).toEqual([]);
+    }
   });
 });
 
