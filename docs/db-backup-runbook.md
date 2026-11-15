@@ -152,7 +152,10 @@ failed dump being uploaded).
 ## Using Cloudflare R2
 
 The scripts speak the S3 API through the AWS CLI (v2.13 or later reads
-`AWS_ENDPOINT_URL`), so a Cloudflare R2 bucket works without code changes:
+`AWS_ENDPOINT_URL`), so a Cloudflare R2 bucket works with them. With an endpoint
+set they skip `--sse AES256` (SSE-S3 is AWS-only; R2 encrypts at rest itself),
+and every run writes to its own `YYYY/MM/DD/HHMMSS/` prefix, so the bucket lock
+never meets an overwrite:
 
 1. Create the bucket in Cloudflare (R2 > Create bucket), location hint Europe.
 2. Add an R2 **lifecycle rule** to delete objects after the retention in
@@ -169,6 +172,15 @@ The scripts speak the S3 API through the AWS CLI (v2.13 or later reads
    `BACKUP_ENDPOINT_URL=https://<account id>.r2.cloudflarestorage.com`. For the
    restore drill, the same key pair as the `AWS_ACCESS_KEY_ID` /
    `AWS_SECRET_ACCESS_KEY` repo secrets (or a read-only token).
+
+**Manual sessions.** The workflows export the endpoint for their own runs only.
+In any shell where you run `aws`, `restore-postgres.sh` or the snapshot scripts
+by hand against R2 (on the prod host, a staging recovery drill, or your
+laptop), export it first:
+
+```bash
+export AWS_ENDPOINT_URL=https://<account id>.r2.cloudflarestorage.com
+```
 
 ## Pre-migration backup checklist
 
@@ -230,7 +242,7 @@ To restore a day's snapshot back onto the volume:
 # The real host path is production_uploads — Compose prefixes the volume
 # name with the project name (the basename of /opt/ads/production), so it is
 # NOT the generic "uploads" the script's default assumes.
-aws s3 sync "s3://${BACKUP_BUCKET}/uploads/2026/07/18/" \
+aws s3 sync "s3://${BACKUP_BUCKET}/uploads/2026/07/18/020013/" \
   /var/lib/docker/volumes/production_uploads/_data/
 ```
 
@@ -270,7 +282,7 @@ auth.users` must return at least one row) and fails the run loudly
 
 1. Finds the newest day-level prefix under `s3://${BACKUP_BUCKET}/uploads/`
    (same "sort the recursive listing, take the last object" lookup as
-   Postgres above, then take that object's `uploads/YYYY/MM/DD` prefix).
+   Postgres above, then take that object's `uploads/YYYY/MM/DD/HHMMSS` prefix).
 2. `aws s3 sync`s that prefix down into a fresh temp directory — **not** onto
    the live `uploads` volume, so the drill cannot corrupt production data.
 3. Asserts a non-trivial file count (`find … -type f | wc -l` must be ≥ 1) and

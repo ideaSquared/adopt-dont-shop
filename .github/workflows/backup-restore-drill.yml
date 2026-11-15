@@ -184,14 +184,14 @@ jobs:
           set -euo pipefail
           : "${BACKUP_BUCKET:?BACKUP_BUCKET not configured (repo variable)}"
           : "${AWS_REGION:?AWS_REGION not configured (repo variable)}"
-          # snapshot-uploads.sh writes to uploads/YYYY/MM/DD/ — same
+          # snapshot-uploads.sh writes one prefix per run, uploads/YYYY/MM/DD/HHMMSS/ — same
           # "latest object under the prefix, sorted lexically" lookup as the
           # Postgres drill above, reusing the production_uploads day-prefix
           # layout backup.yml's snapshot-uploads job documents (ADS-1239).
           KEY="$(aws s3 ls "s3://${BACKUP_BUCKET}/uploads/" --recursive --region "$AWS_REGION" \
             | sort | tail -n1 | awk '{print $4}')"
           : "${KEY:?No uploads/ snapshot found under s3://$BACKUP_BUCKET — has backup.yml run yet?}"
-          DAY_PREFIX="uploads/$(echo "$KEY" | cut -d/ -f2-4)"
+          DAY_PREFIX="uploads/$(echo "$KEY" | cut -d/ -f2-5)"
           echo "Restoring s3://${BACKUP_BUCKET}/${DAY_PREFIX}/"
           echo "UPLOADS_DAY_PREFIX=${DAY_PREFIX}" >> "$GITHUB_ENV"
 

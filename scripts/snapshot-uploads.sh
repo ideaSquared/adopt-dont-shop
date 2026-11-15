@@ -21,13 +21,20 @@ if [[ ! -d "$UPLOADS_PATH" ]]; then
   exit 1
 fi
 
-DAY="$(date -u +%Y/%m/%d)"
-DEST="s3://${BACKUP_BUCKET}/uploads/${DAY}/"
+# One prefix per run (not per day): a bucket lock refuses to overwrite a locked object, so a
+# second run on the same day must not write to the same keys.
+RUN="$(date -u +%Y/%m/%d/%H%M%S)"
+DEST="s3://${BACKUP_BUCKET}/uploads/${RUN}/"
+
+# SSE-S3 (--sse AES256) is AWS-only; S3-compatible stores such as Cloudflare R2 reject the header
+# and encrypt at rest themselves. backup.yml sets AWS_ENDPOINT_URL only for those.
+SSE_ARGS=(--sse AES256)
+if [[ -n "${AWS_ENDPOINT_URL:-}" ]]; then SSE_ARGS=(); fi
 
 echo "[snapshot-uploads] syncing ${UPLOADS_PATH}/ -> ${DEST}"
 aws s3 sync "$UPLOADS_PATH/" "$DEST" \
   --region "$AWS_REGION" \
-  --sse AES256 \
+  ${SSE_ARGS[@]+"${SSE_ARGS[@]}"} \
   --metadata "Class=tier1,Retention=90d"
 
 echo "[snapshot-uploads] done"
