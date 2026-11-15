@@ -66,6 +66,7 @@ jobs:
     env:
       BACKUP_BUCKET: ${{ vars.BACKUP_BUCKET }}
       AWS_REGION: ${{ vars.AWS_REGION }}
+      BACKUP_ENDPOINT_URL: ${{ vars.BACKUP_ENDPOINT_URL }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       # scripts/restore-postgres.sh drives Postgres via `docker compose exec`,
@@ -93,6 +94,8 @@ jobs:
       - name: Check AWS credentials are configured
         id: guard
         run: |
+          # S3-compatible storage other than AWS (Cloudflare R2): the AWS CLI reads AWS_ENDPOINT_URL.
+          if [[ -n "${BACKUP_ENDPOINT_URL:-}" ]]; then echo "AWS_ENDPOINT_URL=$BACKUP_ENDPOINT_URL" >> "$GITHUB_ENV"; fi
           if [[ -n "$AWS_ACCESS_KEY_ID" && -n "$AWS_SECRET_ACCESS_KEY" ]]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
@@ -156,6 +159,7 @@ jobs:
     env:
       BACKUP_BUCKET: ${{ vars.BACKUP_BUCKET }}
       AWS_REGION: ${{ vars.AWS_REGION }}
+      BACKUP_ENDPOINT_URL: ${{ vars.BACKUP_ENDPOINT_URL }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
@@ -165,6 +169,8 @@ jobs:
       - name: Check AWS credentials are configured
         id: guard
         run: |
+          # S3-compatible storage other than AWS (Cloudflare R2): the AWS CLI reads AWS_ENDPOINT_URL.
+          if [[ -n "${BACKUP_ENDPOINT_URL:-}" ]]; then echo "AWS_ENDPOINT_URL=$BACKUP_ENDPOINT_URL" >> "$GITHUB_ENV"; fi
           if [[ -n "$AWS_ACCESS_KEY_ID" && -n "$AWS_SECRET_ACCESS_KEY" ]]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else

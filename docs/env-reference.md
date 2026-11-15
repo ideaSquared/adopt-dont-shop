@@ -323,11 +323,12 @@ How to seed and log in: `docs/operations/dev-seed-data.md`.
 
 ## Backups (`.github/workflows/backup.yml`, `backup-restore-drill.yml`)
 
-| Variable                                      | Where                                          | Notes                                                                                              |
-| --------------------------------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `BACKUP_BUCKET`                               | GitHub repo variable → `scripts/snapshot-*.sh` | S3 bucket for nightly Postgres + uploads snapshots (no `s3://` prefix). Required by both scripts.  |
-| `AWS_REGION`                                  | GitHub repo variable → `scripts/snapshot-*.sh` | Region of that bucket.                                                                             |
-| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | GitHub repo secrets (restore drill only)       | The production host uses its own credentials; the GitHub-hosted drill runner needs read-only keys. |
+| Variable                                      | Where                                          | Notes                                                                                                                                           |
+| --------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BACKUP_BUCKET`                               | GitHub repo variable → `scripts/snapshot-*.sh` | S3 bucket for nightly Postgres + uploads snapshots (no `s3://` prefix). Required by both scripts.                                               |
+| `AWS_REGION`                                  | GitHub repo variable → `scripts/snapshot-*.sh` | Region of that bucket.                                                                                                                          |
+| `BACKUP_ENDPOINT_URL`                         | GitHub repo variable → `scripts/snapshot-*.sh` | Optional. S3-compatible endpoint for non-AWS storage, e.g. Cloudflare R2 (`https://<account id>.r2.cloudflarestorage.com`). Unset means AWS S3. |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | GitHub repo secrets (restore drill only)       | The production host uses its own credentials; the GitHub-hosted drill runner needs read-only keys.                                              |
 
 Runbooks: `docs/db-backup-runbook.md`, `docs/operations/restore.md`, `docs/operations/snapshot-policy.md`.
 

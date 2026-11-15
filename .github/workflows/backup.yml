@@ -66,18 +66,21 @@ jobs:
         env:
           BACKUP_BUCKET: ${{ vars.BACKUP_BUCKET }}
           AWS_REGION: ${{ vars.AWS_REGION }}
+          BACKUP_ENDPOINT_URL: ${{ vars.BACKUP_ENDPOINT_URL }}
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ secrets.NETCUP_HOST }}
           username: deploy
           key: ${{ secrets.NETCUP_SSH_KEY }}
           fingerprint: ${{ secrets.NETCUP_HOST_FINGERPRINT }}
-          envs: BACKUP_BUCKET,AWS_REGION
+          envs: BACKUP_BUCKET,AWS_REGION,BACKUP_ENDPOINT_URL
           script: |
             set -euo pipefail
 
             : "${BACKUP_BUCKET:?BACKUP_BUCKET not configured (repo variable)}"
             : "${AWS_REGION:?AWS_REGION not configured (repo variable)}"
+            # S3-compatible storage other than AWS (Cloudflare R2): the AWS CLI reads AWS_ENDPOINT_URL.
+            if [ -n "${BACKUP_ENDPOINT_URL:-}" ]; then export AWS_ENDPOINT_URL="$BACKUP_ENDPOINT_URL"; fi
 
             cd /opt/ads/production
 
@@ -121,18 +124,21 @@ jobs:
         env:
           BACKUP_BUCKET: ${{ vars.BACKUP_BUCKET }}
           AWS_REGION: ${{ vars.AWS_REGION }}
+          BACKUP_ENDPOINT_URL: ${{ vars.BACKUP_ENDPOINT_URL }}
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ secrets.NETCUP_HOST }}
           username: deploy
           key: ${{ secrets.NETCUP_SSH_KEY }}
           fingerprint: ${{ secrets.NETCUP_HOST_FINGERPRINT }}
-          envs: BACKUP_BUCKET,AWS_REGION
+          envs: BACKUP_BUCKET,AWS_REGION,BACKUP_ENDPOINT_URL
           script: |
             set -euo pipefail
 
             : "${BACKUP_BUCKET:?BACKUP_BUCKET not configured (repo variable)}"
             : "${AWS_REGION:?AWS_REGION not configured (repo variable)}"
+            # S3-compatible storage other than AWS (Cloudflare R2): the AWS CLI reads AWS_ENDPOINT_URL.
+            if [ -n "${BACKUP_ENDPOINT_URL:-}" ]; then export AWS_ENDPOINT_URL="$BACKUP_ENDPOINT_URL"; fi
 
             cd /opt/ads/production
 
@@ -171,18 +177,21 @@ jobs:
         env:
           BACKUP_BUCKET: ${{ vars.BACKUP_BUCKET }}
           AWS_REGION: ${{ vars.AWS_REGION }}
+          BACKUP_ENDPOINT_URL: ${{ vars.BACKUP_ENDPOINT_URL }}
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ secrets.NETCUP_HOST }}
           username: deploy
           key: ${{ secrets.NETCUP_SSH_KEY }}
           fingerprint: ${{ secrets.NETCUP_HOST_FINGERPRINT }}
-          envs: BACKUP_BUCKET,AWS_REGION
+          envs: BACKUP_BUCKET,AWS_REGION,BACKUP_ENDPOINT_URL
           script: |
             set -euo pipefail
 
             : "${BACKUP_BUCKET:?BACKUP_BUCKET not configured (repo variable)}"
             : "${AWS_REGION:?AWS_REGION not configured (repo variable)}"
+            # S3-compatible storage other than AWS (Cloudflare R2): the AWS CLI reads AWS_ENDPOINT_URL.
+            if [ -n "${BACKUP_ENDPOINT_URL:-}" ]; then export AWS_ENDPOINT_URL="$BACKUP_ENDPOINT_URL"; fi
 
             cd /opt/ads/production
 
