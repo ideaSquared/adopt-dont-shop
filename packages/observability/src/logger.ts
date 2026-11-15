@@ -14,6 +14,7 @@ import {
   type Sink,
 } from '@ideasquared/log';
 
+import { deployEnvironment } from './deploy-environment.js';
 import { createLokiSink, type LokiSink } from './loki-sink.js';
 
 // Fields every service may log. Shared packages (service-bootstrap, events, scheduler) type their
@@ -126,7 +127,7 @@ const defaultSink = (serviceName: string): Sink => {
   if (!lokiUrl) return consoleSink;
   const loki = createLokiSink({
     url: lokiUrl,
-    labels: { service: serviceName, env: process.env.NODE_ENV || 'development' },
+    labels: { service: serviceName, env: deployEnvironment() },
   });
   lokiSinks.add(loki);
   return event => {

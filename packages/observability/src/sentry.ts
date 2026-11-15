@@ -21,6 +21,7 @@ import { trace } from '@opentelemetry/api';
 import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
 
+import { deployEnvironment } from './deploy-environment.js';
 import { BASE_LOG_FIELDS, createLogger, type BaseLogger } from './logger.js';
 
 export type SentryOptions = {
@@ -35,6 +36,7 @@ export type SentryOptions = {
 
 type SentryConfig = {
   dsn: string;
+  // The label events carry (DEPLOY_ENV when set); sampling and enablement stay on NODE_ENV.
   environment: string;
   tracesSampleRate: number;
   profilesSampleRate: number;
@@ -184,15 +186,15 @@ export const redactSentryEvent = <T extends Sentry.ErrorEvent>(event: T): T => {
 
 const getSentryConfig = (): SentryConfig => {
   const dsn = process.env.SENTRY_DSN || '';
-  const environment = process.env.NODE_ENV || 'development';
-  const enabled = Boolean(dsn) && ['production', 'staging'].includes(environment);
+  const nodeEnv = process.env.NODE_ENV || 'development';
+  const enabled = Boolean(dsn) && ['production', 'staging'].includes(nodeEnv);
 
   return {
     dsn,
-    environment,
+    environment: deployEnvironment(),
     // 100% in dev for visibility; 10% in production to control volume.
-    tracesSampleRate: environment === 'production' ? 0.1 : 1.0,
-    profilesSampleRate: environment === 'production' ? 0.1 : 1.0,
+    tracesSampleRate: nodeEnv === 'production' ? 0.1 : 1.0,
+    profilesSampleRate: nodeEnv === 'production' ? 0.1 : 1.0,
     enabled,
   };
 };
@@ -214,7 +216,7 @@ export const initializeSentry = (opts: SentryOptions): void => {
       integrations: [nodeProfilingIntegration()],
       tracesSampleRate: config.tracesSampleRate,
       profilesSampleRate: config.profilesSampleRate,
-      debug: config.environment === 'development',
+      debug: process.env.NODE_ENV === 'development',
       release: process.env.SENTRY_RELEASE,
       serverName: process.env.HOSTNAME || opts.serviceName,
       beforeSend(event, hint) {

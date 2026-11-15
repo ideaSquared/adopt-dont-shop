@@ -7,7 +7,7 @@ vi.mock('@opentelemetry/api', () => ({
 
 import { BASE_LOG_FIELDS, createLogger, memorySink } from './logger.js';
 
-const ENV_KEYS = ['LOG_LEVEL', 'LOKI_URL', 'NODE_ENV'] as const;
+const ENV_KEYS = ['LOG_LEVEL', 'LOKI_URL', 'NODE_ENV', 'DEPLOY_ENV'] as const;
 
 describe('createLogger', () => {
   const saved = Object.fromEntries(ENV_KEYS.map(k => [k, process.env[k]]));
@@ -143,6 +143,23 @@ describe('createLogger', () => {
       streams: { stream: Record<string, string>; values: string[][] }[];
     };
     expect(body.streams[0]?.stream).toEqual({ service: 'svc', env: 'production', level: 'info' });
+  });
+
+  it('labels Loki streams with DEPLOY_ENV so staging and prod differ under NODE_ENV=production', async () => {
+    process.env.LOKI_URL = 'http://loki:3100';
+    process.env.NODE_ENV = 'production';
+    process.env.DEPLOY_ENV = 'staging';
+    vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal('fetch', fetchMock);
+    const { flushLogs } = await import('./logger.js');
+
+    createLogger({ serviceName: 'svc', fields: [] }).info('hello');
+    await flushLogs();
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(String(init.body)) as { streams: { stream: Record<string, string> }[] };
+    expect(body.streams[0]?.stream).toEqual({ service: 'svc', env: 'staging', level: 'info' });
   });
 
   describe('trace-context stamping (ADS-1327)', () => {
