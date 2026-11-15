@@ -104,6 +104,9 @@ export const runSetup = async (ctx: Ctx): Promise<number> => {
   prompts.intro(theme.heading(' ads-ops setup '));
   prompts.note(
     [
+      'Only needed for unlocks and history. Everyday commands: eng ops ads, which needs',
+      'no setup beyond the adoptdontshop GitHub team (docs/adr/0017).',
+      '',
       'dev      nothing to configure - it talks to your local stack.',
       'staging  reached through an SSH tunnel to the server.',
       'prod     same server and settings, with extra friction on purpose.',
@@ -112,9 +115,9 @@ export const runSetup = async (ctx: Ctx): Promise<number> => {
       '  Server     the IP address or hostname of the ADS server: what you type after',
       '             the @ in ssh deploy@<server>. Ask whoever runs the server.',
       '  SSH user   your GitHub login in lower case. A maintainer creates that user on the',
-      '             server from the public key on your GitHub account (eng setup puts it',
-      '             there): docs/runbooks/ops-cli.md, "Onboard a developer".',
-      '  Key file   leave it empty: eng setup made ~/.ssh/id_ed25519, your default key.',
+      '             server from the public SSH keys on your GitHub account',
+      '             (github.com/settings/keys): docs/runbooks/ops-cli.md, "Onboard a developer".',
+      '  Key file   the private key for one of those; leave it empty for your default key.',
       '',
       'Before the first run, connect once by hand to accept the host key:',
       '  ssh -N -L 14101:127.0.0.1:4101 <user>@<host>   # Ctrl-C once it sits there',

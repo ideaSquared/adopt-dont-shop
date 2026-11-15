@@ -86,9 +86,9 @@ The secret is optional for the deploy itself: if it is unset the file is written
    NEWUSER=$(echo "$LOGIN" | tr '[:upper:]' '[:lower:]')
    adduser --disabled-password --gecos '' "$NEWUSER"
    install -d -m 700 -o "$NEWUSER" -g "$NEWUSER" "/home/$NEWUSER/.ssh"
-   # Their public keys, which `eng setup` adds to their GitHub account (never a private key):
+   # The public SSH keys on their GitHub account, github.com/settings/keys (never a private key):
    curl -fsS "https://github.com/$LOGIN.keys" > "/home/$NEWUSER/.ssh/authorized_keys"
-   test -s "/home/$NEWUSER/.ssh/authorized_keys" || echo "No keys on GitHub: ask them to run eng setup"
+   test -s "/home/$NEWUSER/.ssh/authorized_keys" || echo "No keys on GitHub: ask them to add one at github.com/settings/keys"
    chown "$NEWUSER:$NEWUSER" "/home/$NEWUSER/.ssh/authorized_keys" && chmod 600 "/home/$NEWUSER/.ssh/authorized_keys"
    id "$NEWUSER"            # must NOT list `docker` or `sudo`
    ```
