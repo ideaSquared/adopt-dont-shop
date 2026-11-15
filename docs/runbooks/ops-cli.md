@@ -33,11 +33,11 @@ dev:    pnpm ops  ──HTTP──►  127.0.0.1:4100 (compose publishes it dire
 1. GitHub → the organisation's Settings → Developer settings → OAuth Apps → **New OAuth App**. Name it `ads-ops`, set the homepage to the repo URL, and put any URL in the callback field (the device flow does not use it).
 2. Open the app and tick **Enable Device Flow**. Save.
 3. Copy the **Client ID**. There is no client secret to store: the device flow does not use one.
-4. Create two teams in the organisation, one per environment (for example `ops-staging` and `ops-production`). Membership of the team is the access grant.
+4. Access is membership of the `adoptdontshop` team in the organisation, for both staging and production.
 
 ### 2. Set the host `.env` values
 
-The values are not secret. Write them in each host `.env`, with that environment's own team (staging and production are separate directories, so each names its own team):
+The values are not secret. Write them in each host `.env` (staging and production are separate directories, and both use the `adoptdontshop` team):
 
 ```bash
 ssh deploy@$PROD_HOST
@@ -76,7 +76,7 @@ The secret is optional for the deploy itself: if it is unset the file is written
 
 ## Onboard a developer
 
-1. **Grant access.** Add them to the GitHub team for each environment they need (`ops-staging`, `ops-production`). That is all the application needs. They can then run `pnpm ops login`.
+1. **Grant access.** Add them to the `adoptdontshop` GitHub team, which covers staging and production. That is all the application needs. They can then run `pnpm ops login`.
 2. **Give them a tunnel.** They need a way to reach the loopback port, which means a Unix user on the VPS that can forward ports and do nothing else. They must **not** be in the `docker` group (that is root-equivalent) and must not use the shared `deploy` key.
 
    ```bash

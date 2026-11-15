@@ -190,11 +190,11 @@ DEFAULT_FROM_EMAIL=noreply@adoptdontshop.app
 # FCM_SERVICE_ACCOUNT_JSON={"type":"service_account",...}
 # service-ops (developer ops CLI, ADR 0016). Non-secret, and REQUIRED: the service
 # refuses to boot without the three keys, and deploy.yml fails before `up -d` if
-# any is missing. Create the GitHub OAuth app and team first (ops-cli runbook).
-# One team per environment, so each host .env names its own team.
-# OPS_GITHUB_CLIENT_ID=<client id of the OAuth app, device flow enabled>
-# OPS_GITHUB_ORG=ideaSquared
-# OPS_GITHUB_TEAM=<team slug for this environment>
+# any is missing. Create the GitHub OAuth app first (ops-cli runbook). Access is
+# membership of the adoptdontshop team, the same team on staging and production.
+OPS_GITHUB_CLIENT_ID=<client id of the OAuth app, device flow enabled>
+OPS_GITHUB_ORG=ideaSquared
+OPS_GITHUB_TEAM=adoptdontshop
 # OPS_SESSION_TTL_HOURS=8
 # DEPLOY_SHA is set to a specific git SHA by deploy.yml — there is NO :latest fallback.
 # Grafana admin password — REQUIRED in production, because production deploys require
@@ -271,6 +271,7 @@ For the production launch. Pre-launch setup is covered by [PRE-LAUNCH-SETUP.md](
 - [ ] Per-env `.env` created (non-secret config) — compose/nginx/observability files are shipped by the first deploy, not hand-copied (ADS-1312)
 - [ ] `OBSERVABILITY_ENABLED=true` set in `/opt/ads/production/.env` before the first production deploy, or the deploy will fail preflight (ADS-1307; override with `allow_blind_deploy` + a reason if truly needed)
 - [ ] `GF_SECURITY_ADMIN_PASSWORD` set in `/opt/ads/production/.env` — the observability overlay refuses to start without it
+- [ ] `OPS_GITHUB_CLIENT_ID`, `OPS_GITHUB_ORG=ideaSquared` and `OPS_GITHUB_TEAM=adoptdontshop` set in `/opt/ads/production/.env` — `service-ops` refuses to boot without them and `deploy.yml` stops before `up -d` if any is missing (see the [ops-cli runbook](../runbooks/ops-cli.md))
 - [ ] Alertmanager secret file written on the host under `/opt/ads/production/observability/alertmanager/secrets/` (`deadman_webhook_url`; alerts to Discord go through ideasquared-bot using the `ALERT_SECRET` the deploy already writes as `secrets/alert_secret`) **before** the first deploy. That directory doesn't exist until the first deploy ships `observability/`, so create it first: `mkdir -p /opt/ads/production/observability/alertmanager/secrets`. Then follow [observability-enable.md](../runbooks/observability-enable.md#4-wire-alertmanager-webhook-secrets); `deploy.yml` ships the directory but never creates or deletes this file
 - [ ] `DB_PASSWORD` is the hex `POSTGRES_PASSWORD` from `pnpm secrets:generate` (URL-safe; `deploy-secrets.sh` rejects other characters, as it does for `REDIS_PASSWORD`)
 - [ ] Host `.env` includes `RESEND_API_KEY` and `DEFAULT_FROM_EMAIL`; for push, also `PUSH_PROVIDER=fcm`, `FCM_PROJECT_ID` and single-line `FCM_SERVICE_ACCOUNT_JSON`
