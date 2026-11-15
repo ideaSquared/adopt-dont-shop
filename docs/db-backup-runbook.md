@@ -177,6 +177,15 @@ never meets an overwrite:
    restore drill, the same key pair as the `AWS_ACCESS_KEY_ID` /
    `AWS_SECRET_ACCESS_KEY` repo secrets (or a read-only token).
 
+**EU jurisdiction buckets.** A bucket created with the EU jurisdiction (which
+the ADS bucket is) only answers on the EU endpoint. The default endpoint above
+fails for it, so use
+`https://<account id>.eu.r2.cloudflarestorage.com` everywhere this runbook
+says `<account id>.r2.cloudflarestorage.com`: the `BACKUP_ENDPOINT_URL` repo
+variable and the manual `AWS_ENDPOINT_URL` export below. The bucket's
+S3 API URL in the Cloudflare dashboard (R2 > bucket > Settings) shows which
+one it needs.
+
 **Manual sessions.** The workflows export the endpoint for their own runs only.
 In any shell where you run `aws`, `restore-postgres.sh` or the snapshot scripts
 by hand against R2 (on the prod host, a staging recovery drill, or your
