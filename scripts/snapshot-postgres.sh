@@ -39,10 +39,15 @@ if [[ "$DUMP_BYTES" -lt 1024 ]]; then
   exit 1
 fi
 
+# SSE-S3 (--sse AES256) is AWS-only; S3-compatible stores such as Cloudflare R2 reject the header
+# and encrypt at rest themselves. backup.yml sets AWS_ENDPOINT_URL only for those.
+SSE_ARGS=(--sse AES256)
+if [[ -n "${AWS_ENDPOINT_URL:-}" ]]; then SSE_ARGS=(); fi
+
 echo "[snapshot-postgres] uploading ${DUMP_BYTES} bytes -> s3://${BACKUP_BUCKET}/${S3_KEY}"
 aws s3 cp "$TMPFILE" "s3://${BACKUP_BUCKET}/${S3_KEY}" \
   --region "$AWS_REGION" \
-  --sse AES256 \
+  ${SSE_ARGS[@]+"${SSE_ARGS[@]}"} \
   --metadata "Class=tier1,Retention=30d"
 
 echo "[snapshot-postgres] done"
