@@ -80,12 +80,14 @@ The secret is optional for the deploy itself: if it is unset the file is written
 2. **Give them a tunnel.** They need a way to reach the loopback port, which means a Unix user on the VPS that can forward ports and do nothing else. They must **not** be in the `docker` group (that is root-equivalent) and must not use the shared `deploy` key.
 
    ```bash
-   # As root on the VPS.
-   NEWUSER=alice
+   # As root on the VPS. The Unix user is their GitHub login in lower case.
+   LOGIN=Alice-GH                                   # their GitHub login
+   NEWUSER=$(echo "$LOGIN" | tr '[:upper:]' '[:lower:]')
    adduser --disabled-password --gecos '' "$NEWUSER"
    install -d -m 700 -o "$NEWUSER" -g "$NEWUSER" "/home/$NEWUSER/.ssh"
-   # Paste THEIR public key (never a private key):
-   nano "/home/$NEWUSER/.ssh/authorized_keys"
+   # Their public keys, which `eng setup` adds to their GitHub account (never a private key):
+   curl -fsS "https://github.com/$LOGIN.keys" > "/home/$NEWUSER/.ssh/authorized_keys"
+   test -s "/home/$NEWUSER/.ssh/authorized_keys" || echo "No keys on GitHub: ask them to run eng setup"
    chown "$NEWUSER:$NEWUSER" "/home/$NEWUSER/.ssh/authorized_keys" && chmod 600 "/home/$NEWUSER/.ssh/authorized_keys"
    id "$NEWUSER"            # must NOT list `docker` or `sudo`
    ```

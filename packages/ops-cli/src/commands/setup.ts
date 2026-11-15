@@ -50,7 +50,7 @@ const askSsh = async (
   ).trim();
   const user = (
     await prompts.text({
-      message: `Your tunnel-only SSH user for ${env}`,
+      message: `Your SSH user for ${env} (your GitHub login in lower case)`,
       placeholder: 'ads-ops',
       initialValue: current?.user,
       validate: validateUser,
@@ -111,11 +111,10 @@ export const runSetup = async (ctx: Ctx): Promise<number> => {
       'For staging and prod you will be asked for three things:',
       '  Server     the IP address or hostname of the ADS server: what you type after',
       '             the @ in ssh deploy@<server>. Ask whoever runs the server.',
-      '  SSH user   your own tunnel-only user on that server. A maintainer creates it',
-      '             from your public key: docs/runbooks/ops-cli.md, "Onboard a developer".',
-      '             No key yet? ssh-keygen -t ed25519, then send them ~/.ssh/id_ed25519.pub.',
-      '  Key file   the private key for that public key, e.g. ~/.ssh/id_ed25519.',
-      '             Leave it empty to use your default key or ssh-agent.',
+      '  SSH user   your GitHub login in lower case. A maintainer creates that user on the',
+      '             server from the public key on your GitHub account (eng setup puts it',
+      '             there): docs/runbooks/ops-cli.md, "Onboard a developer".',
+      '  Key file   leave it empty: eng setup made ~/.ssh/id_ed25519, your default key.',
       '',
       'Before the first run, connect once by hand to accept the host key:',
       '  ssh -N -L 14101:127.0.0.1:4101 <user>@<host>   # Ctrl-C once it sits there',

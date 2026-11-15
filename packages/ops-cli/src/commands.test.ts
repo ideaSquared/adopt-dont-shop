@@ -171,7 +171,8 @@ describe('setup wizard', () => {
     const note = ctx.prompts.logs.join('\n');
     expect(note).toContain('IP address or hostname');
     expect(note).toContain('docs/runbooks/ops-cli.md');
-    expect(note).toContain('ssh-keygen -t ed25519');
+    expect(note).toContain('eng setup');
+    expect(note).toContain('GitHub login in lower case');
     expect(note).toContain('adoptdontshop');
     const sshLine = note.split('\n').find(l => l.includes('ssh -N')) ?? '';
     expect(sshLine.replace(/#.*$/, '')).not.toMatch(/[()]/);
