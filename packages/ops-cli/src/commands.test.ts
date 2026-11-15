@@ -165,6 +165,16 @@ describe('setup wizard', () => {
     expect(ctx.prompts.logs.some(l => l.includes('does not exist yet'))).toBe(true);
   });
 
+  it('says where the host, user and key come from before asking for them', async () => {
+    const ctx = await makeCtx({ tty: true, answers: { confirm: [false, false] } });
+    await main(['setup'], ctx);
+    const note = ctx.prompts.logs.join('\n');
+    expect(note).toContain('NETCUP_HOST');
+    expect(note).toContain('docs/runbooks/ops-cli.md');
+    expect(note).toContain('ssh-keygen -t ed25519');
+    expect(note).toContain('adoptdontshop');
+  });
+
   it('validates host and user', () => {
     expect(validateHost('ops.example.com')).toBeUndefined();
     expect(validateHost('bad host')).toBeDefined();

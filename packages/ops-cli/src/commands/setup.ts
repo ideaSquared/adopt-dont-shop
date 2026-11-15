@@ -42,7 +42,7 @@ const askSsh = async (
   const { prompts } = ctx;
   const host = (
     await prompts.text({
-      message: `SSH host for ${env}`,
+      message: `SSH host for ${env} (the server CI deploys to)`,
       placeholder: 'ops.example.com',
       initialValue: current?.host,
       validate: validateHost,
@@ -50,7 +50,7 @@ const askSsh = async (
   ).trim();
   const user = (
     await prompts.text({
-      message: `SSH user for ${env}`,
+      message: `Your tunnel-only SSH user for ${env}`,
       placeholder: 'ads-ops',
       initialValue: current?.user,
       validate: validateUser,
@@ -58,7 +58,7 @@ const askSsh = async (
   ).trim();
   const identity = (
     await prompts.text({
-      message: 'Identity file (empty to use your default key or ssh-agent)',
+      message: 'Private key file (empty to use your default key or ssh-agent)',
       placeholder: '~/.ssh/id_ed25519',
       initialValue: current?.identityFile,
     })
@@ -105,8 +105,21 @@ export const runSetup = async (ctx: Ctx): Promise<number> => {
   prompts.note(
     [
       'dev      nothing to configure - it talks to your local stack.',
-      'staging  reached through an SSH tunnel (ask a maintainer for host and user).',
-      'prod     same, with extra friction on purpose.',
+      'staging  reached through an SSH tunnel to the server.',
+      'prod     same server and settings, with extra friction on purpose.',
+      '',
+      'For staging and prod you will be asked for three things:',
+      '  SSH host   the server CI deploys to: the NETCUP_HOST repository secret.',
+      '             Secrets cannot be read back, so ask whoever runs the server.',
+      '  SSH user   your own tunnel-only user on that server. A maintainer creates it',
+      '             from your public key: docs/runbooks/ops-cli.md, "Onboard a developer".',
+      '             No key yet? ssh-keygen -t ed25519, then send them ~/.ssh/id_ed25519.pub.',
+      '  Key file   the private key for that public key, e.g. ~/.ssh/id_ed25519.',
+      '             Leave it empty to use your default key or ssh-agent.',
+      '',
+      'Before the first run, connect once by hand to accept the host key:',
+      '  ssh -N -L 14101:127.0.0.1:4101 <user>@<host>   (Ctrl-C once it sits there)',
+      'Signing in afterwards needs membership of the adoptdontshop GitHub team.',
       '',
       'You can skip staging and prod now and run this again later.',
     ].join('\n'),
