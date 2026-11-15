@@ -46,6 +46,12 @@ export const PLAN_TTL_MS = 10 * 60 * 1000;
 const GRPC_TIMEOUT_MS = 15_000;
 const NATIVE_DRY_RUN_FIELD = 'dryRun';
 
+// Who is calling: the operator only. A login session is not needed to invoke.
+export type Caller = Pick<AuthContext, 'operator'>;
+
+// `unlocks: 'ignore'` runs the call as if the operator had no active unlock, so nothing is revealed.
+export type InvokeOptions = { unlocks?: 'apply' | 'ignore' };
+
 export type InvokeDeps = {
   env: OpsEnv;
   store: OpsStore;
@@ -287,10 +293,11 @@ export const createInvokeService = (deps: InvokeDeps) => {
   };
 
   const run = async (
-    ctx: AuthContext,
+    ctx: Caller,
     body: InvokeRequest,
     requestId: string,
-    trace: { current: Trace }
+    trace: { current: Trace },
+    options: InvokeOptions
   ): Promise<Outcome> => {
     const started = performance.now();
     const operatorId = ctx.operator.operatorId;
@@ -337,7 +344,8 @@ export const createInvokeService = (deps: InvokeDeps) => {
     );
     trace.current = { ...trace.current, requestHash };
 
-    const unlocks = await store.listActiveUnlocks(operatorId, now());
+    const unlocks =
+      options.unlocks === 'ignore' ? [] : await store.listActiveUnlocks(operatorId, now());
     const subject = entry.subject?.(normalised) ?? null;
     const unlock = findApplicableUnlock(unlocks, subject);
     const lookedUpPii = (entry.piiRequestFields ?? []).some(f => isSet(normalised[f]));
@@ -468,7 +476,7 @@ export const createInvokeService = (deps: InvokeDeps) => {
   };
 
   const preview = async (p: {
-    ctx: AuthContext;
+    ctx: Caller;
     entry: RegistryEntry;
     method: ResolvedMethod;
     normalised: JsonObject;
@@ -557,11 +565,7 @@ export const createInvokeService = (deps: InvokeDeps) => {
     return { response: p.finish(combined, planShape), events };
   };
 
-  const validatePlan = async (p: {
-    ctx: AuthContext;
-    body: InvokeRequest;
-    requestHash: string;
-  }) => {
+  const validatePlan = async (p: { ctx: Caller; body: InvokeRequest; requestHash: string }) => {
     if (p.body.planId === undefined) {
       throw new OpsError(
         'PLAN_REQUIRED',
@@ -596,9 +600,10 @@ export const createInvokeService = (deps: InvokeDeps) => {
   // Every invoke, ok or error, appends one access_log row. If the row cannot be
   // written the response is withheld: no un-logged reads or writes.
   const invoke = async (
-    ctx: AuthContext,
+    ctx: Caller,
     body: InvokeRequest,
-    requestId: string
+    requestId: string,
+    options: InvokeOptions = {}
   ): Promise<InvokeResponse> => {
     const trace: { current: Trace } = {
       current: {
@@ -611,7 +616,7 @@ export const createInvokeService = (deps: InvokeDeps) => {
       },
     };
     const started = performance.now();
-    const outcome = await run(ctx, body, requestId, trace).then(
+    const outcome = await run(ctx, body, requestId, trace, options).then(
       (ok): { ok: Outcome } => ({ ok }),
       (err: unknown): { err: OpsError } => ({
         err:

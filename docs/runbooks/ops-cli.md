@@ -218,6 +218,31 @@ To fill an existing staging rescue with sample pets, use `pnpm ops demo create-p
 
 `pnpm ops demo create-application <rescueId>` likewise leaves a demo adopter and an application on one of that rescue's pets. Remove them with `pnpm ops demo delete-application <applicationId> --rescue-id <rescueId> -e staging`; it refuses any application whose adopter is not a `demo-…@example.com` account.
 
+## The shared `eng ops ads` contract
+
+Alongside `/v1` (what `pnpm ops` speaks), `service-ops` serves the shared `@ideasquared/ops` contract under
+`/ops/v1` on the same loopback port, so `eng ops ads` can drive ADS like the other ideaSquared products. Through the
+same SSH tunnel it is `http://127.0.0.1:14101/ops/v1/catalog` (staging) and `/ops/v1/invoke`; in dev,
+`http://127.0.0.1:4100/ops/v1/...`. No port, binding or compose change.
+
+- **Auth**: the caller sends their own `gh auth token` as `Authorization: Bearer <token>`; no `pnpm ops login`
+  session. Access is the same check as the device flow: an active member of `OPS_GITHUB_ORG`/`OPS_GITHUB_TEAM` for
+  that environment (read with the caller's own token, so the token needs `read:org`). Not on the team: 403. A token
+  GitHub rejects: 401. In dev only (`OPS_AUTH_MODE=local`, which config refuses outside `NODE_ENV=development` and
+  `OPS_ENV=dev`) any bearer token is accepted: a token that is a valid login name acts as that login, anything else
+  as `local-dev`. The `x-ops-expected-env` header is not needed; the catalog reports its `environment`.
+- **Same safeguards**: every call goes through the same invoke path as `/v1`: minted least-privilege principal,
+  masking, dry-run, and the same access log and `ops.actionTaken` events, recorded against the caller's operator
+  (their GitHub account id, same as `pnpm ops`).
+- **Available**: every registry read (`<service>.<command>`, for example `pets.get`, `auth.admin-get-user`);
+  previews of writes (the real dry run, nothing changes); and running a write, which previews first and then
+  executes that plan, so a failed dry run stops it. Fields are the request message's scalar fields.
+- **Not available**: unlocks (masked fields stay masked here even if you hold an unlock, and PII lookup fields such as
+  `auth.search-users --search` are not offered), history, `whoami`, the `demo.*` flows, requests with nested or
+  repeated fields (`notifications.broadcast`), and **every write in prod** (it needs `pnpm ops --confirm prod`). Use
+  `pnpm ops` for those.
+- One log line per call (`command`, `mode`, `outcome`, `durationMs`); no login, arguments or results are logged.
+
 ## If `service-ops` is down
 
 `service-ops` is a developer tool. Nothing in the product depends on it, so an outage is not a user-facing incident, but a failed health check does fail a deploy (the health gate includes `service-ops:4100`), so you need to fix it to ship.

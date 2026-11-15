@@ -98,6 +98,17 @@ id; never the token or its hash) in the same transaction as the session row.
 - Every invoke appends a row to the hash-chained `ops.access_log`; if it cannot be written the
   response is withheld. Reveals and write executions also emit `ops.actionTaken`.
 
+### Shared contract for `eng ops ads`
+
+`service.ops` also serves the shared `@ideasquared/ops` contract under `/ops/v1` (`GET /ops/v1/catalog`,
+`POST /ops/v1/invoke`) on the same port, for `eng ops ads`. It authenticates with the caller's own GitHub token
+(same ops-team check as `pnpm ops login`) and calls the same invoke path, so principal minting, masking, dry-run and
+the audit trail are unchanged. Commands are the registry's, as `<service>.<kebab-method>`. Reads, previews and (outside
+prod) writes are available; unlocks, history, `demo.*`, nested-field requests and prod writes are not, and masked
+output stays masked even for an operator holding an unlock. See the "shared `eng ops ads` contract" section of
+`docs/runbooks/ops-cli.md`. Code: `src/shared-ops.ts`; its `@ideasquared/ops` dependency in `package.json` is the
+line to point at a release.
+
 ### Registry
 
 `src/registry.ts` is the allow-list. Each entry was checked against the handler's permission call.

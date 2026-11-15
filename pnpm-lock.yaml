@@ -2398,6 +2398,9 @@ importers:
       '@grpc/grpc-js':
         specifier: ^1.14.5
         version: 1.14.5
+      '@ideasquared/ops':
+        specifier: file:/home/user/wt-ops-authz/packages/ops
+        version: file:../wt-ops-authz/packages/ops
       fastify:
         specifier: ^5.12.5
         version: 5.12.5
@@ -3769,6 +3772,9 @@ packages:
   '@ideasquared/log@https://github.com/ideaSquared/agent-idea/releases/download/log-v0.1.1/ideasquared-log-0.1.1.tgz':
     resolution: {integrity: sha512-3Tg2K14xin6bHZXy8ppttvxgzQgiMvzKndaH9SoMRmG1kknJm4pEo//QOIGYvL9DtLq8squkHGuXJps2tStnQA==, tarball: https://github.com/ideaSquared/agent-idea/releases/download/log-v0.1.1/ideasquared-log-0.1.1.tgz}
     version: 0.1.1
+
+  '@ideasquared/ops@file:../wt-ops-authz/packages/ops':
+    resolution: {directory: ../wt-ops-authz/packages/ops, type: directory}
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -11479,6 +11485,10 @@ snapshots:
   '@humanwhocodes/retry@0.4.3': {}
 
   '@ideasquared/log@https://github.com/ideaSquared/agent-idea/releases/download/log-v0.1.1/ideasquared-log-0.1.1.tgz': {}
+
+  '@ideasquared/ops@file:../wt-ops-authz/packages/ops':
+    dependencies:
+      zod: 4.6.7
 
   '@img/colour@1.1.0': {}
 
