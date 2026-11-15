@@ -118,7 +118,7 @@ export const runSetup = async (ctx: Ctx): Promise<number> => {
       '             Leave it empty to use your default key or ssh-agent.',
       '',
       'Before the first run, connect once by hand to accept the host key:',
-      '  ssh -N -L 14101:127.0.0.1:4101 <user>@<host>   (Ctrl-C once it sits there)',
+      '  ssh -N -L 14101:127.0.0.1:4101 <user>@<host>   # Ctrl-C once it sits there',
       'Signing in afterwards needs membership of the adoptdontshop GitHub team.',
       '',
       'You can skip staging and prod now and run this again later.',

@@ -173,6 +173,8 @@ describe('setup wizard', () => {
     expect(note).toContain('docs/runbooks/ops-cli.md');
     expect(note).toContain('ssh-keygen -t ed25519');
     expect(note).toContain('adoptdontshop');
+    const sshLine = note.split('\n').find(l => l.includes('ssh -N')) ?? '';
+    expect(sshLine.replace(/#.*$/, '')).not.toMatch(/[()]/);
   });
 
   it('validates host and user', () => {
