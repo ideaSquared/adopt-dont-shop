@@ -252,7 +252,7 @@ gh secret set NETCUP_HOST_FINGERPRINT --body "SHA256:<rest of the value from ste
 1. Settings → Developer settings → OAuth Apps → **New OAuth App**. Name it `ads-ops`, set the homepage to the repository URL, and put any URL in the callback field.
 2. Open the app, tick **Enable Device Flow**, and save.
 3. Copy the **Client ID**. You need it in step 12. There is no client secret.
-4. Create a team called `ops-staging` in the organisation. Developers in this team can use the ops CLI on staging.
+4. Use the `adoptdontshop` team in the organisation. Developers in this team can use the ops CLI on staging and production.
 
 Background: [ops-cli runbook](../runbooks/ops-cli.md).
 
@@ -282,7 +282,7 @@ RESEND_API_KEY=FILL_IN
 DEFAULT_FROM_EMAIL=noreply@adoptdontshop.app
 OPS_GITHUB_CLIENT_ID=FILL_IN
 OPS_GITHUB_ORG=ideaSquared
-OPS_GITHUB_TEAM=ops-staging
+OPS_GITHUB_TEAM=adoptdontshop
 OPS_SESSION_TTL_HOURS=8
 EOF
 ```
