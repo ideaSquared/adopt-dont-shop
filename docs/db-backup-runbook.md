@@ -55,6 +55,10 @@ options; nothing in this repo currently archives WAL.
 
 ## Schedule
 
+> **Paused until production launches.** `/opt/ads/production` has no stack yet, so the
+> nightly backup and restore drill schedules are commented out in their workflows; run them by
+> hand (`gh workflow run backup.yml`) if needed, and uncomment both `schedule:` blocks at launch.
+
 | Job                                          | Cadence                     | Retention                       |
 | -------------------------------------------- | --------------------------- | ------------------------------- |
 | Nightly automated dump                       | Daily 02:00 UTC             | 30 days off-site (S3 lifecycle) |

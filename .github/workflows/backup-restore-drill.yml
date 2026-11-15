@@ -46,8 +46,10 @@ name: Backup Restore Drill
 # environment table and .github/workflows/README.md.
 
 on:
-  schedule:
-    - cron: '30 3 * * *' # after backup.yml's 02:00 UTC snapshot has uploaded
+  # Paused until production launches: /opt/ads/production has no stack yet (only the landing page),
+  # so every nightly run failed and alerted. Uncomment the schedule when production goes live.
+  # schedule:
+  #   - cron: '30 3 * * *' # after backup.yml's 02:00 UTC snapshot has uploaded
   workflow_dispatch: {}
 
 concurrency:

@@ -31,8 +31,10 @@ name: Backup
 # NETCUP_HOST / NETCUP_SSH_KEY / NETCUP_HOST_FINGERPRINT secrets that used
 # to live on `production` into `backups`.
 on:
-  schedule:
-    - cron: '0 2 * * *'
+  # Paused until production launches: /opt/ads/production has no stack yet (only the landing page),
+  # so every nightly run failed and alerted. Uncomment the schedule when production goes live.
+  # schedule:
+  #   - cron: '0 2 * * *'
   workflow_dispatch: {}
 
 concurrency:
