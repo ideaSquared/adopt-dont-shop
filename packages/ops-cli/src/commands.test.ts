@@ -169,7 +169,7 @@ describe('setup wizard', () => {
     const ctx = await makeCtx({ tty: true, answers: { confirm: [false, false] } });
     await main(['setup'], ctx);
     const note = ctx.prompts.logs.join('\n');
-    expect(note).toContain('NETCUP_HOST');
+    expect(note).toContain('IP address or hostname');
     expect(note).toContain('docs/runbooks/ops-cli.md');
     expect(note).toContain('ssh-keygen -t ed25519');
     expect(note).toContain('adoptdontshop');

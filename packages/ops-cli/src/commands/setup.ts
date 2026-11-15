@@ -42,7 +42,7 @@ const askSsh = async (
   const { prompts } = ctx;
   const host = (
     await prompts.text({
-      message: `SSH host for ${env} (the server CI deploys to)`,
+      message: `Server IP or hostname for ${env} (the address you SSH to)`,
       placeholder: 'ops.example.com',
       initialValue: current?.host,
       validate: validateHost,
@@ -109,8 +109,8 @@ export const runSetup = async (ctx: Ctx): Promise<number> => {
       'prod     same server and settings, with extra friction on purpose.',
       '',
       'For staging and prod you will be asked for three things:',
-      '  SSH host   the server CI deploys to: the NETCUP_HOST repository secret.',
-      '             Secrets cannot be read back, so ask whoever runs the server.',
+      '  Server     the IP address or hostname of the ADS server: what you type after',
+      '             the @ in ssh deploy@<server>. Ask whoever runs the server.',
       '  SSH user   your own tunnel-only user on that server. A maintainer creates it',
       '             from your public key: docs/runbooks/ops-cli.md, "Onboard a developer".',
       '             No key yet? ssh-keygen -t ed25519, then send them ~/.ssh/id_ed25519.pub.',
