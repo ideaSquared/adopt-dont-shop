@@ -107,7 +107,10 @@ they need docker access to the production host.
 Backup (`snapshot-postgres.sh`):
 
 - `BACKUP_BUCKET` — S3 bucket (no `s3://` prefix).
-- `AWS_REGION` — bucket region.
+- `AWS_REGION` — bucket region (`auto` for Cloudflare R2).
+- `BACKUP_ENDPOINT_URL` — optional repo variable for S3-compatible storage other
+  than AWS (see [Using Cloudflare R2](#using-cloudflare-r2)). `backup.yml` and
+  `backup-restore-drill.yml` export it as `AWS_ENDPOINT_URL` for the AWS CLI.
 - `POSTGRES_USER`, `POSTGRES_DB` — superuser + database name (from `.env`).
 - `COMPOSE_FILE` — on the prod host this must be
   `/opt/ads/production/docker-compose.prod.yml` (the value `backup.yml`
@@ -145,6 +148,27 @@ Successful output looks like:
 
 The script aborts if the dump is under 1 KiB (a cheap guard against an empty /
 failed dump being uploaded).
+
+## Using Cloudflare R2
+
+The scripts speak the S3 API through the AWS CLI (v2.13 or later reads
+`AWS_ENDPOINT_URL`), so a Cloudflare R2 bucket works without code changes:
+
+1. Create the bucket in Cloudflare (R2 > Create bucket), location hint Europe.
+2. Add an R2 **lifecycle rule** to delete objects after the retention in
+   [`operations/snapshot-policy.md`](./operations/snapshot-policy.md), and a
+   **bucket lock rule** so objects can't be deleted or overwritten before then.
+   `scripts/apply-backup-bucket-policy.sh` uses AWS-only APIs (object lock,
+   versioning); skip it for R2.
+3. Create an R2 API token with **Object Read & Write**, scoped to that bucket.
+   R2 has no write-only permission, so the bucket lock rule is what stops a
+   leaked host key from deleting backups.
+4. On the prod host, as `deploy`: `aws configure` with the token's access key
+   id and secret, region `auto`.
+5. Repo variables: `BACKUP_BUCKET` (bucket name), `AWS_REGION=auto`,
+   `BACKUP_ENDPOINT_URL=https://<account id>.r2.cloudflarestorage.com`. For the
+   restore drill, the same key pair as the `AWS_ACCESS_KEY_ID` /
+   `AWS_SECRET_ACCESS_KEY` repo secrets (or a read-only token).
 
 ## Pre-migration backup checklist
 
