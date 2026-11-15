@@ -147,6 +147,7 @@ Documentation for the adopt-don't-shop monorepo, organised by audience: **Start 
 - [ADR 0014 — HttpOnly cookie token storage](./adr/0014-httponly-cookie-token-storage.md) — _Accepted — implemented_
 - [ADR 0015 — solo-maintainer review posture](./adr/0015-solo-maintainer-review-posture.md) — _Accepted_
 - [ADR 0016 — developer ops CLI](./adr/0016-developer-ops-cli.md) — _Accepted — implemented_
+- [ADR 0017 — ops contract over HTTPS](./adr/0017-ops-contract-over-https.md) — _Accepted_
 
 ### Standards & templates
 

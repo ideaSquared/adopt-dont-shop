@@ -28,7 +28,7 @@ Per-environment application stack (docker-compose.prod.yml / .staging.yml):
   nginx (per-stack) ─► service-gateway :4000 ─► 10 gRPC services
                                                 (auth pets rescue applications notifications
                                                  moderation matching audit chat cms)
-  service-ops :4100 (HTTP, host loopback only — never behind nginx) ─► the same 10 services
+  service-ops :4100 (HTTP, host loopback; only /ops/v1/ via the edge, ADR 0017) ─► the same 10 services
   app-client · app-admin · app-rescue
   database (PG16+PostGIS) · redis · nats (JetStream) · clamav
 ```
@@ -149,7 +149,7 @@ Build-time-only secret (`build-and-push` in `deploy.yml`, not shipped to the hos
 
 The server setup commands (updates, firewall, Docker, the `deploy` user, SSH lockdown, swap, `/opt/ads` directories, host fingerprint) are steps 2–8 of [PRE-LAUNCH-SETUP.md](./PRE-LAUNCH-SETUP.md). A production-only host runs the same steps, then continues with "Host `.env`" below, the first deploy, and "DNS & TLS". Start the edge gateway only after the first deploy (it joins the Docker network that deploy creates) and after the certificate exists (nginx will not start without it).
 
-Docker publishes container ports around ufw, so the firewall is not what keeps the databases private — the compose files are: only the gateway publishes ports (80/443), and the observability/GlitchTip UIs bind `127.0.0.1` only (reach them over an SSH tunnel). `service-ops` (the developer ops CLI backend, [ADR 0016](../adr/0016-developer-ops-cli.md)) is the one other deliberate exception, for the same reason as the observability UIs: it publishes `127.0.0.1:4101` (staging) / `127.0.0.1:4102` (production) on the host loopback only, never `0.0.0.0`, never behind nginx or the edge gateway, and developers reach it over a tunnel-only SSH user ([ops-cli runbook](../runbooks/ops-cli.md)). Do not add a `ports:` mapping to any other service, and never widen `service-ops` beyond `127.0.0.1`.
+Docker publishes container ports around ufw, so the firewall is not what keeps the databases private — the compose files are: only the gateway publishes ports (80/443), and the observability/GlitchTip UIs bind `127.0.0.1` only (reach them over an SSH tunnel). `service-ops` (the developer ops CLI backend, [ADR 0016](../adr/0016-developer-ops-cli.md)) is the one other deliberate exception, for the same reason as the observability UIs: it publishes `127.0.0.1:4101` (staging) / `127.0.0.1:4102` (production) on the host loopback only, never `0.0.0.0`, and `pnpm ops` reaches it over a tunnel-only SSH user ([ops-cli runbook](../runbooks/ops-cli.md)). The edge gateway routes exactly one path to it, `/ops/v1/` (the shared ops contract `eng ops` uses, gated per request by the `adoptdontshop` GitHub team, [ADR 0017](../adr/0017-ops-contract-over-https.md)); no other `service-ops` path may be put behind nginx or the edge. Do not add a `ports:` mapping to any other service, and never widen `service-ops` beyond `127.0.0.1`.
 
 The SSH hardening file is `/etc/ssh/sshd_config.d/00-hardening.conf`. sshd keeps the FIRST value it reads for each option and reads `sshd_config.d/` in name order, so the file must sort before any provider drop-in (e.g. `50-cloud-init.conf` sets `PasswordAuthentication yes`). The host key fingerprint is read on the server itself, from the provider's console, because `ssh-keyscan` across the network trusts whatever answers, which is the impersonation the pinned fingerprint exists to stop.
 

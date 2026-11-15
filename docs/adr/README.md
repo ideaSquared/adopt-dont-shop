@@ -45,3 +45,4 @@ index line to match.
 | [0014](./0014-httponly-cookie-token-storage.md)  | HttpOnly cookie token storage                            | Accepted — implemented | 2026-08-28 | —                                     |
 | [0015](./0015-solo-maintainer-review-posture.md) | Solo-maintainer review posture                           | Accepted               | 2026-09-07 | —                                     |
 | [0016](./0016-developer-ops-cli.md)              | Developer ops CLI and server-side ops service            | Accepted — implemented | 2026-11-08 | —                                     |
+| [0017](./0017-ops-contract-over-https.md)        | Serve the shared ops contract over HTTPS                 | Accepted               | 2026-11-15 | Amends ADR 0016 for `/ops/v1`         |
