@@ -51,6 +51,7 @@ describe('event → CreateNotificationRequest translation', () => {
       expect(req.channel).toBe(NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_IN_APP);
       expect(req.priority).toBe(NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_NORMAL);
       expect(req.title).toMatch(/received/i);
+      expect(req.message).toMatch(/business days/i);
       expect(req.relatedEntityType).toBe(
         NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_APPLICATION
       );
