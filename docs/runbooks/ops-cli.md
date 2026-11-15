@@ -4,11 +4,12 @@
 > **Last reviewed:** 2026-11-08
 > **Related alerts:** none (the alert posted to Discord by ideasquared-bot when an unlock is created is the alert). Design: [ADR 0016](../adr/0016-developer-ops-cli.md).
 
-`pnpm ops …` runs allow-listed gRPC RPCs against dev, staging or production through `service-ops`. This runbook is the admin side: who gets access, how the pieces are provisioned, and what to do when something about it goes wrong. For the commands themselves, see [`packages/ops-cli/README.md`](../../packages/ops-cli/README.md).
+`pnpm ops …` and `eng ops ads …` run allow-listed gRPC RPCs against dev, staging or production through `service-ops`. This runbook is the admin side: who gets access, how the pieces are provisioned, and what to do when something about it goes wrong. For the commands themselves, see [`packages/ops-cli/README.md`](../../packages/ops-cli/README.md).
 
 How a call travels:
 
 ```
+laptop: eng ops ads  ──HTTPS──►  staging-api.adoptdontshop.app / api.adoptdontshop.app /ops/v1/ (edge gateway)  ──►  service-ops container :4100
 laptop: pnpm ops  ──HTTP──►  127.0.0.1:14101 / 14102 (SSH tunnel)  ──►  VPS 127.0.0.1:4101 / 4102  ──►  service-ops container :4100
 dev:    pnpm ops  ──HTTP──►  127.0.0.1:4100 (compose publishes it directly)
 ```
@@ -19,7 +20,7 @@ dev:    pnpm ops  ──HTTP──►  127.0.0.1:4100 (compose publishes it dire
 | staging     | `127.0.0.1:4101`         | `ssh -N -L 14101:127.0.0.1:4101 <user>@<host>` | `adoptdontshop`                                       |
 | prod        | `127.0.0.1:4102`         | `ssh -N -L 14102:127.0.0.1:4102 <user>@<host>` | `adoptdontshop`                                       |
 
-`service-ops` is never behind nginx or the edge gateway. If you ever see it in `nginx/` or `deploy/gateway/`, remove it.
+`eng ops ads` needs no tunnel: the edge gateway routes `/ops/v1/` (the shared ops contract) to `service-ops`, and every request is checked against the `adoptdontshop` team ([ADR 0017](../adr/0017-ops-contract-over-https.md)). That path never applies unlocks and offers only reads in production. Everything else in `service-ops` (the `pnpm ops` sessions, unlocks and history) is loopback-only: never put another `service-ops` path in `nginx/` or `deploy/gateway/`.
 
 ## Preconditions
 
@@ -76,8 +77,8 @@ The secret is optional for the deploy itself: if it is unset the file is written
 
 ## Onboard a developer
 
-1. **Grant access.** Add them to the `adoptdontshop` GitHub team, which covers staging and production. That is all the application needs. They can then run `pnpm ops login`.
-2. **Give them a tunnel.** They need a way to reach the loopback port, which means a Unix user on the VPS that can forward ports and do nothing else. They must **not** be in the `docker` group (that is root-equivalent) and must not use the shared `deploy` key.
+1. **Grant access.** Add them to the `adoptdontshop` GitHub team, which covers staging and production. That is all `eng ops ads` needs: they can use it straight away (their `gh` token needs `read:org`). Stop here unless they also need `pnpm ops` (unlocks, history).
+2. **Give them a tunnel** (only for `pnpm ops`). They need a way to reach the loopback port, which means a Unix user on the VPS that can forward ports and do nothing else. They must **not** be in the `docker` group (that is root-equivalent) and must not use the shared `deploy` key.
 
    ```bash
    # As root on the VPS. The Unix user is their GitHub login in lower case.
@@ -85,9 +86,9 @@ The secret is optional for the deploy itself: if it is unset the file is written
    NEWUSER=$(echo "$LOGIN" | tr '[:upper:]' '[:lower:]')
    adduser --disabled-password --gecos '' "$NEWUSER"
    install -d -m 700 -o "$NEWUSER" -g "$NEWUSER" "/home/$NEWUSER/.ssh"
-   # Their public keys, which `eng setup` adds to their GitHub account (never a private key):
+   # The public SSH keys on their GitHub account, github.com/settings/keys (never a private key):
    curl -fsS "https://github.com/$LOGIN.keys" > "/home/$NEWUSER/.ssh/authorized_keys"
-   test -s "/home/$NEWUSER/.ssh/authorized_keys" || echo "No keys on GitHub: ask them to run eng setup"
+   test -s "/home/$NEWUSER/.ssh/authorized_keys" || echo "No keys on GitHub: ask them to add one at github.com/settings/keys"
    chown "$NEWUSER:$NEWUSER" "/home/$NEWUSER/.ssh/authorized_keys" && chmod 600 "/home/$NEWUSER/.ssh/authorized_keys"
    id "$NEWUSER"            # must NOT list `docker` or `sudo`
    ```

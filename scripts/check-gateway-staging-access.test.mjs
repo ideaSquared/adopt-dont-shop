@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   findSnippetProblems,
+  findStagingBypasses,
   findUnprotectedStagingHosts,
 } from './check-gateway-staging-access.mjs';
 
@@ -86,6 +87,79 @@ describe('findUnprotectedStagingHosts', () => {
 
   it('protects every staging vhost in the real gateway config', () => {
     expect(findUnprotectedStagingHosts(read('deploy/gateway/nginx.conf'))).toEqual([]);
+  });
+});
+
+describe('findStagingBypasses', () => {
+  const OPS = `        location /ops/v1/ {
+            allow all;
+            auth_basic off;
+            proxy_pass http://$staging_ops;
+        }`;
+
+  it('allows the ops contract path to skip the staging password', () => {
+    const text = server('staging-api.adoptdontshop.app', `${GUARD}\n${OPS}`);
+    expect(findStagingBypasses(text)).toEqual([]);
+  });
+
+  it('flags any other location that turns the password off or lets everyone in', () => {
+    const text = server(
+      'staging.adoptdontshop.app',
+      `${GUARD}
+        location /api/ {
+            auth_basic off;
+            proxy_pass http://backend;
+        }
+        location /socket.io/ {
+            allow all;
+            proxy_pass http://backend;
+        }`
+    );
+    expect(findStagingBypasses(text)).toEqual([
+      'staging.adoptdontshop.app: location /api/',
+      'staging.adoptdontshop.app: location /socket.io/',
+    ]);
+  });
+
+  it('only exempts the exact ops prefix, not a look-alike', () => {
+    const text = server('staging-api.adoptdontshop.app', OPS.replace('/ops/v1/', '/ops/'));
+    expect(findStagingBypasses(text)).toEqual(['staging-api.adoptdontshop.app: location /ops/']);
+  });
+
+  it('finds a bypass written on one line after another directive', () => {
+    const text = server(
+      'staging.adoptdontshop.app',
+      `${GUARD}
+        location /api/ { proxy_pass http://backend; allow all; }
+        location /socket.io/ { proxy_pass http://backend; auth_basic off; }`
+    );
+    expect(findStagingBypasses(text)).toEqual([
+      'staging.adoptdontshop.app: location /api/',
+      'staging.adoptdontshop.app: location /socket.io/',
+    ]);
+  });
+
+  it('finds a bypass inside a location that comes from an included snippet', () => {
+    const text = server(
+      'staging.adoptdontshop.app',
+      `${GUARD}
+        include /etc/nginx/snippets/uploads-staging.conf;`
+    );
+    const snippets = {
+      'uploads-staging.conf': 'location /uploads/ {\n    allow all;\n    proxy_pass http://b;\n}\n',
+    };
+    expect(findStagingBypasses(text, name => snippets[name])).toEqual([
+      'staging.adoptdontshop.app: location /uploads/',
+    ]);
+  });
+
+  it('ignores production vhosts', () => {
+    expect(findStagingBypasses(server('api.adoptdontshop.app', OPS))).toEqual([]);
+  });
+
+  it('finds no other bypass in the real gateway config and its snippets', () => {
+    const snippet = name => read(`deploy/gateway/snippets/${name}`);
+    expect(findStagingBypasses(read('deploy/gateway/nginx.conf'), snippet)).toEqual([]);
   });
 });
 
