@@ -37,7 +37,9 @@ The `build-and-push` job:
    `docker inspect ... .RepoDigests`.
 3. Runs `cosign sign --yes <image>@<digest>` through `scripts/cosign-sign.sh`,
    which retries a failed sign up to five times (the Actions OIDC token
-   endpoint occasionally answers with a non-JSON error body). Signing:
+   endpoint occasionally answers with a non-JSON error body). `docker.yml`'s
+   `publish-images` job signs the images it builds on `main` through the same
+   script. Signing:
    - Mints an OIDC token from GitHub Actions.
    - Exchanges it at Fulcio for a short-lived signing cert whose SAN
      identifies the workflow + branch.
