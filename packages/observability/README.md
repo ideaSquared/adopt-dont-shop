@@ -3,10 +3,11 @@
 ## Purpose
 
 Shared observability bootstrap for the backend microservices — OpenTelemetry
-(OTLP/HTTP), Sentry (Node + profiling), and a Winston logger with optional Loki
-shipping, plus PII/secret redaction. The service name is parameterised so every
-extracted service gets the identical telemetry stack (same SDK versions, env
-contract, and redaction rules) with one call.
+(OTLP/HTTP), Sentry (Node + profiling), and a structured logger
+(`@ideasquared/log`) with optional Loki shipping, plus PII/secret redaction.
+The service name is parameterised so every extracted service gets the identical
+telemetry stack (same SDK versions, env contract, and redaction rules) with one
+call.
 
 This is a service-only shared package (not a `lib.*`) — the canonical backend
 observability surface. See the decision tree in

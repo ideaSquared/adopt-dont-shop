@@ -186,7 +186,7 @@ subscribes to the wildcard `*.actionTaken`.
 
 ## PII and secrets
 
-`details` is redacted by the Winston pipeline before it's logged to Loki,
+`details` is redacted by the logging pipeline before it's logged to Loki,
 but the `audit.audit_events` row itself is durable storage. Never put:
 
 - Plain-text passwords, reset tokens, MFA secrets
