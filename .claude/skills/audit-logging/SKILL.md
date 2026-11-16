@@ -186,8 +186,10 @@ subscribes to the wildcard `*.actionTaken`.
 
 ## PII and secrets
 
-`details` is redacted by the Winston pipeline before it's logged to Loki,
-but the `audit.audit_events` row itself is durable storage. Never put:
+The audit consumer strips secret- and PII-shaped keys from `payload` with
+`redactAuditPayload` (`packages/events`) before the `audit.audit_events` row
+is written, and the payload is never sent to Loki. That deny-list is a
+backstop, not a licence: the row is durable storage. Never put:
 
 - Plain-text passwords, reset tokens, MFA secrets
 - Full credit-card or bank-account numbers

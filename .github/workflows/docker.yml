@@ -700,7 +700,7 @@ jobs:
           }
           printf '%s\n' "$refs" | while read -r ref; do
             echo "Signing $ref"
-            cosign sign --yes "$ref"
+            bash scripts/cosign-sign.sh "$ref"
           done
 
   # Alerts through ideasquared-bot's /alert endpoint when the production smoke

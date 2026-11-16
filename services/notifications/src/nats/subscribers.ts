@@ -397,7 +397,8 @@ export const buildApplicationSubmittedCreate = (
   channel: NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_IN_APP,
   priority: NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_NORMAL,
   title: 'Application received',
-  message: 'Your application has been submitted and is awaiting review.',
+  message:
+    'Your application has been submitted and is awaiting review. Most rescues respond within a few business days.',
   dataJson: JSON.stringify({
     applicationId: event.applicationId,
     petId: event.petId,
