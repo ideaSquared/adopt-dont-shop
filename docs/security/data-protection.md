@@ -72,7 +72,7 @@ In the `users`, `profile`, `application_drafts`, `pets` and audit-log tables:
 - `date_of_birth`
 - free-text fields submitted as part of adoption applications (cover
   letters, lifestyle answers) — `application_drafts.payload` JSONB
-- audit-log `details` JSONB (subject to Winston redaction at write time —
+- audit-log `details` JSONB (subject to redaction at write time —
   via the shared redaction in the observability package)
 
 ## Backup / snapshot encryption

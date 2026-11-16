@@ -100,7 +100,7 @@ Never modify a shipped migration — add a new `NNN_snake_case.ts` file in the o
 
 The self-hosted observability stack is off by default and layered in per host via `docker-compose.observability.yml` (`OBSERVABILITY_ENABLED=true`):
 
-- **Logs** — Loki (shipped from services via `LOKI_URL`), viewed in Grafana. (Winston structured JSON logs.)
+- **Logs** — Loki (shipped from services via `LOKI_URL`), viewed in Grafana. (`@ideasquared/log` structured JSON logs.)
 - **Metrics** — Prometheus scrapes services; alert rules in `infra/prometheus/rules/`, routed by Alertmanager to **Discord** (see [slo.md](../slo.md)).
 - **Traces** — OpenTelemetry → Tempo (`OTEL_EXPORTER_OTLP_ENDPOINT`), viewed in Grafana (see [observability/tracing.md](../observability/tracing.md)).
 - **Error tracking** — GlitchTip (Sentry-compatible), activated by `SENTRY_DSN` via `docker-compose.glitchtip.yml`.

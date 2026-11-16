@@ -76,7 +76,6 @@ service are:
 | `ioredis`   | every Redis command                                         |
 | `socket.io` | server-side connection events (gateway)                     |
 | `undici`    | `fetch()` calls                                             |
-| `winston`   | log-record attribution to a span                            |
 
 `@opentelemetry/instrumentation-fs` is **disabled** because it emits
 one span per `readFile` / `stat` and floods exporters with no
@@ -92,8 +91,9 @@ Inbound request
       ├── the request-id hook (packages/observability/src/request-id.ts) stores
       │   a separate correlation id (x-request-id) in its own AsyncLocalStorage —
       │   unrelated to the OTel span; see "Two IDs" below
-      ├── Winston reads the active span via trace.getActiveSpan() and stamps
-      │   `trace_id` / `span_id` on every log line (ADS-1327, logger.ts)
+      ├── the logger (`@ideasquared/log`) reads the active span via
+      │   trace.getActiveSpan() and stamps `trace_id` / `span_id` on every
+      │   log line (ADS-1327, logger.ts)
       ├── Sentry's beforeSend adds trace_id to every event
       └── Outbound HTTP / Redis / PG spans become children
           via auto-instrumentation propagation

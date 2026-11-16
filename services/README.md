@@ -42,7 +42,7 @@ Every service is built on the same packages (see [`packages/README.md`](../packa
   the `DOMAIN_EVENTS` JetStream topology, and the GDPR saga helpers.
 - `@adopt-dont-shop/db` — Postgres client + node-pg-migrate runner.
 - `@adopt-dont-shop/authz` — `requirePermission` / scope checks.
-- `@adopt-dont-shop/observability` — OpenTelemetry, Winston logger, the shared
+- `@adopt-dont-shop/observability` — OpenTelemetry, the `@ideasquared/log` structured logger, the shared
   Prometheus `/metrics` registry (`http_request_duration_seconds`,
   `grpc_handler_duration_seconds`).
 
