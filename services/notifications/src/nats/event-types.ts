@@ -78,6 +78,19 @@ export type ApplicationAdoptedEvent = {
   rescueId: string;
 };
 
+// applications.staffNudgeDue — service.applications' stale-application job
+// (ADS-1463, AC #2) emits this when an open application has had no action
+// for its configured inactivity window. Fanned out to the rescue's staff
+// the same way as rescue.verified (RescueService.ListStaffMembers).
+export type ApplicationStaffNudgeDueEvent = {
+  applicationId: string;
+  rescueId: string;
+  petId: string;
+  adopterId: UserId;
+  submittedAt: string; // RFC 3339
+  inactivityDays: number;
+};
+
 // auth.userLoggedIn — service.auth publishes after every successful
 // login (Phase 2.3b). service.notifications surfaces a security
 // notification so the user can spot unrecognised sign-ins. Mirrors
