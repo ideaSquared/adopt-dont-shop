@@ -37,6 +37,7 @@ import type { CreateRescueRequest } from '@adopt-dont-shop/proto';
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
+import type { ServiceLogger } from '../logger.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 import { buildMetadata } from '../middleware/metadata.js';
 
@@ -51,6 +52,8 @@ export type RescueRegisterRoutesOptions = {
   // already-registered email notifies that account, so the per-IP cap alone
   // would let a flood spread across IPs fill one inbox. Optional like the auth routes.
   emailRateLimiter?: EmailRateLimiter;
+  // The gateway runs Fastify with its own logger off, so req.log drops lines.
+  logger: ServiceLogger;
 };
 
 const required = (max: number) => z.string().trim().min(1, 'is required').max(max);
@@ -120,7 +123,7 @@ export const registerRescueRegisterRoutes = async (
   app: FastifyInstance,
   opts: RescueRegisterRoutesOptions
 ): Promise<void> => {
-  const { authClient, rescueClient, emailRateLimiter } = opts;
+  const { authClient, rescueClient, emailRateLimiter, logger } = opts;
 
   app.post(
     '/api/v1/rescues/register',
@@ -157,10 +160,7 @@ export const registerRescueRegisterRoutes = async (
             metadata
           );
         } catch (compensateErr) {
-          req.log.error(
-            { err: compensateErr, ownerUserId },
-            'failed to roll back orphaned rescue owner account'
-          );
+          logger.error('failed to roll back orphaned rescue owner account', {}, compensateErr);
         }
       };
 

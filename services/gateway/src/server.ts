@@ -705,6 +705,7 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
       authClient: opts.authClient,
       rescueClient: opts.rescueClient,
       emailRateLimiter,
+      logger,
     });
   }
   // POST /api/v1/invitations/accept — register-on-accept. Orchestrates

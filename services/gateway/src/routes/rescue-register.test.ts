@@ -1,10 +1,12 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createLogger, memorySink } from '@adopt-dont-shop/observability';
 import { RescueV1 } from '@adopt-dont-shop/proto';
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
+import { LOG_FIELDS } from '../logger.js';
 
 import { createEmailRateLimiter } from './email-rate-limiter.js';
 import { registerRescueRegisterRoutes } from './rescue-register.js';
@@ -39,6 +41,14 @@ const FORM_BODY = {
   country: 'GB',
 };
 
+const makeLogger = () => {
+  const sink = memorySink();
+  return {
+    logger: createLogger({ serviceName: 'test', fields: LOG_FIELDS, sink }),
+    events: sink.events,
+  };
+};
+
 function makeClients() {
   const registerRescueOwner = vi.fn();
   const deleteUnverifiedRescueOwner = vi.fn().mockResolvedValue({ deleted: true });
@@ -59,9 +69,11 @@ function makeClients() {
 describe('POST /api/v1/rescues/register', () => {
   let app: FastifyInstance;
   let m: ReturnType<typeof makeClients>;
+  let logs: ReturnType<typeof makeLogger>;
 
   beforeEach(async () => {
     m = makeClients();
+    logs = makeLogger();
     app = Fastify({ logger: false, trustProxy: true });
     // server.ts registers the plugin globally; the route only sets its own cap.
     const { default: rateLimit } = await import('@fastify/rate-limit');
@@ -69,6 +81,7 @@ describe('POST /api/v1/rescues/register', () => {
     await registerRescueRegisterRoutes(app, {
       authClient: m.authClient,
       rescueClient: m.rescueClient,
+      logger: logs.logger,
     });
   });
 
@@ -91,6 +104,7 @@ describe('POST /api/v1/rescues/register', () => {
     await registerRescueRegisterRoutes(probe, {
       authClient: m.authClient,
       rescueClient: m.rescueClient,
+      logger: logs.logger,
     });
     await probe.close();
     expect(isPublic).toBe(true);
@@ -221,6 +235,20 @@ describe('POST /api/v1/rescues/register', () => {
     expect(res.statusCode).toBe(409);
   });
 
+  it('logs a failed rollback through the gateway logger, without the owner email', async () => {
+    m.registerRescueOwner.mockResolvedValueOnce({ user: { userId: 'usr-owner' } });
+    m.registerRescue.mockRejectedValueOnce(new Error('rescue unreachable'));
+    m.deleteUnverifiedRescueOwner.mockRejectedValueOnce(new Error('auth unreachable'));
+
+    await post(FORM_BODY);
+
+    const event = logs.events.find(
+      e => e.message === 'failed to roll back orphaned rescue owner account'
+    );
+    expect(event).toBeDefined();
+    expect(JSON.stringify(event)).not.toContain(FORM_BODY.email);
+  });
+
   it('does not attempt a rollback when the owner email already existed (nothing new was created)', async () => {
     m.registerRescueOwner.mockResolvedValueOnce({});
 
@@ -252,6 +280,7 @@ describe('POST /api/v1/rescues/register', () => {
       authClient: m.authClient,
       rescueClient: m.rescueClient,
       emailRateLimiter: createEmailRateLimiter({ max: 2, windowMs: 60_000 }),
+      logger: logs.logger,
     });
     try {
       const statuses: number[] = [];
