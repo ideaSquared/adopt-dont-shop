@@ -45,6 +45,20 @@ export type ApplicationsConfig = {
     // long-running transaction/lock.
     batchSize: number;
   };
+  // Staff inactivity nudge (ADS-1463, AC #2) — see
+  // src/jobs/application-staff-nudge.ts and migration 017. A fixed,
+  // server-wide default for now; per-rescue configurability (the
+  // ticket's "rescue-configurable number of days") is left for a
+  // follow-up, same as the fixed-default first step already taken for
+  // the adopter acknowledgement copy.
+  applicationStaffNudge: {
+    // How often the job checks for newly-stale applications.
+    intervalMs: number;
+    // Days with no action before an open application is nudged.
+    inactivityDays: number;
+    // Max rows nudged per transaction.
+    batchSize: number;
+  };
 };
 
 const DEFAULT_PORT = 5005;
@@ -55,6 +69,9 @@ const DEFAULT_NATS_URL = 'nats://nats:4222';
 const DEFAULT_PETS_GRPC_URL = 'service-pets:6003';
 const DEFAULT_APPLICATION_DRAFT_PURGE_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_APPLICATION_DRAFT_PURGE_BATCH_SIZE = 500;
+const DEFAULT_APPLICATION_STAFF_NUDGE_INTERVAL_MS = 60 * 60 * 1000;
+const DEFAULT_APPLICATION_STAFF_NUDGE_INACTIVITY_DAYS = 3;
+const DEFAULT_APPLICATION_STAFF_NUDGE_BATCH_SIZE = 200;
 
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): ApplicationsConfig => {
   const port = parsePort(env.APPLICATIONS_PORT, DEFAULT_PORT, 'APPLICATIONS_PORT');
@@ -77,6 +94,22 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): ApplicationsCo
     'APPLICATION_DRAFT_PURGE_BATCH_SIZE'
   );
 
+  const applicationStaffNudgeIntervalMs = parsePort(
+    env.APPLICATION_STAFF_NUDGE_INTERVAL_MS,
+    DEFAULT_APPLICATION_STAFF_NUDGE_INTERVAL_MS,
+    'APPLICATION_STAFF_NUDGE_INTERVAL_MS'
+  );
+  const applicationStaffNudgeInactivityDays = parsePort(
+    env.APPLICATION_STAFF_NUDGE_INACTIVITY_DAYS,
+    DEFAULT_APPLICATION_STAFF_NUDGE_INACTIVITY_DAYS,
+    'APPLICATION_STAFF_NUDGE_INACTIVITY_DAYS'
+  );
+  const applicationStaffNudgeBatchSize = parsePort(
+    env.APPLICATION_STAFF_NUDGE_BATCH_SIZE,
+    DEFAULT_APPLICATION_STAFF_NUDGE_BATCH_SIZE,
+    'APPLICATION_STAFF_NUDGE_BATCH_SIZE'
+  );
+
   return {
     port,
     grpcPort,
@@ -89,6 +122,11 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): ApplicationsCo
     applicationDraftPurge: {
       intervalMs: applicationDraftPurgeIntervalMs,
       batchSize: applicationDraftPurgeBatchSize,
+    },
+    applicationStaffNudge: {
+      intervalMs: applicationStaffNudgeIntervalMs,
+      inactivityDays: applicationStaffNudgeInactivityDays,
+      batchSize: applicationStaffNudgeBatchSize,
     },
   };
 };

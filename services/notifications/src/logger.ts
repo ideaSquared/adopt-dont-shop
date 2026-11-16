@@ -5,6 +5,7 @@ import { BASE_LOG_FIELDS, type Logger } from '@adopt-dont-shop/observability';
 export const LOG_FIELDS = [
   ...BASE_LOG_FIELDS,
   'petId',
+  'applicationId',
   'chatId',
   'messageId',
   'invitationId',

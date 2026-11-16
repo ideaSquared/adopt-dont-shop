@@ -40,6 +40,7 @@ import type {
   ApplicationHomeVisitCompletedEvent,
   ApplicationHomeVisitScheduledEvent,
   ApplicationRejectedEvent,
+  ApplicationStaffNudgeDueEvent,
   ApplicationSubmittedEvent,
   AuthAccountDeletionRequestedEvent,
   AuthRescueRegistrationAttemptedEvent,
@@ -314,6 +315,48 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
     )
   );
 
+  // applications.staffNudgeDue — fan a reminder notification out to the
+  // rescue's staff (ADS-1463, AC #2). Same recipient-discovery / fail-open
+  // shape as the rescue.verified / rescue.rejected fan-outs above: no
+  // RescueService client configured means the fan-out no-ops rather than
+  // throwing.
+  subscriptions.push(
+    subscribe<ApplicationStaffNudgeDueEvent>(
+      nats,
+      {
+        subject: 'applications.staffNudgeDue',
+        durable: durableFor('applications.staffNudgeDue'),
+        onError,
+      },
+      async (payload, meta) => {
+        if (!rescueClient) {
+          logger.warn(
+            'applications.staffNudgeDue fan-out skipped — no RESCUE_GRPC_URL configured',
+            { applicationId: payload.applicationId }
+          );
+          return;
+        }
+        const staff = await rescueClient.listStaffMembers(payload.rescueId);
+        for (const userId of staff) {
+          try {
+            await createNotification(
+              deps,
+              SYSTEM_PRINCIPAL,
+              buildApplicationStaffNudgeDueCreate(payload, userId),
+              perRecipientDedup('applications.staffNudgeDue', meta, userId)
+            );
+          } catch (err) {
+            logger.warn(
+              'applications.staffNudgeDue notification create failed',
+              { applicationId: payload.applicationId, recipientUserId: userId },
+              err
+            );
+          }
+        }
+      }
+    )
+  );
+
   // rescue.staffInvitationCancelled — stays
   // log-only (no account/recipient to notify in-app, and a "cancelled"
   // email isn't critical enough to add).
@@ -522,6 +565,31 @@ export const buildApplicationAdoptedCreate = (
   templateVariablesJson: '{}',
   relatedEntityType:
     NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_ADOPTION,
+  relatedEntityId: event.applicationId,
+});
+
+// applications.staffNudgeDue — one recipient (a rescue staff member) per
+// call, same shape as buildRescueVerifiedCreate. NOTIFICATION_TYPE_REMINDER
+// is the closest existing fit; HIGH priority because this exists to pull
+// staff attention toward a backlog item the adopter is waiting on.
+export const buildApplicationStaffNudgeDueCreate = (
+  event: ApplicationStaffNudgeDueEvent,
+  recipientUserId: string
+): CreateNotificationRequest => ({
+  userId: recipientUserId,
+  type: NotificationsV1.NotificationType.NOTIFICATION_TYPE_REMINDER,
+  channel: NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_IN_APP,
+  priority: NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_HIGH,
+  title: 'Application awaiting a response',
+  message: `An application has had no action for ${event.inactivityDays} days.`,
+  dataJson: JSON.stringify({
+    applicationId: event.applicationId,
+    petId: event.petId,
+    rescueId: event.rescueId,
+  }),
+  templateVariablesJson: '{}',
+  relatedEntityType:
+    NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_APPLICATION,
   relatedEntityId: event.applicationId,
 });
 

@@ -64,6 +64,7 @@ const TEST_CONFIG: ApplicationsConfig = {
   natsUrl: 'nats://localhost:4222',
   petsGrpcUrl: 'service-pets:6003',
   applicationDraftPurge: { intervalMs: 86_400_000, batchSize: 500 },
+  applicationStaffNudge: { intervalMs: 3_600_000, inactivityDays: 3, batchSize: 200 },
 };
 
 function recording(): { query: QueryFn; calls: Array<{ text: string; values: unknown[] }> } {

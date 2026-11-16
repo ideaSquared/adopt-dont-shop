@@ -26,6 +26,7 @@ const config: ApplicationsConfig = {
   natsUrl: 'nats://localhost:4222',
   petsGrpcUrl: 'service-pets:6003',
   applicationDraftPurge: { intervalMs: 24 * 60 * 60 * 1000, batchSize: 500 },
+  applicationStaffNudge: { intervalMs: 60 * 60 * 1000, inactivityDays: 3, batchSize: 200 },
 };
 
 const pool = {} as unknown as Pool;

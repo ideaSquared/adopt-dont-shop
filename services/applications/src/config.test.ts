@@ -21,6 +21,11 @@ describe('loadConfig', () => {
       intervalMs: 24 * 60 * 60 * 1000,
       batchSize: 500,
     });
+    expect(config.applicationStaffNudge).toEqual({
+      intervalMs: 60 * 60 * 1000,
+      inactivityDays: 3,
+      batchSize: 200,
+    });
   });
 
   it('honours all env overrides when set', () => {
@@ -35,6 +40,9 @@ describe('loadConfig', () => {
       PETS_GRPC_URL: 'service-pets.internal:6003',
       APPLICATION_DRAFT_PURGE_INTERVAL_MS: '3600000',
       APPLICATION_DRAFT_PURGE_BATCH_SIZE: '100',
+      APPLICATION_STAFF_NUDGE_INTERVAL_MS: '1800000',
+      APPLICATION_STAFF_NUDGE_INACTIVITY_DAYS: '5',
+      APPLICATION_STAFF_NUDGE_BATCH_SIZE: '50',
     });
 
     expect(config.port).toBe(5500);
@@ -46,6 +54,11 @@ describe('loadConfig', () => {
     expect(config.natsUrl).toBe('nats://nats.internal:4222');
     expect(config.petsGrpcUrl).toBe('service-pets.internal:6003');
     expect(config.applicationDraftPurge).toEqual({ intervalMs: 3_600_000, batchSize: 100 });
+    expect(config.applicationStaffNudge).toEqual({
+      intervalMs: 1_800_000,
+      inactivityDays: 5,
+      batchSize: 50,
+    });
   });
 
   it('rejects a non-numeric APPLICATIONS_PORT', () => {

@@ -26,6 +26,7 @@ export const BASE_LOG_FIELDS = [
   'deletedCount',
   'updatedCount',
   'skippedCount',
+  'nudgedCount',
   'timeoutMs',
   'seeded',
   'durablePrefix',
