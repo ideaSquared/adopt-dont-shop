@@ -36,3 +36,7 @@ export const reasonInput = style({
   minWidth: '12rem',
   padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
 });
+
+export const templateSelect = style({
+  minWidth: '14rem',
+});

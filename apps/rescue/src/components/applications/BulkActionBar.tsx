@@ -1,8 +1,37 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Input } from '@adopt-dont-shop/lib.components';
+import { Button, Input, SelectInput } from '@adopt-dont-shop/lib.components';
 import * as styles from './BulkActionBar.css';
 import type { ApplicationListItem } from '../../types/applications';
 import { canApplyBulkAction, type BulkStageAction } from '../../utils/applicationStageTransitions';
+
+// ADS-1463: a fixed set of starter decline-message templates so staff aren't
+// stuck free-typing a reason for every bulk rejection. Picking a template
+// prefills the (still-editable) reason field; "Custom message" leaves it as
+// free text, matching the pre-existing behaviour. Per-rescue template
+// management is a larger, separate feature left for later.
+const CUSTOM_TEMPLATE_ID = 'custom';
+
+const DECLINE_REASON_TEMPLATES: { value: string; label: string; message: string }[] = [
+  { value: CUSTOM_TEMPLATE_ID, label: 'Custom message', message: '' },
+  {
+    value: 'not_a_fit',
+    label: 'Not a good fit for this pet',
+    message:
+      "After reviewing your application, we don't feel this is the right match for you and this pet. We encourage you to apply for other pets in our care.",
+  },
+  {
+    value: 'incomplete',
+    label: 'Application incomplete',
+    message:
+      'We were unable to verify some of the information in your application. Please feel free to re-apply with complete details.',
+  },
+  {
+    value: 'pet_unavailable',
+    label: 'Pet no longer available',
+    message:
+      'This pet has already been adopted by another applicant. Thank you for your interest — please check our other available pets.',
+  },
+];
 
 type BlockedRow = {
   application: ApplicationListItem;
@@ -52,6 +81,7 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
   const selectedCount = selectedApplications.length;
   const [pendingAction, setPendingAction] = useState<BulkStageAction | null>(null);
   const [reason, setReason] = useState('');
+  const [templateId, setTemplateId] = useState(CUSTOM_TEMPLATE_ID);
 
   // Auto-dismiss the result summary after a timeout so stale banners
   // don't linger. The parent still controls the actual state — we just
@@ -88,6 +118,7 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
     );
     setPendingAction(null);
     setReason('');
+    setTemplateId(CUSTOM_TEMPLATE_ID);
   };
 
   const renderButton = (action: BulkStageAction, variant: 'secondary' | 'success' | 'danger') => (
@@ -97,6 +128,7 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
       onClick={() => {
         setPendingAction(action);
         setReason('');
+        setTemplateId(CUSTOM_TEMPLATE_ID);
       }}
       disabled={busy}
     >
@@ -142,16 +174,32 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
             {selectedCount === 1 ? '' : 's'}?
           </span>
           {requireReason && (
-            <Input
-              type="text"
-              aria-label="Reason for rejection"
-              placeholder="Reason (required for rejection)"
-              value={reason}
-              onChange={e => setReason(e.target.value)}
-              className={styles.reasonInput}
-              required
-              aria-required="true"
-            />
+            <>
+              <SelectInput
+                label="Decline reason template"
+                value={templateId}
+                onChange={value => {
+                  const id = Array.isArray(value) ? value[0] : value;
+                  setTemplateId(id);
+                  const template = DECLINE_REASON_TEMPLATES.find(t => t.value === id);
+                  if (template && template.value !== CUSTOM_TEMPLATE_ID) {
+                    setReason(template.message);
+                  }
+                }}
+                options={DECLINE_REASON_TEMPLATES.map(({ value, label }) => ({ value, label }))}
+                className={styles.templateSelect}
+              />
+              <Input
+                type="text"
+                aria-label="Reason for rejection"
+                placeholder="Reason (required for rejection)"
+                value={reason}
+                onChange={e => setReason(e.target.value)}
+                className={styles.reasonInput}
+                required
+                aria-required="true"
+              />
+            </>
           )}
           <Button
             size="sm"
@@ -167,6 +215,7 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
             onClick={() => {
               setPendingAction(null);
               setReason('');
+              setTemplateId(CUSTOM_TEMPLATE_ID);
             }}
             disabled={busy}
           >
