@@ -177,6 +177,57 @@ describe('BulkActionBar (ADS-642)', () => {
     expect(onBulkAction).toHaveBeenCalledWith('reject', ['a', 'b'], 'duplicate application');
   });
 
+  it('prefills the reason from a decline template and leaves it editable', () => {
+    render(
+      <BulkActionBar
+        selectedApplications={[buildApp({ id: 'a', stage: 'PENDING' })]}
+        onClearSelection={onClearSelection}
+        onBulkAction={onBulkAction}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Reject' }));
+
+    const templateSelect = screen.getByRole('combobox', { name: 'Decline reason template' });
+    const reasonInput = screen.getByPlaceholderText(/Reason \(required for rejection\)/);
+    const confirmButton = screen.getByRole('button', { name: 'Confirm' });
+
+    expect(confirmButton).toBeDisabled();
+
+    fireEvent.change(templateSelect, { target: { value: 'pet_unavailable' } });
+    expect(reasonInput).toHaveValue(
+      'This pet has already been adopted by another applicant. Thank you for your interest — please check our other available pets.'
+    );
+    expect(confirmButton).not.toBeDisabled();
+
+    // Staff can still tweak the templated text before confirming.
+    fireEvent.change(reasonInput, { target: { value: 'This pet has already been adopted.' } });
+    fireEvent.click(confirmButton);
+    expect(onBulkAction).toHaveBeenCalledWith(
+      'reject',
+      ['a'],
+      'This pet has already been adopted.'
+    );
+  });
+
+  it('resets the decline template when switching rejection target applications', () => {
+    render(
+      <BulkActionBar
+        selectedApplications={[buildApp({ id: 'a', stage: 'PENDING' })]}
+        onClearSelection={onClearSelection}
+        onBulkAction={onBulkAction}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Reject' }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Decline reason template' }), {
+      target: { value: 'incomplete' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reject' }));
+    expect(screen.getByRole('combobox', { name: 'Decline reason template' })).toHaveValue('custom');
+    expect(screen.getByPlaceholderText(/Reason \(required for rejection\)/)).toHaveValue('');
+  });
+
   it('disables all controls when busy is true', () => {
     render(
       <BulkActionBar
