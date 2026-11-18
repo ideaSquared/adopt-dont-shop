@@ -161,6 +161,21 @@ describe('ApplicationDetailsPage pet and rescue', () => {
     expect(screen.queryByText('rescue-1')).not.toBeInTheDocument();
   });
 
+  // ADS-1463: adopters' top complaint is hearing nothing after applying;
+  // showing when the application last changed gives them a signal short of
+  // a full status change.
+  it('shows the "Last Updated" date on the application details', async () => {
+    getApplicationByIdMock.mockResolvedValue({
+      ...makeApplication(),
+      updatedAt: '2025-03-15T12:30:00Z',
+    });
+
+    render(<ApplicationDetailsPage />);
+
+    expect(await screen.findByText('Last Updated')).toBeInTheDocument();
+    expect(screen.getByText('15 Mar 2025, 12:30')).toBeInTheDocument();
+  });
+
   it('does not reveal which rescue staff member reviewed the application', async () => {
     getApplicationByIdMock.mockResolvedValue({
       ...makeApplication(),
