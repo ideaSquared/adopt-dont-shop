@@ -72,6 +72,20 @@ export async function sendApplicationStaffNudges(
                      -- home visit, …), and never writes submitted_at, so
                      -- that column is NULL for every service-made row.
                      AND updated_at < now() - ($2 || ' days')::interval
+                     -- Staff actions that write only their own table (not
+                     -- the application row) are activity too.
+                     AND NOT EXISTS (
+                           SELECT 1 FROM home_visits v
+                            WHERE v.application_id = applications.application_id
+                              AND v.updated_at >= now() - ($2 || ' days')::interval)
+                     AND NOT EXISTS (
+                           SELECT 1 FROM application_reference_checks r
+                            WHERE r.application_id = applications.application_id
+                              AND r.updated_at >= now() - ($2 || ' days')::interval)
+                     AND NOT EXISTS (
+                           SELECT 1 FROM application_timeline_notes n
+                            WHERE n.application_id = applications.application_id
+                              AND n.created_at >= now() - ($2 || ' days')::interval)
                    ORDER BY updated_at
                    LIMIT $3
                 )
