@@ -45,7 +45,7 @@ const staleRow = (id: string) => ({
   rescue_id: 'rescue-1',
   pet_id: 'pet-1',
   user_id: 'user-1',
-  submitted_at: '2026-06-01T00:00:00.000Z',
+  updated_at: '2026-06-01T00:00:00.000Z',
 });
 
 describe('sendApplicationStaffNudges', () => {
@@ -87,7 +87,7 @@ describe('sendApplicationStaffNudges', () => {
       rescueId: 'rescue-1',
       petId: 'pet-1',
       adopterId: 'user-1',
-      submittedAt: '2026-06-01T00:00:00.000Z',
+      lastActivityAt: '2026-06-01T00:00:00.000Z',
       inactivityDays: 3,
     });
   });

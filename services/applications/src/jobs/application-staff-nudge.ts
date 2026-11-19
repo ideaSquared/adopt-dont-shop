@@ -41,7 +41,7 @@ type NudgedRow = {
   rescue_id: string;
   pet_id: string;
   user_id: string;
-  submitted_at: string;
+  updated_at: string;
 };
 
 export async function sendApplicationStaffNudges(
@@ -67,12 +67,15 @@ export async function sendApplicationStaffNudges(
                      AND deleted_at IS NULL
                      AND actioned_at IS NULL
                      AND last_nudged_at IS NULL
-                     AND submitted_at IS NOT NULL
-                     AND submitted_at < now() - ($2 || ' days')::interval
-                   ORDER BY submitted_at
+                     -- Inactivity, not age: projectReadModel refreshes
+                     -- updated_at on every domain command (submit, review,
+                     -- home visit, …), and never writes submitted_at, so
+                     -- that column is NULL for every service-made row.
+                     AND updated_at < now() - ($2 || ' days')::interval
+                   ORDER BY updated_at
                    LIMIT $3
                 )
-          RETURNING application_id, rescue_id, pet_id, user_id, submitted_at`,
+          RETURNING application_id, rescue_id, pet_id, user_id, updated_at`,
         [OPEN_STATUSES, opts.inactivityDays, opts.batchSize]
       );
 
@@ -85,7 +88,7 @@ export async function sendApplicationStaffNudges(
             rescueId: row.rescue_id,
             petId: row.pet_id,
             adopterId: row.user_id,
-            submittedAt: new Date(row.submitted_at).toISOString(),
+            lastActivityAt: new Date(row.updated_at).toISOString(),
             inactivityDays: opts.inactivityDays,
           },
         });
