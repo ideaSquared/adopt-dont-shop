@@ -371,7 +371,7 @@ services:
           # ClamAV holds ~1.3 GB of signatures and, while freshclam tests a new database (and on
           # each reload), briefly a second copy. At 1g the kernel killed the load (signal 9), clamd
           # never started and every upload was rejected. 3g covers the peak; steady state stays
-          # near 1.3 GB. The host's swap file (PRE-LAUNCH-SETUP step 6) is the headroom for it.
+          # near 1.3 GB. The host's swap file (SERVER-SETUP step 6) is the headroom for it.
           memory: 3g
         reservations:
           cpus: '0.25'
