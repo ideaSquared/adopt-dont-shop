@@ -12,6 +12,7 @@ import {
   buildApplicationHomeVisitCompletedCreate,
   buildApplicationHomeVisitScheduledCreate,
   buildApplicationRejectedCreate,
+  buildApplicationStaffNudgeDueCreate,
   buildApplicationSubmittedCreate,
   buildAuthAccountDeletionRequestedCreate,
   buildAuthRescueRegistrationAttemptedCreate,
@@ -168,6 +169,33 @@ describe('event → CreateNotificationRequest translation', () => {
       expect(req.relatedEntityType).toBe(
         NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_ADOPTION
       );
+      const data = JSON.parse(req.dataJson) as Record<string, string>;
+      expect(data).toEqual({ applicationId: 'app-1', petId: 'pet-1', rescueId: 'res-1' });
+    });
+  });
+
+  describe('buildApplicationStaffNudgeDueCreate', () => {
+    it('targets the given staff recipient with a HIGH-priority reminder naming the inactivity window', () => {
+      const req = buildApplicationStaffNudgeDueCreate(
+        {
+          applicationId: 'app-1',
+          rescueId: 'res-1',
+          petId: 'pet-1',
+          adopterId: 'usr-a' as UserId,
+          submittedAt: '2026-06-01T00:00:00Z',
+          inactivityDays: 3,
+        },
+        'usr-staff-1'
+      );
+
+      expect(req.userId).toBe('usr-staff-1');
+      expect(req.type).toBe(NotificationsV1.NotificationType.NOTIFICATION_TYPE_REMINDER);
+      expect(req.priority).toBe(NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_HIGH);
+      expect(req.message).toContain('3 days');
+      expect(req.relatedEntityType).toBe(
+        NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_APPLICATION
+      );
+      expect(req.relatedEntityId).toBe('app-1');
       const data = JSON.parse(req.dataJson) as Record<string, string>;
       expect(data).toEqual({ applicationId: 'app-1', petId: 'pet-1', rescueId: 'res-1' });
     });
@@ -481,7 +509,7 @@ describe('registerSubscribers', () => {
     const subs = registerSubscribers({ nats, deps, logger });
     await flush();
 
-    expect(subs).toHaveLength(17);
+    expect(subs).toHaveLength(18);
     const subjects = consumersAdded.map(c => c.filter_subject);
     expect(subjects).toEqual([
       'applications.submitted',
@@ -499,6 +527,7 @@ describe('registerSubscribers', () => {
       'pets.deleted',
       'rescue.verified',
       'rescue.rejected',
+      'applications.staffNudgeDue',
       'rescue.staffInvitationCancelled',
       'chat.messageCreated',
     ]);
@@ -521,7 +550,7 @@ describe('registerSubscribers', () => {
     });
     await flush();
 
-    expect(subs).toHaveLength(22);
+    expect(subs).toHaveLength(23);
     const subjects = consumersAdded.map(c => c.filter_subject);
     expect(subjects).toContain('auth.userRegistered');
     expect(subjects).toContain('auth.passwordResetRequested');
@@ -773,5 +802,60 @@ describe('registerSubscribers idempotency wiring', () => {
       ['usr-s1', { consumer: 'rescue.verified', eventId: 'evt-r:usr-s1' }],
       ['usr-s2', { consumer: 'rescue.verified', eventId: 'evt-r:usr-s2' }],
     ]);
+  });
+
+  it('fans applications.staffNudgeDue out to every staff member with a per-recipient dedup key', async () => {
+    const nats = makeYieldingNats({
+      'applications.staffNudgeDue': [
+        {
+          id: 'evt-n',
+          payload: {
+            applicationId: 'app-1',
+            rescueId: 'res-1',
+            petId: 'pet-1',
+            adopterId: 'usr-a',
+            submittedAt: '2026-06-01T00:00:00Z',
+            inactivityDays: 3,
+          },
+        },
+      ],
+    });
+    const rescueClient = {
+      listStaffMembers: vi.fn(async () => ['usr-s1', 'usr-s2']),
+      getRescueName: vi.fn(async () => 'Happy Tails'),
+      close: vi.fn(),
+    };
+
+    registerSubscribers({ nats, deps, logger, rescueClient });
+    await flush();
+
+    expect(rescueClient.listStaffMembers).toHaveBeenCalledWith('res-1');
+    expect(mockedCreate.mock.calls.map(c => [c[2].userId, c[3]?.dedup])).toEqual([
+      ['usr-s1', { consumer: 'applications.staffNudgeDue', eventId: 'evt-n:usr-s1' }],
+      ['usr-s2', { consumer: 'applications.staffNudgeDue', eventId: 'evt-n:usr-s2' }],
+    ]);
+  });
+
+  it('no-ops the applications.staffNudgeDue fan-out when no rescue client is configured', async () => {
+    const nats = makeYieldingNats({
+      'applications.staffNudgeDue': [
+        {
+          id: 'evt-n',
+          payload: {
+            applicationId: 'app-1',
+            rescueId: 'res-1',
+            petId: 'pet-1',
+            adopterId: 'usr-a',
+            submittedAt: '2026-06-01T00:00:00Z',
+            inactivityDays: 3,
+          },
+        },
+      ],
+    });
+
+    registerSubscribers({ nats, deps, logger });
+    await flush();
+
+    expect(mockedCreate).not.toHaveBeenCalled();
   });
 });

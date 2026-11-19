@@ -18,6 +18,7 @@ import { createPetsClient } from './grpc/pets-client.js';
 import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
 import { purgeExpiredApplicationDrafts } from './jobs/application-draft-retention.js';
 import { backfillApplicationPetSearchFields } from './jobs/application-pet-search-fields.js';
+import { sendApplicationStaffNudges } from './jobs/application-staff-nudge.js';
 import { registerApplicantUpdatesSubscriber } from './nats/applicant-updates.js';
 import { registerPetUpdatesSubscriber } from './nats/pet-updates.js';
 
@@ -121,6 +122,18 @@ const main = async (): Promise<void> => {
               { batchSize: PET_SEARCH_FIELDS_BACKFILL_BATCH_SIZE }
             );
             logger.info('application-pet-search-fields-backfill complete', { updatedCount });
+          },
+        },
+        {
+          name: 'application-staff-nudge',
+          intervalMs: config.applicationStaffNudge.intervalMs,
+          runOnStart: true,
+          run: async () => {
+            const { nudgedCount } = await sendApplicationStaffNudges(purgeDeps, {
+              inactivityDays: config.applicationStaffNudge.inactivityDays,
+              batchSize: config.applicationStaffNudge.batchSize,
+            });
+            logger.info('application-staff-nudge complete', { nudgedCount });
           },
         },
       ],

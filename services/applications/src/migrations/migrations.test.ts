@@ -24,7 +24,7 @@ async function listMigrationFiles(): Promise<string[]> {
 describe('applications migrations', () => {
   it('has migration files following the NNN_snake_case.ts naming convention', async () => {
     const files = await listMigrationFiles();
-    expect(files.length).toBeGreaterThanOrEqual(15);
+    expect(files.length).toBeGreaterThanOrEqual(16);
     for (const f of files) {
       expect(f).toMatch(MIGRATION_FILENAME_PATTERN);
     }
@@ -55,6 +55,7 @@ describe('applications migrations', () => {
     '014_create_application_timeline_notes.ts',
     '015_create_scheduled_job_runs.ts',
     '016_add_application_search_columns.ts',
+    '017_add_application_staff_nudge.ts',
   ])('%s exports `up` and `down` functions', async filename => {
     const mod = (await import(`./${filename}`)) as {
       up: unknown;

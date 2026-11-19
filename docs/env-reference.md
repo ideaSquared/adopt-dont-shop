@@ -172,6 +172,19 @@ inside `withTransaction` and publish one `<domain>.actionTaken` summary event pe
 | `EMAIL_QUEUE_PURGE_INTERVAL_MS`       | `86400000` | Same module. How often the job runs (24h).                                                                                                                              |
 | `EMAIL_QUEUE_PURGE_BATCH_SIZE`        | `500`      | Same module. Max rows deleted per transaction.                                                                                                                          |
 
+## Application staff inactivity nudge (ADS-1463)
+
+A scheduled, cross-instance-claimed job in `services/applications/src/jobs/application-staff-nudge.ts`
+finds open applications with no action for the configured number of days, stamps them so they are
+only nudged once, and publishes one `applications.staffNudgeDue` event per application, which
+`services/notifications` fans out to the rescue's staff.
+
+| Variable                                  | Default   | Notes                                                                                       |
+| ----------------------------------------- | --------- | ------------------------------------------------------------------------------------------- |
+| `APPLICATION_STAFF_NUDGE_INTERVAL_MS`     | `3600000` | `services/applications/src/config.ts`. How often the job checks for newly-stale rows (1h).  |
+| `APPLICATION_STAFF_NUDGE_INACTIVITY_DAYS` | `3`       | `services/applications/src/config.ts`. Days with no action before an application is nudged. |
+| `APPLICATION_STAFF_NUDGE_BATCH_SIZE`      | `200`     | `services/applications/src/config.ts`. Max rows nudged per transaction.                     |
+
 ## Weekly digest email (ADS-1270, `services/notifications/src/config.ts`)
 
 A scheduled, cross-instance-claimed job (`services/notifications/src/jobs/weekly-digest.ts`, registered on the shared `@adopt-dont-shop/scheduler` in `index.ts`) emails each consented user a summary of their still-available favourited pets and in-progress applications. Cadence and consent are product decisions, not env knobs — only the on/off switch is configurable:

@@ -318,6 +318,22 @@ describe('ApplicationDashboard (ADS-634)', () => {
   // the card used to display "Pet Name Unavailable" — a phrase that reads
   // like a system error to applicants. Replace with "Unknown pet" and keep
   // the card rendering normally.
+  // ADS-1463: adopters' top complaint is hearing nothing after applying;
+  // showing when an application last changed gives them a signal short of
+  // a full status change.
+  it('shows the "Last Updated" date on an application card', async () => {
+    getUserApplicationsMock.mockResolvedValue([
+      makeApplication({ updatedAt: '2025-03-15T00:00:00Z' }),
+    ]);
+    getPetByIdMock.mockResolvedValue(makePet());
+
+    render(<ApplicationDashboard />);
+
+    await screen.findByText('Luna');
+    expect(screen.getByText('Last Updated:')).toBeInTheDocument();
+    expect(screen.getByText('15 Mar 2025')).toBeInTheDocument();
+  });
+
   it('renders "Unknown pet" instead of the old placeholder when pet data is missing', async () => {
     getUserApplicationsMock.mockResolvedValue([makeApplication()]);
     getPetByIdMock.mockResolvedValue(null);
