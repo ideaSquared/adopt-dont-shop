@@ -1,10 +1,12 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createLogger, memorySink } from '@adopt-dont-shop/observability';
 import { RescueV1 } from '@adopt-dont-shop/proto';
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
+import { LOG_FIELDS } from '../logger.js';
 
 import { createEmailRateLimiter } from './email-rate-limiter.js';
 import { registerRescueRegisterRoutes } from './rescue-register.js';
@@ -39,13 +41,27 @@ const FORM_BODY = {
   country: 'GB',
 };
 
+const makeLogger = () => {
+  const sink = memorySink();
+  return {
+    logger: createLogger({ serviceName: 'test', fields: LOG_FIELDS, sink }),
+    events: sink.events,
+  };
+};
+
 function makeClients() {
   const registerRescueOwner = vi.fn();
+  const deleteUnverifiedRescueOwner = vi.fn().mockResolvedValue({ deleted: true });
   const registerRescue = vi.fn();
   return {
     registerRescueOwner,
+    deleteUnverifiedRescueOwner,
     registerRescue,
-    authClient: { registerRescueOwner, close: vi.fn() } as unknown as AuthClient,
+    authClient: {
+      registerRescueOwner,
+      deleteUnverifiedRescueOwner,
+      close: vi.fn(),
+    } as unknown as AuthClient,
     rescueClient: { registerRescue, close: vi.fn() } as unknown as RescueClient,
   };
 }
@@ -53,9 +69,11 @@ function makeClients() {
 describe('POST /api/v1/rescues/register', () => {
   let app: FastifyInstance;
   let m: ReturnType<typeof makeClients>;
+  let logs: ReturnType<typeof makeLogger>;
 
   beforeEach(async () => {
     m = makeClients();
+    logs = makeLogger();
     app = Fastify({ logger: false, trustProxy: true });
     // server.ts registers the plugin globally; the route only sets its own cap.
     const { default: rateLimit } = await import('@fastify/rate-limit');
@@ -63,6 +81,7 @@ describe('POST /api/v1/rescues/register', () => {
     await registerRescueRegisterRoutes(app, {
       authClient: m.authClient,
       rescueClient: m.rescueClient,
+      logger: logs.logger,
     });
   });
 
@@ -85,6 +104,7 @@ describe('POST /api/v1/rescues/register', () => {
     await registerRescueRegisterRoutes(probe, {
       authClient: m.authClient,
       rescueClient: m.rescueClient,
+      logger: logs.logger,
     });
     await probe.close();
     expect(isPublic).toBe(true);
@@ -173,6 +193,86 @@ describe('POST /api/v1/rescues/register', () => {
     expect(m.registerRescue).toHaveBeenCalledTimes(1);
   });
 
+  it('rolls back the owner account when rescue creation throws, then still surfaces the error', async () => {
+    m.registerRescueOwner.mockResolvedValueOnce({ user: { userId: 'usr-owner' } });
+    m.registerRescue.mockRejectedValueOnce(
+      Object.assign(new Error('duplicate key'), { code: 6 /* ALREADY_EXISTS */ })
+    );
+
+    const res = await post(FORM_BODY);
+
+    expect(res.statusCode).toBe(409);
+    expect(m.deleteUnverifiedRescueOwner).toHaveBeenCalledTimes(1);
+    expect(m.deleteUnverifiedRescueOwner.mock.calls[0][0]).toEqual({
+      userId: 'usr-owner',
+      email: 'owner@example.com',
+    });
+  });
+
+  it('rolls back the owner account when rescue creation returns no rescue', async () => {
+    m.registerRescueOwner.mockResolvedValueOnce({ user: { userId: 'usr-owner' } });
+    m.registerRescue.mockResolvedValueOnce({});
+
+    const res = await post(FORM_BODY);
+
+    expect(res.statusCode).toBe(500);
+    expect(m.deleteUnverifiedRescueOwner).toHaveBeenCalledTimes(1);
+    expect(m.deleteUnverifiedRescueOwner.mock.calls[0][0]).toEqual({
+      userId: 'usr-owner',
+      email: 'owner@example.com',
+    });
+  });
+
+  it('still surfaces the original error when the rollback itself fails', async () => {
+    m.registerRescueOwner.mockResolvedValueOnce({ user: { userId: 'usr-owner' } });
+    m.registerRescue.mockRejectedValueOnce(
+      Object.assign(new Error('duplicate key'), { code: 6 /* ALREADY_EXISTS */ })
+    );
+    m.deleteUnverifiedRescueOwner.mockRejectedValueOnce(new Error('auth unreachable'));
+
+    const res = await post(FORM_BODY);
+
+    expect(res.statusCode).toBe(409);
+  });
+
+  it('logs a failed rollback through the gateway logger, without the owner email', async () => {
+    m.registerRescueOwner.mockResolvedValueOnce({ user: { userId: 'usr-owner' } });
+    m.registerRescue.mockRejectedValueOnce(new Error('rescue unreachable'));
+    m.deleteUnverifiedRescueOwner.mockRejectedValueOnce(new Error('auth unreachable'));
+
+    await post(FORM_BODY);
+
+    const event = logs.events.find(
+      e => e.message === 'failed to roll back orphaned rescue owner account'
+    );
+    expect(event).toBeDefined();
+    expect(JSON.stringify(event)).not.toContain(FORM_BODY.email);
+  });
+
+  it('does not attempt a rollback when the owner email already existed (nothing new was created)', async () => {
+    m.registerRescueOwner.mockResolvedValueOnce({});
+
+    const res = await post(FORM_BODY);
+
+    expect(res.statusCode).toBe(201);
+    expect(m.deleteUnverifiedRescueOwner).not.toHaveBeenCalled();
+  });
+
+  it('resumes a retry by an existing rescue-less owner into a created rescue (ADS-1474)', async () => {
+    // auth answers a resumable, still-unverified rescue_staff account with
+    // its existing user, same as a brand-new one — not the empty response
+    // an already-complete account gets.
+    m.registerRescueOwner.mockResolvedValueOnce({ user: { userId: 'usr-orphan' } });
+    m.registerRescue.mockResolvedValueOnce({ rescue: RESCUE });
+
+    const res = await post(FORM_BODY);
+
+    expect(res.statusCode).toBe(201);
+    expect(m.registerRescue).toHaveBeenCalledTimes(1);
+    expect(m.registerRescue.mock.calls[0][0]).toMatchObject({ ownerUserId: 'usr-orphan' });
+    expect(m.deleteUnverifiedRescueOwner).not.toHaveBeenCalled();
+  });
+
   it('caps sign-ups per owner email across IPs, so one inbox cannot be flooded', async () => {
     const limited = Fastify({ logger: false, trustProxy: true });
     m.registerRescueOwner.mockResolvedValue({});
@@ -180,6 +280,7 @@ describe('POST /api/v1/rescues/register', () => {
       authClient: m.authClient,
       rescueClient: m.rescueClient,
       emailRateLimiter: createEmailRateLimiter({ max: 2, windowMs: 60_000 }),
+      logger: logs.logger,
     });
     try {
       const statuses: number[] = [];

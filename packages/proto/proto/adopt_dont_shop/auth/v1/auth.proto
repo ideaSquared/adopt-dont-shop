@@ -86,6 +86,19 @@ service AuthService {
   // POST /api/v1/rescues/register.
   rpc RegisterRescueOwner(RegisterRescueOwnerRequest) returns (RegisterRescueOwnerResponse);
 
+  // Compensates a RegisterRescueOwner call when the RegisterRescue step that
+  // follows it fails, so a public rescue sign-up never leaves an orphan
+  // account behind. Deletes the row only when it still matches exactly what
+  // RegisterRescueOwner just created (same user_id and email, still
+  // pending_verification, still user_type rescue_staff, still unverified) —
+  // never a verified account or one already attached to a rescue. A no-op
+  // (deleted=false) when the row no longer matches, which the caller treats
+  // as "nothing to roll back" rather than an error.
+  // Service-internal — the gateway only calls this from its
+  // POST /api/v1/rescues/register compensation path.
+  rpc DeleteUnverifiedRescueOwner(DeleteUnverifiedRescueOwnerRequest)
+      returns (DeleteUnverifiedRescueOwnerResponse);
+
   // Consume the verification_token mailed to the user; flips
   // email_verified=true and status=active.
   rpc VerifyEmail(VerifyEmailRequest) returns (VerifyEmailResponse);
@@ -668,6 +681,18 @@ message RegisterRescueOwnerResponse {
   // user_type rescue_staff). user_id is what the caller attaches as the
   // rescue's first staff member. Unset when the email already had an account.
   User user = 1;
+}
+
+message DeleteUnverifiedRescueOwnerRequest {
+  string user_id = 1;
+  string email = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+}
+
+message DeleteUnverifiedRescueOwnerResponse {
+  // False when the row no longer matched (already verified, already
+  // attached to a rescue by a retried call, or already gone) — a no-op,
+  // not an error.
+  bool deleted = 1;
 }
 
 message VerifyEmailRequest {

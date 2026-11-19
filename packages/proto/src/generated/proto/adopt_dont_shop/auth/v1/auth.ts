@@ -655,6 +655,20 @@ export interface RegisterRescueOwnerResponse {
   user?: User | undefined;
 }
 
+export interface DeleteUnverifiedRescueOwnerRequest {
+  userId: string;
+  email: string;
+}
+
+export interface DeleteUnverifiedRescueOwnerResponse {
+  /**
+   * False when the row no longer matched (already verified, already
+   * attached to a rescue by a retried call, or already gone) — a no-op,
+   * not an error.
+   */
+  deleted: boolean;
+}
+
 export interface VerifyEmailRequest {
   verificationToken: string;
 }
@@ -3895,6 +3909,152 @@ export const RegisterRescueOwnerResponse: MessageFns<RegisterRescueOwnerResponse
   fromPartial<I extends Exact<DeepPartial<RegisterRescueOwnerResponse>, I>>(object: I): RegisterRescueOwnerResponse {
     const message = createBaseRegisterRescueOwnerResponse();
     message.user = (object.user !== undefined && object.user !== null) ? User.fromPartial(object.user) : undefined;
+    return message;
+  },
+};
+
+function createBaseDeleteUnverifiedRescueOwnerRequest(): DeleteUnverifiedRescueOwnerRequest {
+  return { userId: "", email: "" };
+}
+
+export const DeleteUnverifiedRescueOwnerRequest: MessageFns<DeleteUnverifiedRescueOwnerRequest> = {
+  encode(message: DeleteUnverifiedRescueOwnerRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.email !== "") {
+      writer.uint32(18).string(message.email);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteUnverifiedRescueOwnerRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteUnverifiedRescueOwnerRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.email = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteUnverifiedRescueOwnerRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+        ? globalThis.String(object.user_id)
+        : "",
+      email: isSet(object.email) ? globalThis.String(object.email) : "",
+    };
+  },
+
+  toJSON(message: DeleteUnverifiedRescueOwnerRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== "") {
+      obj.userId = message.userId;
+    }
+    if (message.email !== "") {
+      obj.email = message.email;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteUnverifiedRescueOwnerRequest>, I>>(
+    base?: I,
+  ): DeleteUnverifiedRescueOwnerRequest {
+    return DeleteUnverifiedRescueOwnerRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteUnverifiedRescueOwnerRequest>, I>>(
+    object: I,
+  ): DeleteUnverifiedRescueOwnerRequest {
+    const message = createBaseDeleteUnverifiedRescueOwnerRequest();
+    message.userId = object.userId ?? "";
+    message.email = object.email ?? "";
+    return message;
+  },
+};
+
+function createBaseDeleteUnverifiedRescueOwnerResponse(): DeleteUnverifiedRescueOwnerResponse {
+  return { deleted: false };
+}
+
+export const DeleteUnverifiedRescueOwnerResponse: MessageFns<DeleteUnverifiedRescueOwnerResponse> = {
+  encode(message: DeleteUnverifiedRescueOwnerResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.deleted !== false) {
+      writer.uint32(8).bool(message.deleted);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteUnverifiedRescueOwnerResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteUnverifiedRescueOwnerResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.deleted = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteUnverifiedRescueOwnerResponse {
+    return { deleted: isSet(object.deleted) ? globalThis.Boolean(object.deleted) : false };
+  },
+
+  toJSON(message: DeleteUnverifiedRescueOwnerResponse): unknown {
+    const obj: any = {};
+    if (message.deleted !== false) {
+      obj.deleted = message.deleted;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteUnverifiedRescueOwnerResponse>, I>>(
+    base?: I,
+  ): DeleteUnverifiedRescueOwnerResponse {
+    return DeleteUnverifiedRescueOwnerResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteUnverifiedRescueOwnerResponse>, I>>(
+    object: I,
+  ): DeleteUnverifiedRescueOwnerResponse {
+    const message = createBaseDeleteUnverifiedRescueOwnerResponse();
+    message.deleted = object.deleted ?? false;
     return message;
   },
 };
@@ -14117,6 +14277,31 @@ export const AuthServiceService = {
     responseDeserialize: (value: Buffer): RegisterRescueOwnerResponse => RegisterRescueOwnerResponse.decode(value),
   },
   /**
+   * Compensates a RegisterRescueOwner call when the RegisterRescue step that
+   * follows it fails, so a public rescue sign-up never leaves an orphan
+   * account behind. Deletes the row only when it still matches exactly what
+   * RegisterRescueOwner just created (same user_id and email, still
+   * pending_verification, still user_type rescue_staff, still unverified) —
+   * never a verified account or one already attached to a rescue. A no-op
+   * (deleted=false) when the row no longer matches, which the caller treats
+   * as "nothing to roll back" rather than an error.
+   * Service-internal — the gateway only calls this from its
+   * POST /api/v1/rescues/register compensation path.
+   */
+  deleteUnverifiedRescueOwner: {
+    path: "/adopt_dont_shop.auth.v1.AuthService/DeleteUnverifiedRescueOwner" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: DeleteUnverifiedRescueOwnerRequest): Buffer =>
+      Buffer.from(DeleteUnverifiedRescueOwnerRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): DeleteUnverifiedRescueOwnerRequest =>
+      DeleteUnverifiedRescueOwnerRequest.decode(value),
+    responseSerialize: (value: DeleteUnverifiedRescueOwnerResponse): Buffer =>
+      Buffer.from(DeleteUnverifiedRescueOwnerResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): DeleteUnverifiedRescueOwnerResponse =>
+      DeleteUnverifiedRescueOwnerResponse.decode(value),
+  },
+  /**
    * Consume the verification_token mailed to the user; flips
    * email_verified=true and status=active.
    */
@@ -15025,6 +15210,19 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
    */
   registerRescueOwner: handleUnaryCall<RegisterRescueOwnerRequest, RegisterRescueOwnerResponse>;
   /**
+   * Compensates a RegisterRescueOwner call when the RegisterRescue step that
+   * follows it fails, so a public rescue sign-up never leaves an orphan
+   * account behind. Deletes the row only when it still matches exactly what
+   * RegisterRescueOwner just created (same user_id and email, still
+   * pending_verification, still user_type rescue_staff, still unverified) —
+   * never a verified account or one already attached to a rescue. A no-op
+   * (deleted=false) when the row no longer matches, which the caller treats
+   * as "nothing to roll back" rather than an error.
+   * Service-internal — the gateway only calls this from its
+   * POST /api/v1/rescues/register compensation path.
+   */
+  deleteUnverifiedRescueOwner: handleUnaryCall<DeleteUnverifiedRescueOwnerRequest, DeleteUnverifiedRescueOwnerResponse>;
+  /**
    * Consume the verification_token mailed to the user; flips
    * email_verified=true and status=active.
    */
@@ -15526,6 +15724,33 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: RegisterRescueOwnerResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Compensates a RegisterRescueOwner call when the RegisterRescue step that
+   * follows it fails, so a public rescue sign-up never leaves an orphan
+   * account behind. Deletes the row only when it still matches exactly what
+   * RegisterRescueOwner just created (same user_id and email, still
+   * pending_verification, still user_type rescue_staff, still unverified) —
+   * never a verified account or one already attached to a rescue. A no-op
+   * (deleted=false) when the row no longer matches, which the caller treats
+   * as "nothing to roll back" rather than an error.
+   * Service-internal — the gateway only calls this from its
+   * POST /api/v1/rescues/register compensation path.
+   */
+  deleteUnverifiedRescueOwner(
+    request: DeleteUnverifiedRescueOwnerRequest,
+    callback: (error: ServiceError | null, response: DeleteUnverifiedRescueOwnerResponse) => void,
+  ): ClientUnaryCall;
+  deleteUnverifiedRescueOwner(
+    request: DeleteUnverifiedRescueOwnerRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: DeleteUnverifiedRescueOwnerResponse) => void,
+  ): ClientUnaryCall;
+  deleteUnverifiedRescueOwner(
+    request: DeleteUnverifiedRescueOwnerRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: DeleteUnverifiedRescueOwnerResponse) => void,
   ): ClientUnaryCall;
   /**
    * Consume the verification_token mailed to the user; flips

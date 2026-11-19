@@ -5,11 +5,22 @@
 // schema):
 //   1. auth.RegisterRescueOwner — create the owner account
 //      (pending_verification, user_type rescue_staff, verification email
-//      mailed). An already-registered email gets no user back: nothing else
-//      is created and the route answers like a new sign-up (the existing
-//      holder is notified by service.auth, not told here).
+//      mailed). An already-registered email normally gets no user back:
+//      nothing else is created and the route answers like a new sign-up
+//      (the existing holder is notified by service.auth, not told here).
+//      Exception (ADS-1474): an existing account that is itself an
+//      incomplete, still-unverified rescue sign-up IS returned, so step 2
+//      below gets a chance to finish attaching a rescue to it instead of
+//      answering a dead-end neutral success to a permanently stuck caller.
 //   2. rescue.RegisterRescue — create the rescue as PENDING (admin approval
-//      required) and attach the owner as its first staff member.
+//      required) and attach the owner as its first staff member. Idempotent
+//      on the owner: if they already have a rescue (the resumed-account case
+//      above, when a rescue was in fact already created), the existing one
+//      is returned rather than creating a second.
+//      If this step fails after step 1 just committed a brand-new owner
+//      account, that account is rolled back (auth.DeleteUnverifiedRescueOwner)
+//      so the failure never leaves an orphan the user can't retry with
+//      (ADS-1474).
 //
 // No login tokens are issued: the owner verifies their email, then signs in
 // normally. Pending rescues are not usable until an admin verifies them.
@@ -26,6 +37,7 @@ import type { CreateRescueRequest } from '@adopt-dont-shop/proto';
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
+import type { ServiceLogger } from '../logger.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 import { buildMetadata } from '../middleware/metadata.js';
 
@@ -40,6 +52,8 @@ export type RescueRegisterRoutesOptions = {
   // already-registered email notifies that account, so the per-IP cap alone
   // would let a flood spread across IPs fill one inbox. Optional like the auth routes.
   emailRateLimiter?: EmailRateLimiter;
+  // The gateway runs Fastify with its own logger off, so req.log drops lines.
+  logger: ServiceLogger;
 };
 
 const required = (max: number) => z.string().trim().min(1, 'is required').max(max);
@@ -109,7 +123,7 @@ export const registerRescueRegisterRoutes = async (
   app: FastifyInstance,
   opts: RescueRegisterRoutesOptions
 ): Promise<void> => {
-  const { authClient, rescueClient, emailRateLimiter } = opts;
+  const { authClient, rescueClient, emailRateLimiter, logger } = opts;
 
   app.post(
     '/api/v1/rescues/register',
@@ -135,6 +149,21 @@ export const registerRescueRegisterRoutes = async (
       const body = parsed.data;
       const metadata = buildMetadata(req);
 
+      // Best-effort rollback of the owner account step 1 just committed, so a
+      // failure in step 2 never leaves an orphan the user can't retry with
+      // (ADS-1474). A compensation failure is logged, never thrown — it must
+      // not mask or replace the real error from step 2.
+      const compensate = async (ownerUserId: string) => {
+        try {
+          await authClient.deleteUnverifiedRescueOwner(
+            { userId: ownerUserId, email: body.email },
+            metadata
+          );
+        } catch (compensateErr) {
+          logger.error('failed to roll back orphaned rescue owner account', {}, compensateErr);
+        }
+      };
+
       try {
         const owner = await authClient.registerRescueOwner(
           {
@@ -152,14 +181,20 @@ export const registerRescueRegisterRoutes = async (
           return reply.code(201).send(NEUTRAL_RESPONSE);
         }
 
-        const res = await rescueClient.registerRescue(
-          { rescue: toRescueRequest(body), ownerUserId },
-          metadata
-        );
-        if (res.rescue === undefined) {
-          return reply.code(500).send({ success: false, error: 'register returned no rescue' });
+        try {
+          const res = await rescueClient.registerRescue(
+            { rescue: toRescueRequest(body), ownerUserId },
+            metadata
+          );
+          if (res.rescue === undefined) {
+            await compensate(ownerUserId);
+            return reply.code(500).send({ success: false, error: 'register returned no rescue' });
+          }
+          return reply.code(201).send(NEUTRAL_RESPONSE);
+        } catch (rescueErr) {
+          await compensate(ownerUserId);
+          throw rescueErr;
         }
-        return reply.code(201).send(NEUTRAL_RESPONSE);
       } catch (err) {
         return handleGrpcError(err, reply);
       }

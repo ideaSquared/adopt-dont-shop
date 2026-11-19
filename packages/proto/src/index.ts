@@ -117,6 +117,8 @@ export type {
   ProvisionInvitedUserResponse,
   RegisterRescueOwnerRequest,
   RegisterRescueOwnerResponse,
+  DeleteUnverifiedRescueOwnerRequest,
+  DeleteUnverifiedRescueOwnerResponse,
   VerifyEmailRequest,
   VerifyEmailResponse,
   ResendVerificationRequest,

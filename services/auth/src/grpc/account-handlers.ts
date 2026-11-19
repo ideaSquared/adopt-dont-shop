@@ -24,6 +24,8 @@ import type { Principal } from '@adopt-dont-shop/authz';
 import type {
   ChangePasswordRequest,
   ChangePasswordResponse,
+  DeleteUnverifiedRescueOwnerRequest,
+  DeleteUnverifiedRescueOwnerResponse,
   ForgotPasswordRequest,
   ForgotPasswordResponse,
   ProvisionInvitedUserRequest,
@@ -286,7 +288,33 @@ export async function provisionInvitedUser(
 // Register), but user_type rescue_staff and the user_id is returned so the
 // gateway can attach the user to the pending rescue. For an email that is
 // already registered the response carries no user (and nothing is created):
-// the gateway then answers exactly as for a new sign-up.
+// the gateway then answers exactly as for a new sign-up — unless the
+// existing account is itself an incomplete rescue sign-up, see below.
+
+// A still-unverified rescue_staff account is exactly the shape a rescue-
+// creation failure orphans (ADS-1474): RegisterRescue never ran, or ran and
+// failed, and the compensating rollback either hasn't applied yet or didn't
+// cover it (an account from before that rollback shipped). Returning it lets
+// the gateway retry attaching a rescue instead of answering a dead-end
+// neutral success. Nothing on the row is touched — the caller's submitted
+// password/name are never applied to an existing account — so this can't be
+// used to take one over; a caller that already finished onboarding (any
+// other status/user_type, or a verified account) still gets the enumeration-
+// safe notify-and-say-nothing response.
+async function resumeExistingRescueOwner(
+  deps: HandlerDeps,
+  row: UserRow
+): Promise<RegisterRescueOwnerResponse> {
+  if (
+    row.status === 'pending_verification' &&
+    row.user_type === 'rescue_staff' &&
+    !row.email_verified
+  ) {
+    return { user: rowToProtoUser(row) };
+  }
+  await notifyRescueRegistrationAttempt(deps, row.user_id);
+  return {};
+}
 
 export async function registerRescueOwner(
   deps: HandlerDeps,
@@ -304,16 +332,19 @@ export async function registerRescueOwner(
   // the email is taken.
   const password = await deps.passwordHasher.hash(req.password);
 
-  // Enumeration-safe, like Register: an existing email gets the SAME neutral
-  // response as a fresh sign-up (no user in it, no error) and no account is
-  // created; the existing holder is told by notification instead.
-  const existing = await deps.pool.query<{ user_id: string }>(
-    `SELECT user_id FROM auth.users WHERE email = $1 AND deleted_at IS NULL LIMIT 1`,
+  // Enumeration-safe, like Register, with one deliberate exception (ADS-1474):
+  // an existing email normally gets the SAME neutral response as a fresh
+  // sign-up (no user in it, no error), and the existing holder is told by
+  // notification instead. But a still-unverified rescue_staff account is the
+  // exact shape a failed registration orphans — resumeExistingRescueOwner
+  // returns it instead, so the gateway can retry attaching a rescue rather
+  // than leaving the caller permanently stuck.
+  const existing = await deps.pool.query<UserRow>(
+    `SELECT * FROM auth.users WHERE email = $1 AND deleted_at IS NULL LIMIT 1`,
     [req.email]
   );
   if (existing.rows.length > 0) {
-    await notifyRescueRegistrationAttempt(deps, existing.rows[0].user_id);
-    return {};
+    return resumeExistingRescueOwner(deps, existing.rows[0]);
   }
 
   const verificationToken = mintToken();
@@ -364,20 +395,76 @@ export async function registerRescueOwner(
     });
     return { user: rowToProtoUser(created) };
   } catch (err) {
-    // Unique-violation race: same neutral response, nothing created. The
-    // account that won the race is the existing holder, so tell them too.
+    // Unique-violation race: same handling as a pre-existing email above —
+    // the account that won the race is the existing holder.
     if ((err as { code?: string }).code === '23505') {
-      const winner = await deps.pool.query<{ user_id: string }>(
-        `SELECT user_id FROM auth.users WHERE email = $1 AND deleted_at IS NULL LIMIT 1`,
+      const winner = await deps.pool.query<UserRow>(
+        `SELECT * FROM auth.users WHERE email = $1 AND deleted_at IS NULL LIMIT 1`,
         [req.email]
       );
       if (winner.rows.length > 0) {
-        await notifyRescueRegistrationAttempt(deps, winner.rows[0].user_id);
+        return resumeExistingRescueOwner(deps, winner.rows[0]);
       }
       return {};
     }
     throw err;
   }
+}
+
+// --- DeleteUnverifiedRescueOwner --------------------------------------
+
+// Compensates RegisterRescueOwner when the gateway's follow-up
+// rescue.RegisterRescue call fails, so a failed public sign-up never leaves
+// an orphan account the user can't retry with (ADS-1474). Hard-deletes —
+// nothing meaningful was ever created on an unverified row — but only when
+// it still matches exactly what RegisterRescueOwner just produced, so a row
+// that got verified or attached to a rescue in the meantime is left alone.
+export async function deleteUnverifiedRescueOwner(
+  deps: HandlerDeps,
+  _principal: Principal | null,
+  req: DeleteUnverifiedRescueOwnerRequest
+): Promise<DeleteUnverifiedRescueOwnerResponse> {
+  void _principal;
+  if (!req.userId || !req.email) {
+    throw new HandlerError('INVALID_ARGUMENT', 'user_id and email are required');
+  }
+
+  const deleted = await withTransaction(deps, async ({ client, publish }) => {
+    const res = await client.query<{ user_id: string }>(
+      `
+      DELETE FROM auth.users
+      WHERE user_id = $1
+        AND email = $2
+        AND status = 'pending_verification'
+        AND user_type = 'rescue_staff'
+        AND email_verified = false
+      RETURNING user_id
+      `,
+      [req.userId, req.email]
+    );
+    if (res.rows.length === 0) {
+      return false;
+    }
+    publish({
+      type: 'auth.actionTaken',
+      id: `auth.actionTaken.${randomUUID()}`,
+      payload: {
+        eventId: randomUUID(),
+        service: 'service.auth',
+        subject: 'auth.actionTaken',
+        aggregateType: 'user',
+        aggregateId: req.userId,
+        actorUserId: req.userId,
+        action: 'delete',
+        outcome: 'success',
+        occurredAt: new Date().toISOString(),
+        payload: { reason: 'rescue_registration_rollback' },
+      },
+    });
+    return true;
+  });
+
+  return { deleted };
 }
 
 // Tells the holder of an already-registered email that someone tried to use it
