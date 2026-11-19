@@ -836,6 +836,42 @@ describe('registerSubscribers idempotency wiring', () => {
     ]);
   });
 
+  it('tries every staff member, then fails the applications.staffNudgeDue event for redelivery when any notification create fails', async () => {
+    const nats = makeYieldingNats({
+      'applications.staffNudgeDue': [
+        {
+          id: 'evt-n',
+          payload: {
+            applicationId: 'app-1',
+            rescueId: 'res-1',
+            petId: 'pet-1',
+            adopterId: 'usr-a',
+            lastActivityAt: '2026-06-01T00:00:00Z',
+            inactivityDays: 3,
+          },
+        },
+      ],
+    });
+    const rescueClient = {
+      listStaffMembers: vi.fn(async () => ['usr-s1', 'usr-s2']),
+      getRescueName: vi.fn(async () => 'Happy Tails'),
+      close: vi.fn(),
+    };
+    mockedCreate.mockRejectedValueOnce(new Error('db unavailable'));
+    const error = vi.fn();
+    const failingLogger = { ...logger, error } as typeof logger;
+
+    registerSubscribers({ nats, deps, logger: failingLogger, rescueClient });
+    await flush();
+
+    expect(mockedCreate.mock.calls.map(c => c[2].userId)).toEqual(['usr-s1', 'usr-s2']);
+    expect(error).toHaveBeenCalledWith(
+      'subscriber handler failed',
+      { subject: 'applications.staffNudgeDue' },
+      expect.any(Error)
+    );
+  });
+
   it('no-ops the applications.staffNudgeDue fan-out when no rescue client is configured', async () => {
     const nats = makeYieldingNats({
       'applications.staffNudgeDue': [
