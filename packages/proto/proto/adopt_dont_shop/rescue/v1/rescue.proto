@@ -728,6 +728,10 @@ message ApplicationQuestion {
   bool is_required = 13;
   string created_at = 14 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   string updated_at = 15 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  // 'enquiry' | 'full' — raw Postgres ENUM string, same convention as
+  // category/question_type. A rescue running single-stage applications
+  // never sets 'enquiry', so every question stays 'full'.
+  string stage = 16 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ListApplicationQuestionsRequest {
@@ -749,6 +753,8 @@ message CreateApplicationQuestionRequest {
   repeated string options = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   int32 display_order = 9;
   bool is_required = 10;
+  // Unset defaults to 'full' (single-stage behaviour).
+  optional string stage = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message CreateApplicationQuestionResponse {
@@ -773,6 +779,7 @@ message UpdateApplicationQuestionRequest {
   optional int32 display_order = 8;
   optional bool is_required = 9;
   optional bool is_enabled = 10;
+  optional string stage = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 message UpdateApplicationQuestionResponse {
   ApplicationQuestion question = 1;

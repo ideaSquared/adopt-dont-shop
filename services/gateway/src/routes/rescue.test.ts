@@ -564,6 +564,7 @@ const QUESTION_FIXTURE: RescueV1.ApplicationQuestion = {
   displayOrder: 5,
   isEnabled: true,
   isRequired: false,
+  stage: 'full',
   createdAt: '2026-06-01T00:00:00Z',
   updatedAt: '2026-06-01T00:00:00Z',
 };
@@ -660,6 +661,44 @@ describe('application questions routes', () => {
     }
   });
 
+  it('POST forwards an explicit stage, and leaves it unset when omitted', async () => {
+    const { client, createQuestionMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      createQuestionMock.mockResolvedValue({ question: QUESTION_FIXTURE });
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/rescues/rsc-1/questions',
+        headers: { 'x-user-id': 'staff-1', 'x-user-roles': 'rescue_staff' },
+        payload: {
+          questionKey: 'e2e_key',
+          questionText: 'What is your name?',
+          category: 'personal_information',
+          questionType: 'text',
+          stage: 'enquiry',
+        },
+      });
+      const [grpcReq] = createQuestionMock.mock.calls[0] as [{ stage?: string }];
+      expect(grpcReq.stage).toBe('enquiry');
+
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/rescues/rsc-1/questions',
+        headers: { 'x-user-id': 'staff-1', 'x-user-roles': 'rescue_staff' },
+        payload: {
+          questionKey: 'e2e_key_2',
+          questionText: 'What is your email?',
+          category: 'personal_information',
+          questionType: 'email',
+        },
+      });
+      const [secondReq] = createQuestionMock.mock.calls[1] as [{ stage?: string }];
+      expect(secondReq.stage).toBeUndefined();
+    } finally {
+      await app.close();
+    }
+  });
+
   it('PUT forwards the questionId + supplied fields and returns 200 with the question', async () => {
     const { client, updateQuestionMock } = makeClient();
     const app = await makeApp(client);
@@ -683,6 +722,24 @@ describe('application questions routes', () => {
       expect(grpcReq.questionId).toBe('q-1');
       expect(grpcReq.questionText).toBe('Updated?');
       expect(grpcReq.isEnabled).toBe(false);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('PUT forwards an explicit stage', async () => {
+    const { client, updateQuestionMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      updateQuestionMock.mockResolvedValueOnce({ question: QUESTION_FIXTURE });
+      await app.inject({
+        method: 'PUT',
+        url: '/api/v1/rescues/rsc-1/questions/q-1',
+        headers: { 'x-user-id': 'staff-1', 'x-user-roles': 'rescue_staff' },
+        payload: { stage: 'enquiry' },
+      });
+      const [grpcReq] = updateQuestionMock.mock.calls[0] as [{ stage?: string }];
+      expect(grpcReq.stage).toBe('enquiry');
     } finally {
       await app.close();
     }

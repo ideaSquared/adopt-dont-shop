@@ -751,6 +751,12 @@ export interface ApplicationQuestion {
   isRequired: boolean;
   createdAt: string;
   updatedAt: string;
+  /**
+   * 'enquiry' | 'full' — raw Postgres ENUM string, same convention as
+   * category/question_type. A rescue running single-stage applications
+   * never sets 'enquiry', so every question stays 'full'.
+   */
+  stage: string;
 }
 
 export interface ListApplicationQuestionsRequest {
@@ -772,6 +778,8 @@ export interface CreateApplicationQuestionRequest {
   options: string[];
   displayOrder: number;
   isRequired: boolean;
+  /** Unset defaults to 'full' (single-stage behaviour). */
+  stage?: string | undefined;
 }
 
 export interface CreateApplicationQuestionResponse {
@@ -797,6 +805,7 @@ export interface UpdateApplicationQuestionRequest {
   displayOrder?: number | undefined;
   isRequired?: boolean | undefined;
   isEnabled?: boolean | undefined;
+  stage?: string | undefined;
 }
 
 export interface UpdateApplicationQuestionResponse {
@@ -6479,6 +6488,7 @@ function createBaseApplicationQuestion(): ApplicationQuestion {
     isRequired: false,
     createdAt: "",
     updatedAt: "",
+    stage: "",
   };
 }
 
@@ -6528,6 +6538,9 @@ export const ApplicationQuestion: MessageFns<ApplicationQuestion> = {
     }
     if (message.updatedAt !== "") {
       writer.uint32(122).string(message.updatedAt);
+    }
+    if (message.stage !== "") {
+      writer.uint32(130).string(message.stage);
     }
     return writer;
   },
@@ -6659,6 +6672,14 @@ export const ApplicationQuestion: MessageFns<ApplicationQuestion> = {
           message.updatedAt = reader.string();
           continue;
         }
+        case 16: {
+          if (tag !== 130) {
+            break;
+          }
+
+          message.stage = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -6731,6 +6752,7 @@ export const ApplicationQuestion: MessageFns<ApplicationQuestion> = {
         : isSet(object.updated_at)
         ? globalThis.String(object.updated_at)
         : "",
+      stage: isSet(object.stage) ? globalThis.String(object.stage) : "",
     };
   },
 
@@ -6781,6 +6803,9 @@ export const ApplicationQuestion: MessageFns<ApplicationQuestion> = {
     if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
+    if (message.stage !== "") {
+      obj.stage = message.stage;
+    }
     return obj;
   },
 
@@ -6804,6 +6829,7 @@ export const ApplicationQuestion: MessageFns<ApplicationQuestion> = {
     message.isRequired = object.isRequired ?? false;
     message.createdAt = object.createdAt ?? "";
     message.updatedAt = object.updatedAt ?? "";
+    message.stage = object.stage ?? "";
     return message;
   },
 };
@@ -6952,6 +6978,7 @@ function createBaseCreateApplicationQuestionRequest(): CreateApplicationQuestion
     options: [],
     displayOrder: 0,
     isRequired: false,
+    stage: undefined,
   };
 }
 
@@ -6986,6 +7013,9 @@ export const CreateApplicationQuestionRequest: MessageFns<CreateApplicationQuest
     }
     if (message.isRequired !== false) {
       writer.uint32(80).bool(message.isRequired);
+    }
+    if (message.stage !== undefined) {
+      writer.uint32(90).string(message.stage);
     }
     return writer;
   },
@@ -7077,6 +7107,14 @@ export const CreateApplicationQuestionRequest: MessageFns<CreateApplicationQuest
           message.isRequired = reader.bool();
           continue;
         }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.stage = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -7128,6 +7166,7 @@ export const CreateApplicationQuestionRequest: MessageFns<CreateApplicationQuest
         : isSet(object.is_required)
         ? globalThis.Boolean(object.is_required)
         : false,
+      stage: isSet(object.stage) ? globalThis.String(object.stage) : undefined,
     };
   },
 
@@ -7163,6 +7202,9 @@ export const CreateApplicationQuestionRequest: MessageFns<CreateApplicationQuest
     if (message.isRequired !== false) {
       obj.isRequired = message.isRequired;
     }
+    if (message.stage !== undefined) {
+      obj.stage = message.stage;
+    }
     return obj;
   },
 
@@ -7185,6 +7227,7 @@ export const CreateApplicationQuestionRequest: MessageFns<CreateApplicationQuest
     message.options = object.options?.map((e) => e) || [];
     message.displayOrder = object.displayOrder ?? 0;
     message.isRequired = object.isRequired ?? false;
+    message.stage = object.stage ?? undefined;
     return message;
   },
 };
@@ -7395,6 +7438,7 @@ function createBaseUpdateApplicationQuestionRequest(): UpdateApplicationQuestion
     displayOrder: undefined,
     isRequired: undefined,
     isEnabled: undefined,
+    stage: undefined,
   };
 }
 
@@ -7429,6 +7473,9 @@ export const UpdateApplicationQuestionRequest: MessageFns<UpdateApplicationQuest
     }
     if (message.isEnabled !== undefined) {
       writer.uint32(80).bool(message.isEnabled);
+    }
+    if (message.stage !== undefined) {
+      writer.uint32(90).string(message.stage);
     }
     return writer;
   },
@@ -7520,6 +7567,14 @@ export const UpdateApplicationQuestionRequest: MessageFns<UpdateApplicationQuest
           message.isEnabled = reader.bool();
           continue;
         }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.stage = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -7571,6 +7626,7 @@ export const UpdateApplicationQuestionRequest: MessageFns<UpdateApplicationQuest
         : isSet(object.is_enabled)
         ? globalThis.Boolean(object.is_enabled)
         : undefined,
+      stage: isSet(object.stage) ? globalThis.String(object.stage) : undefined,
     };
   },
 
@@ -7606,6 +7662,9 @@ export const UpdateApplicationQuestionRequest: MessageFns<UpdateApplicationQuest
     if (message.isEnabled !== undefined) {
       obj.isEnabled = message.isEnabled;
     }
+    if (message.stage !== undefined) {
+      obj.stage = message.stage;
+    }
     return obj;
   },
 
@@ -7628,6 +7687,7 @@ export const UpdateApplicationQuestionRequest: MessageFns<UpdateApplicationQuest
     message.displayOrder = object.displayOrder ?? undefined;
     message.isRequired = object.isRequired ?? undefined;
     message.isEnabled = object.isEnabled ?? undefined;
+    message.stage = object.stage ?? undefined;
     return message;
   },
 };

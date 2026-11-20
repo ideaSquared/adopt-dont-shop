@@ -54,6 +54,7 @@ type ApplicationQuestionRow = {
   display_order: number;
   is_enabled: boolean;
   is_required: boolean;
+  stage: 'enquiry' | 'full';
   created_at: Date;
   updated_at: Date;
 };
@@ -61,7 +62,7 @@ type ApplicationQuestionRow = {
 const QUESTION_SELECT = `
   question_id, rescue_id, question_key, scope, category, question_type,
   question_text, help_text, placeholder, options, display_order,
-  is_enabled, is_required, created_at, updated_at
+  is_enabled, is_required, stage, created_at, updated_at
 `;
 
 const scopeToProto = (s: 'core' | 'rescue_specific'): RescueV1.ApplicationQuestionScope =>
@@ -83,6 +84,7 @@ const questionRowToProto = (row: ApplicationQuestionRow): ApplicationQuestion =>
   displayOrder: row.display_order,
   isEnabled: row.is_enabled,
   isRequired: row.is_required,
+  stage: row.stage,
   createdAt: row.created_at.toISOString(),
   updatedAt: row.updated_at.toISOString(),
 });
@@ -154,6 +156,8 @@ export async function createApplicationQuestion(
   const questionId = randomUUID();
   // options is text[]; pass null when empty so the column stays NULL.
   const options = req.options.length > 0 ? req.options : null;
+  // Unset stage defaults to 'full' — single-stage behaviour.
+  const stage = req.stage ?? 'full';
   let inserted: ApplicationQuestionRow | undefined;
   try {
     const res = await deps.pool.query<ApplicationQuestionRow>(
@@ -161,9 +165,9 @@ export async function createApplicationQuestion(
       INSERT INTO rescue.application_questions (
         question_id, rescue_id, question_key, scope, category, question_type,
         question_text, help_text, placeholder, options, display_order,
-        is_required, created_by, created_at, updated_at
+        is_required, stage, created_by, created_at, updated_at
       )
-      VALUES ($1, $2, $3, 'rescue_specific', $4, $5, $6, $7, $8, $9, $10, $11, $12, now(), now())
+      VALUES ($1, $2, $3, 'rescue_specific', $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, now(), now())
       RETURNING ${QUESTION_SELECT}
       `,
       [
@@ -178,6 +182,7 @@ export async function createApplicationQuestion(
         options,
         req.displayOrder,
         req.isRequired,
+        stage,
         principal.userId,
       ]
     );
@@ -191,9 +196,9 @@ export async function createApplicationQuestion(
         `question_key '${req.questionKey}' already exists for this rescue`
       );
     }
-    // A bad category/question_type value fails the ENUM cast (22P02).
+    // A bad category/question_type/stage value fails the ENUM cast (22P02).
     if ((err as { code?: string }).code === '22P02') {
-      throw new HandlerError('INVALID_ARGUMENT', 'invalid category or question_type');
+      throw new HandlerError('INVALID_ARGUMENT', 'invalid category, question_type, or stage');
     }
     throw err;
   }
@@ -294,7 +299,8 @@ export async function updateApplicationQuestion(
                display_order = COALESCE($8::integer, display_order),
                is_required   = COALESCE($9::boolean, is_required),
                is_enabled    = COALESCE($10::boolean, is_enabled),
-               updated_by    = $11,
+               stage         = COALESCE($11::application_question_stage, stage),
+               updated_by    = $12,
                updated_at    = now(),
                version       = version + 1
          WHERE question_id = $1 AND deleted_at IS NULL
@@ -311,6 +317,7 @@ export async function updateApplicationQuestion(
           req.displayOrder ?? null,
           req.isRequired ?? null,
           req.isEnabled ?? null,
+          req.stage ?? null,
           principal.userId,
         ]
       );
@@ -328,9 +335,9 @@ export async function updateApplicationQuestion(
       }
     });
   } catch (err) {
-    // A bad category/question_type value fails the ENUM cast (22P02).
+    // A bad category/question_type/stage value fails the ENUM cast (22P02).
     if ((err as { code?: string }).code === '22P02') {
-      throw new HandlerError('INVALID_ARGUMENT', 'invalid category or question_type');
+      throw new HandlerError('INVALID_ARGUMENT', 'invalid category, question_type, or stage');
     }
     throw err;
   }

@@ -90,6 +90,7 @@ const questionRow = (overrides: Record<string, unknown> = {}) => ({
   display_order: 5,
   is_enabled: true,
   is_required: false,
+  stage: 'full',
   created_at: new Date('2026-06-01T00:00:00Z'),
   updated_at: new Date('2026-06-01T00:00:00Z'),
   ...overrides,
@@ -179,13 +180,31 @@ describe('createApplicationQuestion', () => {
     mocks.poolMock.query.mockRejectedValueOnce(Object.assign(new Error('bad'), { code: '22P02' }));
     await expect(
       createApplicationQuestion(mocks.deps, STAFF, { ...validReq, category: 'nonsense' })
-    ).rejects.toThrow(/invalid category or question_type/);
+    ).rejects.toThrow(/invalid category, question_type, or stage/);
   });
 
   it('rejects a missing question_text', async () => {
     await expect(
       createApplicationQuestion(mocks.deps, STAFF, { ...validReq, questionText: '' })
     ).rejects.toThrow(/question_text is required/);
+  });
+
+  it('defaults an unset stage to "full" (single-stage behaviour)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [questionRow()] });
+    await createApplicationQuestion(mocks.deps, STAFF, validReq);
+    const [, params] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(params).toContain('full');
+  });
+
+  it('persists an explicit "enquiry" stage', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [questionRow({ stage: 'enquiry' })] });
+    const res = await createApplicationQuestion(mocks.deps, STAFF, {
+      ...validReq,
+      stage: 'enquiry',
+    });
+    expect(res.question?.stage).toBe('enquiry');
+    const [, params] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(params).toContain('enquiry');
   });
 });
 
@@ -323,7 +342,46 @@ describe('updateApplicationQuestion', () => {
     });
     await expect(
       updateApplicationQuestion(mocks.deps, STAFF, { ...baseReq, category: 'nonsense' })
-    ).rejects.toThrow(/invalid category or question_type/);
+    ).rejects.toThrow(/invalid category, question_type, or stage/);
+  });
+
+  it('passes an explicit stage through to the UPDATE and leaves it unset otherwise', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ rescue_id: RESCUE_ID, scope: 'rescue_specific' }],
+    });
+    mocks.clientMock.query.mockImplementation(async (sql: string) =>
+      sql.includes('UPDATE') ? { rows: [questionRow({ stage: 'enquiry' })] } : { rows: [] }
+    );
+
+    const res = await updateApplicationQuestion(mocks.deps, STAFF, {
+      ...baseReq,
+      stage: 'enquiry',
+    });
+
+    expect(res.question?.stage).toBe('enquiry');
+    const updateCall = mocks.clientMock.query.mock.calls.find(c =>
+      (c[0] as string).includes('UPDATE')
+    ) as [string, unknown[]];
+    expect(updateCall[0]).toContain('COALESCE($11::application_question_stage, stage)');
+    expect(updateCall[1]).toContain('enquiry');
+  });
+
+  it('leaves stage unset (null) when not supplied', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ rescue_id: RESCUE_ID, scope: 'rescue_specific' }],
+    });
+    mocks.clientMock.query.mockImplementation(async (sql: string) =>
+      sql.includes('UPDATE') ? { rows: [questionRow()] } : { rows: [] }
+    );
+
+    await updateApplicationQuestion(mocks.deps, STAFF, baseReq);
+
+    const updateCall = mocks.clientMock.query.mock.calls.find(c =>
+      (c[0] as string).includes('UPDATE')
+    ) as [string, unknown[]];
+    // questionId, category, questionType, questionText, helpText, placeholder,
+    // options, displayOrder, isRequired, isEnabled, stage, userId — stage is index 10.
+    expect(updateCall[1][10]).toBeNull();
   });
 });
 

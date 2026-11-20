@@ -103,6 +103,8 @@ type QuestionBody = {
   displayOrder?: number;
   isRequired?: boolean;
   is_required?: boolean;
+  // 'enquiry' | 'full'. Omitted defaults to 'full' (single-stage behaviour).
+  stage?: string;
 };
 
 // PUT body — every field is optional (partial update); only the supplied
@@ -124,6 +126,7 @@ type UpdateQuestionBody = {
   is_required?: boolean;
   isEnabled?: boolean;
   is_enabled?: boolean;
+  stage?: string;
 };
 
 // PATCH reorder body. The SPA sends `{ questions: [{ questionId,
@@ -572,6 +575,7 @@ export const registerRescueRoutes = async (
                     isRequired: { type: 'boolean' },
                     isEnabled: { type: 'boolean' },
                     displayOrder: { type: 'number' },
+                    stage: { type: 'string' },
                   },
                 },
               },
@@ -629,6 +633,7 @@ export const registerRescueRoutes = async (
             options: { type: 'array', items: { type: 'string' } },
             displayOrder: { type: 'number' },
             isRequired: { type: 'boolean' },
+            stage: { type: 'string' },
           },
           required: ['questionKey', 'category', 'questionType', 'questionText'],
         },
@@ -645,6 +650,7 @@ export const registerRescueRoutes = async (
                   category: { type: 'string' },
                   questionType: { type: 'string' },
                   questionText: { type: 'string' },
+                  stage: { type: 'string' },
                 },
               },
             },
@@ -677,6 +683,7 @@ export const registerRescueRoutes = async (
               ? body.displayOrder
               : 0,
         isRequired: Boolean(body.isRequired ?? body.is_required ?? false),
+        stage: body.stage,
       };
       try {
         const res = await client.createApplicationQuestion(grpcReq, buildMetadata(req));
@@ -793,6 +800,7 @@ export const registerRescueRoutes = async (
             displayOrder: { type: 'number' },
             isRequired: { type: 'boolean' },
             isEnabled: { type: 'boolean' },
+            stage: { type: 'string' },
           },
         },
         response: {
@@ -808,6 +816,7 @@ export const registerRescueRoutes = async (
                   category: { type: 'string' },
                   questionType: { type: 'string' },
                   questionText: { type: 'string' },
+                  stage: { type: 'string' },
                 },
               },
             },
@@ -853,6 +862,7 @@ export const registerRescueRoutes = async (
         displayOrder,
         isRequired,
         isEnabled,
+        stage: body.stage,
       };
       try {
         const res = await client.updateApplicationQuestion(grpcReq, buildMetadata(req));
