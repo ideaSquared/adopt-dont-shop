@@ -546,8 +546,11 @@ jobs:
       contents: read
       # Read the previous commit's smoke result (scripts/smoke-reuse.mjs).
       checks: read
+      # Push the tested service images as candidates (push to main only).
+      packages: write
     outputs:
       reused: ${{ steps.reuse.outputs.reuse }}
+      candidates: ${{ steps.candidates.outputs.candidates }}
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
@@ -606,6 +609,27 @@ jobs:
         if: steps.reuse.outputs.reuse != 'true'
         run: scripts/smoke-prod.sh --no-build
 
+      # Build once: on a push to main, push the 12 service images this job just
+      # booted as service-<name>:<sha>-candidate, so publish-images promotes
+      # them instead of building them again. A candidate is not deployable
+      # (deploy.yml pulls only a signed :<sha>); if this fails, publish-images
+      # builds them as before.
+      - name: Log in to GHCR
+        if: steps.reuse.outputs.reuse != 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0  # v4.4.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push the tested service images as candidates
+        id: candidates
+        if: steps.reuse.outputs.reuse != 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        env:
+          SHA: ${{ github.sha }}
+        run: node scripts/smoke-reuse.mjs push-candidates
+
   # ============================================================================
   # PUBLISH RELEASE IMAGES — build once, deploy many. deploy.yml used to rebuild
   # every image from scratch although this workflow had just built (and smoke
@@ -624,7 +648,10 @@ jobs:
   # head is and needs images for it. When the smoke job reused the previous
   # commit's result, the 12 service images are copied from that commit's tag
   # by digest (signatures included) instead of rebuilt; the 3 staging
-  # frontends are always rebuilt, so a changed staging-vars value still lands. The `if:` is
+  # frontends are always rebuilt, so a changed staging-vars value still lands.
+  # On a full run, the 12 service images the smoke job booted are promoted
+  # from their :<sha>-candidate tags and signed, so each is built once; only
+  # the 3 staging frontends (which bake staging-vars) are built here. The `if:` is
   # `!cancelled()` rather than `success()` so a skipped build-apps/
   # build-services (no image-affecting change) does not skip this, while a
   # failed one (Trivy found a fixable CRITICAL/HIGH) does.
@@ -692,6 +719,18 @@ jobs:
           SHA: ${{ github.sha }}
         run: node scripts/smoke-reuse.mjs retag
 
+      # Build once: promote the service images the smoke job booted (now that
+      # Trivy has also passed) to this commit's tag, by digest. They are signed
+      # in the step below. If any promotion fails, the bake builds all 15.
+      - name: Promote the smoke-tested service images
+        id: promoted
+        if: needs.prod-image-smoke.outputs.reused != 'true' && needs.prod-image-smoke.outputs.candidates == 'true'
+        continue-on-error: true
+        env:
+          SHA: ${{ github.sha }}
+          REFS_FILE: ${{ runner.temp }}/promoted-refs
+        run: node scripts/smoke-reuse.mjs promote
+
       # Same definition the smoke test built, so the service layers come out of
       # the shared GHA cache (the frontends differ by their build args, so only
       # their last stages rebuild).
@@ -714,7 +753,7 @@ jobs:
         with:
           source: .
           files: docker-bake.hcl
-          targets: ${{ steps.services.outputs.reused == 'true' && 'publish-staging-apps' || 'publish-services,publish-staging-apps' }}
+          targets: ${{ (steps.services.outputs.reused == 'true' || steps.promoted.outputs.promoted == 'true') && 'publish-staging-apps' || 'publish-services,publish-staging-apps' }}
           push: true
           set: |
             *.cache-from=type=gha
@@ -727,6 +766,9 @@ jobs:
           METADATA: ${{ steps.bake.outputs.metadata }}
           # The copied service images are already signed by digest.
           EXPECTED: ${{ steps.services.outputs.reused == 'true' && '3' || '15' }}
+          # Promoted service images are signed here too, by the digest promote recorded.
+          PROMOTED: ${{ steps.promoted.outputs.promoted }}
+          REFS_FILE: ${{ runner.temp }}/promoted-refs
         run: |
           set -euo pipefail
           refs=$(printf '%s' "$METADATA" | jq -r '
@@ -734,6 +776,9 @@ jobs:
             | .value | select(type == "object")
             | select(.["containerimage.digest"] != null)
             | "\(.["image.name"] | split(",")[0] | split(":")[0])@\(.["containerimage.digest"])"')
+          if [ "$PROMOTED" = "true" ]; then
+            refs=$(printf '%s\n%s' "$refs" "$(cat "$REFS_FILE")")
+          fi
           [ "$(printf '%s\n' "$refs" | wc -l)" -eq "$EXPECTED" ] || {
             echo "::error::Expected $EXPECTED pushed images, got: $refs"
             exit 1

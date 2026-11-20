@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { describe, expect, it } from 'vitest';
 
-import { SERVICES, retagPairs, reuseDecision } from './smoke-reuse.mjs';
+import { SERVICES, digestRef, retagPairs, reuseDecision } from './smoke-reuse.mjs';
 
 const BEFORE = 'a'.repeat(40);
 const passed = { check_runs: [{ status: 'completed', conclusion: 'success' }] };
@@ -77,5 +77,34 @@ describe('retagPairs', () => {
     const block = bake.match(/target "services"[\s\S]*?svc = \[([\s\S]*?)\]/)?.[1] ?? '';
     const listed = [...block.matchAll(/"([a-z-]+)"/g)].map(m => m[1]);
     expect(SERVICES).toEqual(listed);
+  });
+});
+
+describe('build once', () => {
+  it('names the smoke-tested images as candidates for this commit, then promotes them to its tag', () => {
+    const candidates = retagPairs({ prefix: 'ghcr.io/x/ads', from: 'smoke', to: 'abc-candidate' });
+    expect(candidates[0]).toEqual({
+      src: 'ghcr.io/x/ads/service-gateway:smoke',
+      dst: 'ghcr.io/x/ads/service-gateway:abc-candidate',
+    });
+    const promoted = retagPairs({ prefix: 'ghcr.io/x/ads', from: 'abc-candidate', to: 'abc' });
+    expect(promoted[11]).toEqual({
+      src: 'ghcr.io/x/ads/service-ops:abc-candidate',
+      dst: 'ghcr.io/x/ads/service-ops:abc',
+    });
+  });
+
+  it('signs by digest, never by tag', () => {
+    expect(digestRef('ghcr.io/x/ads/service-ops:abc', 'sha256:123')).toBe(
+      'ghcr.io/x/ads/service-ops@sha256:123'
+    );
+    expect(digestRef('localhost:5000/ads/service-ops:abc', 'sha256:9')).toBe(
+      'localhost:5000/ads/service-ops@sha256:9'
+    );
+  });
+
+  it('refuses something that is not a digest', () => {
+    expect(() => digestRef('ghcr.io/x/ads/service-ops:abc', '')).toThrow();
+    expect(() => digestRef('ghcr.io/x/ads/service-ops:abc', 'latest')).toThrow();
   });
 });
