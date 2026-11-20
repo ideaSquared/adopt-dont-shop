@@ -16,6 +16,25 @@ variable "IMAGE_PREFIX" {
   default = "ghcr.io/ideasquared/adopt-dont-shop"
 }
 
+# GitHub Actions layer cache, one scope per image. Without a scope every image
+# shares the default one and overwrites the others' cache, so unchanged images
+# rebuilt from scratch. docker.yml sets GHA_CACHE=read (publish) or
+# read-write (smoke); a local run leaves it empty and uses no remote cache.
+# The per-image jobs in docker.yml use the same scope names, so they share it.
+variable "GHA_CACHE" {
+  default = ""
+}
+
+function "cache_from" {
+  params = [scope]
+  result = GHA_CACHE == "" ? [] : ["type=gha,scope=${scope}"]
+}
+
+function "cache_to" {
+  params = [scope]
+  result = GHA_CACHE == "read-write" ? ["type=gha,mode=max,ignore-error=true,scope=${scope}"] : []
+}
+
 group "smoke" {
   targets = ["services", "apps"]
 }
@@ -35,7 +54,9 @@ target "services" {
     SERVICE     = "@adopt-dont-shop/service.${svc}"
     SERVICE_DIR = "services/${svc}"
   }
-  tags = ["${IMAGE_PREFIX}/service-${svc}:${TAG}"]
+  tags       = ["${IMAGE_PREFIX}/service-${svc}:${TAG}"]
+  cache-from = cache_from("service-${svc}")
+  cache-to   = cache_to("service-${svc}")
 }
 
 target "apps" {
@@ -56,6 +77,8 @@ target "apps" {
     "${IMAGE_PREFIX}/app-${app}:${TAG}",
     "${IMAGE_PREFIX}/app-${app}:${TAG}-production",
   ]
+  cache-from = cache_from("app-${app}")
+  cache-to   = cache_to("app-${app}")
 }
 
 # ---------------------------------------------------------------------------
@@ -139,6 +162,8 @@ target "release-apps" {
     SENTRY_PROJECT          = app.sentry_project
     DEPLOY_SHA              = TAG
   }
-  secret = ["id=sentry_auth,env=SENTRY_AUTH_TOKEN"]
-  tags   = ["${IMAGE_PREFIX}/app-${app.name}:${TAG}-${DEPLOY_ENV}"]
+  secret     = ["id=sentry_auth,env=SENTRY_AUTH_TOKEN"]
+  tags       = ["${IMAGE_PREFIX}/app-${app.name}:${TAG}-${DEPLOY_ENV}"]
+  cache-from = cache_from("app-${app.name}")
+  cache-to   = cache_to("app-${app.name}")
 }
