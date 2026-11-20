@@ -1609,8 +1609,8 @@ importers:
         specifier: ^10.59.0
         version: 10.59.0(@opentelemetry/exporter-trace-otlp-http@0.221.0(@opentelemetry/api@1.9.1))(vite@8.3.5(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.22.4)(yaml@2.9.1))
       fastify:
-        specifier: ^5.12.5
-        version: 5.12.5
+        specifier: ^5.12.6
+        version: 5.12.8
       prom-client:
         specifier: ^15.1.3
         version: 15.1.3
@@ -1703,8 +1703,8 @@ importers:
         specifier: ^1.14.5
         version: 1.14.5
       fastify:
-        specifier: ^5.12.5
-        version: 5.12.5
+        specifier: ^5.12.6
+        version: 5.12.8
       nats:
         specifier: ^2.29.3
         version: 2.29.3
@@ -1817,8 +1817,8 @@ importers:
         specifier: ^1.14.5
         version: 1.14.5
       fastify:
-        specifier: ^5.12.5
-        version: 5.12.5
+        specifier: ^5.12.6
+        version: 5.12.8
       nats:
         specifier: ^2.29.3
         version: 2.29.3
@@ -1875,8 +1875,8 @@ importers:
         specifier: ^1.14.5
         version: 1.14.5
       fastify:
-        specifier: ^5.12.5
-        version: 5.12.5
+        specifier: ^5.12.6
+        version: 5.12.8
       nats:
         specifier: ^2.29.3
         version: 2.29.3
@@ -1939,8 +1939,8 @@ importers:
         specifier: ^3.0.2
         version: 3.0.3
       fastify:
-        specifier: ^5.12.5
-        version: 5.12.5
+        specifier: ^5.12.6
+        version: 5.12.8
       jsonwebtoken:
         specifier: ^9.0.3
         version: 9.0.3
@@ -2006,8 +2006,8 @@ importers:
         specifier: ^1.14.5
         version: 1.14.5
       fastify:
-        specifier: ^5.12.5
-        version: 5.12.5
+        specifier: ^5.12.6
+        version: 5.12.8
       nats:
         specifier: ^2.29.3
         version: 2.29.3
@@ -2061,8 +2061,8 @@ importers:
         specifier: ^1.14.5
         version: 1.14.5
       fastify:
-        specifier: ^5.12.5
-        version: 5.12.5
+        specifier: ^5.12.6
+        version: 5.12.8
       nats:
         specifier: ^2.29.3
         version: 2.29.3
@@ -2073,8 +2073,8 @@ importers:
         specifier: ^8.22.0
         version: 8.22.0
       sanitize-html:
-        specifier: ^2.18.0
-        version: 2.18.0
+        specifier: ^2.18.1
+        version: 2.18.2
     devDependencies:
       '@adopt-dont-shop/eslint-config-node':
         specifier: workspace:*
@@ -2140,8 +2140,8 @@ importers:
         specifier: ^8.3.0
         version: 8.3.0(socket.io-adapter@2.5.8)
       fastify:
-        specifier: ^5.12.5
-        version: 5.12.5
+        specifier: ^5.12.6
+        version: 5.12.8
       file-type:
         specifier: ^22.0.1
         version: 22.0.1
@@ -2219,8 +2219,8 @@ importers:
         specifier: ^1.14.5
         version: 1.14.5
       fastify:
-        specifier: ^5.12.5
-        version: 5.12.5
+        specifier: ^5.12.6
+        version: 5.12.8
       nats:
         specifier: ^2.29.3
         version: 2.29.3
@@ -2268,8 +2268,8 @@ importers:
         specifier: ^1.14.5
         version: 1.14.5
       fastify:
-        specifier: ^5.12.5
-        version: 5.12.5
+        specifier: ^5.12.6
+        version: 5.12.8
       nats:
         specifier: ^2.29.3
         version: 2.29.3
@@ -2326,8 +2326,8 @@ importers:
         specifier: ^1.14.5
         version: 1.14.5
       fastify:
-        specifier: ^5.12.5
-        version: 5.12.5
+        specifier: ^5.12.6
+        version: 5.12.8
       firebase-admin:
         specifier: ^14.3.0
         version: 14.3.0
@@ -2338,8 +2338,8 @@ importers:
         specifier: ^8.0.4
         version: 8.0.4(@types/pg@8.20.0)(pg@8.22.0)
       nodemailer:
-        specifier: ^10.0.9
-        version: 10.0.13
+        specifier: ^10.1.4
+        version: 10.6.0
       pg:
         specifier: ^8.22.0
         version: 8.22.0
@@ -2402,8 +2402,8 @@ importers:
         specifier: https://github.com/ideaSquared/agent-idea/releases/download/ops-v0.2.0/ideasquared-ops-0.2.0.tgz
         version: https://github.com/ideaSquared/agent-idea/releases/download/ops-v0.2.0/ideasquared-ops-0.2.0.tgz
       fastify:
-        specifier: ^5.12.5
-        version: 5.12.5
+        specifier: ^5.12.6
+        version: 5.12.8
       nats:
         specifier: ^2.29.3
         version: 2.29.3
@@ -2463,8 +2463,8 @@ importers:
         specifier: ^1.14.5
         version: 1.14.5
       fastify:
-        specifier: ^5.12.5
-        version: 5.12.5
+        specifier: ^5.12.6
+        version: 5.12.8
       nats:
         specifier: ^2.29.3
         version: 2.29.3
@@ -2521,8 +2521,8 @@ importers:
         specifier: ^1.14.5
         version: 1.14.5
       fastify:
-        specifier: ^5.12.5
-        version: 5.12.5
+        specifier: ^5.12.6
+        version: 5.12.8
       nats:
         specifier: ^2.29.3
         version: 2.29.3
@@ -7252,8 +7252,8 @@ packages:
   fastify-plugin@6.0.1:
     resolution: {integrity: sha512-4wW4RxSmvPXLrh5mgQEiu43qU3bw44N2ss4FTkTkQIbprUhE+/s43QX0j/ttcztdWK7PEkHqVthdc5GdEGDvjA==}
 
-  fastify@5.12.5:
-    resolution: {integrity: sha512-OB2k1dlxs5/NAABqeKV2FUHkSD2BbENsCak8yULVcymn3fHIPDVa9TI3SDnJSWYSllZmSYuZXy2gTnsT+Sut1A==}
+  fastify@5.12.8:
+    resolution: {integrity: sha512-moP8exb2sCHLUbJkwp+I6C0padhy4D8lp0SdmzY7HhSdZuqm7O/u3o2aq7u8okaQ//33QDzj3G/u+FsSdB8Qzw==}
 
   fastq@1.20.3:
     resolution: {integrity: sha512-XKv5nnLs6nLF71NgiKJLIZFLkPyIEuOselLG7ujZnGrRfQK8HpvY+WqKhAJUAdLomwVHErVS4LfxFlPq0/FTAw==}
@@ -8376,8 +8376,8 @@ packages:
     resolution: {integrity: sha512-6li2QanLsAXpIH2R6j77MzRyvOyrvdTqlKtO4CgBdHGNvN99ZZfyxszHc5o5+IZBWD5u6Hzwg83JoGXmqZNG9Q==}
     engines: {node: '>=18'}
 
-  nodemailer@10.0.13:
-    resolution: {integrity: sha512-SzG86OlvcW/NNhUFC6uROMwRTL4n7MswfQqC/T8mhkmnY1YVa23zUEMYi4ijSeXSl9GLz9ZeTJDUatEDuY5FeQ==}
+  nodemailer@10.6.0:
+    resolution: {integrity: sha512-jWanL7D9GD3jvUDYKmoC5rWTiG8MnBgnN2yV68bgMKip1zUJhiSTyz7Eg+18y8sk5OvdVDzws5nZK5arSI4f5Q==}
     engines: {node: '>=20.0.0'}
 
   notepack.io@3.0.1:
@@ -9013,8 +9013,8 @@ packages:
   safer-buffer@2.1.2:
     resolution: {integrity: sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==}
 
-  sanitize-html@2.18.0:
-    resolution: {integrity: sha512-CvY+PV+NBhxe3BnjFI5f//vEDKLULm9OlZArso7gdgVsWvanBuq9PNDx+/2llfL+8XFYa/UNBxvqRBg3TWU2Ug==}
+  sanitize-html@2.18.2:
+    resolution: {integrity: sha512-LTQVNHBeKB5qIae9x2J2Fw68ORnES++8vzYaG7DFT8P4GVCJFeHffHnRUzf5Mrxfx+4GweIvMRqkBPHHodaVNg==}
     engines: {node: '>=22.12.0'}
 
   saxes@6.0.0:
@@ -15212,7 +15212,7 @@ snapshots:
 
   fastify-plugin@6.0.1: {}
 
-  fastify@5.12.5:
+  fastify@5.12.8:
     dependencies:
       '@fastify/ajv-compiler': 4.0.7
       '@fastify/error': 4.2.1
@@ -16449,7 +16449,7 @@ snapshots:
 
   node-releases@2.0.63: {}
 
-  nodemailer@10.0.13: {}
+  nodemailer@10.6.0: {}
 
   notepack.io@3.0.1: {}
 
@@ -17234,9 +17234,8 @@ snapshots:
 
   safer-buffer@2.1.2: {}
 
-  sanitize-html@2.18.0:
+  sanitize-html@2.18.2:
     dependencies:
-      deepmerge: 4.3.1
       escape-string-regexp: 4.0.0
       htmlparser2: 12.0.0
       is-plain-object: 5.1.0
