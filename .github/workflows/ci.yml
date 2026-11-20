@@ -448,6 +448,40 @@ jobs:
           turbo-team: ${{ secrets.TURBO_TEAM }}
 
   # ============================================================================
+  # PRODUCTION BUNDLE GUARDS — ADS-1489. check:runtime-require and
+  # check:css-vars catch regressions that break only the real browser bundle
+  # (a bundled `require` shim; component CSS with no theme vars defined) — see
+  # the scripts' own docstrings for the production incidents that motivated
+  # them. The dev server, E2E and the Docker image smoke test all pass on
+  # these regressions, and test-frontend builds only one app per matrix
+  # shard, so both guards need their own job that builds all three apps
+  # together.
+  # ============================================================================
+  check-production-bundle:
+    name: Check Production Bundle
+    needs: [changes, build-libs]
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Local composite actions can only load after the repo is checked out.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: ./.github/actions/checkout-and-setup
+
+      - name: Build apps
+        env:
+          TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
+          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+          CI: true
+        run: pnpm build:apps
+
+      - name: Check for runtime require shims
+        run: pnpm check:runtime-require
+
+      - name: Check for undefined CSS theme variables
+        run: pnpm check:css-vars
+
+  # ============================================================================
   # SHARED LIBRARIES — lint/test/type-check the libs themselves
   # The build job above produces dist/, so we don't repeat it here. Turbo's
   # cache will detect dist/ is up-to-date and short-circuit any rebuild
@@ -891,8 +925,9 @@ jobs:
   # protection references this one job name, so adding/renaming a job below
   # doesn't require touching the ruleset.
   #
-  # Path-filtered jobs (test-frontend, test-libs, dev-auth-guard,
-  # validate-observability-config) and test-e2e (opt-in via `run-e2e`) report
+  # Path-filtered jobs (test-frontend, check-production-bundle, test-libs,
+  # dev-auth-guard, validate-observability-config) and test-e2e (opt-in via
+  # `run-e2e`) report
   # `skipped` rather than `success` when they don't run. Classic branch
   # protection treats `skipped` as a failure, so this aggregator only fails on
   # `failure`/`cancelled` — the standard "merge gate" pattern — treating
@@ -909,6 +944,7 @@ jobs:
       - changes
       - build-libs
       - test-frontend
+      - check-production-bundle
       - test-libs
       - test-packages
       - test-services
