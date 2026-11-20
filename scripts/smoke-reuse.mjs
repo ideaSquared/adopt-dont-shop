@@ -8,11 +8,22 @@
 //   node scripts/smoke-reuse.mjs decide   writes reuse=true|false to GITHUB_OUTPUT
 //   node scripts/smoke-reuse.mjs retag    copies service-<name>:<BEFORE> to service-<name>:<SHA> in GHCR
 //
+// It also lets a full run build the service images once. After the smoke test passes, the smoke job
+// pushes the exact images it booted as service-<name>:<SHA>-candidate; once the Trivy scans have also
+// passed, the publish job promotes them to service-<name>:<SHA> and signs them, instead of building
+// all 12 again. A candidate tag is never deployable: deploy.yml only pulls :<SHA> with a valid
+// signature.
+//
+//   node scripts/smoke-reuse.mjs push-candidates   tags and pushes service-<name>:smoke as :<SHA>-candidate and
+//                                                  outputs the pushed digests (candidate_refs)
+//   node scripts/smoke-reuse.mjs promote           copies those exact digests (CANDIDATE_REFS) to :<SHA> and
+//                                                  writes them to REFS_FILE to sign
+//
 // Any doubt (an image or smoke input changed, the previous smoke test did not pass, a failed lookup)
 // means the full build and boot, never a skipped one.
 
 import { execFileSync } from 'node:child_process';
-import { appendFileSync } from 'node:fs';
+import { appendFileSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 // Same list as the `services` target in docker-bake.hcl (a test keeps them in step).
@@ -68,6 +79,35 @@ export const retagPairs = ({ prefix = PREFIX, from, to }) =>
     dst: `${prefix}/service-${svc}:${to}`,
   }));
 
+// `repo/image:tag` or `repo/image@digest` without the tag or digest (a registry port is not a tag).
+const imageOf = ref => {
+  const at = ref.indexOf('@');
+  if (at !== -1) return ref.slice(0, at);
+  const colon = ref.lastIndexOf(':');
+  return colon > ref.lastIndexOf('/') ? ref.slice(0, colon) : ref;
+};
+
+const DIGEST_REF = /@sha256:[0-9a-f]+$/;
+
+// The immutable `image@digest` docker recorded when it pushed `taggedRef` (from `docker inspect`'s RepoDigests).
+export const pushedDigestRef = (repoDigests, taggedRef) => {
+  const image = imageOf(taggedRef);
+  const ref = repoDigests.find(d => imageOf(d) === image && DIGEST_REF.test(d));
+  if (ref === undefined) throw new Error(`no pushed digest for ${taggedRef}`);
+  return ref;
+};
+
+// Promote each tested digest to `image:<sha>` and sign that same digest. A tag is never a source: a tag can be
+// moved after the smoke test, a digest cannot.
+export const promotionPlan = (testedRefs, sha) =>
+  SERVICES.map(svc => {
+    const ref = testedRefs.find(r => imageOf(r).endsWith(`/service-${svc}`));
+    if (ref === undefined || !DIGEST_REF.test(ref)) {
+      throw new Error(`no tested digest for service-${svc}`);
+    }
+    return { src: ref, dst: `${imageOf(ref)}:${sha}`, sign: ref };
+  });
+
 const fetchCheckRuns = async ({ repo, sha, token }) => {
   const url = `https://api.github.com/repos/${repo}/commits/${sha}/check-runs?check_name=${encodeURIComponent(SMOKE_CHECK)}`;
   const res = await fetch(url, {
@@ -112,12 +152,43 @@ const retag = () => {
   writeOutput('reused=true');
 };
 
+const run = (cmd, args) => execFileSync(cmd, args, { stdio: 'inherit' });
+
+const pushCandidates = () => {
+  const refs = retagPairs({ from: 'smoke', to: `${process.env.SHA}-candidate` }).map(
+    ({ src, dst }) => {
+      console.log(`${src} -> ${dst}`);
+      run('docker', ['tag', src, dst]);
+      run('docker', ['push', dst]);
+      const repoDigests = JSON.parse(
+        execFileSync('docker', ['inspect', '--format', '{{json .RepoDigests}}', dst], {
+          encoding: 'utf8',
+        })
+      );
+      return pushedDigestRef(repoDigests, dst);
+    }
+  );
+  writeOutput(`candidate_refs=${JSON.stringify(refs)}`);
+  writeOutput('candidates=true');
+};
+
+const promote = () => {
+  const plan = promotionPlan(JSON.parse(process.env.CANDIDATE_REFS ?? '[]'), process.env.SHA);
+  plan.forEach(({ src, dst }) => {
+    console.log(`${src} -> ${dst}`);
+    run('docker', ['buildx', 'imagetools', 'create', '--tag', dst, src]);
+  });
+  writeFileSync(process.env.REFS_FILE, `${plan.map(p => p.sign).join('\n')}\n`);
+  writeOutput('promoted=true');
+};
+
+const MODES = { decide, retag, 'push-candidates': pushCandidates, promote };
+
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
-  const mode = process.argv[2];
-  if (mode === 'decide') await decide();
-  else if (mode === 'retag') retag();
-  else {
-    console.error('usage: smoke-reuse.mjs decide|retag');
+  const mode = MODES[process.argv[2]];
+  if (mode === undefined) {
+    console.error(`usage: smoke-reuse.mjs ${Object.keys(MODES).join('|')}`);
     process.exit(2);
   }
+  await mode();
 }
