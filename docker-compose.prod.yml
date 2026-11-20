@@ -430,6 +430,8 @@ services:
       # ADS-1041: observability shipping (inert unless set in the host .env).
       LOKI_URL: ${LOKI_URL:-}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_TRACES_SAMPLER: ${OTEL_TRACES_SAMPLER:-parentbased_traceidratio}
+      OTEL_TRACES_SAMPLER_ARG: ${OTEL_TRACES_SAMPLER_ARG:-0.1}
       SENTRY_DSN: ${SENTRY_DSN:-}
       # ADS-1327: the gateway doesn't inherit x-service-env, so it needs this
       # line directly — see the anchor's comment for why.
