@@ -109,7 +109,7 @@ jobs:
           username: deploy
           key: ${{ secrets.NETCUP_SSH_KEY }}
           fingerprint: ${{ secrets.NETCUP_HOST_FINGERPRINT }}
-          source: 'scripts/wait-for-services.sh,scripts/deploy-secrets.sh,scripts/deploy-pin-env.sh,scripts/deploy-release-images.sh,scripts/deploy-overlay-args.sh,scripts/deploy-glitchtip-secrets.sh,docker-compose.prod.yml,docker-compose.staging.yml,docker-compose.observability.yml,docker-compose.glitchtip.yml,nginx,observability'
+          source: 'scripts/wait-for-services.sh,scripts/deploy-secrets.sh,scripts/deploy-pin-env.sh,scripts/deploy-release-images.sh,scripts/deploy-overlay-args.sh,scripts/deploy-glitchtip-secrets.sh,docker-compose.prod.yml,docker-compose.staging.yml,docker-compose.observability.yml,docker-compose.glitchtip.yml,nginx,observability,infra/prometheus/rules'
           target: /opt/ads/${{ github.event.inputs.environment }}
           overwrite: true
 
