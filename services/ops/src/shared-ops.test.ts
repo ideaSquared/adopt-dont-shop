@@ -172,6 +172,22 @@ describe('writes', () => {
     expect(operatorHistory).toHaveLength(2);
   });
 
+  it('runs a write in prod too: eng has already made the operator type the product name', async () => {
+    const h = setup({ grpc: rollback, env: 'prod' });
+    const res = await h.invoke('pets.update-status', args, 'run');
+    expect(res.statusCode).toBe(200);
+    expect(h.grpc.calls.map(c => c.headers['x-dry-run'])).toEqual(['1', undefined]);
+    expect(actions(h)).toContain('write.executed');
+  });
+
+  it('only previews in prod when asked to preview', async () => {
+    const h = setup({ grpc: rollback, env: 'prod' });
+    const res = await h.invoke('pets.update-status', args, 'preview');
+    expect(res.statusCode).toBe(200);
+    expect(h.grpc.calls).toHaveLength(1);
+    expect(actions(h)).not.toContain('write.executed');
+  });
+
   it('does not run when the dry run fails', async () => {
     const h = setup({ grpc: rollback, honourDryRun: false });
     const res = await h.invoke('pets.update-status', args, 'run');
@@ -209,13 +225,14 @@ describe('catalog derivation', () => {
     expect(fields('auth.search-users').map(f => f.name)).not.toContain('search');
   });
 
-  it('leaves out nested requests, demo flows and (in prod) every write', async () => {
+  it('leaves out nested requests and demo flows, and offers the same writes in prod as elsewhere', async () => {
     const dev = (await idsFor('dev')).map(c => c.id);
     expect(dev).not.toContain('notifications.broadcast');
     expect(dev.filter(id => id.startsWith('demo.'))).toEqual([]);
-    const prod = await idsFor('prod');
-    expect(prod.filter(c => c.kind === 'write')).toEqual([]);
-    expect(prod.length).toBeGreaterThan(0);
+    const writes = async (env: OpsEnv) =>
+      (await idsFor(env)).filter(c => c.kind === 'write').map(c => c.id);
+    expect(await writes('prod')).toContain('pets.update-status');
+    expect(await writes('prod')).toEqual(await writes('staging'));
   });
 
   it('answers an excluded or unknown command with 404', async () => {
