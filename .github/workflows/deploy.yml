@@ -757,7 +757,7 @@ jobs:
           username: deploy
           key: ${{ secrets.NETCUP_SSH_KEY }}
           fingerprint: ${{ secrets.NETCUP_HOST_FINGERPRINT }}
-          source: 'scripts/wait-for-services.sh,scripts/deploy-secrets.sh,scripts/deploy-pin-env.sh,scripts/deploy-release-images.sh,scripts/deploy-overlay-args.sh,scripts/deploy-glitchtip-secrets.sh,docker-compose.prod.yml,docker-compose.staging.yml,docker-compose.observability.yml,docker-compose.glitchtip.yml,nginx,observability,infra/prometheus/rules'
+          source: 'scripts/wait-for-services.sh,scripts/deploy-secrets.sh,scripts/deploy-pin-env.sh,scripts/deploy-release-images.sh,scripts/deploy-overlay-args.sh,scripts/deploy-glitchtip-secrets.sh,scripts/deploy-reload-prometheus.sh,docker-compose.prod.yml,docker-compose.staging.yml,docker-compose.observability.yml,docker-compose.glitchtip.yml,nginx,observability,infra/prometheus/rules'
           target: /opt/ads/${{ inputs.environment }}
           overwrite: true
 
@@ -1045,6 +1045,11 @@ jobs:
             # `pnpm run --if-present db:migrate`), so there is no separate
             # migrate sidecar to wait on. [post-monolith; was ADS-393]
             docker compose -f $COMPOSE_FILE $OVERLAY_ARGS --env-file .env up -d
+
+            # An unchanged prometheus container keeps running through `up -d`,
+            # so reload it to pick up the rules and config this deploy shipped.
+            chmod +x scripts/deploy-reload-prometheus.sh
+            scripts/deploy-reload-prometheus.sh "$COMPOSE_FILE" "$OVERLAY_ARGS"
 
             # ADS-1252: capture the last-known-good SHA before the health gate.
             # .last_sha still holds the PREVIOUS good SHA here — it is only
