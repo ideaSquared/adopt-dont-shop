@@ -138,9 +138,9 @@ export async function updateReferenceCheck(
   const { rows: upserted } = await deps.pool.query<CheckRow>(
     `INSERT INTO application_reference_checks
        (application_id, reference_id, name, email, relationship, status, notes, contacted_at, contacted_by, updated_at)
-     VALUES ($1, $2, $3, $4, $5, COALESCE($6, 'pending'), $7, $8, $9, now())
+     VALUES ($1, $2, $3, $4, $5, COALESCE($6::reference_check_status, 'pending'), $7, $8, $9, now())
      ON CONFLICT (application_id, reference_id) DO UPDATE SET
-       status = COALESCE($6, application_reference_checks.status),
+       status = COALESCE($6::reference_check_status, application_reference_checks.status),
        notes = COALESCE($7, application_reference_checks.notes),
        contacted_at = COALESCE($8, application_reference_checks.contacted_at),
        contacted_by = COALESCE($9, application_reference_checks.contacted_by),

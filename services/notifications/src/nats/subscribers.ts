@@ -337,6 +337,12 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
           return;
         }
         const staff = await rescueClient.listStaffMembers(payload.rescueId);
+        // Unlike the rescue.* fan-outs, this event is the application's only
+        // reminder: the producer has already stamped last_nudged_at and will
+        // never send another. So after trying every recipient, a failure
+        // throws, and JetStream redelivers; the per-recipient dedup keys make
+        // the replay a no-op for recipients that already succeeded.
+        let failed = 0;
         for (const userId of staff) {
           try {
             await createNotification(
@@ -346,12 +352,16 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
               perRecipientDedup('applications.staffNudgeDue', meta, userId)
             );
           } catch (err) {
+            failed += 1;
             logger.warn(
               'applications.staffNudgeDue notification create failed',
               { applicationId: payload.applicationId, recipientUserId: userId },
               err
             );
           }
+        }
+        if (failed > 0) {
+          throw new Error('applications.staffNudgeDue: notification create failed for some staff');
         }
       }
     )

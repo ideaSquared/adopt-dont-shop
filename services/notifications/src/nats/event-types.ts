@@ -87,7 +87,7 @@ export type ApplicationStaffNudgeDueEvent = {
   rescueId: string;
   petId: string;
   adopterId: UserId;
-  submittedAt: string; // RFC 3339
+  lastActivityAt: string; // RFC 3339
   inactivityDays: number;
 };
 
