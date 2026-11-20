@@ -4,7 +4,24 @@ import {
   HTTP_REDACTED_QUERY_PARAMS,
   initializeOpenTelemetry,
   isOpenTelemetryStarted,
+  otlpTracesUrl,
 } from './opentelemetry.js';
+
+describe('otlpTracesUrl', () => {
+  // The trace exporter posts to an explicit `url` exactly as given, so a
+  // collector root on its own would send spans to `/`, which Tempo rejects.
+  it('appends the OTLP traces path to a collector root', () => {
+    expect(otlpTracesUrl('http://tempo:4318')).toBe('http://tempo:4318/v1/traces');
+    expect(otlpTracesUrl('http://tempo:4318/')).toBe('http://tempo:4318/v1/traces');
+  });
+
+  it('keeps a URL that already names a path', () => {
+    expect(otlpTracesUrl('http://tempo:4318/v1/traces')).toBe('http://tempo:4318/v1/traces');
+    expect(otlpTracesUrl('https://collector.example/otlp/v1/traces')).toBe(
+      'https://collector.example/otlp/v1/traces'
+    );
+  });
+});
 
 describe('HTTP_REDACTED_QUERY_PARAMS', () => {
   // Setting redactedQueryParams replaces the instrumentation's defaults, so the
