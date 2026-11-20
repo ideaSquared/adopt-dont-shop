@@ -14,9 +14,10 @@
 // all 12 again. A candidate tag is never deployable: deploy.yml only pulls :<SHA> with a valid
 // signature.
 //
-//   node scripts/smoke-reuse.mjs push-candidates   tags and pushes service-<name>:smoke as :<SHA>-candidate
-//   node scripts/smoke-reuse.mjs promote           copies :<SHA>-candidate to :<SHA>, writes the digest refs
-//                                                  to sign to REFS_FILE
+//   node scripts/smoke-reuse.mjs push-candidates   tags and pushes service-<name>:smoke as :<SHA>-candidate and
+//                                                  outputs the pushed digests (candidate_refs)
+//   node scripts/smoke-reuse.mjs promote           copies those exact digests (CANDIDATE_REFS) to :<SHA> and
+//                                                  writes them to REFS_FILE to sign
 //
 // Any doubt (an image or smoke input changed, the previous smoke test did not pass, a failed lookup)
 // means the full build and boot, never a skipped one.
@@ -78,13 +79,34 @@ export const retagPairs = ({ prefix = PREFIX, from, to }) =>
     dst: `${prefix}/service-${svc}:${to}`,
   }));
 
-// `image:tag` with a manifest digest becomes `image@digest`, the immutable reference cosign signs.
-export const digestRef = (ref, digest) => {
-  if (!/^sha256:[0-9a-f]+$/.test(digest)) throw new Error(`not a digest: '${digest}'`);
-  const tagAt = ref.lastIndexOf(':');
-  const image = tagAt > ref.lastIndexOf('/') ? ref.slice(0, tagAt) : ref;
-  return `${image}@${digest}`;
+// `repo/image:tag` or `repo/image@digest` without the tag or digest (a registry port is not a tag).
+const imageOf = ref => {
+  const at = ref.indexOf('@');
+  if (at !== -1) return ref.slice(0, at);
+  const colon = ref.lastIndexOf(':');
+  return colon > ref.lastIndexOf('/') ? ref.slice(0, colon) : ref;
 };
+
+const DIGEST_REF = /@sha256:[0-9a-f]+$/;
+
+// The immutable `image@digest` docker recorded when it pushed `taggedRef` (from `docker inspect`'s RepoDigests).
+export const pushedDigestRef = (repoDigests, taggedRef) => {
+  const image = imageOf(taggedRef);
+  const ref = repoDigests.find(d => imageOf(d) === image && DIGEST_REF.test(d));
+  if (ref === undefined) throw new Error(`no pushed digest for ${taggedRef}`);
+  return ref;
+};
+
+// Promote each tested digest to `image:<sha>` and sign that same digest. A tag is never a source: a tag can be
+// moved after the smoke test, a digest cannot.
+export const promotionPlan = (testedRefs, sha) =>
+  SERVICES.map(svc => {
+    const ref = testedRefs.find(r => imageOf(r).endsWith(`/service-${svc}`));
+    if (ref === undefined || !DIGEST_REF.test(ref)) {
+      throw new Error(`no tested digest for service-${svc}`);
+    }
+    return { src: ref, dst: `${imageOf(ref)}:${sha}`, sign: ref };
+  });
 
 const fetchCheckRuns = async ({ repo, sha, token }) => {
   const url = `https://api.github.com/repos/${repo}/commits/${sha}/check-runs?check_name=${encodeURIComponent(SMOKE_CHECK)}`;
@@ -133,27 +155,30 @@ const retag = () => {
 const run = (cmd, args) => execFileSync(cmd, args, { stdio: 'inherit' });
 
 const pushCandidates = () => {
-  retagPairs({ from: 'smoke', to: `${process.env.SHA}-candidate` }).forEach(({ src, dst }) => {
-    console.log(`${src} -> ${dst}`);
-    run('docker', ['tag', src, dst]);
-    run('docker', ['push', dst]);
-  });
+  const refs = retagPairs({ from: 'smoke', to: `${process.env.SHA}-candidate` }).map(
+    ({ src, dst }) => {
+      console.log(`${src} -> ${dst}`);
+      run('docker', ['tag', src, dst]);
+      run('docker', ['push', dst]);
+      const repoDigests = JSON.parse(
+        execFileSync('docker', ['inspect', '--format', '{{json .RepoDigests}}', dst], {
+          encoding: 'utf8',
+        })
+      );
+      return pushedDigestRef(repoDigests, dst);
+    }
+  );
+  writeOutput(`candidate_refs=${JSON.stringify(refs)}`);
   writeOutput('candidates=true');
 };
 
 const promote = () => {
-  const sha = process.env.SHA;
-  const refs = retagPairs({ from: `${sha}-candidate`, to: sha }).map(({ src, dst }) => {
+  const plan = promotionPlan(JSON.parse(process.env.CANDIDATE_REFS ?? '[]'), process.env.SHA);
+  plan.forEach(({ src, dst }) => {
     console.log(`${src} -> ${dst}`);
     run('docker', ['buildx', 'imagetools', 'create', '--tag', dst, src]);
-    const digest = execFileSync(
-      'docker',
-      ['buildx', 'imagetools', 'inspect', dst, '--format', '{{json .Manifest}}'],
-      { encoding: 'utf8' }
-    );
-    return digestRef(dst, JSON.parse(digest).digest);
   });
-  writeFileSync(process.env.REFS_FILE, `${refs.join('\n')}\n`);
+  writeFileSync(process.env.REFS_FILE, `${plan.map(p => p.sign).join('\n')}\n`);
   writeOutput('promoted=true');
 };
 

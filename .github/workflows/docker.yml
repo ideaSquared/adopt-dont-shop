@@ -551,6 +551,7 @@ jobs:
     outputs:
       reused: ${{ steps.reuse.outputs.reuse }}
       candidates: ${{ steps.candidates.outputs.candidates }}
+      candidate_refs: ${{ steps.candidates.outputs.candidate_refs }}
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
@@ -616,6 +617,8 @@ jobs:
       # builds them as before.
       - name: Log in to GHCR
         if: steps.reuse.outputs.reuse != 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        # Optional like the push below: a failed login means publish-images builds all 15.
+        continue-on-error: true
         uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0  # v4.4.0
         with:
           registry: ghcr.io
@@ -719,8 +722,8 @@ jobs:
           SHA: ${{ github.sha }}
         run: node scripts/smoke-reuse.mjs retag
 
-      # Build once: promote the service images the smoke job booted (now that
-      # Trivy has also passed) to this commit's tag, by digest. They are signed
+      # Build once: promote the exact digests the smoke job booted and pushed
+      # (now that Trivy has also passed) to this commit's tag. They are signed
       # in the step below. If any promotion fails, the bake builds all 15.
       - name: Promote the smoke-tested service images
         id: promoted
@@ -728,6 +731,9 @@ jobs:
         continue-on-error: true
         env:
           SHA: ${{ github.sha }}
+          # The digests the smoke job pushed (image@sha256:...), not the candidate tags: a tag can be
+          # moved after the test, a digest cannot.
+          CANDIDATE_REFS: ${{ needs.prod-image-smoke.outputs.candidate_refs }}
           REFS_FILE: ${{ runner.temp }}/promoted-refs
         run: node scripts/smoke-reuse.mjs promote
 

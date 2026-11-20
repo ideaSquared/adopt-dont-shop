@@ -2,7 +2,13 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { describe, expect, it } from 'vitest';
 
-import { SERVICES, digestRef, retagPairs, reuseDecision } from './smoke-reuse.mjs';
+import {
+  SERVICES,
+  pushedDigestRef,
+  promotionPlan,
+  retagPairs,
+  reuseDecision,
+} from './smoke-reuse.mjs';
 
 const BEFORE = 'a'.repeat(40);
 const passed = { check_runs: [{ status: 'completed', conclusion: 'success' }] };
@@ -93,18 +99,38 @@ describe('build once', () => {
       dst: 'ghcr.io/x/ads/service-ops:abc',
     });
   });
+});
 
-  it('signs by digest, never by tag', () => {
-    expect(digestRef('ghcr.io/x/ads/service-ops:abc', 'sha256:123')).toBe(
-      'ghcr.io/x/ads/service-ops@sha256:123'
-    );
-    expect(digestRef('localhost:5000/ads/service-ops:abc', 'sha256:9')).toBe(
-      'localhost:5000/ads/service-ops@sha256:9'
-    );
+describe('promoting by digest', () => {
+  const P = 'ghcr.io/x/ads';
+  const tested = SERVICES.map(
+    (svc, i) => `${P}/service-${svc}@sha256:${String(i).padStart(2, '0')}ab`
+  );
+
+  it('reads the digest docker push recorded for the candidate', () => {
+    expect(
+      pushedDigestRef(
+        ['other/repo@sha256:99', `${P}/service-ops@sha256:12ab`],
+        `${P}/service-ops:abc-candidate`
+      )
+    ).toBe(`${P}/service-ops@sha256:12ab`);
+    expect(() => pushedDigestRef([], `${P}/service-ops:abc-candidate`)).toThrow();
   });
 
-  it('refuses something that is not a digest', () => {
-    expect(() => digestRef('ghcr.io/x/ads/service-ops:abc', '')).toThrow();
-    expect(() => digestRef('ghcr.io/x/ads/service-ops:abc', 'latest')).toThrow();
+  it('promotes and signs exactly the tested digests, never a tag', () => {
+    const plan = promotionPlan(tested, 'abc');
+    expect(plan).toHaveLength(12);
+    expect(plan[0]).toEqual({
+      src: `${P}/service-gateway@sha256:00ab`,
+      dst: `${P}/service-gateway:abc`,
+      sign: `${P}/service-gateway@sha256:00ab`,
+    });
+  });
+
+  it('refuses a plan that is missing a service or names one by tag', () => {
+    expect(() => promotionPlan(tested.slice(1), 'abc')).toThrow(/gateway/);
+    expect(() =>
+      promotionPlan([`${P}/service-gateway:abc-candidate`, ...tested.slice(1)], 'abc')
+    ).toThrow();
   });
 });
