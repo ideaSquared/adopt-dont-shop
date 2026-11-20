@@ -20,7 +20,7 @@ dev:    pnpm ops  ──HTTP──►  127.0.0.1:4100 (compose publishes it dire
 | staging     | `127.0.0.1:4101`         | `ssh -N -L 14101:127.0.0.1:4101 <user>@<host>` | `adoptdontshop`                                       |
 | prod        | `127.0.0.1:4102`         | `ssh -N -L 14102:127.0.0.1:4102 <user>@<host>` | `adoptdontshop`                                       |
 
-`eng ops ads` needs no tunnel: the edge gateway routes `/ops/v1/` (the shared ops contract) to `service-ops`, and every request is checked against the `adoptdontshop` team ([ADR 0017](../adr/0017-ops-contract-over-https.md)). That path never applies unlocks and offers only reads in production. Everything else in `service-ops` (the `pnpm ops` sessions, unlocks and history) is loopback-only: never put another `service-ops` path in `nginx/` or `deploy/gateway/`.
+`eng ops ads` needs no tunnel: the edge gateway routes `/ops/v1/` (the shared ops contract) to `service-ops`, and every request is checked against the `adoptdontshop` team ([ADR 0017](../adr/0017-ops-contract-over-https.md)). That path never applies unlocks. Production writes are offered, and `eng` asks you to type the product name before running one. Everything else in `service-ops` (the `pnpm ops` sessions, unlocks and history) is loopback-only: never put another `service-ops` path in `nginx/` or `deploy/gateway/`.
 
 ## Preconditions
 

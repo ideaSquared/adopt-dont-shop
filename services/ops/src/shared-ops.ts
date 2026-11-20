@@ -31,8 +31,8 @@ import type { OperatorRecord, OpsStore } from './store.js';
 
 // Serves the shared @ideasquared/ops contract (the one `eng ops` speaks) in front of the same invoke path the
 // `pnpm ops` CLI uses, so the minted principal, masking, dry run and audit trail are the existing ones. Differences
-// from /v1, all on the safe side: unlocks are never applied (masked stays masked), PII lookup fields are not offered,
-// and writes are not offered in prod, where /v1 insists on an explicit --confirm.
+// from /v1: unlocks are never applied (masked stays masked) and PII lookup fields are not offered, both on the safe
+// side; and a prod write is confirmed by eng (typing the product name) rather than by /v1's --confirm prod.
 
 export const SHARED_OPS_BASE_PATH = '/ops/v1';
 
@@ -136,16 +136,12 @@ const mapField = (
 };
 
 const exclusionFor = (
-  env: OpsEnv,
   method: CatalogMethod,
   verdicts: readonly FieldVerdict[]
 ): string | undefined => {
   const entry = getRegistryEntry(method.rpc);
   if (entry?.kind === 'write' && entry.local !== undefined) {
     return 'chains several RPCs as generated demo users; stays in `pnpm ops demo`';
-  }
-  if (method.kind === 'write' && env === 'prod') {
-    return 'writes in prod need the explicit --confirm of `pnpm ops`';
   }
   return verdicts.find(
     (v): v is Extract<FieldVerdict, { verdict: 'unsupported' }> => v.verdict === 'unsupported'
@@ -154,10 +150,7 @@ const exclusionFor = (
 
 type Planned = { method: CatalogMethod; fields: Field[] };
 
-const plan = (
-  env: OpsEnv,
-  catalog: CatalogResponse
-): { planned: Planned[]; excluded: SharedExclusion[] } => {
+const plan = (catalog: CatalogResponse): { planned: Planned[]; excluded: SharedExclusion[] } => {
   const methods = catalog.services.flatMap(service => service.methods);
   const results = methods.map(method => {
     const message = catalog.messages[method.inputType];
@@ -165,7 +158,7 @@ const plan = (
     const reason =
       message === undefined
         ? 'request type missing from the catalog'
-        : exclusionFor(env, method, verdicts);
+        : exclusionFor(method, verdicts);
     return {
       method,
       reason,
@@ -248,7 +241,7 @@ export const buildSharedCommands = (
   deps: Pick<SharedOpsDeps, 'env' | 'schema' | 'invoke'>,
   callerFor: (login: string) => Caller
 ): { commands: OpsCommand[]; excluded: SharedExclusion[] } => {
-  const { planned, excluded } = plan(deps.env, buildCatalog(deps.env, deps.schema));
+  const { planned, excluded } = plan(buildCatalog(deps.env, deps.schema));
   const commands = planned.map(({ method, fields }): OpsCommand => {
     const { service } = splitRpc(method.rpc);
     const write = method.kind === 'write';
@@ -261,7 +254,15 @@ export const buildSharedCommands = (
       deps.invoke
         .invoke(
           callerFor(login),
-          { rpc: method.rpc, request, mode, ...(planId === undefined ? {} : { planId }) },
+          {
+            rpc: method.rpc,
+            request,
+            mode,
+            ...(planId === undefined ? {} : { planId }),
+            // eng makes the operator type the product name before a prod write (and --yes never skips it), so a
+            // run that reaches execute here has been confirmed; /v1 asks for its own --confirm prod.
+            ...(mode === 'execute' && deps.env === 'prod' ? { confirm: 'prod' } : {}),
+          },
           randomUUID(),
           { unlocks: 'ignore' }
         )

@@ -21,7 +21,7 @@ Worker, gated only by GitHub team membership. Agent Idea's logs work the same wa
 
 - Every request carries a GitHub token, and the handler checks it against the `adoptdontshop` team on each request. There is no session to steal.
 - Unlocks are never applied, so masked fields stay masked. Request fields annotated as PII or special category, or with no annotation, are not offered.
-- Production offers reads only.
+- Production originally offered reads only. Since 2026-11-20 it offers the same writes as staging: `eng` makes the operator type the product name before any production write, `--yes` never skips that, and the server still previews (dry run) before executing.
 - Calls go through the same minted principal, dry run and audit trail as `pnpm ops`.
 
 ## Decision
@@ -35,7 +35,7 @@ Worker, gated only by GitHub team membership. Agent Idea's logs work the same wa
 
 ## Consequences
 
-- One lock instead of two for `/ops/v1`: a GitHub token with team membership. A stolen token, valid while the person is in the team, can run staging writes and production reads. Removing someone from the team cuts them off at once.
+- One lock instead of two for `/ops/v1`: a GitHub token with team membership. A stolen token, valid while the person is in the team, can run staging and production writes: `eng`'s typed confirmation is a client-side step, so a direct call with the token skips it. Removing someone from the team cuts them off at once.
 - `/ops/v1` is reachable from the internet, so it is rate limited at the edge (the `api` zone) like the rest of the API.
 - An attacker reaches the team check first. A bug in `@ideasquared/ops`'s token check or in `shared-ops.ts` would now be exposed. Both have tests, and the PII rules there fail closed.
 - Engineers need SSH only for `pnpm ops` (unlocks and history).
