@@ -30,17 +30,22 @@ const rescueIdByName = async (api: ApiClient, name: string): Promise<string> => 
 /**
  * Adopters only see available pets, and a fresh stack seeds Happy Tails with just one
  * (not_available) pet, so the geometric checks would have nothing to measure. Give each
- * rescue a public, available pet first (Happy Tails through its own director).
+ * rescue a public, available pet (Happy Tails through its own director): the Paws one
+ * first, then the Happy Tails one. Returns their names.
  */
-const ensurePublicPetForEachRescue = async (rescueApi: ApiClient): Promise<void> => {
-  await createAvailablePet(rescueApi, 'DistancePaws');
+const ensurePublicPetForEachRescue = async (
+  rescueApi: ApiClient,
+  prefix = 'Distance'
+): Promise<{ paws: string; happyTails: string }> => {
+  const { name: paws } = await createAvailablePet(rescueApi, `${prefix}Paws`);
   const happyTailsApi = await loginAccountViaApi({
     email: SECONDARY_USERS.rescueAdmin2,
     password: ROLES.rescue.password,
     firstName: 'Maria',
   });
   try {
-    await createAvailablePet(happyTailsApi, 'DistanceTails');
+    const { name: happyTails } = await createAvailablePet(happyTailsApi, `${prefix}Tails`);
+    return { paws, happyTails };
   } finally {
     await happyTailsApi.dispose();
   }
@@ -98,15 +103,24 @@ test.describe('distance in search', () => {
 
     test('"Distance: Nearest First" lists the nearest pets first', async ({ page, apiAs }) => {
       test.fail(true, 'sortBy=distance is not a supported sort and falls back to created_at');
-      await ensurePublicPetForEachRescue(await apiAs('rescue'));
-      const api = await apiAs('adopter');
-      const paws = await rescueIdByName(api, 'Paws Rescue');
-      const pawsMiles = await distanceTo(api, paws, MANCHESTER);
+      // Two pets only this test can find, sharing one search word: the near one (Paws,
+      // Manchester) created first, the far one (Happy Tails, Bristol) second. Newest-first,
+      // which is what the service really does, then always disagrees with nearest-first. On
+      // the whole result list it didn't: other workers keep adding Paws pets, so the newest
+      // cards were often all near and the known-bug assertion passed by chance.
+      const word = `Qz${Date.now().toString(36)}`;
+      const { paws, happyTails } = await ensurePublicPetForEachRescue(
+        await apiAs('rescue'),
+        `${word} `
+      );
 
       await skipSwipeIntro(page);
       await dismissCookieBannerPatiently(page);
       await page.goto('/search');
-      await expect(petCardLocator(page).first()).toBeVisible({ timeout: 20_000 });
+      await page.getByRole('textbox', { name: 'Search' }).fill(word);
+      await expect(page.getByRole('heading', { level: 2, name: '2 Pets Found' })).toBeVisible({
+        timeout: 20_000,
+      });
       await page.getByRole('button', { name: 'Use My Location' }).click();
       await expect(page.getByText(/location detected/i)).toBeVisible();
 
@@ -117,13 +131,8 @@ test.describe('distance in search', () => {
       await page.getByRole('option', { name: 'Distance: Nearest First' }).click();
       await sorted;
 
-      const badges = page.locator('main').getByText(/^[\d.]+ mi$/);
-      await expect(badges.first()).toBeVisible({ timeout: 10_000 });
-      const miles = (await badges.allTextContents()).map(text => Number.parseFloat(text));
-      expect(miles.length).toBeGreaterThan(1);
-      // Nearest first: never decreasing, and the first card is as near as Paws Rescue itself.
-      expect(miles).toEqual([...miles].sort((a, b) => a - b));
-      expect(miles[0]).toBeLessThanOrEqual((pawsMiles ?? 0) + 0.1);
+      const names = petCardLocator(page).getByRole('heading', { level: 3 });
+      await expect(names).toHaveText([paws, happyTails]);
     });
   });
 });
