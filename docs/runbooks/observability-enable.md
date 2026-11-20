@@ -146,8 +146,13 @@ Worker (`/alert/alertmanager/ads`), which posts to Discord (firing alerts ping
    cd /opt/ads/<env>
    printf '%s' '<deadman-switch-ping-url>' \
      > observability/alertmanager/secrets/deadman_webhook_url
-   chmod 600 observability/alertmanager/secrets/deadman_webhook_url
+   chmod 711 observability/alertmanager/secrets
+   chmod 644 observability/alertmanager/secrets/deadman_webhook_url
    ```
+
+   Not `600`: Alertmanager runs as `nobody` inside its container, with no
+   capabilities, so it can't read a file only `deploy` can. The `711`
+   directory lets it open the file by name without being able to list it.
 
 3. Redeploy (or `up -d alertmanager`) so the container picks up the
    `alert_secret` mount, then reload after any later secret edit:
