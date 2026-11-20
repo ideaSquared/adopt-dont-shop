@@ -118,6 +118,10 @@ OPS_GITHUB_ORG=ideaSquared
 OPS_GITHUB_TEAM=adoptdontshop
 OPS_SESSION_TTL_HOURS=8
 OBSERVABILITY_ENABLED=true
+LOKI_URL=http://loki:3100
+OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318
+OTEL_TRACES_SAMPLER=parentbased_traceidratio
+OTEL_TRACES_SAMPLER_ARG=0.1
 GF_SECURITY_ADMIN_PASSWORD=$(openssl rand -hex 24)
 EOF
 ```
@@ -139,6 +143,7 @@ What the keys do:
 
 - `PROD_HOSTNAME` must match the hostnames in `deploy/gateway/nginx.conf`. Every deploy writes it into the production stack's nginx config.
 - `OBSERVABILITY_ENABLED=true` starts monitoring and alerting. Production deploys refuse to run without it.
+- `LOKI_URL` and `OTEL_EXPORTER_OTLP_ENDPOINT` point the services at Loki and Tempo. Without them the services send no logs or traces, even with monitoring on. The sampler keeps 10% of traces.
 - `GF_SECURITY_ADMIN_PASSWORD` is the Grafana admin password. Read it from this file when you need it.
 - Push notifications stay off. To turn them on later, add `PUSH_PROVIDER=fcm`, `FCM_PROJECT_ID` and `FCM_SERVICE_ACCOUNT_JSON` (one line).
 
@@ -152,9 +157,12 @@ Alertmanager sends alerts to Discord through ideasquared-bot, signed with the `A
 mkdir -p /opt/ads/production/observability/alertmanager/secrets
 cd /opt/ads/production/observability/alertmanager/secrets
 printf '%s' '<dead-man ping URL>' > deadman_webhook_url
-chmod 600 deadman_webhook_url
+chmod 711 .
+chmod 644 deadman_webhook_url
 cd ~
 ```
+
+Alertmanager runs as the `nobody` user inside its container, so it can't read a file only `deploy` can read. The directory is `711`, so nobody can list it but Alertmanager can open the file by name, and the file is `644`.
 
 Background: [observability-enable.md](../runbooks/observability-enable.md).
 

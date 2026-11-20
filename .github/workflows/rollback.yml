@@ -109,7 +109,7 @@ jobs:
           username: deploy
           key: ${{ secrets.NETCUP_SSH_KEY }}
           fingerprint: ${{ secrets.NETCUP_HOST_FINGERPRINT }}
-          source: 'scripts/wait-for-services.sh,scripts/deploy-secrets.sh,scripts/deploy-pin-env.sh,scripts/deploy-release-images.sh,scripts/deploy-overlay-args.sh,scripts/deploy-glitchtip-secrets.sh,docker-compose.prod.yml,docker-compose.staging.yml,docker-compose.observability.yml,docker-compose.glitchtip.yml,nginx,observability'
+          source: 'scripts/wait-for-services.sh,scripts/deploy-secrets.sh,scripts/deploy-pin-env.sh,scripts/deploy-release-images.sh,scripts/deploy-overlay-args.sh,scripts/deploy-glitchtip-secrets.sh,scripts/deploy-reload-prometheus.sh,docker-compose.prod.yml,docker-compose.staging.yml,docker-compose.observability.yml,docker-compose.glitchtip.yml,nginx,observability,infra/prometheus/rules'
           target: /opt/ads/${{ github.event.inputs.environment }}
           overwrite: true
 
@@ -283,6 +283,11 @@ jobs:
                 OPS_HEALTH_TARGET=""
                 ;;
             esac
+
+            # An unchanged prometheus container keeps running through `up -d`,
+            # so reload it to pick up the rules and config shipped above.
+            chmod +x scripts/deploy-reload-prometheus.sh
+            scripts/deploy-reload-prometheus.sh "$COMPOSE_FILE" "$OVERLAY_ARGS"
 
             # ADS-1311/ADS-1308: every service must report /health/ready, not
             # just the gateway — matches deploy.yml's health gate exactly, so

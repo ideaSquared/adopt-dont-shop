@@ -78,6 +78,19 @@ export const HTTP_REDACTED_QUERY_PARAMS = [
   'longitude',
 ];
 
+// The trace exporter posts to an explicit `url` exactly as given; it does not
+// add the OTLP signal path. So a collector root (`http://tempo:4318`, the
+// form the docs and compose files use) gets `/v1/traces` appended here, and a
+// URL that already names a path is used as-is.
+export const otlpTracesUrl = (endpoint: string): string => {
+  const url = new URL(endpoint);
+  if (url.pathname !== '/') {
+    return endpoint;
+  }
+  url.pathname = '/v1/traces';
+  return url.toString();
+};
+
 export const initializeOpenTelemetry = (opts: OpenTelemetryOptions): NodeSDK | null => {
   if (state.started) {
     return state.sdk;
@@ -100,8 +113,8 @@ export const initializeOpenTelemetry = (opts: OpenTelemetryOptions): NodeSDK | n
       }),
       traceExporter: new OTLPTraceExporter({
         // Endpoint may be a collector root (`http://collector:4318`) or
-        // include `/v1/traces` already — the exporter handles both.
-        url: endpoint,
+        // include `/v1/traces` already; otlpTracesUrl handles both.
+        url: otlpTracesUrl(endpoint),
       }),
       instrumentations: [
         getNodeAutoInstrumentations({
