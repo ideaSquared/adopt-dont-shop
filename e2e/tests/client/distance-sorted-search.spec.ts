@@ -30,14 +30,13 @@ const rescueIdByName = async (api: ApiClient, name: string): Promise<string> => 
 /**
  * Adopters only see available pets, and a fresh stack seeds Happy Tails with just one
  * (not_available) pet, so the geometric checks would have nothing to measure. Give each
- * rescue a public, available pet (Happy Tails through its own director): the Paws one
- * first, then the Happy Tails one. Returns their names.
+ * rescue a public, available pet (Happy Tails through its own director): the Happy Tails
+ * one first, then the Paws one. Returns their names.
  */
 const ensurePublicPetForEachRescue = async (
   rescueApi: ApiClient,
   prefix = 'Distance'
 ): Promise<{ paws: string; happyTails: string }> => {
-  const { name: paws } = await createAvailablePet(rescueApi, `${prefix}Paws`);
   const happyTailsApi = await loginAccountViaApi({
     email: SECONDARY_USERS.rescueAdmin2,
     password: ROLES.rescue.password,
@@ -45,6 +44,7 @@ const ensurePublicPetForEachRescue = async (
   });
   try {
     const { name: happyTails } = await createAvailablePet(happyTailsApi, `${prefix}Tails`);
+    const { name: paws } = await createAvailablePet(rescueApi, `${prefix}Paws`);
     return { paws, happyTails };
   } finally {
     await happyTailsApi.dispose();
@@ -103,11 +103,11 @@ test.describe('distance in search', () => {
 
     test('"Distance: Nearest First" lists the nearest pets first', async ({ page, apiAs }) => {
       test.fail(true, 'sortBy=distance is not a supported sort and falls back to created_at');
-      // Two pets only this test can find, sharing one search word: the near one (Paws,
-      // Manchester) created first, the far one (Happy Tails, Bristol) second. Newest-first,
-      // which is what the service really does, then always disagrees with nearest-first. On
-      // the whole result list it didn't: other workers keep adding Paws pets, so the newest
-      // cards were often all near and the known-bug assertion passed by chance.
+      // Two pets only this test can find, sharing one search word: the far one (Happy Tails,
+      // Bristol) created first, the near one (Paws, Manchester) second. The option sends
+      // distance:asc, which the service turns into created_at ASC (oldest first), so the bug
+      // always lists far before near. On the whole result list it didn't: which pets came first
+      // depended on what other tests had created, so the known-bug assertion passed by chance.
       const word = `Qz${Date.now().toString(36)}`;
       const { paws, happyTails } = await ensurePublicPetForEachRescue(
         await apiAs('rescue'),
