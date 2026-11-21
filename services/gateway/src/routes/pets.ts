@@ -138,6 +138,18 @@ const PETS_RATE_LIMITS = {
   bulkUpdate: { max: 10, timeWindow: '1 minute' },
 } as const;
 
+// Bounds for the create/update bodies (ENG-1406). The body stays open
+// (no additionalProperties: false) because the frontend sends a long tail of
+// extra keys that pickExtra folds into extra_json.
+const PET_FIELD_BOUNDS = {
+  token: { type: 'string', maxLength: 100 },
+  name: { type: 'string', maxLength: 200 },
+  shortDescription: { type: 'string', maxLength: 500 },
+  longDescription: { type: 'string', maxLength: 10_000 },
+  fee: { type: 'string', maxLength: 32 },
+  list: { type: 'array', maxItems: 50, items: { type: 'string', maxLength: 100 } },
+} as const;
+
 // The status route still takes a small bespoke body (the create/update
 // payloads are adapted from the frontend shape in pets-view.ts).
 type UpdateStatusBody = {
@@ -665,24 +677,24 @@ export const registerPetsRoutes = async (
         body: {
           type: 'object',
           properties: {
-            name: { type: 'string' },
-            rescue_id: { type: 'string' },
-            type: { type: 'string' },
-            status: { type: 'string' },
-            gender: { type: 'string' },
-            size: { type: 'string' },
-            age_group: { type: 'string' },
-            short_description: { type: 'string' },
-            long_description: { type: 'string' },
+            name: PET_FIELD_BOUNDS.name,
+            rescue_id: PET_FIELD_BOUNDS.token,
+            type: PET_FIELD_BOUNDS.token,
+            status: PET_FIELD_BOUNDS.token,
+            gender: PET_FIELD_BOUNDS.token,
+            size: PET_FIELD_BOUNDS.token,
+            age_group: PET_FIELD_BOUNDS.token,
+            short_description: PET_FIELD_BOUNDS.shortDescription,
+            long_description: PET_FIELD_BOUNDS.longDescription,
             age_years: { type: 'number' },
             age_months: { type: 'number' },
-            adoption_fee: { type: 'string' },
+            adoption_fee: PET_FIELD_BOUNDS.fee,
             special_needs: { type: 'boolean' },
             house_trained: { type: 'boolean' },
             featured: { type: 'boolean' },
             priority_listing: { type: 'boolean' },
-            temperament: { type: 'array', items: { type: 'string' } },
-            tags: { type: 'array', items: { type: 'string' } },
+            temperament: PET_FIELD_BOUNDS.list,
+            tags: PET_FIELD_BOUNDS.list,
           },
         },
         response: {
@@ -742,22 +754,22 @@ export const registerPetsRoutes = async (
         body: {
           type: 'object',
           properties: {
-            name: { type: 'string' },
-            status: { type: 'string' },
-            gender: { type: 'string' },
-            size: { type: 'string' },
-            age_group: { type: 'string' },
-            short_description: { type: 'string' },
-            long_description: { type: 'string' },
+            name: PET_FIELD_BOUNDS.name,
+            status: PET_FIELD_BOUNDS.token,
+            gender: PET_FIELD_BOUNDS.token,
+            size: PET_FIELD_BOUNDS.token,
+            age_group: PET_FIELD_BOUNDS.token,
+            short_description: PET_FIELD_BOUNDS.shortDescription,
+            long_description: PET_FIELD_BOUNDS.longDescription,
             age_years: { type: 'number' },
             age_months: { type: 'number' },
-            adoption_fee: { type: 'string' },
+            adoption_fee: PET_FIELD_BOUNDS.fee,
             special_needs: { type: 'boolean' },
             house_trained: { type: 'boolean' },
             featured: { type: 'boolean' },
             priority_listing: { type: 'boolean' },
-            temperament: { type: 'array', items: { type: 'string' } },
-            tags: { type: 'array', items: { type: 'string' } },
+            temperament: PET_FIELD_BOUNDS.list,
+            tags: PET_FIELD_BOUNDS.list,
           },
         },
         response: {

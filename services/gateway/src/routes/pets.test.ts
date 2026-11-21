@@ -571,6 +571,79 @@ describe('POST /api/v1/pets', () => {
   });
 });
 
+describe('pet mutation body bounds (ENG-1406)', () => {
+  const overCap: Array<[string, Record<string, unknown>]> = [
+    ['name over 200 chars', { name: 'n'.repeat(201) }],
+    ['short_description over 500 chars', { short_description: 's'.repeat(501) }],
+    ['long_description over 10000 chars', { long_description: 'l'.repeat(10_001) }],
+    ['more than 50 tags', { tags: Array.from({ length: 51 }, (_, i) => `t${i}`) }],
+    ['more than 50 temperament entries', { temperament: Array.from({ length: 51 }, () => 'x') }],
+    ['a tag over 100 chars', { tags: ['t'.repeat(101)] }],
+  ];
+
+  it.each(overCap)(
+    'POST rejects %s with 400 and never calls the service',
+    async (_label, extra) => {
+      const { client, createMock } = makeClient();
+      const app = await makeApp(client);
+      try {
+        const res = await app.inject({
+          method: 'POST',
+          url: '/api/v1/pets',
+          headers: { 'x-user-id': 'usr-staff', 'x-user-roles': 'rescue_staff' },
+          payload: { name: 'Rex', rescue_id: 'rsc-1', type: 'dog', ...extra },
+        });
+        expect(res.statusCode).toBe(400);
+        expect(createMock).not.toHaveBeenCalled();
+      } finally {
+        await app.close();
+      }
+    }
+  );
+
+  it.each(overCap)(
+    'PATCH rejects %s with 400 and never calls the service',
+    async (_label, extra) => {
+      const { client, updateMock } = makeClient();
+      const app = await makeApp(client);
+      try {
+        const res = await app.inject({
+          method: 'PATCH',
+          url: '/api/v1/pets/pet-1',
+          payload: extra,
+        });
+        expect(res.statusCode).toBe(400);
+        expect(updateMock).not.toHaveBeenCalled();
+      } finally {
+        await app.close();
+      }
+    }
+  );
+
+  it('POST still accepts fields exactly at the caps', async () => {
+    const { client, createMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      createMock.mockResolvedValueOnce({ pet: PET_FIXTURE } satisfies CreatePetResponse);
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets',
+        headers: { 'x-user-id': 'usr-staff', 'x-user-roles': 'rescue_staff' },
+        payload: {
+          name: 'n'.repeat(200),
+          rescue_id: 'rsc-1',
+          short_description: 's'.repeat(500),
+          long_description: 'l'.repeat(10_000),
+          tags: Array.from({ length: 50 }, () => 't'.repeat(100)),
+        },
+      });
+      expect(res.statusCode).toBe(201);
+    } finally {
+      await app.close();
+    }
+  });
+});
+
 describe('PATCH /api/v1/pets/:id', () => {
   it('threads the path param + body fields', async () => {
     const { client, updateMock } = makeClient();

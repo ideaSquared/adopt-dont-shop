@@ -2,6 +2,7 @@
 // service.cms. Returns the monolith's `{ success, ... }` envelopes so
 // the existing lib.api CMS client deserialises unchanged.
 
+import rateLimit from '@fastify/rate-limit';
 import { Metadata } from '@grpc/grpc-js';
 import type { FastifyInstance } from 'fastify';
 
@@ -25,6 +26,11 @@ import { isSafeImageUrl } from './image-url.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 import { parsePagination } from '../middleware/pagination.js';
+
+const CMS_PUBLIC_RATE_LIMITS = {
+  list: { max: 120, timeWindow: '1 minute' },
+  get: { max: 240, timeWindow: '1 minute' },
+} as const;
 
 export type CmsRoutesOptions = {
   client: CmsClient;
@@ -232,12 +238,13 @@ export const registerCmsRoutes = async (
   opts: CmsRoutesOptions
 ): Promise<void> => {
   const { client } = opts;
+  await app.register(rateLimit, { global: false });
 
   // --- Public reads (no auth) ----------------------------------------
   app.get(
     '/api/v1/cms/public/content',
     {
-      config: { public: true },
+      config: { public: true, rateLimit: CMS_PUBLIC_RATE_LIMITS.list },
       schema: {
         tags: ['cms'],
         summary: 'List public CMS content',
@@ -285,7 +292,7 @@ export const registerCmsRoutes = async (
   app.get<{ Params: { slug: string } }>(
     '/api/v1/cms/public/content/:slug',
     {
-      config: { public: true },
+      config: { public: true, rateLimit: CMS_PUBLIC_RATE_LIMITS.get },
       schema: {
         tags: ['cms'],
         summary: 'Get public CMS content by slug',
