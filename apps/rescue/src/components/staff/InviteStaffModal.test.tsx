@@ -56,3 +56,13 @@ describe('InviteStaffModal aria-required (a11y sweep — extends PR #673/#674 C1
     expect(screen.getByLabelText(/title\/role/i)).not.toHaveAttribute('aria-required');
   });
 });
+
+describe('InviteStaffModal submit error', () => {
+  it('announces a failed submission as an alert', () => {
+    render(
+      <InviteStaffModal onSubmit={vi.fn()} onCancel={vi.fn()} submitError="Already invited" />
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Already invited');
+  });
+});

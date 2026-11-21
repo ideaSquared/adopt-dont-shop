@@ -14,6 +14,15 @@ export const formInfo = style({
   padding: vars.spacing['4'],
 });
 
+export const submitError = style({
+  background: vars.colors.dangerBgSubtle,
+  border: `1px solid ${vars.colors.dangerBorderSubtle}`,
+  borderRadius: vars.border.radius.lg,
+  padding: vars.spacing['3'],
+  color: vars.colors.dangerTextEmphasis,
+  fontSize: vars.typography.size.sm,
+});
+
 export const infoHeading = style({
   margin: `0 0 ${vars.spacing['2']} 0`,
   color: vars.colors.infoTextEmphasis,

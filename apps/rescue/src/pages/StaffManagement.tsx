@@ -29,12 +29,11 @@ const StaffManagement: React.FC = () => {
   const canDeleteStaff = hasDeleteStaff && !deletePermLoading;
   const canEditStaff = hasEditStaff && !editPermLoading;
   const canAddStaff = hasAddStaff && !addPermLoading;
-  const { staff, loading, error, refetch, addStaffMember, removeStaffMember, updateStaffMember } =
-    useStaff();
+  const { staff, loading, error, refetch, removeStaffMember, updateStaffMember } = useStaff();
 
   // State for modals
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
 
   const [actionLoading, setActionLoading] = useState(false);
@@ -91,6 +90,7 @@ const StaffManagement: React.FC = () => {
 
   const handleSendInvitation = async (invitation: InvitationPayload) => {
     setActionLoading(true);
+    setInviteError(null);
 
     try {
       const rescueId = getRescueId();
@@ -99,7 +99,9 @@ const StaffManagement: React.FC = () => {
       toast.success(`Invitation sent to ${invitation.email}!`);
       setShowInviteModal(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to send invitation');
+      const message = error instanceof Error ? error.message : 'Failed to send invitation';
+      setInviteError(message);
+      toast.error(message);
       throw error;
     } finally {
       setActionLoading(false);
@@ -127,22 +129,6 @@ const StaffManagement: React.FC = () => {
       toast.success('Invitation cancelled successfully');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to cancel invitation');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleAddStaff = async (staffData: NewStaffMember) => {
-    setActionLoading(true);
-
-    try {
-      const rescueId = getRescueId();
-      await addStaffMember(staffData, rescueId);
-      setShowAddForm(false);
-      toast.success('Staff member added successfully!');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to add staff member');
-      throw error;
     } finally {
       setActionLoading(false);
     }
@@ -202,7 +188,7 @@ const StaffManagement: React.FC = () => {
 
   const handleCloseForm = () => {
     setShowInviteModal(false);
-    setShowAddForm(false);
+    setInviteError(null);
     setEditingStaff(null);
   };
 
@@ -230,14 +216,6 @@ const StaffManagement: React.FC = () => {
                 disabled={actionLoading}
               >
                 Invite Staff Member
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => setShowAddForm(true)}
-                disabled={actionLoading}
-              >
-                Add Existing User
               </Button>
             </div>
           ) : undefined
@@ -276,11 +254,8 @@ const StaffManagement: React.FC = () => {
           onSubmit={handleSendInvitation}
           onCancel={handleCloseForm}
           loading={actionLoading}
+          submitError={inviteError}
         />
-      )}
-
-      {showAddForm && (
-        <StaffForm onSubmit={handleAddStaff} onCancel={handleCloseForm} loading={actionLoading} />
       )}
 
       {editingStaff && (
@@ -288,7 +263,6 @@ const StaffManagement: React.FC = () => {
           initialStaff={editingStaff}
           onSubmit={handleUpdateStaff}
           onCancel={handleCloseForm}
-          isEditing={true}
           loading={actionLoading}
         />
       )}
