@@ -39,25 +39,32 @@ fi
 status=$(echo "$RUNS_JSON" | jq -r '(.workflow_runs // .check_runs)[0].status // "none"')
 conclusion=$(echo "$RUNS_JSON" | jq -r '(.workflow_runs // .check_runs)[0].conclusion // ""')
 
+sha="${GITHUB_SHA:-this commit}"
+url=$(echo "$RUNS_JSON" | jq -r '(.workflow_runs // .check_runs)[0] | (.html_url // .details_url // "")')
+link=""
+if [ -n "$url" ]; then link=" Details: $url"; fi
+
 if [ "$status" = "completed" ]; then
   if [ "$conclusion" = "success" ]; then
     echo "$name passed on this commit."
     exit 0
   fi
-  echo "::error::$name concluded '$conclusion' on this commit. Aborting deploy (skip_ci_check does not override a failed check)."
+  echo "::error title=Deploy blocked: $name failed::$name finished with '$conclusion' on $sha, so this commit is not safe to deploy. Fix it and push a new commit. skip_ci_check does not override a failed check.$link"
   exit 1
 fi
 
 if [ "$status" = "none" ]; then
-  reason="$name has not run on this commit"
+  title="$name has not run"
+  reason="$name has not run on $sha. It runs on every push to main, so check the commit is on main and that the workflow was not skipped."
 else
-  reason="$name is still $status on this commit"
+  title="$name is still running"
+  reason="$name has not finished on $sha (status: $status). The commit has not failed. This deploy was dispatched before the check completed. Re-run the deploy once $name passes."
 fi
 
 if [ "${SKIP_CI_CHECK:-}" = "true" ]; then
-  echo "WARNING: $reason — skip_ci_check=true, proceeding."
+  echo "WARNING: $reason skip_ci_check=true, proceeding."
   exit 0
 fi
 
-echo "::error::$reason. Wait for it to pass, or re-dispatch with skip_ci_check=true for an emergency deploy."
+echo "::error title=Deploy blocked: $title::$reason Use skip_ci_check=true only for an emergency deploy.$link"
 exit 1
