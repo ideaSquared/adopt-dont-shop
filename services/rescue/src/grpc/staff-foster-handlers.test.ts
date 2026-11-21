@@ -72,7 +72,12 @@ const ADMIN: Principal = {
 function makeClientQuery() {
   const script: Array<{ rows: unknown[] }> = [];
   const fn = vi.fn().mockImplementation(async (sql: string) => {
-    if (sql === 'BEGIN' || sql === 'COMMIT' || sql === 'ROLLBACK') {
+    if (
+      sql === 'BEGIN' ||
+      sql === 'COMMIT' ||
+      sql === 'ROLLBACK' ||
+      /pg_advisory_xact_lock/.test(sql)
+    ) {
       return { rows: [] };
     }
     return script.shift() ?? { rows: [] };
@@ -266,6 +271,20 @@ describe('createStaffMember', () => {
       code: 'PERMISSION_DENIED',
     });
     expect(mocks.clientMock.query).not.toHaveBeenCalled();
+  });
+
+  it('serialises membership creation per user before checking memberships', async () => {
+    mocks.clientScript([]);
+    mocks.clientScript([]);
+    mocks.clientScript([staffRow({ user_id: 'usr-new' })]);
+
+    await createStaffMember(mocks.deps, ADMIN, baseReq);
+
+    const calls = mocks.clientMock.query.mock.calls
+      .map(([sql, params]) => ({ sql: String(sql), params }))
+      .filter(({ sql }) => sql !== 'BEGIN' && sql !== 'COMMIT');
+    expect(calls[0].sql).toMatch(/pg_advisory_xact_lock/);
+    expect(calls[0].params).toEqual([baseReq.userId]);
   });
 
   it('rejects a user who is already staff of another rescue', async () => {

@@ -292,6 +292,10 @@ export async function createStaffMember(
   }
 
   const staffMember = await withTransaction(deps, async ({ client, publish }) => {
+    // Serialise per user so two concurrent adds cannot both pass the
+    // cross-rescue check below (plain BEGIN, no unique constraint).
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [req.userId]);
+
     const existing = await client.query<StaffMemberRow>(
       `SELECT ${STAFF_SELECT} FROM rescue.staff_members
        WHERE rescue_id = $1 AND user_id = $2 AND deleted_at IS NULL
