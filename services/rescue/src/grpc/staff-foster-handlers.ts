@@ -20,7 +20,6 @@ import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/even
 // scoped to its own rescue), so it can't be used to leak across rescues.
 import {
   ADMIN_SECURITY_MANAGE,
-  STAFF_CREATE,
   STAFF_DELETE,
   STAFF_UPDATE,
   STAFF_VIEW as STAFF_READ,
@@ -273,8 +272,10 @@ export async function listStaffMembers(
 export type StaffMutationDeps = WithTransactionDeps;
 
 // Directly add an existing auth user as a verified staff member — no
-// invitation round-trip. Mirrors AcceptInvitation's INSERT (added_by is
-// the caller, not the invitee) but skips the invitations table entirely.
+// invitation round-trip, so no consent from the invitee. Platform admins
+// only (`admin.security.manage`); rescue staff add people through
+// InviteStaff/AcceptInvitation. A user already staff of another rescue is
+// refused: attaching them here would re-scope their session.
 export async function createStaffMember(
   deps: StaffMutationDeps,
   principal: Principal,
@@ -286,11 +287,15 @@ export async function createStaffMember(
   if (!req.userId) {
     throw new HandlerError('INVALID_ARGUMENT', 'user_id is required');
   }
-  if (!requirePermission(principal, STAFF_CREATE, { rescueId: req.rescueId as RescueId })) {
-    throw new HandlerError('PERMISSION_DENIED', `'${STAFF_CREATE}' required for this rescue`);
+  if (!hasPermission(principal, ADMIN_SECURITY_MANAGE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_SECURITY_MANAGE}' required`);
   }
 
   const staffMember = await withTransaction(deps, async ({ client, publish }) => {
+    // Serialise per user so two concurrent adds cannot both pass the
+    // cross-rescue check below (plain BEGIN, no unique constraint).
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [req.userId]);
+
     const existing = await client.query<StaffMemberRow>(
       `SELECT ${STAFF_SELECT} FROM rescue.staff_members
        WHERE rescue_id = $1 AND user_id = $2 AND deleted_at IS NULL
@@ -302,6 +307,16 @@ export async function createStaffMember(
         'ALREADY_EXISTS',
         `user ${req.userId} is already a staff member of rescue ${req.rescueId}`
       );
+    }
+
+    const elsewhere = await client.query<StaffMemberRow>(
+      `SELECT ${STAFF_SELECT} FROM rescue.staff_members
+       WHERE user_id = $1 AND rescue_id <> $2 AND deleted_at IS NULL
+       LIMIT 1`,
+      [req.userId, req.rescueId]
+    );
+    if (elsewhere.rows[0]) {
+      throw new HandlerError('ALREADY_EXISTS', `user ${req.userId} is staff of another rescue`);
     }
 
     const staffMemberId = randomUUID();
