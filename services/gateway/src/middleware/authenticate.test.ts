@@ -8,7 +8,11 @@ import { verifyPrincipalToken } from '@adopt-dont-shop/service-bootstrap';
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
-import { __TEST_INFRA_PUBLIC_PREFIXES, registerAuthenticate } from './authenticate.js';
+import {
+  __TEST_INFRA_PUBLIC_PREFIXES,
+  invalidateRescueIdCache,
+  registerAuthenticate,
+} from './authenticate.js';
 import { stubClient } from '../../test/helpers/stub-client.js';
 import { makeTestLogger as makeSpyLogger, quietLogger } from '../../test/helpers/test-logger.js';
 
@@ -263,6 +267,39 @@ describe('registerAuthenticate — rescueId enrichment (ADS-863)', () => {
       expect(res.statusCode).toBe(200);
       expect((res.json() as { rescueId: string | null }).rescueId).toBe('rsc-resolved');
       expect(mock).toHaveBeenCalledTimes(1);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('stops stamping x-rescue-id on the next request once the cached membership is invalidated (ENG-1508)', async () => {
+    const { client, validateMock } = makeAuthClient();
+    validateMock.mockResolvedValue(staffNoRescue('usr-rescue-removed'));
+    let removed = false;
+    const { client: rescueClient } = makeRescueClient(async () => {
+      if (removed) {
+        // grpc-js status.NOT_FOUND = 5
+        throw Object.assign(new Error('no membership'), { code: 5 });
+      }
+      return { staffMember: { rescueId: 'rsc-resolved' } };
+    });
+    const app = await makeApp(client, undefined, rescueClient);
+    const rescueIdOf = async (): Promise<string | null> => {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/echo',
+        headers: { authorization: 'Bearer good.token' },
+      });
+      return (res.json() as { rescueId: string | null }).rescueId;
+    };
+    try {
+      expect(await rescueIdOf()).toBe('rsc-resolved');
+      removed = true;
+      expect(await rescueIdOf()).toBe('rsc-resolved');
+
+      invalidateRescueIdCache('usr-rescue-removed');
+
+      expect(await rescueIdOf()).toBeNull();
     } finally {
       await app.close();
     }

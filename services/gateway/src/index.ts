@@ -23,6 +23,7 @@ import { createPetsClient } from './grpc-clients/pets-client.js';
 import { createRescueClient } from './grpc-clients/rescue-client.js';
 import { createServer } from './server.js';
 import { registerAuthSubscribers } from './ws/auth-subscriber.js';
+import { registerRescueMembershipSubscribers } from './ws/rescue-membership-subscriber.js';
 import { registerChatSubscribers } from './ws/chat-subscriber.js';
 import { registerNotificationSubscribers } from './ws/notifications-subscriber.js';
 import { trackSocketAdapterRedis } from './ws/metrics.js';
@@ -171,6 +172,7 @@ const main = async (): Promise<void> => {
     registerNotificationSubscribers({ nats, registry, logger });
     registerChatSubscribers({ nats, registry, logger });
     registerAuthSubscribers({ nats, io, logger });
+    registerRescueMembershipSubscribers({ nats, logger });
 
     logger.info('service.gateway listening', {
       port: config.port,

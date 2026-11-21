@@ -87,6 +87,12 @@ export type AuthMiddlewareOptions = {
 const RESCUE_ID_TTL_MS = 5 * 60_000;
 const rescueIdCache = new Map<string, { rescueId: string | null; expiresAt: number }>();
 
+// ENG-1508: drop a user's cached membership so their next request re-resolves
+// it. Called when the rescue service reports the user was removed from a rescue.
+export function invalidateRescueIdCache(userId: string): void {
+  rescueIdCache.delete(userId);
+}
+
 // Resolve a rescue-staff user's home rescue via the rescue service,
 // memoised. Fail-open: a missing membership (NOT_FOUND) or any upstream
 // error yields `null`, so the request proceeds without a rescue scope —
