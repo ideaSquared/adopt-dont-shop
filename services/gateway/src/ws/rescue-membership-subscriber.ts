@@ -20,6 +20,10 @@ import { type ServiceLogger } from '../logger.js';
 
 const REPLICA_ID = randomUUID();
 
+// The durable name is fresh each boot, so JetStream drops it once the process
+// has been gone this long instead of keeping every old replica's consumer.
+const INACTIVE_THRESHOLD_MS = 60 * 60_000;
+
 export type RegisterRescueMembershipSubscribersOptions = {
   nats: NatsConnection;
   logger: ServiceLogger;
@@ -44,6 +48,7 @@ export const registerRescueMembershipSubscribers = (
       subject,
       durable: `gw-rescue-membership-${subject.replace(/\./g, '-')}-${REPLICA_ID}`,
       deliverNew: true,
+      inactiveThresholdMs: INACTIVE_THRESHOLD_MS,
       onError: (err, ctx) => {
         logger.error('rescue membership subscriber failed', { subject: ctx.subject }, err);
       },

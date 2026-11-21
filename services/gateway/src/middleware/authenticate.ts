@@ -86,11 +86,15 @@ export type AuthMiddlewareOptions = {
 // rescue lookup off the per-request hot path while staying fresh.
 const RESCUE_ID_TTL_MS = 5 * 60_000;
 const rescueIdCache = new Map<string, { rescueId: string | null; expiresAt: number }>();
+// Bumped on every invalidation so a lookup that was already in flight when the
+// membership changed can tell its result is stale and must not be cached.
+const invalidationGeneration = new Map<string, number>();
 
 // ENG-1508: drop a user's cached membership so their next request re-resolves
 // it. Called when the rescue service reports the user was removed from a rescue.
 export function invalidateRescueIdCache(userId: string): void {
   rescueIdCache.delete(userId);
+  invalidationGeneration.set(userId, (invalidationGeneration.get(userId) ?? 0) + 1);
 }
 
 // Resolve a rescue-staff user's home rescue via the rescue service,
@@ -110,6 +114,7 @@ async function resolveRescueId(
     return cached.rescueId;
   }
 
+  const generation = invalidationGeneration.get(userId) ?? 0;
   let rescueId: string | null = null;
   try {
     const meta = new Metadata();
@@ -132,7 +137,9 @@ async function resolveRescueId(
     rescueId = null;
   }
 
-  rescueIdCache.set(userId, { rescueId, expiresAt: Date.now() + RESCUE_ID_TTL_MS });
+  if ((invalidationGeneration.get(userId) ?? 0) === generation) {
+    rescueIdCache.set(userId, { rescueId, expiresAt: Date.now() + RESCUE_ID_TTL_MS });
+  }
   return rescueId;
 }
 

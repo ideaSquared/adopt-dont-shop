@@ -7,7 +7,12 @@ import { makeTestLogger } from '../../test/helpers/test-logger.js';
 
 vi.mock('../middleware/authenticate.js', () => ({ invalidateRescueIdCache: vi.fn() }));
 
-type AddedConsumer = { durable_name?: string; filter_subject?: string; deliver_policy?: string };
+type AddedConsumer = {
+  durable_name?: string;
+  filter_subject?: string;
+  deliver_policy?: string;
+  inactive_threshold?: number;
+};
 
 // JetStream stand-in, same shape as auth-subscriber.test.ts.
 function makeNats(): {
@@ -87,6 +92,8 @@ describe('registerRescueMembershipSubscribers (ENG-1508)', () => {
     expect(consumersAdded).toHaveLength(1);
     expect(consumersAdded[0]?.filter_subject).toBe('rescue.staffMemberRemoved');
     expect(consumersAdded[0]?.deliver_policy).toBe('new');
+    // Per-boot durable names are reaped by the broker once the replica is gone.
+    expect(consumersAdded[0]?.inactive_threshold).toBeGreaterThan(0);
     expect(consumersAdded[0]?.durable_name).toMatch(
       /^gw-rescue-membership-rescue-staffMemberRemoved-[0-9a-f-]{36}$/
     );

@@ -305,6 +305,46 @@ describe('registerAuthenticate — rescueId enrichment (ADS-863)', () => {
     }
   });
 
+  it('does not cache a lookup that was already in flight when the membership was invalidated (ENG-1508)', async () => {
+    const { client, validateMock } = makeAuthClient();
+    validateMock.mockResolvedValue(staffNoRescue('usr-rescue-inflight'));
+    let releaseStale: (() => void) | undefined;
+    let call = 0;
+    const { client: rescueClient } = makeRescueClient(async () => {
+      call += 1;
+      if (call === 1) {
+        // Stale read: started before the removal, completes after invalidation.
+        await new Promise<void>(resolve => {
+          releaseStale = resolve;
+        });
+        return { staffMember: { rescueId: 'rsc-stale' } };
+      }
+      // grpc-js status.NOT_FOUND = 5
+      throw Object.assign(new Error('no membership'), { code: 5 });
+    });
+    const app = await makeApp(client, undefined, rescueClient);
+    const get = () =>
+      app.inject({
+        method: 'GET',
+        url: '/api/echo',
+        headers: { authorization: 'Bearer good.token' },
+      });
+    const rescueIdOf = (res: Awaited<ReturnType<typeof get>>): string | null =>
+      (res.json() as { rescueId: string | null }).rescueId;
+    try {
+      const inflight = get();
+      await vi.waitFor(() => expect(releaseStale).toBeDefined());
+
+      invalidateRescueIdCache('usr-rescue-inflight');
+      releaseStale?.();
+      await inflight;
+
+      expect(rescueIdOf(await get())).toBeNull();
+    } finally {
+      await app.close();
+    }
+  });
+
   it('proceeds without x-rescue-id when the lookup finds no membership (fail-open)', async () => {
     const { client, validateMock } = makeAuthClient();
     validateMock.mockResolvedValueOnce(staffNoRescue('usr-rescue-b'));

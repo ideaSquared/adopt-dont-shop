@@ -138,6 +138,13 @@ const main = async (): Promise<void> => {
       nats,
     });
 
+    // ENG-1508: the membership-eviction consumer must exist before the first
+    // request can cache a membership; with deliverNew a removal published
+    // before it is bound would be skipped for good.
+    await Promise.all(
+      registerRescueMembershipSubscribers({ nats, logger }).map(handle => handle.ready)
+    );
+
     await server.listen({ port: config.port, host: config.host });
     const registry = new SocketRegistry();
     // Bind the Socket.IO redis-adapter when a Redis URL is configured so
@@ -172,7 +179,6 @@ const main = async (): Promise<void> => {
     registerNotificationSubscribers({ nats, registry, logger });
     registerChatSubscribers({ nats, registry, logger });
     registerAuthSubscribers({ nats, io, logger });
-    registerRescueMembershipSubscribers({ nats, logger });
 
     logger.info('service.gateway listening', {
       port: config.port,
