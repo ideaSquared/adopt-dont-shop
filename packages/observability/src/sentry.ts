@@ -9,9 +9,10 @@
 //     Sentry exception pivots to the matching distributed trace.
 //   - `redactSentryEvent` runs in beforeSend as defence-in-depth before
 //     the event ships to the external SaaS:
-//       * authorization / cookie headers → [REDACTED]
+//       * secret-shaped headers (authorization, cookie, x-principal-token ...) → [REDACTED]
 //       * cookies dict → fully replaced
-//       * request.data → walk + redact secret-shaped keys
+//       * request.data → walk + redact secret-shaped keys, mask PII-shaped keys
+//         (the same shared redact.ts passes the log pipeline uses)
 //       * URLs / transaction names → collapse UUID + numeric path
 //         segments to `:id` so identifiers don't leave the boundary
 //   - Validation errors are dropped — Sentry isn't the right sink for
@@ -23,6 +24,7 @@ import { nodeProfilingIntegration } from '@sentry/profiling-node';
 
 import { deployEnvironment } from './deploy-environment.js';
 import { BASE_LOG_FIELDS, createLogger, type BaseLogger } from './logger.js';
+import { maskPiiFields, REDACTED, redactSecretFields, SECRET_KEY_PATTERN } from './redact.js';
 
 export type SentryOptions = {
   // Used as `serverName` on Sentry events when HOSTNAME isn't set, and
@@ -43,33 +45,6 @@ type SentryConfig = {
   enabled: boolean;
 };
 
-const REDACTED = '[REDACTED]';
-
-// Keys whose values should be replaced wholesale in request.data and
-// breadcrumb data. Matched case-insensitively as a substring, so e.g.
-// passwordHash, accessToken, apiKey, api_key, client_secret,
-// Authorization all match.
-const SECRET_KEY_PATTERN = /password|token|secret|api[_-]?key|authorization/i;
-
-const redactSecretFields = (value: unknown): unknown => {
-  if (value === null || value === undefined) {
-    return value;
-  }
-  if (Array.isArray(value)) {
-    return value.map(redactSecretFields);
-  }
-  if (typeof value === 'object') {
-    const entries = Object.entries(value as Record<string, unknown>).map(([k, v]) => {
-      if (SECRET_KEY_PATTERN.test(k)) {
-        return [k, REDACTED];
-      }
-      return [k, redactSecretFields(v)];
-    });
-    return Object.fromEntries(entries);
-  }
-  return value;
-};
-
 // UUID v1-v5 pattern. Used to collapse identifier path segments to `:id`
 // so URLs like `/api/v1/users/{uuid}/documents/{uuid}` don't ship the
 // raw identifiers to the external Sentry SaaS.
@@ -84,8 +59,9 @@ const NUMERIC_ID_PATTERN = /\/\d+(?=\/|\?|#|$)/g;
 const redactUrlIds = (url: string): string =>
   url.replace(UUID_PATTERN, ':id').replace(NUMERIC_ID_PATTERN, '/:id');
 
-// Strip authorization, cookie and x-client-location (the caller's coordinates)
-// headers from a headers map regardless of casing. Returns a new object —
+// Redact every header whose name is secret-shaped (authorization, cookie,
+// set-cookie, x-principal-token, x-csrf-token, x-api-key, x-client-location
+// ...) using the shared pattern, regardless of casing. Returns a new object —
 // does not mutate input.
 const redactHeaders = (
   headers: Record<string, string> | undefined
@@ -95,8 +71,7 @@ const redactHeaders = (
   }
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(headers)) {
-    const lower = k.toLowerCase();
-    if (lower === 'authorization' || lower === 'cookie' || lower === 'x-client-location') {
+    if (SECRET_KEY_PATTERN.test(k)) {
       out[k] = REDACTED;
     } else {
       out[k] = v;
@@ -137,9 +112,9 @@ const stripCoordinateQuery = (
 };
 
 // Scrub a Sentry event in-place defence-in-depth before it ships:
-//   - request.headers.authorization / cookie → [REDACTED]
+//   - secret-shaped request.headers → [REDACTED]
 //   - request.cookies → fully replaced
-//   - request.data → walk and redact secret-shaped keys
+//   - request.data → walk, redact secret-shaped keys and mask PII-shaped keys
 //   - request.url + event.transaction → collapse UUID / numeric ids
 //   - request.url + request.query_string → drop lat/lng/latitude/longitude
 //   - breadcrumbs[].data → same redaction
@@ -154,7 +129,7 @@ export const redactSentryEvent = <T extends Sentry.ErrorEvent>(event: T): T => {
       request.cookies = { [REDACTED]: REDACTED };
     }
     if (request.data !== undefined && request.data !== null) {
-      request.data = redactSecretFields(request.data);
+      request.data = maskPiiFields(redactSecretFields(request.data));
     }
     if (typeof request.url === 'string') {
       request.url = stripCoordinateParams(redactUrlIds(request.url));
@@ -172,7 +147,7 @@ export const redactSentryEvent = <T extends Sentry.ErrorEvent>(event: T): T => {
     event.breadcrumbs = event.breadcrumbs.map(crumb => {
       const next = { ...crumb };
       if (next.data) {
-        const redacted = redactSecretFields(next.data);
+        const redacted = maskPiiFields(redactSecretFields(next.data));
         if (redacted && typeof redacted === 'object' && !Array.isArray(redacted)) {
           next.data = redacted as { [key: string]: unknown };
         }

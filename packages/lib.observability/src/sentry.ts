@@ -20,6 +20,75 @@ export const redactSentryUser = <T extends { user?: Record<string, unknown> | nu
   return event;
 };
 
+const REDACTED = '[REDACTED]';
+// Same patterns as the backend scrubber (packages/observability/src/redact.ts);
+// that module is Node-only so the frontend keeps its own small copy.
+const SECRET_KEY_PATTERN =
+  /password|token|secret|otp|authorization|cookie|api[_-]?key|client[_-]?location/i;
+const PII_KEY_PATTERN =
+  /email|phone|mobile|address|postcode|postalcode|name|date[_-]?of[_-]?birth/i;
+
+const maskPiiValue = (value: unknown): unknown => {
+  if (value === null || value === undefined) {
+    return value;
+  }
+  if (typeof value !== 'string') {
+    return REDACTED;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return value;
+  }
+  const at = trimmed.lastIndexOf('@');
+  return at > 0
+    ? `${trimmed.slice(0, 1)}***@${trimmed.slice(at + 1)}`
+    : `${trimmed.slice(0, 1)}***`;
+};
+
+const scrubValue = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map(scrubValue);
+  }
+  if (value === null || typeof value !== 'object') {
+    return value;
+  }
+  return Object.fromEntries(
+    Object.entries(value).map(([k, v]) => {
+      if (SECRET_KEY_PATTERN.test(k)) {
+        return [k, REDACTED];
+      }
+      return PII_KEY_PATTERN.test(k) ? [k, maskPiiValue(v)] : [k, scrubValue(v)];
+    })
+  );
+};
+
+const scrubRecord = (record: Record<string, unknown>): Record<string, unknown> =>
+  Object.fromEntries(Object.entries(scrubValue(record) as Record<string, unknown>));
+
+/**
+ * Redact secret-shaped keys and mask PII-shaped keys in `event.extra` and
+ * breadcrumb data, so context attached via captureException(error, context)
+ * or breadcrumbs cannot ship personal data to the SaaS. Exported for testing.
+ */
+export const redactSentryContext = <
+  T extends {
+    extra?: Record<string, unknown>;
+    breadcrumbs?: Array<{ data?: Record<string, unknown> }>;
+  },
+>(
+  event: T
+): T => {
+  if (event.extra) {
+    event.extra = scrubRecord(event.extra);
+  }
+  if (Array.isArray(event.breadcrumbs)) {
+    event.breadcrumbs = event.breadcrumbs.map(crumb =>
+      crumb.data ? { ...crumb, data: scrubRecord(crumb.data) } : crumb
+    );
+  }
+  return event;
+};
+
 export type SentryInitOptions = {
   /** Sentry DSN — typically read from VITE_SENTRY_DSN by the caller. */
   dsn: string | undefined;
@@ -88,7 +157,7 @@ export const initSentry = (options: SentryInitOptions): void => {
     // Defensive PII scrub: no Sentry.setUser({ email }) call exists in
     // the codebase today, but lock the invariant so a future change
     // can't accidentally ship identifiable user fields to the SaaS.
-    beforeSend: event => redactSentryUser(event),
+    beforeSend: event => redactSentryContext(redactSentryUser(event)),
   });
 };
 

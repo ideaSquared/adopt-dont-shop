@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { captureException, captureMessage, initSentry, redactSentryUser } from './sentry';
+import {
+  captureException,
+  captureMessage,
+  initSentry,
+  redactSentryContext,
+  redactSentryUser,
+} from './sentry';
 
 const { sentryInitSpy, sentryCaptureExceptionSpy, sentryCaptureMessageSpy } = vi.hoisted(() => ({
   sentryInitSpy: vi.fn(),
@@ -40,6 +46,47 @@ describe('redactSentryUser', () => {
     const event = { user: { id: 'uuid-abc' } };
     const result = redactSentryUser(event);
     expect(result.user).toEqual({ id: 'uuid-abc' });
+  });
+});
+
+describe('redactSentryContext', () => {
+  it('redacts secret-shaped and masks PII-shaped keys in extra, nested and in arrays', () => {
+    const event = {
+      extra: {
+        accessToken: 'abc',
+        email: 'alice@example.com',
+        form: { postcode: 'SW1A 1AA', otp: '123456', petId: 'pet-1' },
+        rows: [{ phone: '07700900123' }],
+      },
+    };
+
+    const result = redactSentryContext(event);
+
+    expect(result.extra).toEqual({
+      accessToken: '[REDACTED]',
+      email: 'a***@example.com',
+      form: { postcode: 'S***', otp: '[REDACTED]', petId: 'pet-1' },
+      rows: [{ phone: '0***' }],
+    });
+  });
+
+  it('applies the same scrub to breadcrumb data', () => {
+    const event = {
+      breadcrumbs: [{ category: 'xhr', data: { password: 'pw', email: 'x@y.com', url: '/pets' } }],
+    };
+
+    const result = redactSentryContext(event);
+
+    expect(result.breadcrumbs![0].data).toEqual({
+      password: '[REDACTED]',
+      email: 'x***@y.com',
+      url: '/pets',
+    });
+  });
+
+  it('is a no-op when extra and breadcrumbs are absent', () => {
+    const event: { extra?: Record<string, unknown>; message: string } = { message: 'boom' };
+    expect(redactSentryContext(event)).toEqual({ message: 'boom' });
   });
 });
 

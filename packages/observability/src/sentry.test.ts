@@ -52,6 +52,56 @@ describe('redactSentryEvent', () => {
     });
   });
 
+  it('redacts the other credential-bearing headers the request integration can attach', () => {
+    const event = {
+      request: {
+        headers: {
+          'x-principal-token': 'signed-principal',
+          'X-CSRF-Token': 'csrf',
+          'x-api-key': 'key',
+          'Set-Cookie': 'session=secret',
+          accept: 'application/json',
+        },
+      },
+    } as unknown as Sentry.ErrorEvent;
+
+    const out = redactSentryEvent(event);
+
+    expect(out.request!.headers).toEqual({
+      'x-principal-token': '[REDACTED]',
+      'X-CSRF-Token': '[REDACTED]',
+      'x-api-key': '[REDACTED]',
+      'Set-Cookie': '[REDACTED]',
+      accept: 'application/json',
+    });
+  });
+
+  it('masks PII-shaped keys and redacts otp/cookie-shaped keys in request.data', () => {
+    const event = {
+      request: {
+        data: {
+          email: 'alice@example.com',
+          phone: '07700900123',
+          postcode: 'SW1A 1AA',
+          otp: '123456',
+          sessionCookie: 'abc',
+          petId: 'pet-1',
+        },
+      },
+    } as unknown as Sentry.ErrorEvent;
+
+    const out = redactSentryEvent(event);
+
+    expect(out.request!.data).toEqual({
+      email: 'a***@example.com',
+      phone: '0***',
+      postcode: 'S***',
+      otp: '[REDACTED]',
+      sessionCookie: '[REDACTED]',
+      petId: 'pet-1',
+    });
+  });
+
   it('replaces the cookies dict wholesale', () => {
     const event = {
       request: { cookies: { access_token: 'abc', refresh_token: 'def' } },
@@ -76,7 +126,7 @@ describe('redactSentryEvent', () => {
     const out = redactSentryEvent(event);
 
     expect(out.request!.data).toEqual({
-      email: 'a@b.com',
+      email: 'a***@b.com',
       password: '[REDACTED]',
       nested: { apiKey: '[REDACTED]', items: [{ api_key: '[REDACTED]' }] },
     });
@@ -163,7 +213,7 @@ describe('redactSentryEvent', () => {
 
     const out = redactSentryEvent(event);
 
-    expect(out.breadcrumbs![0].data).toEqual({ password: '[REDACTED]', email: 'x@y.com' });
+    expect(out.breadcrumbs![0].data).toEqual({ password: '[REDACTED]', email: 'x***@y.com' });
   });
 
   it('returns the event unchanged when no request / breadcrumbs are present', () => {
