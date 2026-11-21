@@ -78,7 +78,9 @@ export class LocalStorageProvider implements StorageProvider {
 
   // Fails closed: an image sharp cannot process is rejected, never stored as-is.
   private async processImage(buffer: Buffer): Promise<Buffer> {
-    const image = sharp(buffer, { limitInputPixels: MAX_IMAGE_PIXELS });
+    // rotate() with no arguments auto-orients from EXIF, so portrait phone photos
+    // stay upright once the orientation tag is stripped on output.
+    const image = sharp(buffer, { limitInputPixels: MAX_IMAGE_PIXELS }).rotate();
     const metadata = await image.metadata();
 
     // Resize if too large (max 1920x1080)
