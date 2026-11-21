@@ -476,15 +476,17 @@ export async function adminUpdateUser(
   }
 
   // Any state-changing update to an elevated target — not just assigning
-  // one of its roles — is a non-super-admin's business (ADS-1293).
-  await assertMayActOnTarget(deps, principal, req.userId);
-
+  // one of its roles — is a non-super-admin's business (ADS-1293); the guard
+  // runs inside the transaction below.
   sets.push('updated_at = now()');
   sets.push('version = version + 1');
 
   let updated: UserRow | undefined;
   await withTransaction(deps, async ({ client, publish }) => {
-    // Lock the row so the recorded before-state is what this write replaces.
+    // The guard runs on the transaction client, so it locks the target row
+    // (FOR UPDATE) until commit: the checked role cannot change underneath,
+    // and the before-state read below is what this write replaces.
+    await assertMayActOnTarget(deps, principal, req.userId, client);
     const prevRes = await client.query<{
       status: string;
       user_type: string;
@@ -493,7 +495,7 @@ export async function adminUpdateUser(
       last_name: string;
     }>(
       `SELECT status, user_type, email_verified, first_name, last_name
-       FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL FOR UPDATE`,
+       FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
       [req.userId]
     );
     if (prevRes.rows.length === 0) {
@@ -853,12 +855,15 @@ export async function adminResetPassword(
   if (req.userId === principal.userId) {
     throw new HandlerError('INVALID_ARGUMENT', 'cannot reset your own password via the admin path');
   }
-  await assertMayActOnTarget(deps, principal, req.userId);
 
   const temporaryPassword = generateTemporaryPassword();
-  const passwordHash = await deps.passwordHasher.hash(temporaryPassword);
 
   await withTransaction(deps, async ({ client, publish }) => {
+    // Guard first, on the transaction client: it locks the target row until
+    // commit. A refused caller never reaches the hasher.
+    await assertMayActOnTarget(deps, principal, req.userId, client);
+
+    const passwordHash = await deps.passwordHasher.hash(temporaryPassword);
     const res = await client.query<{ user_id: string }>(
       `
       UPDATE auth.users
@@ -917,10 +922,13 @@ export async function adminLockAccount(
   if (req.userId === principal.userId) {
     throw new HandlerError('INVALID_ARGUMENT', 'cannot lock your own account');
   }
-  await assertMayActOnTarget(deps, principal, req.userId);
 
   let updated: UserRow | undefined;
   await withTransaction(deps, async ({ client, publish }) => {
+    // Guard first, on the transaction client: it locks the target row until
+    // commit.
+    await assertMayActOnTarget(deps, principal, req.userId, client);
+
     const res = await client.query<UserRow>(
       `
       UPDATE auth.users
