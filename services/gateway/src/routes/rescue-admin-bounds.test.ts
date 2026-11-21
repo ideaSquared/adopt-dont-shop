@@ -136,5 +136,11 @@ describe('rescue-admin mutation body bounds (ENG-1406)', () => {
       expect((await remove({ reason: 'a'.repeat(10_001) })).statusCode).toBe(400);
       expect(deleteRescue).not.toHaveBeenCalled();
     });
+
+    it('counts an emoji as one character, like the schema bounds', async () => {
+      expect((await remove({ reason: '😀'.repeat(10_000) })).statusCode).toBe(200);
+      expect((await remove({ reason: '😀'.repeat(10_001) })).statusCode).toBe(400);
+      expect(deleteRescue).toHaveBeenCalledTimes(1);
+    });
   });
 });

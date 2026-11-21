@@ -622,8 +622,9 @@ export const registerRescueAdminRoutes = async (
     async (req, reply) => {
       // The body is optional on DELETE (the SPA omits it without a reason), and
       // a body schema would reject a request that has none, so the cap is
-      // checked here instead of in the schema.
-      if ((req.body?.reason?.length ?? 0) > BODY_BOUNDS.longText.maxLength) {
+      // checked here instead of in the schema. It counts code points, as the
+      // schema's maxLength does, not UTF-16 units.
+      if ([...(req.body?.reason ?? '')].length > BODY_BOUNDS.longText.maxLength) {
         return reply.code(400).send({
           success: false,
           error: `reason exceeds the maximum of ${BODY_BOUNDS.longText.maxLength} characters`,
