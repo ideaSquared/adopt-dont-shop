@@ -49,7 +49,7 @@ if [ "$status" = "completed" ]; then
     echo "$name passed on this commit."
     exit 0
   fi
-  echo "::error title=Deploy blocked: $name failed::$name finished with '$conclusion' on $sha, so this commit is not safe to deploy. Fix it and push a new commit. skip_ci_check does not override a failed check.$link"
+  echo "::error title=Deploy blocked: $name failed::$name finished with '$conclusion' on $sha, so this commit can't be deployed. Open the check to see why: fix the code, or re-run the check if it was cancelled or timed out. skip_ci_check does not override a failed check.$link"
   exit 1
 fi
 
@@ -58,7 +58,7 @@ if [ "$status" = "none" ]; then
   reason="$name has not run on $sha. It runs on every push to main, so check the commit is on main and that the workflow was not skipped."
 else
   title="$name is still running"
-  reason="$name has not finished on $sha (status: $status). The commit has not failed. This deploy was dispatched before the check completed. Re-run the deploy once $name passes."
+  reason="$name has not finished on $sha (status: $status), so its result is not known yet. This deploy was dispatched before the check completed. Re-run the deploy once $name passes."
 fi
 
 if [ "${SKIP_CI_CHECK:-}" = "true" ]; then

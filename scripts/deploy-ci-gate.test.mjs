@@ -63,7 +63,7 @@ describe('deploy-ci-gate.sh', () => {
 
     expect(result.status).toBe(1);
     expect(result.stdout).toContain('still running');
-    expect(result.stdout).toContain('The commit has not failed');
+    expect(result.stdout).toContain('its result is not known yet');
     expect(result.stdout).toContain('Re-run the deploy');
   });
 
