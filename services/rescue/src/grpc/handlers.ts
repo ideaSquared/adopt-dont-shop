@@ -85,6 +85,7 @@ import {
   type RescueVerificationSourceDb,
 } from './enum-map.js';
 import { rescueActionTaken } from './audit.js';
+import { lockUserMembership } from './membership-lock.js';
 import { isLegalTransition } from './status-machine.js';
 import type { Coordinates, Geocoder } from '../geocode.js';
 
@@ -429,6 +430,11 @@ async function insertPendingRescue(
   const coordinates = await geocodeRescue(deps, req.postcode, req.country);
 
   await withTransaction(deps, async ({ client, publish }) => {
+    if (ownerUserId) {
+      // Same per-user lock as addStaffMember, so owner creation cannot race an add.
+      await lockUserMembership(client, ownerUserId);
+    }
+
     const result = await client.query<RescueRow>(
       `
       INSERT INTO rescue.rescues (

@@ -975,7 +975,23 @@ describe('acceptInvitation', () => {
     expect(mocks.natsMock.publish).toHaveBeenCalled();
   });
 
-  it('is idempotent — returns the existing membership without re-inserting', async () => {
+  it('takes the per-user staff lock before checking or inserting the membership', async () => {
+    mocks.clientScript([invRow()]);
+    mocks.clientScript([]);
+    mocks.clientScript([staffRow({ user_id: 'usr-new', title: 'Volunteer', is_verified: true })]);
+    mocks.clientScript([]);
+
+    await acceptInvitation(mocks.deps, null, { token: 'tok-abc', userId: 'usr-new' });
+
+    const calls = mocks.clientMock.query.mock.calls
+      .map(([sql, params]) => ({ sql: String(sql), params }))
+      .filter(({ sql }) => sql !== 'BEGIN' && sql !== 'COMMIT');
+    expect(calls[0].sql).toMatch(/pg_advisory_xact_lock\(hashtext\(\$1\)\)/);
+    expect(calls[0].params).toEqual(['usr-new']);
+    expect(calls[1].sql).toContain('rescue.invitations');
+  });
+
+  it('is idempotent \u2014 returns the existing membership without re-inserting', async () => {
     // 1. SELECT FOR UPDATE invitation (already used), 2. SELECT existing
     // membership (found) → short-circuits before any INSERT/UPDATE.
     mocks.clientScript([invRow({ used: true, user_id: 'usr-new' })]);
