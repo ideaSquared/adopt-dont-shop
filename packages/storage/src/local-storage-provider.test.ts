@@ -169,6 +169,22 @@ describe('LocalStorageProvider', () => {
     expect(metadata.orientation).toBeUndefined();
   });
 
+  it('downscales by the oriented width when EXIF orientation swaps a narrow raw width over the limit', async () => {
+    const sideways = await sharp({
+      create: { width: 1500, height: 2500, channels: 3, background: '#0000ff' },
+    })
+      .jpeg()
+      .withMetadata({ orientation: 6 })
+      .toBuffer();
+
+    const result = await provider.uploadFile(sideways, 'wide.jpg', 'image/jpeg', 'pets');
+
+    const stored = await readFile(path.join(dir, 'pets', result.filename));
+    const metadata = await sharp(stored).metadata();
+    expect(metadata.width).toBeLessThanOrEqual(1920);
+    expect(metadata.height).toBeLessThanOrEqual(1080);
+  });
+
   it('identifies itself and does not support signed urls', async () => {
     expect(provider.getName()).toBe('local');
     expect(provider.supportsSignedUrls()).toBe(false);
