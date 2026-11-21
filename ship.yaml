@@ -5,9 +5,11 @@
 product: ads
 # ideaSquared bot project: deploy messages go to its ads-github channel.
 discord: ads
-# Must have passed on the commit (shipper's gate). deploy.yml also checks the whole CI run and the
-# production image smoke test itself before it builds anything.
-checks: ['CI Required']
+# Must have passed on the commit (shipper's gate, and the `ship status` / `ship diff` / `ship deploy`
+# warnings before a deploy starts). The smoke test is listed so a deploy is held back up front, not
+# only by deploy.yml, which also checks the whole CI run and the same smoke test before it builds.
+# It runs on every push to main (docker.yml), so it always exists on a commit that can ship.
+checks: ['CI Required', 'Production Image Smoke (boot)']
 dispatch:
   workflow: ship.yml
   environmentInput: environment
