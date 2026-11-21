@@ -40,7 +40,12 @@ const listItems = (block, key) => {
   return items.map(l => l.match(/^\s*-\s*['"]?([^'"\s#]+)/)?.[1]).filter(Boolean);
 };
 
-const tmpfsPath = entry => entry.split(':')[0];
+const tmpfsPath = entry => entry.split(':')[0].replace(/(.)\/+$/, '$1');
+
+const NGINX_LOG_DIR = '/var/log/nginx';
+
+// A tmpfs on the log dir or any parent hides the image's stdout log symlinks.
+const hidesNginxLogs = path => path === '/' || `${NGINX_LOG_DIR}/`.startsWith(`${path}/`);
 
 /** Returns a list of human-readable violations; empty when hardened. */
 export function findHardeningGaps(file = COMPOSE_FILE, root = ROOT) {
@@ -54,7 +59,7 @@ export function findHardeningGaps(file = COMPOSE_FILE, root = ROOT) {
     ...['/var/cache/nginx', '/var/run'].map(p =>
       tmpfs.includes(p) ? undefined : `nginx: tmpfs ${p} is missing`
     ),
-    tmpfs.includes('/var/log/nginx')
+    tmpfs.some(hidesNginxLogs)
       ? 'nginx: /var/log/nginx must not be a tmpfs (hides the stdout log symlinks)'
       : undefined,
     listItems(certbot, 'cap_drop').includes('ALL') ? undefined : 'certbot: cap_drop ALL is missing',

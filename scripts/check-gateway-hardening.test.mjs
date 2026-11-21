@@ -71,6 +71,20 @@ describe('findHardeningGaps', () => {
     ]);
   });
 
+  it.each(['/var/log/nginx/', '/var/log', '/var'])(
+    'flags a tmpfs at %s, which also hides the nginx log symlinks',
+    path => {
+      expect(check([...hardenedNginx, `      - ${path}`], hardenedCertbot)).toEqual([
+        'nginx: /var/log/nginx must not be a tmpfs (hides the stdout log symlinks)',
+      ]);
+    }
+  );
+
+  it('accepts required tmpfs paths written with a trailing slash', () => {
+    const nginx = hardenedNginx.map(l => l.replace(/(\/var\/run|\/var\/cache\/nginx)$/, '$1/'));
+    expect(check(nginx, hardenedCertbot)).toEqual([]);
+  });
+
   it('flags an unconfined certbot', () => {
     expect(check(hardenedNginx, ['  certbot:', '    restart: unless-stopped'])).toEqual([
       'certbot: cap_drop ALL is missing',
