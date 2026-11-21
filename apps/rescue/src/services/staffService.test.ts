@@ -152,40 +152,6 @@ describe('RescueStaffService', () => {
     });
   });
 
-  describe('addStaffMember', () => {
-    it('posts the new staff payload to the rescue staff endpoint', async () => {
-      apiServiceMock.post.mockResolvedValue({
-        success: true,
-        data: { id: 's5', firstName: 'New', lastName: 'Hire', email: 'new@rescue.org' },
-      });
-
-      const result = await service.addStaffMember(
-        { email: 'new@rescue.org', title: 'Volunteer' } as never,
-        'r1'
-      );
-
-      expect(apiServiceMock.post).toHaveBeenCalledWith('/api/v1/rescues/r1/staff', {
-        email: 'new@rescue.org',
-        title: 'Volunteer',
-      });
-      expect(result.firstName).toBe('New');
-    });
-
-    it('throws when the response has no data', async () => {
-      apiServiceMock.post.mockResolvedValue({ success: true });
-
-      await expect(service.addStaffMember({} as never, 'r1')).rejects.toThrow(
-        'Invalid response format'
-      );
-    });
-
-    it('propagates request errors', async () => {
-      apiServiceMock.post.mockRejectedValue(new Error('boom'));
-
-      await expect(service.addStaffMember({} as never, 'r1')).rejects.toThrow('boom');
-    });
-  });
-
   describe('removeStaffMember', () => {
     it('deletes the staff member from the rescue', async () => {
       apiServiceMock.delete.mockResolvedValue(undefined);

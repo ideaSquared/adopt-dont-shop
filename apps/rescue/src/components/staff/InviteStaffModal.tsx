@@ -7,12 +7,14 @@ interface InviteStaffModalProps {
   onSubmit: (invitation: InvitationPayload) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
+  submitError?: string | null;
 }
 
 const InviteStaffModal: React.FC<InviteStaffModalProps> = ({
   onSubmit,
   onCancel,
   loading = false,
+  submitError = null,
 }) => {
   const [formData, setFormData] = useState<InvitationPayload>({
     email: '',
@@ -78,6 +80,12 @@ const InviteStaffModal: React.FC<InviteStaffModalProps> = ({
       closeOnOverlayClick={!loading}
     >
       <form className={styles.form} onSubmit={handleSubmit}>
+        {submitError && (
+          <div role="alert" className={styles.submitError}>
+            {submitError}
+          </div>
+        )}
+
         <FormField
           label="Email Address"
           htmlFor="email"

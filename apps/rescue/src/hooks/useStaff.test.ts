@@ -13,7 +13,6 @@ vi.mock('@adopt-dont-shop/lib.auth', () => ({
 
 const staffServiceMock = vi.hoisted(() => ({
   getRescueStaff: vi.fn<() => Promise<StaffMember[]>>(),
-  addStaffMember: vi.fn(),
   removeStaffMember: vi.fn(),
   updateStaffMember: vi.fn(),
 }));
@@ -77,22 +76,6 @@ describe('useStaff', () => {
 
     await waitFor(() => expect(result.current.error).toBe('Failed to load staff members'));
     expect(result.current.staff).toEqual([]);
-  });
-
-  it('adds a staff member to the list', async () => {
-    const { result } = renderHook(() => useStaff(), { wrapper: QueryWrapper });
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    const added = member({ id: 's2', userId: 'su2', firstName: 'New' });
-    staffServiceMock.addStaffMember.mockResolvedValue(added);
-    staffServiceMock.getRescueStaff.mockResolvedValue([member(), added]);
-
-    await act(async () => {
-      await result.current.addStaffMember({ email: 'new@x.com' } as never, 'r1');
-    });
-
-    expect(staffServiceMock.addStaffMember).toHaveBeenCalledWith({ email: 'new@x.com' }, 'r1');
-    await waitFor(() => expect(result.current.staff.map(s => s.firstName)).toContain('New'));
   });
 
   it('removes a staff member from the list', async () => {

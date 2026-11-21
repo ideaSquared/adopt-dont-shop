@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { staffService, type StaffMember } from '../services/staffService';
-import { NewStaffMember } from '../types/staff';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 
 const NO_STAFF: StaffMember[] = [];
@@ -19,11 +18,6 @@ export const useStaff = () => {
     staleTime: 0,
   });
 
-  const addMutation = useMutation({
-    mutationFn: ({ staffData, rescueId }: { staffData: NewStaffMember; rescueId: string }) =>
-      staffService.addStaffMember(staffData, rescueId),
-    onSuccess: invalidate,
-  });
   const removeMutation = useMutation({
     mutationFn: ({ memberUserId, rescueId }: { memberUserId: string; rescueId: string }) =>
       staffService.removeStaffMember(memberUserId, rescueId),
@@ -58,8 +52,6 @@ export const useStaff = () => {
         await query.refetch();
       }
     },
-    addStaffMember: (staffData: NewStaffMember, rescueId: string) =>
-      addMutation.mutateAsync({ staffData, rescueId }),
     removeStaffMember: (memberUserId: string, rescueId: string) =>
       removeMutation.mutateAsync({ memberUserId, rescueId }),
     updateStaffMember: (memberUserId: string, staffData: { title?: string }, rescueId: string) =>
