@@ -34,6 +34,8 @@ export class LocalStorageProvider implements StorageProvider {
     contentType: string,
     category: StorageCategory = 'documents'
   ): Promise<UploadResult> {
+    // Guard BEFORE the try so traversal can't be masked by the catch.
+    assertSafePathSegment(category, 'category');
     try {
       const fileExtension = path.extname(originalName);
       const filename = `${randomUUID()}${fileExtension}`;
@@ -74,32 +76,28 @@ export class LocalStorageProvider implements StorageProvider {
     }
   }
 
+  // Fails closed: an image sharp cannot process is rejected, never stored as-is.
   private async processImage(buffer: Buffer, contentType: string): Promise<Buffer> {
-    try {
-      const image = sharp(buffer, { limitInputPixels: MAX_IMAGE_PIXELS });
-      const metadata = await image.metadata();
+    const image = sharp(buffer, { limitInputPixels: MAX_IMAGE_PIXELS });
+    const metadata = await image.metadata();
 
-      // Resize if too large (max 1920x1080)
-      if (metadata.width && metadata.width > 1920) {
-        return await image
-          .resize(1920, 1080, {
-            fit: 'inside',
-            withoutEnlargement: true,
-          })
-          .jpeg({ quality: 85 })
-          .toBuffer();
-      }
-
-      // Convert to JPEG for consistency and smaller size
-      if (contentType !== 'image/jpeg') {
-        return await image.jpeg({ quality: 90 }).toBuffer();
-      }
-
-      return buffer;
-    } catch (error) {
-      this.logger.warn('image processing failed, using original', {}, error);
-      return buffer;
+    // Resize if too large (max 1920x1080)
+    if (metadata.width && metadata.width > 1920) {
+      return await image
+        .resize(1920, 1080, {
+          fit: 'inside',
+          withoutEnlargement: true,
+        })
+        .jpeg({ quality: 85 })
+        .toBuffer();
     }
+
+    // Convert to JPEG for consistency and smaller size
+    if (contentType !== 'image/jpeg') {
+      return await image.jpeg({ quality: 90 }).toBuffer();
+    }
+
+    return buffer;
   }
 
   async deleteFile(filename: string, category: string = 'documents'): Promise<void> {

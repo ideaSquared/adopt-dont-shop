@@ -1,7 +1,8 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { StorageCategory } from './base-provider.js';
 import { LocalStorageProvider } from './local-storage-provider.js';
 import type { LocalStorageConfig } from './config.js';
 
@@ -12,7 +13,7 @@ const makeConfig = (directory: string): LocalStorageConfig => ({
 
 // A minimal valid 1x1 PNG so sharp has real image bytes to process.
 const ONE_BY_ONE_PNG = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M8AAAMBAQDJ/pLvAAAAAElFTkSuQmCC',
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADElEQVQImWP4//8/AAX+Av5Y8msOAAAAAElFTkSuQmCC',
   'base64'
 );
 
@@ -79,6 +80,36 @@ describe('LocalStorageProvider', () => {
     await expect(provider.deleteFile('../../etc/passwd', 'documents')).rejects.toThrow(/unsafe/);
     await expect(provider.getFileInfo('ok.txt', '../secrets')).rejects.toThrow(/unsafe/);
     await expect(provider.getFileInfo('a/b.txt', 'documents')).rejects.toThrow(/unsafe/);
+  });
+
+  it.each(['../escape', 'a/b', 'a\\b', '..', ''])(
+    'rejects an unsafe upload category %j and writes nothing outside the upload dir',
+    async category => {
+      const parent = path.dirname(dir);
+      const before = await readdir(parent);
+
+      await expect(
+        // Deliberately bypasses the StorageCategory union to model a future caller forwarding user input.
+        provider.uploadFile(
+          Buffer.from('x'),
+          'a.txt',
+          'text/plain',
+          // Assertion is deliberate: models a future caller bypassing the union.
+          category as StorageCategory
+        )
+      ).rejects.toThrow(/unsafe/);
+
+      expect(await readdir(parent)).toEqual(before);
+      expect(await readdir(dir)).toEqual([]);
+    }
+  );
+
+  it('rejects an image that cannot be decoded instead of storing the original bytes', async () => {
+    const notAnImage = Buffer.from('not really an image');
+
+    await expect(provider.uploadFile(notAnImage, 'bad.png', 'image/png', 'pets')).rejects.toThrow();
+
+    expect(await readdir(path.join(dir, 'pets')).catch(() => [])).toEqual([]);
   });
 
   it('identifies itself and does not support signed urls', async () => {
