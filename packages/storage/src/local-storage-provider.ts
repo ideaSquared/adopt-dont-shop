@@ -84,7 +84,8 @@ export class LocalStorageProvider implements StorageProvider {
     const metadata = await image.metadata();
 
     // Resize if too large (max 1920x1080)
-    if (metadata.width && metadata.width > 1920) {
+    // metadata().width ignores EXIF orientation; autoOrient holds the oriented size.
+    if (metadata.autoOrient.width > 1920) {
       return await image
         .resize(1920, 1080, {
           fit: 'inside',
