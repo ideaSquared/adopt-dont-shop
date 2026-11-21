@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { captureException, captureMessage, initSentry, redactSentryUser } from './sentry';
+import {
+  captureException,
+  captureMessage,
+  initSentry,
+  redactSentryContext,
+  redactSentryUser,
+} from './sentry';
 
 const { sentryInitSpy, sentryCaptureExceptionSpy, sentryCaptureMessageSpy } = vi.hoisted(() => ({
   sentryInitSpy: vi.fn(),
@@ -40,6 +46,75 @@ describe('redactSentryUser', () => {
     const event = { user: { id: 'uuid-abc' } };
     const result = redactSentryUser(event);
     expect(result.user).toEqual({ id: 'uuid-abc' });
+  });
+});
+
+describe('redactSentryContext', () => {
+  it('redacts secret-shaped and masks PII-shaped keys in extra, nested and in arrays', () => {
+    const event = {
+      extra: {
+        accessToken: 'abc',
+        email: 'alice@example.com',
+        form: { postcode: 'SW1A 1AA', otp: '123456', petId: 'pet-1' },
+        rows: [{ phone: '07700900123' }],
+      },
+    };
+
+    const result = redactSentryContext(event);
+
+    expect(result.extra).toEqual({
+      accessToken: '[REDACTED]',
+      email: 'a***@example.com',
+      form: { postcode: 'S***', otp: '[REDACTED]', petId: 'pet-1' },
+      rows: [{ phone: '0***' }],
+    });
+  });
+
+  it('keeps null and blank PII values, and drops non-string PII values wholesale', () => {
+    const event = {
+      extra: {
+        email: null,
+        phone: '   ',
+        address: { line1: '1 High Street' },
+        postcode: undefined,
+      },
+    };
+
+    const result = redactSentryContext(event);
+
+    expect(result.extra).toEqual({
+      email: null,
+      phone: '   ',
+      address: '[REDACTED]',
+      postcode: undefined,
+    });
+  });
+
+  it('keeps breadcrumbs without data as they are', () => {
+    const event = { breadcrumbs: [{ category: 'navigation', data: undefined }] };
+
+    expect(redactSentryContext(event).breadcrumbs).toEqual([
+      { category: 'navigation', data: undefined },
+    ]);
+  });
+
+  it('applies the same scrub to breadcrumb data', () => {
+    const event = {
+      breadcrumbs: [{ category: 'xhr', data: { password: 'pw', email: 'x@y.com', url: '/pets' } }],
+    };
+
+    const result = redactSentryContext(event);
+
+    expect(result.breadcrumbs![0].data).toEqual({
+      password: '[REDACTED]',
+      email: 'x***@y.com',
+      url: '/pets',
+    });
+  });
+
+  it('is a no-op when extra and breadcrumbs are absent', () => {
+    const event: { extra?: Record<string, unknown>; message: string } = { message: 'boom' };
+    expect(redactSentryContext(event)).toEqual({ message: 'boom' });
   });
 });
 
