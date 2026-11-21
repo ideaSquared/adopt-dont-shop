@@ -23,6 +23,7 @@ import { createPetsClient } from './grpc-clients/pets-client.js';
 import { createRescueClient } from './grpc-clients/rescue-client.js';
 import { createServer } from './server.js';
 import { registerAuthSubscribers } from './ws/auth-subscriber.js';
+import { registerRescueMembershipSubscribers } from './ws/rescue-membership-subscriber.js';
 import { registerChatSubscribers } from './ws/chat-subscriber.js';
 import { registerNotificationSubscribers } from './ws/notifications-subscriber.js';
 import { trackSocketAdapterRedis } from './ws/metrics.js';
@@ -136,6 +137,13 @@ const main = async (): Promise<void> => {
       cmsClient,
       nats,
     });
+
+    // ENG-1508: the membership-eviction consumer must exist before the first
+    // request can cache a membership; with deliverNew a removal published
+    // before it is bound would be skipped for good.
+    await Promise.all(
+      registerRescueMembershipSubscribers({ nats, logger }).map(handle => handle.ready)
+    );
 
     await server.listen({ port: config.port, host: config.host });
     const registry = new SocketRegistry();

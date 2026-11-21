@@ -38,6 +38,11 @@ export type SubscribeOptions = {
   // replica gets its own copy. Defaults to false (replay backlog), which is
   // the durable at-least-once behaviour every business subscriber wants.
   deliverNew?: boolean;
+  // Server-side expiry for an idle durable, in milliseconds. Per-process
+  // durables (a fresh UUID each boot) are otherwise orphaned on every restart
+  // and accumulate forever; set this on those. Leave it unset for shared
+  // durables, which must never expire. Defaults to no expiry.
+  inactiveThresholdMs?: number;
   // Structured logger for the startup retry (warn per retry, error when the
   // budget is exhausted). Falls back to a JSON line on stderr so a retry is
   // never silent even where the caller passes none.
@@ -192,6 +197,9 @@ export function subscribe<T = unknown>(
       // letters the message instead of retrying forever (backstop for the
       // app-level term() in case a crash skips it).
       max_deliver: MAX_DELIVER,
+      ...(opts.inactiveThresholdMs !== undefined
+        ? { inactive_threshold: opts.inactiveThresholdMs * 1_000_000 }
+        : {}),
     });
 
     const js = nc.jetstream({ timeout: retry.jetstreamTimeoutMs });

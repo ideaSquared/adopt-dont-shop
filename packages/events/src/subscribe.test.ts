@@ -164,6 +164,30 @@ describe('subscribe (durable JetStream consumer)', () => {
     );
   });
 
+  it('expires an idle consumer after inactiveThreshold (nanoseconds on the wire) when asked', async () => {
+    const bus = makeBus();
+    subscribe(
+      bus.nc,
+      { subject: 'pets.created', durable: 'gw-replica-1', inactiveThresholdMs: 60_000 },
+      async () => undefined
+    );
+    await flush();
+
+    expect(bus.jsmAdd).toHaveBeenCalledWith(
+      DOMAIN_STREAM,
+      expect.objectContaining({ inactive_threshold: 60_000 * 1_000_000 })
+    );
+  });
+
+  it('sets no inactive_threshold by default so shared durables never expire', async () => {
+    const bus = makeBus();
+    subscribe(bus.nc, { subject: 'pets.created', durable: 'pets-workers' }, async () => undefined);
+    await flush();
+
+    const cfg = bus.jsmAdd.mock.calls[0]?.[1] as Record<string, unknown>;
+    expect(cfg).not.toHaveProperty('inactive_threshold');
+  });
+
   it('delivers an event that was published WHILE the subscriber was down', async () => {
     const bus = makeBus();
     // Event fires first — no consumer exists yet (subscriber is "down").

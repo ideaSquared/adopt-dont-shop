@@ -120,6 +120,12 @@ export const CONSUMER_REGISTRY: RegistryEntry[] = [
         file: 'services/audit/src/nats/subscribers.ts',
         description: 'Wildcard *.actionTaken captures rescue.actionTaken.',
       },
+      {
+        service: 'service.gateway',
+        file: 'services/gateway/src/ws/rescue-membership-subscriber.ts',
+        description:
+          "Subscribes to rescue.staffMemberRemoved to drop the removed user's cached rescue membership so their next request carries no rescue scope.",
+      },
     ],
   },
   {
