@@ -228,14 +228,39 @@ const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 // unlock, (de)activate, bulk-update, revoke sessions, or schedule deletion.
 // Only a super_admin may act on an elevated target (ADS-1291, ADS-1293,
 // ENG-1498).
+// Locks the target auth.users row until the transaction ends. FOR NO KEY
+// UPDATE serialises writers against each other (and against the guard) but,
+// unlike FOR UPDATE, does not conflict with the KEY SHARE lock a
+// refresh-token insert takes through its user_id foreign key, so a login or
+// refresh never deadlocks against an admin action. Returns whether the row
+// exists.
+export async function lockUserRow(
+  client: Pick<PoolClient, 'query'>,
+  userId: string
+): Promise<boolean> {
+  const { rows } = await client.query(
+    `SELECT user_id FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL FOR NO KEY UPDATE`,
+    [userId]
+  );
+  return rows.length > 0;
+}
+
 export async function assertMayActOnTarget(
   deps: Pick<HandlerDeps, 'pool'>,
   principal: Principal,
   targetUserId: string,
   // Inside a transaction, pass its client: the target row is then locked
-  // (FOR UPDATE) until commit so the checked role cannot change underneath.
+  // until commit so the checked role cannot change underneath.
   client?: Pick<PoolClient, 'query'>
 ): Promise<void> {
+  // Lock in a statement of its own. Under READ COMMITTED a statement that
+  // waits on a row lock re-checks only that row, so the user_roles snapshot
+  // of a combined lock-and-read statement could predate a concurrent grant.
+  // The read below is a fresh statement and sees everything committed
+  // before the lock was granted.
+  if (client && !(await lockUserRow(client, targetUserId))) {
+    throw new HandlerError('NOT_FOUND', `user ${targetUserId} not found`);
+  }
   // An adopter assigned admin/moderator through auth.user_roles is just as
   // elevated as one whose primary user_type is, so check both sources.
   const { rows } = await (client ?? deps.pool).query<{
@@ -251,7 +276,7 @@ export async function assertMayActOnTarget(
               '{}'
             ) AS extra_roles
        FROM auth.users
-      WHERE user_id = $1 AND deleted_at IS NULL${client ? '\n        FOR UPDATE' : ''}`,
+      WHERE user_id = $1 AND deleted_at IS NULL`,
     [targetUserId]
   );
   if (!rows[0]) {
@@ -476,15 +501,17 @@ export async function adminUpdateUser(
   }
 
   // Any state-changing update to an elevated target — not just assigning
-  // one of its roles — is a non-super-admin's business (ADS-1293).
-  await assertMayActOnTarget(deps, principal, req.userId);
-
+  // one of its roles — is a non-super-admin's business (ADS-1293); the guard
+  // runs inside the transaction below.
   sets.push('updated_at = now()');
   sets.push('version = version + 1');
 
   let updated: UserRow | undefined;
   await withTransaction(deps, async ({ client, publish }) => {
-    // Lock the row so the recorded before-state is what this write replaces.
+    // The guard runs on the transaction client, so it locks the target row
+    // until commit: the checked role cannot change underneath, and the
+    // before-state read below is what this write replaces.
+    await assertMayActOnTarget(deps, principal, req.userId, client);
     const prevRes = await client.query<{
       status: string;
       user_type: string;
@@ -493,7 +520,7 @@ export async function adminUpdateUser(
       last_name: string;
     }>(
       `SELECT status, user_type, email_verified, first_name, last_name
-       FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL FOR UPDATE`,
+       FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
       [req.userId]
     );
     if (prevRes.rows.length === 0) {
@@ -584,7 +611,6 @@ export async function deactivateUser(
   if (req.userId === principal.userId) {
     throw new HandlerError('INVALID_ARGUMENT', 'cannot deactivate your own account');
   }
-  await assertMayActOnTarget(deps, principal, req.userId);
 
   return setStatus(deps, principal, req.userId, 'deactivated', req.reason ?? null);
 }
@@ -602,7 +628,6 @@ export async function reactivateUser(
   if (!hasPermission(principal, ADMIN_USERS_REACTIVATE)) {
     throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_USERS_REACTIVATE}' required`);
   }
-  await assertMayActOnTarget(deps, principal, req.userId);
   return setStatus(deps, principal, req.userId, 'active', null);
 }
 
@@ -615,10 +640,13 @@ async function setStatus(
 ): Promise<{ user: ReturnType<typeof rowToProtoUser> }> {
   let updated: UserRow | undefined;
   await withTransaction(deps, async ({ client, publish }) => {
-    // Read the current row under lock inside the transaction, so the
-    // idempotency check and the audited before-state cannot go stale.
+    // Guard first, on the transaction client: it locks the target row, so the
+    // checked role cannot change before this write commits.
+    await assertMayActOnTarget(deps, principal, userId, client);
+    // Read the current row (locked by the guard above), so the idempotency
+    // check and the audited before-state cannot go stale.
     const current = await client.query<UserRow>(
-      `SELECT ${USER_SELECT} FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL FOR UPDATE`,
+      `SELECT ${USER_SELECT} FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
       [userId]
     );
     if (current.rows.length === 0) {
@@ -852,17 +880,20 @@ export async function adminResetPassword(
   if (req.userId === principal.userId) {
     throw new HandlerError('INVALID_ARGUMENT', 'cannot reset your own password via the admin path');
   }
-  await assertMayActOnTarget(deps, principal, req.userId);
 
   const temporaryPassword = generateTemporaryPassword();
-  const passwordHash = await deps.passwordHasher.hash(temporaryPassword);
 
   await withTransaction(deps, async ({ client, publish }) => {
+    // Guard first, on the transaction client: it locks the target row until
+    // commit. A refused caller never reaches the hasher.
+    await assertMayActOnTarget(deps, principal, req.userId, client);
+
+    const passwordHash = await deps.passwordHasher.hash(temporaryPassword);
     const res = await client.query<{ user_id: string }>(
       `
       UPDATE auth.users
       SET password = $1, login_attempts = 0, locked_until = NULL,
-          tokens_valid_from = now(), updated_at = now(), version = version + 1
+          tokens_valid_from = clock_timestamp(), updated_at = now(), version = version + 1
       WHERE user_id = $2 AND deleted_at IS NULL
       RETURNING user_id
       `,
@@ -916,10 +947,13 @@ export async function adminLockAccount(
   if (req.userId === principal.userId) {
     throw new HandlerError('INVALID_ARGUMENT', 'cannot lock your own account');
   }
-  await assertMayActOnTarget(deps, principal, req.userId);
 
   let updated: UserRow | undefined;
   await withTransaction(deps, async ({ client, publish }) => {
+    // Guard first, on the transaction client: it locks the target row until
+    // commit.
+    await assertMayActOnTarget(deps, principal, req.userId, client);
+
     const res = await client.query<UserRow>(
       `
       UPDATE auth.users
@@ -958,23 +992,25 @@ export async function adminUnlockAccount(
   if (!hasPermission(principal, ADMIN_SECURITY_MANAGE)) {
     throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_SECURITY_MANAGE}' required`);
   }
-  await assertMayActOnTarget(deps, principal, req.userId);
 
-  const current = await deps.pool.query<{ locked_until: Date | null }>(
-    `SELECT locked_until FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
-    [req.userId]
-  );
-  if (current.rows.length === 0) {
-    throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
-  }
-  const wasLocked = Boolean(
-    current.rows[0].locked_until && current.rows[0].locked_until > new Date()
-  );
-  if (!wasLocked) {
-    return { wasLocked: false };
-  }
-
+  let wasLocked = false;
   await withTransaction(deps, async ({ client, publish }) => {
+    // Guard first, on the transaction client: it locks the target row until
+    // commit.
+    await assertMayActOnTarget(deps, principal, req.userId, client);
+
+    const current = await client.query<{ locked_until: Date | null }>(
+      `SELECT locked_until FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
+      [req.userId]
+    );
+    if (current.rows.length === 0) {
+      throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
+    }
+    wasLocked = Boolean(current.rows[0].locked_until && current.rows[0].locked_until > new Date());
+    if (!wasLocked) {
+      return;
+    }
+
     await client.query(
       `UPDATE auth.users
        SET locked_until = NULL, login_attempts = 0, updated_at = now()
@@ -989,7 +1025,7 @@ export async function adminUnlockAccount(
     });
   });
 
-  return { wasLocked: true };
+  return { wasLocked };
 }
 
 // --- IP allow/block rules ---------------------------------------------
@@ -1278,7 +1314,7 @@ export async function bulkUpdateUsers(
           WITH prev AS (
             SELECT user_id, status, user_type FROM auth.users
             WHERE user_id = $${baseParams.length + 1} AND deleted_at IS NULL
-            FOR UPDATE
+            FOR NO KEY UPDATE
           )
           UPDATE auth.users u
           SET ${sets.join(', ')}

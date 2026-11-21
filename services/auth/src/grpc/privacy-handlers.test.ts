@@ -28,7 +28,15 @@ const NO_PERMS: Principal = {
   permissions: [],
 };
 
+// Business writes issued on the transaction client (outbox plumbing excluded).
+const writeSqls = (m: ReturnType<typeof makeMocks>) =>
+  (m.clientMock.query.mock.calls as Array<[string]>)
+    .map(([sql]) => sql)
+    .filter(sql => /^\s*(UPDATE|INSERT|DELETE)/i.test(sql) && !sql.includes('event_outbox'));
+
 // --- Mocks ------------------------------------------------------------
+
+const LOCK_SQL = /^\s*SELECT user_id FROM auth\.users[\s\S]*FOR NO KEY UPDATE/;
 
 function makeMocks() {
   const clientScript: Array<{ rows: unknown[] }> = [];
@@ -44,6 +52,11 @@ function makeMocks() {
       // up with the handler's own business queries.
       if (sql.includes('event_outbox')) {
         return { rows: [] };
+      }
+      // The guard's row lock is its own statement; answer it without
+      // consuming a scripted response so scripts stay about the handler's reads.
+      if (LOCK_SQL.test(sql)) {
+        return { rows: [{ user_id: 'usr-1' }] };
       }
       const next = clientScript.shift();
       if (!next) {
@@ -205,46 +218,46 @@ describe('requestAccountDeletion', () => {
   it.each(['admin', 'moderator', 'super_admin'])(
     'refuses a plain admin scheduling deletion of a %s account',
     async userType => {
-      mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: userType }] });
+      mocks.clientScript.push({ rows: [{ user_type: userType, extra_roles: [] }] }); // assertMayActOnTarget (locked)
       await expect(
         requestAccountDeletion(mocks.deps, DELETE_ADMIN, { userId: 'usr-1' })
       ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
-      expect(mocks.clientMock.query).not.toHaveBeenCalled();
+      expect(writeSqls(mocks)).toEqual([]);
       expect(mocks.natsMock.publish).not.toHaveBeenCalled();
     }
   );
 
   it('lets a super_admin schedule deletion of an admin account', async () => {
     const superDeleter: Principal = { ...DELETE_ADMIN, roles: ['super_admin'] };
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'admin' }] });
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ deletion_scheduled_at: null }] });
+    mocks.clientScript.push({ rows: [{ user_type: 'admin', extra_roles: [] }] }); // assertMayActOnTarget (locked)
+    mocks.clientScript.push({ rows: [{ deletion_scheduled_at: null }] });
     mocks.clientScript.push({ rows: [] });
     await requestAccountDeletion(mocks.deps, superDeleter, { userId: 'usr-1' });
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.accountDeletionRequested');
   });
 
   it('returns NOT_FOUND when the user does not exist', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // target lookup
+    mocks.clientScript.push({ rows: [] }); // assertMayActOnTarget: locked target lookup
     await expect(
       requestAccountDeletion(mocks.deps, DELETE_ADMIN, { userId: 'ghost' })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
   it('is idempotent when deletion is already scheduled (no re-deactivate / publish)', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter', extra_roles: [] }] }); // assertMayActOnTarget (locked)
     const scheduled = new Date('2026-12-01T00:00:00Z');
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ deletion_scheduled_at: scheduled }] });
+    mocks.clientScript.push({ rows: [{ deletion_scheduled_at: scheduled }] });
 
     const res = await requestAccountDeletion(mocks.deps, DELETE_ADMIN, { userId: 'usr-1' });
 
     expect(res.deletionScheduledFor).toBe(scheduled.toISOString());
-    expect(mocks.clientMock.query).not.toHaveBeenCalled(); // no BEGIN/UPDATE
+    expect(writeSqls(mocks)).toEqual([]); // no UPDATE
     expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 
   it('deactivates, stamps the grace deadline, and publishes the deletion event', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ deletion_scheduled_at: null }] });
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter', extra_roles: [] }] }); // assertMayActOnTarget (locked)
+    mocks.clientScript.push({ rows: [{ deletion_scheduled_at: null }] });
     mocks.clientScript.push({ rows: [] }); // UPDATE
 
     const before = Date.now();
@@ -266,5 +279,26 @@ describe('requestAccountDeletion', () => {
     expect(String(update?.[0])).toContain('deletion_scheduled_at');
     expect(String(update?.[0])).toContain('tokens_valid_from = now()');
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.accountDeletionRequested');
+  });
+
+  it('runs the elevated-target guard first inside the transaction, locking the target row', async () => {
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter', extra_roles: [] }] }); // assertMayActOnTarget (locked)
+    mocks.clientScript.push({ rows: [{ deletion_scheduled_at: null }] });
+    mocks.clientScript.push({ rows: [] }); // UPDATE
+
+    await requestAccountDeletion(mocks.deps, DELETE_ADMIN, { userId: 'usr-1' });
+
+    // The guard reads through the transaction client, never the pool (the
+    // pool only sees the post-commit outbox cleanup).
+    expect(
+      mocks.poolMock.query.mock.calls.filter(c => String(c[0]).includes('auth.user_roles'))
+    ).toEqual([]);
+    const [lock, read] = (mocks.clientMock.query.mock.calls as Array<[string]>)
+      .map(([sql]) => sql.trim())
+      .filter(sql => !/^(BEGIN|COMMIT|ROLLBACK)/i.test(sql) && !sql.includes('event_outbox'));
+    // Lock in its own statement, then read the roles in a fresh one.
+    expect(lock).toContain('FOR NO KEY UPDATE');
+    expect(read).toContain('auth.user_roles');
+    expect(read).not.toMatch(/FOR (NO KEY )?UPDATE/);
   });
 });

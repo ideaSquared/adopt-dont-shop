@@ -26,6 +26,8 @@ const SECURITY_ADMIN: Principal = {
   permissions: ['admin.security.read' as Permission, 'admin.security.manage' as Permission],
 };
 
+const LOCK_SQL = /^\s*SELECT user_id FROM auth\.users[\s\S]*FOR NO KEY UPDATE/;
+
 function makeClientQuery(): {
   fn: ReturnType<typeof vi.fn>;
   script: (rows: unknown[], rowCount?: number) => void;
@@ -34,6 +36,11 @@ function makeClientQuery(): {
   const fn = vi.fn().mockImplementation(async (sql: string) => {
     if (sql === 'BEGIN' || sql === 'COMMIT' || sql === 'ROLLBACK') {
       return { rows: [] };
+    }
+    // The guard's row lock is its own statement; answer it without consuming a
+    // scripted response so scripts stay about the handler's reads and writes.
+    if (LOCK_SQL.test(sql)) {
+      return { rows: [{ user_id: 'usr-2' }] };
     }
     return queue.shift() ?? { rows: [] };
   });
@@ -73,6 +80,13 @@ function realQueries(mock: { mock: { calls: unknown[][] } }): string[] {
       );
     })
     .map(c => String(c[0]).trim().split(/\s+/)[0].toUpperCase());
+}
+
+// Full SQL text the handler ran on the transaction client, in order.
+function clientSqlList(mock: { mock: { calls: unknown[][] } }): string[] {
+  return mock.mock.calls
+    .map(c => String(c[0]).trim())
+    .filter(sql => !/^(BEGIN|COMMIT|ROLLBACK)/.test(sql) && !sql.includes('event_outbox'));
 }
 
 const SESSION_ROW = {
@@ -179,9 +193,11 @@ describe('revokeSession', () => {
 
     const res = await revokeSession(mocks.deps, PRINCIPAL, { sessionId: 'tok-1' });
     expect(res.sessionId).toBe('tok-1');
-    // Two UPDATEs: the refresh-token family, plus the user's access-token
-    // revocation watermark.
-    expect(realQueries(mocks.clientMock.query)).toEqual(['UPDATE', 'UPDATE']);
+    // The user row is locked before any token row is touched (the order the
+    // admin paths use, so the two cannot deadlock), then the refresh-token
+    // family and the user's access-token revocation watermark are updated.
+    expect(realQueries(mocks.clientMock.query)).toEqual(['SELECT', 'UPDATE', 'UPDATE']);
+    expect(clientSqlList(mocks.clientMock.query)[0]).toContain('FOR NO KEY UPDATE');
     expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.sessionRevoked');
     // UPDATE targets the family, not just the single token.
@@ -197,7 +213,7 @@ describe('revokeSession', () => {
     // Stamps the access-token watermark on the user.
     const watermarkCall = mocks.clientMock.query.mock.calls.find(c => {
       const sql = String(c[0]);
-      return sql.includes('UPDATE') && sql.includes('auth.users');
+      return sql.includes('UPDATE auth.users');
     });
     expect(watermarkCall?.[1]).toEqual(['usr-1']);
     expect(String(watermarkCall?.[0])).toMatch(/tokens_valid_from = now\(\)/);
@@ -268,11 +284,11 @@ describe('adminRevokeSession', () => {
       mocks.poolMock.query.mockResolvedValueOnce({
         rows: [{ family_id: 'fam-1', user_id: 'usr-2' }],
       });
-      mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: userType }] });
+      mocks.clientScript([{ user_type: userType, extra_roles: [] }]); // assertMayActOnTarget (locked)
       await expect(
         adminRevokeSession(mocks.deps, SECURITY_ADMIN, { sessionId: 'tok-1' })
       ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
-      expect(mocks.clientMock.query).not.toHaveBeenCalled();
+      expect(realQueries(mocks.clientMock.query)).not.toContain('UPDATE');
       expect(mocks.natsMock.publish).not.toHaveBeenCalled();
     }
   );
@@ -282,7 +298,7 @@ describe('adminRevokeSession', () => {
     mocks.poolMock.query.mockResolvedValueOnce({
       rows: [{ family_id: 'fam-1', user_id: 'usr-2' }],
     });
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'admin' }] });
+    mocks.clientScript([{ user_type: 'admin', extra_roles: [] }]); // assertMayActOnTarget (locked)
     mocks.clientScript([], 1);
     const res = await adminRevokeSession(mocks.deps, superSecurity, { sessionId: 'tok-1' });
     expect(res.sessionId).toBe('tok-1');
@@ -305,7 +321,7 @@ describe('adminRevokeSession', () => {
     mocks.poolMock.query.mockResolvedValueOnce({
       rows: [{ family_id: 'fam-1', user_id: 'usr-2', is_revoked: false }],
     });
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
+    mocks.clientScript([{ user_type: 'adopter', extra_roles: [] }]); // assertMayActOnTarget (locked)
     mocks.clientScript([]);
 
     const res = await adminRevokeSession(mocks.deps, SECURITY_ADMIN, { sessionId: 'tok-1' });
@@ -313,7 +329,7 @@ describe('adminRevokeSession', () => {
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.sessionRevokedByAdmin');
     const watermarkCall = mocks.clientMock.query.mock.calls.find(c => {
       const sql = String(c[0]);
-      return sql.includes('UPDATE') && sql.includes('auth.users');
+      return sql.includes('UPDATE auth.users');
     });
     expect(watermarkCall?.[1]).toEqual(['usr-2']);
   });
@@ -322,7 +338,7 @@ describe('adminRevokeSession', () => {
     mocks.poolMock.query.mockResolvedValueOnce({
       rows: [{ family_id: 'fam-1', user_id: 'usr-2' }],
     });
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
+    mocks.clientScript([{ user_type: 'adopter', extra_roles: [] }]); // assertMayActOnTarget (locked)
     // Family-wide revoke flips the surviving live head → rowCount 1.
     mocks.clientScript([], 1);
 
@@ -336,11 +352,32 @@ describe('adminRevokeSession', () => {
     mocks.poolMock.query.mockResolvedValueOnce({
       rows: [{ family_id: 'fam-1', user_id: 'usr-2' }],
     });
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
+    mocks.clientScript([{ user_type: 'adopter', extra_roles: [] }]); // assertMayActOnTarget (locked)
     mocks.clientScript([], 0); // family-revoke UPDATE affects 0 rows
     const res = await adminRevokeSession(mocks.deps, SECURITY_ADMIN, { sessionId: 'tok-1' });
     expect(res.sessionId).toBe('tok-1');
     expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('runs the elevated-target guard first inside the transaction, locking the target row', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ family_id: 'fam-1', user_id: 'usr-2' }],
+    });
+    mocks.clientScript([{ user_type: 'adopter', extra_roles: [] }]); // assertMayActOnTarget (locked)
+    mocks.clientScript([], 1);
+
+    await adminRevokeSession(mocks.deps, SECURITY_ADMIN, { sessionId: 'tok-1' });
+
+    // The guard reads through the transaction client, never the pool (the
+    // pool only sees the post-commit outbox cleanup).
+    expect(
+      mocks.poolMock.query.mock.calls.filter(c => String(c[0]).includes('auth.user_roles'))
+    ).toEqual([]);
+    // Lock in its own statement, then read the roles in a fresh one.
+    const [lock, read] = clientSqlList(mocks.clientMock.query);
+    expect(lock).toContain('FOR NO KEY UPDATE');
+    expect(read).toContain('auth.user_roles');
+    expect(read).not.toMatch(/FOR (NO KEY )?UPDATE/);
   });
 });
 
@@ -353,18 +390,18 @@ describe('adminRevokeAllUserSessions', () => {
   it.each(['admin', 'moderator', 'super_admin'])(
     'refuses a plain admin revoking all sessions of a %s account',
     async userType => {
-      mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: userType }] });
+      mocks.clientScript([{ user_type: userType, extra_roles: [] }]); // assertMayActOnTarget (locked)
       await expect(
         adminRevokeAllUserSessions(mocks.deps, SECURITY_ADMIN, { userId: 'usr-2' })
       ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
-      expect(mocks.clientMock.query).not.toHaveBeenCalled();
+      expect(realQueries(mocks.clientMock.query)).not.toContain('UPDATE');
       expect(mocks.natsMock.publish).not.toHaveBeenCalled();
     }
   );
 
   it('lets a super_admin revoke all sessions of an admin account', async () => {
     const superSecurity: Principal = { ...SECURITY_ADMIN, roles: ['super_admin'] };
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'admin' }] });
+    mocks.clientScript([{ user_type: 'admin', extra_roles: [] }]); // assertMayActOnTarget (locked)
     mocks.clientScript([{ family_id: 'fam-1' }]);
     const res = await adminRevokeAllUserSessions(mocks.deps, superSecurity, { userId: 'usr-2' });
     expect(res.revokedCount).toBe(1);
@@ -377,7 +414,7 @@ describe('adminRevokeAllUserSessions', () => {
   });
 
   it('returns revoked_count 0 and skips the update when there are no active chains', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
+    mocks.clientScript([{ user_type: 'adopter', extra_roles: [] }]); // assertMayActOnTarget (locked)
     mocks.clientScript([]);
     const res = await adminRevokeAllUserSessions(mocks.deps, SECURITY_ADMIN, { userId: 'usr-2' });
     expect(res.revokedCount).toBe(0);
@@ -385,11 +422,29 @@ describe('adminRevokeAllUserSessions', () => {
   });
 
   it('revokes every active chain and publishes auth.allSessionsRevokedByAdmin', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
+    mocks.clientScript([{ user_type: 'adopter', extra_roles: [] }]); // assertMayActOnTarget (locked)
     mocks.clientScript([{ family_id: 'fam-1' }, { family_id: 'fam-2' }]);
 
     const res = await adminRevokeAllUserSessions(mocks.deps, SECURITY_ADMIN, { userId: 'usr-2' });
     expect(res.revokedCount).toBe(2);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.allSessionsRevokedByAdmin');
+  });
+
+  it('runs the elevated-target guard first inside the transaction, locking the target row', async () => {
+    mocks.clientScript([{ user_type: 'adopter', extra_roles: [] }]); // assertMayActOnTarget (locked)
+    mocks.clientScript([]);
+
+    await adminRevokeAllUserSessions(mocks.deps, SECURITY_ADMIN, { userId: 'usr-2' });
+
+    // The guard reads through the transaction client, never the pool (the
+    // pool only sees the post-commit outbox cleanup).
+    expect(
+      mocks.poolMock.query.mock.calls.filter(c => String(c[0]).includes('auth.user_roles'))
+    ).toEqual([]);
+    // Lock in its own statement, then read the roles in a fresh one.
+    const [lock, read] = clientSqlList(mocks.clientMock.query);
+    expect(lock).toContain('FOR NO KEY UPDATE');
+    expect(read).toContain('auth.user_roles');
+    expect(read).not.toMatch(/FOR (NO KEY )?UPDATE/);
   });
 });
