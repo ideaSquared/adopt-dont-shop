@@ -280,9 +280,12 @@ export async function adminRevokeSession(
     throw new HandlerError('NOT_FOUND', `session '${req.sessionId}' not found`);
   }
   const { family_id, user_id } = found.rows[0];
-  await assertMayActOnTarget(deps, principal, user_id);
 
   await withTransaction(deps, async ({ client, publish }) => {
+    // Guard first, on the transaction client: it locks the target row until
+    // commit.
+    await assertMayActOnTarget(deps, principal, user_id, client);
+
     // Same rotation trap as revokeSession (ADS-1162): the passed row may be
     // a rotation-revoked link while a live head survives in the family. Never
     // short-circuit on the single row's is_revoked flag — always run the
@@ -329,10 +332,13 @@ export async function adminRevokeAllUserSessions(
   if (!hasPermission(principal, ADMIN_SECURITY_MANAGE)) {
     throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_SECURITY_MANAGE}' required`);
   }
-  await assertMayActOnTarget(deps, principal, req.userId);
 
   let revokedCount = 0;
   await withTransaction(deps, async ({ client, publish }) => {
+    // Guard first, on the transaction client: it locks the target row until
+    // commit.
+    await assertMayActOnTarget(deps, principal, req.userId, client);
+
     const chains = await client.query<{ family_id: string }>(
       `
       SELECT DISTINCT family_id

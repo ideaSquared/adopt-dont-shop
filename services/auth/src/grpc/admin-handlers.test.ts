@@ -122,6 +122,20 @@ function makeMocks() {
   };
 }
 
+// Business writes the handler issued on the transaction client (the
+// transactional-outbox plumbing is not a handler write).
+const writeSqls = (m: ReturnType<typeof makeMocks>) =>
+  (m.clientMock.query.mock.calls as Array<[string]>)
+    .map(([sql]) => sql)
+    .filter(sql => /^\s*(UPDATE|INSERT|DELETE)/i.test(sql) && !sql.includes('event_outbox'));
+
+// SQL the handler ran on the transaction client, in order, minus the
+// transaction and outbox plumbing.
+const clientSqls = (m: ReturnType<typeof makeMocks>) =>
+  (m.clientMock.query.mock.calls as Array<[string]>)
+    .map(([sql]) => sql.trim())
+    .filter(sql => !/^(BEGIN|COMMIT|ROLLBACK)/i.test(sql) && !sql.includes('event_outbox'));
+
 const userRow = (overrides: Record<string, unknown> = {}) => ({
   user_id: 'usr-1',
   email: 'jane@example.com',
@@ -520,7 +534,7 @@ describe('deactivateUser', () => {
   });
 
   it('is idempotent when already deactivated', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter', extra_roles: [] }] }); // assertMayActOnTarget (locked)
     mocks.clientScript.push({ rows: [userRow({ status: 'deactivated' })] }); // locked current row
     const res = await deactivateUser(mocks.deps, ADMIN, { userId: 'usr-1' });
     expect(res.user?.status).toBe(AuthV1.UserStatus.USER_STATUS_DEACTIVATED);
@@ -528,7 +542,7 @@ describe('deactivateUser', () => {
   });
 
   it('deactivates an active user + publishes auth.userDeactivated', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter', extra_roles: [] }] }); // assertMayActOnTarget (locked)
     mocks.clientScript.push({ rows: [userRow({ status: 'active' })] }); // locked current row
     mocks.clientScript.push({ rows: [userRow({ status: 'deactivated' })] });
 
@@ -540,20 +554,38 @@ describe('deactivateUser', () => {
   // --- ADS-1293: elevated-target guard ----------------------------------
 
   it('blocks a plain admin from deactivating a super_admin target', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'super_admin' }] });
+    mocks.clientScript.push({ rows: [{ user_type: 'super_admin', extra_roles: [] }] }); // assertMayActOnTarget (locked)
     await expect(deactivateUser(mocks.deps, ADMIN, { userId: 'usr-target' })).rejects.toMatchObject(
       { code: 'PERMISSION_DENIED' }
     );
-    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+    expect(writeSqls(mocks)).toEqual([]);
   });
 
   it('allows a super_admin to deactivate a super_admin target', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'super_admin' }] });
+    mocks.clientScript.push({ rows: [{ user_type: 'super_admin', extra_roles: [] }] }); // assertMayActOnTarget (locked)
     mocks.clientScript.push({ rows: [userRow({ status: 'active' })] });
     mocks.clientScript.push({ rows: [userRow({ status: 'deactivated' })] });
 
     const res = await deactivateUser(mocks.deps, SUPER_ADMIN, { userId: 'usr-target' });
     expect(res.user?.status).toBe(AuthV1.UserStatus.USER_STATUS_DEACTIVATED);
+  });
+
+  it('runs the elevated-target guard first inside the transaction, locking the target row', async () => {
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter', extra_roles: [] }] }); // assertMayActOnTarget (locked)
+    mocks.clientScript.push({ rows: [userRow({ status: 'active' })] });
+    mocks.clientScript.push({ rows: [userRow({ status: 'deactivated' })] });
+
+    await deactivateUser(mocks.deps, ADMIN, { userId: 'usr-1' });
+
+    // The guard reads through the transaction client, never the pool (the
+    // pool only sees the post-commit outbox cleanup).
+    expect(
+      mocks.poolMock.query.mock.calls.filter(c => String(c[0]).includes('auth.user_roles'))
+    ).toEqual([]);
+    const [first] = clientSqls(mocks);
+    expect(first).toContain('auth.user_roles');
+    expect(first).toContain('FOR UPDATE');
+    expect(writeSqls(mocks)).toHaveLength(1);
   });
 });
 
@@ -572,7 +604,7 @@ describe('a status change by an admin overrides any timed suspension', () => {
       .find(sql => sql.includes('UPDATE auth.users'))!;
 
   it('reactivating clears suspended_until', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter', extra_roles: [] }] }); // assertMayActOnTarget (locked)
     mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });
     mocks.clientScript.push({ rows: [userRow({ status: 'active' })] });
     await reactivateUser(mocks.deps, ADMIN, { userId: 'usr-1' });
@@ -633,17 +665,17 @@ describe('reactivateUser', () => {
   it.each(['admin', 'moderator', 'super_admin'])(
     'refuses a plain admin reactivating a %s account',
     async userType => {
-      mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: userType }] });
+      mocks.clientScript.push({ rows: [{ user_type: userType, extra_roles: [] }] }); // assertMayActOnTarget (locked)
       await expect(reactivateUser(mocks.deps, ADMIN, { userId: 'usr-1' })).rejects.toMatchObject({
         code: 'PERMISSION_DENIED',
       });
-      expect(mocks.clientMock.query).not.toHaveBeenCalled();
+      expect(writeSqls(mocks)).toEqual([]);
       expect(mocks.natsMock.publish).not.toHaveBeenCalled();
     }
   );
 
   it('lets a super_admin reactivate an admin account', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'admin' }] });
+    mocks.clientScript.push({ rows: [{ user_type: 'admin', extra_roles: [] }] }); // assertMayActOnTarget (locked)
     mocks.clientScript.push({ rows: [userRow({ status: 'deactivated' })] });
     mocks.clientScript.push({ rows: [userRow({ status: 'active' })] });
     const res = await reactivateUser(mocks.deps, SUPER_ADMIN, { userId: 'usr-1' });
@@ -651,13 +683,31 @@ describe('reactivateUser', () => {
   });
 
   it('reactivates a deactivated user + publishes auth.userReactivated', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter', extra_roles: [] }] }); // assertMayActOnTarget (locked)
     mocks.clientScript.push({ rows: [userRow({ status: 'deactivated' })] });
     mocks.clientScript.push({ rows: [userRow({ status: 'active' })] });
 
     const res = await reactivateUser(mocks.deps, ADMIN, { userId: 'usr-1' });
     expect(res.user?.status).toBe(AuthV1.UserStatus.USER_STATUS_ACTIVE);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.userReactivated');
+  });
+
+  it('runs the elevated-target guard first inside the transaction, locking the target row', async () => {
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter', extra_roles: [] }] }); // assertMayActOnTarget (locked)
+    mocks.clientScript.push({ rows: [userRow({ status: 'deactivated' })] });
+    mocks.clientScript.push({ rows: [userRow({ status: 'active' })] });
+
+    await reactivateUser(mocks.deps, ADMIN, { userId: 'usr-1' });
+
+    // The guard reads through the transaction client, never the pool (the
+    // pool only sees the post-commit outbox cleanup).
+    expect(
+      mocks.poolMock.query.mock.calls.filter(c => String(c[0]).includes('auth.user_roles'))
+    ).toEqual([]);
+    const [first] = clientSqls(mocks);
+    expect(first).toContain('auth.user_roles');
+    expect(first).toContain('FOR UPDATE');
+    expect(writeSqls(mocks)).toHaveLength(1);
   });
 });
 
@@ -857,19 +907,17 @@ describe('adminUnlockAccount', () => {
   it.each(['admin', 'moderator', 'super_admin'])(
     'refuses a plain admin unlocking a %s account',
     async userType => {
-      mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: userType }] });
+      mocks.clientScript.push({ rows: [{ user_type: userType, extra_roles: [] }] }); // assertMayActOnTarget (locked)
       await expect(
         adminUnlockAccount(mocks.deps, SECURITY_ADMIN, { userId: 'usr-1' })
       ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
-      expect(mocks.clientMock.query).not.toHaveBeenCalled();
+      expect(writeSqls(mocks)).toEqual([]);
       expect(mocks.natsMock.publish).not.toHaveBeenCalled();
     }
   );
 
   it('refuses a plain admin unlocking an adopter holding an elevated additional role', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({
-      rows: [{ user_type: 'adopter', extra_roles: ['admin'] }],
-    });
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter', extra_roles: ['admin'] }] });
     await expect(
       adminUnlockAccount(mocks.deps, SECURITY_ADMIN, { userId: 'usr-1' })
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
@@ -877,10 +925,8 @@ describe('adminUnlockAccount', () => {
 
   it('lets a super_admin unlock an admin account', async () => {
     const superSecurity: Principal = { ...SECURITY_ADMIN, roles: ['super_admin'] };
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'admin' }] });
-    mocks.poolMock.query.mockResolvedValueOnce({
-      rows: [{ locked_until: new Date('2099-01-01T00:00:00Z') }],
-    });
+    mocks.clientScript.push({ rows: [{ user_type: 'admin', extra_roles: [] }] }); // assertMayActOnTarget (locked)
+    mocks.clientScript.push({ rows: [{ locked_until: new Date('2099-01-01T00:00:00Z') }] });
     mocks.clientScript.push({ rows: [] });
     const res = await adminUnlockAccount(mocks.deps, superSecurity, { userId: 'usr-1' });
     expect(res.wasLocked).toBe(true);
@@ -899,26 +945,24 @@ describe('adminUnlockAccount', () => {
   });
 
   it('maps a missing user to NOT_FOUND', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    mocks.clientScript.push({ rows: [] }); // assertMayActOnTarget: locked target lookup
     await expect(
       adminUnlockAccount(mocks.deps, SECURITY_ADMIN, { userId: 'ghost' })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
   it('is a no-op (no write, no publish) when the account is not locked', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ locked_until: null }] });
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter', extra_roles: [] }] }); // assertMayActOnTarget (locked)
+    mocks.clientScript.push({ rows: [{ locked_until: null }] });
     const res = await adminUnlockAccount(mocks.deps, SECURITY_ADMIN, { userId: 'usr-1' });
     expect(res.wasLocked).toBe(false);
-    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+    expect(writeSqls(mocks)).toEqual([]);
     expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 
   it('clears a future lockout, resets login_attempts, and publishes auth.accountUnlockedByAdmin', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
-    mocks.poolMock.query.mockResolvedValueOnce({
-      rows: [{ locked_until: new Date('2099-01-01T00:00:00Z') }],
-    });
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter', extra_roles: [] }] }); // assertMayActOnTarget (locked)
+    mocks.clientScript.push({ rows: [{ locked_until: new Date('2099-01-01T00:00:00Z') }] });
     mocks.clientScript.push({ rows: [] });
 
     const res = await adminUnlockAccount(mocks.deps, SECURITY_ADMIN, { userId: 'usr-1' });
@@ -931,6 +975,24 @@ describe('adminUnlockAccount', () => {
     expect(updateCall![0]).toMatch(/login_attempts = 0/);
     expect(updateCall![1]).toEqual(['usr-1']);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.accountUnlockedByAdmin');
+  });
+
+  it('runs the elevated-target guard first inside the transaction, locking the target row', async () => {
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter', extra_roles: [] }] }); // assertMayActOnTarget (locked)
+    mocks.clientScript.push({ rows: [{ locked_until: new Date('2099-01-01T00:00:00Z') }] });
+    mocks.clientScript.push({ rows: [] });
+
+    await adminUnlockAccount(mocks.deps, SECURITY_ADMIN, { userId: 'usr-1' });
+
+    // The guard reads through the transaction client, never the pool (the
+    // pool only sees the post-commit outbox cleanup).
+    expect(
+      mocks.poolMock.query.mock.calls.filter(c => String(c[0]).includes('auth.user_roles'))
+    ).toEqual([]);
+    const [first] = clientSqls(mocks);
+    expect(first).toContain('auth.user_roles');
+    expect(first).toContain('FOR UPDATE');
+    expect(writeSqls(mocks)).toHaveLength(1);
   });
 });
 
@@ -1874,7 +1936,7 @@ describe('admin user actions publish auth.actionTaken for the audit log', () => 
   });
 
   it('records a reactivation with actor, target and before/after status', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter', extra_roles: [] }] }); // assertMayActOnTarget (locked)
     mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });
     mocks.clientScript.push({ rows: [userRow({ status: 'active' })] });
 
@@ -1895,7 +1957,7 @@ describe('admin user actions publish auth.actionTaken for the audit log', () => 
   });
 
   it('records a deactivation with the reason', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] });
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter', extra_roles: [] }] }); // assertMayActOnTarget (locked)
     mocks.clientScript.push({ rows: [userRow({ status: 'active' })] });
     mocks.clientScript.push({ rows: [userRow({ status: 'deactivated' })] });
 

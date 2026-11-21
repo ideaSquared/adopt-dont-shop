@@ -128,25 +128,29 @@ export async function requestAccountDeletion(
   if (req.userId === principal.userId) {
     throw new HandlerError('INVALID_ARGUMENT', 'cannot schedule deletion of your own account');
   }
-  await assertMayActOnTarget(deps, principal, req.userId);
-
-  const current = await deps.pool.query<{ deletion_scheduled_at: Date | null }>(
-    `SELECT deletion_scheduled_at FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
-    [req.userId]
-  );
-  if (current.rows.length === 0) {
-    throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
-  }
-  // Idempotent — already scheduled. Return the existing date without
-  // re-deactivating or re-publishing.
-  const already = current.rows[0].deletion_scheduled_at;
-  if (already) {
-    return { deletionScheduledFor: already.toISOString() };
-  }
 
   const scheduledFor = new Date(Date.now() + DELETION_GRACE_DAYS * 24 * 60 * 60 * 1000);
 
+  let alreadyScheduledAt: Date | null = null;
   await withTransaction(deps, async ({ client, publish }) => {
+    // Guard first, on the transaction client: it locks the target row until
+    // commit.
+    await assertMayActOnTarget(deps, principal, req.userId, client);
+
+    const current = await client.query<{ deletion_scheduled_at: Date | null }>(
+      `SELECT deletion_scheduled_at FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
+      [req.userId]
+    );
+    if (current.rows.length === 0) {
+      throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
+    }
+    // Idempotent — already scheduled. Return the existing date without
+    // re-deactivating or re-publishing.
+    alreadyScheduledAt = current.rows[0].deletion_scheduled_at;
+    if (alreadyScheduledAt) {
+      return;
+    }
+
     // Deactivate (gates future logins via ValidateToken's status check) +
     // stamp the grace deadline + invalidate outstanding access tokens.
     await client.query(
@@ -171,5 +175,5 @@ export async function requestAccountDeletion(
     });
   });
 
-  return { deletionScheduledFor: scheduledFor.toISOString() };
+  return { deletionScheduledFor: (alreadyScheduledAt ?? scheduledFor).toISOString() };
 }

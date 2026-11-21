@@ -1124,6 +1124,16 @@ export async function assignRole(
   const roleId = roleRes.rows[0].role_id;
 
   await withTransaction(deps, async ({ client, publish }) => {
+    // Lock the target row before writing so this promotion is serialised
+    // against assertMayActOnTarget, which locks the same row (ENG-1498).
+    const locked = await client.query(
+      `SELECT user_id FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL FOR UPDATE`,
+      [req.targetUserId]
+    );
+    if (locked.rows.length === 0) {
+      throw new HandlerError('NOT_FOUND', `user ${req.targetUserId} not found`);
+    }
+
     // Idempotent on (user_id, role_id). The PK is composite so the
     // ON CONFLICT clause covers both reassignment and the re-assignment
     // case where assigned_by / assigned_at should refresh.

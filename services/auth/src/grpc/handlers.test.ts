@@ -1854,7 +1854,7 @@ describe('assignRole', () => {
     mocks.poolMock.query
       .mockResolvedValueOnce({ rows: [{ user_id: 'usr-1' }] }) // target exists
       .mockResolvedValueOnce({ rows: [{ role_id: 'role-1' }] }); // role exists
-    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [{ user_id: 'usr-1' }] }); // locked target row
 
     // After-commit role list
     mocks.poolMock.query
@@ -1918,7 +1918,7 @@ describe('assignRole', () => {
     mocks.poolMock.query
       .mockResolvedValueOnce({ rows: [{ user_id: 'usr-1' }] })
       .mockResolvedValueOnce({ rows: [{ role_id: 'role-1' }] });
-    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [{ user_id: 'usr-1' }] }); // locked target row
     mocks.poolMock.query
       .mockResolvedValueOnce({ rows: [{ user_type: 'admin' }] })
       .mockResolvedValueOnce({ rows: [{ name: 'admin' }] })
@@ -1935,7 +1935,7 @@ describe('assignRole', () => {
     mocks.poolMock.query
       .mockResolvedValueOnce({ rows: [{ user_id: 'usr-1' }] })
       .mockResolvedValueOnce({ rows: [{ role_id: 'role-1' }] });
-    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [{ user_id: 'usr-1' }] }); // locked target row
     mocks.poolMock.query
       .mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] })
       .mockResolvedValueOnce({ rows: [{ name: 'rescue_staff' }] })
@@ -1954,6 +1954,7 @@ describe('assignRole', () => {
       .mockResolvedValueOnce({ rows: [{ role_id: 'role-1' }] });
 
     const callOrder: string[] = [];
+    const lockSql: string[] = [];
     mocks.clientMock.query.mockImplementation(async (sql: string) => {
       // Skip the event_outbox INSERT/DELETE — framework infrastructure from
       // withTransaction's transactional outbox, not the handler's own queries.
@@ -1961,6 +1962,10 @@ describe('assignRole', () => {
         return { rows: [] };
       }
       callOrder.push(sql.trim().split(/\s+/)[0]);
+      if (sql.includes('FROM auth.users')) {
+        lockSql.push(sql);
+        return { rows: [{ user_id: 'usr-1' }] };
+      }
       return { rows: [] };
     });
     mocks.natsMock.publish.mockImplementation(() => {
@@ -1978,7 +1983,31 @@ describe('assignRole', () => {
       reason: 'onboarding',
     });
 
-    expect(callOrder).toEqual(['BEGIN', 'INSERT', 'COMMIT', 'NATS_PUBLISH']);
+    // The target auth.users row is locked before the role is written, so a
+    // concurrent promotion is serialised against assertMayActOnTarget.
+    expect(callOrder).toEqual(['BEGIN', 'SELECT', 'INSERT', 'COMMIT', 'NATS_PUBLISH']);
+    expect(lockSql).toHaveLength(1);
+    expect(lockSql[0]).toContain('FOR UPDATE');
+  });
+
+  it('NOT_FOUND, writing nothing, when the target is deleted before the row lock is taken', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [{ user_id: 'usr-1' }] }) // target exists
+      .mockResolvedValueOnce({ rows: [{ role_id: 'role-1' }] }); // role exists
+    mocks.clientMock.query.mockResolvedValue({ rows: [] }); // locked lookup finds nothing
+
+    await expect(
+      assignRole(mocks.deps, ADMIN_PRINCIPAL, {
+        targetUserId: 'usr-1',
+        role: AuthV1.UserRole.USER_ROLE_RESCUE_STAFF,
+      })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+
+    const writes = mocks.clientMock.query.mock.calls
+      .map(c => String(c[0]))
+      .filter(sql => /INSERT INTO auth\.user_roles/.test(sql));
+    expect(writes).toEqual([]);
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 });
 
