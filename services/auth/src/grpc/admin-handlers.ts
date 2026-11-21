@@ -9,6 +9,8 @@
 
 import { createHash, randomBytes, randomInt, randomUUID } from 'node:crypto';
 
+import type { PoolClient } from 'pg';
+
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction, type TransactionalScope } from '@adopt-dont-shop/events';
 import {
@@ -219,25 +221,47 @@ export const ELEVATED_ROLES: ReadonlySet<string> = new Set(['admin', 'moderator'
 // Invitation tokens are short-lived; the invitee must redeem within a week.
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-// Shared by adminResetPassword, adminUpdateUser, adminLockAccount, and
-// deactivateUser: a non-super-admin admin holds the underlying admin.*
-// permission for each of these actions, but must never be able to use it
-// against an admin/moderator/super_admin account — reset its password,
-// edit its fields, lock it, or deactivate it. Only a super_admin may act
-// on an elevated target (ADS-1291, ADS-1293).
-async function assertMayActOnTarget(
-  deps: HandlerDeps,
+// Shared by every handler that acts on another user's account: a
+// non-super-admin admin holds the underlying admin.* permission for each of
+// these actions, but must never be able to use it against an
+// admin/moderator/super_admin account — reset its password, edit, lock,
+// unlock, (de)activate, bulk-update, revoke sessions, or schedule deletion.
+// Only a super_admin may act on an elevated target (ADS-1291, ADS-1293,
+// ENG-1498).
+export async function assertMayActOnTarget(
+  deps: Pick<HandlerDeps, 'pool'>,
   principal: Principal,
-  targetUserId: string
+  targetUserId: string,
+  // Inside a transaction, pass its client: the target row is then locked
+  // (FOR UPDATE) until commit so the checked role cannot change underneath.
+  client?: Pick<PoolClient, 'query'>
 ): Promise<void> {
-  const { rows } = await deps.pool.query<{ user_type: string }>(
-    `SELECT user_type FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
+  // An adopter assigned admin/moderator through auth.user_roles is just as
+  // elevated as one whose primary user_type is, so check both sources.
+  const { rows } = await (client ?? deps.pool).query<{
+    user_type: string;
+    extra_roles: string[] | null;
+  }>(
+    `SELECT user_type,
+            COALESCE(
+              (SELECT array_agg(r.role_name)
+                 FROM auth.user_roles ur
+                 INNER JOIN auth.roles r ON r.role_id = ur.role_id
+                WHERE ur.user_id = auth.users.user_id),
+              '{}'
+            ) AS extra_roles
+       FROM auth.users
+      WHERE user_id = $1 AND deleted_at IS NULL${client ? '\n        FOR UPDATE' : ''}`,
     [targetUserId]
   );
   if (!rows[0]) {
     throw new HandlerError('NOT_FOUND', `user ${targetUserId} not found`);
   }
-  if (ELEVATED_ROLES.has(rows[0].user_type) && !principal.roles.includes('super_admin')) {
+  const heldRoles = [rows[0].user_type, ...(rows[0].extra_roles ?? [])];
+  if (
+    heldRoles.some(role => ELEVATED_ROLES.has(role)) &&
+    !principal.roles.includes('super_admin')
+  ) {
     throw new HandlerError(
       'PERMISSION_DENIED',
       'only a super_admin may act on an admin, moderator, or super_admin account'
@@ -578,6 +602,7 @@ export async function reactivateUser(
   if (!hasPermission(principal, ADMIN_USERS_REACTIVATE)) {
     throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_USERS_REACTIVATE}' required`);
   }
+  await assertMayActOnTarget(deps, principal, req.userId);
   return setStatus(deps, principal, req.userId, 'active', null);
 }
 
@@ -933,6 +958,7 @@ export async function adminUnlockAccount(
   if (!hasPermission(principal, ADMIN_SECURITY_MANAGE)) {
     throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_SECURITY_MANAGE}' required`);
   }
+  await assertMayActOnTarget(deps, principal, req.userId);
 
   const current = await deps.pool.query<{ locked_until: Date | null }>(
     `SELECT locked_until FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
@@ -1240,6 +1266,7 @@ export async function bulkUpdateUsers(
   for (const userId of req.userIds) {
     try {
       await withTransaction(deps, async ({ client, publish }) => {
+        await assertMayActOnTarget(deps, principal, userId, client);
         // Lock the row and return its previous status/role for the audit
         // before-state.
         const res = await client.query<{

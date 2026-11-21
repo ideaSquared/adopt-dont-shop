@@ -262,6 +262,32 @@ describe('adminRevokeSession', () => {
     mocks = makeMocks();
   });
 
+  it.each(['admin', 'moderator', 'super_admin'])(
+    "refuses a plain admin revoking a %s account's session",
+    async userType => {
+      mocks.poolMock.query.mockResolvedValueOnce({
+        rows: [{ family_id: 'fam-1', user_id: 'usr-2' }],
+      });
+      mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: userType }] });
+      await expect(
+        adminRevokeSession(mocks.deps, SECURITY_ADMIN, { sessionId: 'tok-1' })
+      ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+      expect(mocks.clientMock.query).not.toHaveBeenCalled();
+      expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+    }
+  );
+
+  it("lets a super_admin revoke an admin account's session", async () => {
+    const superSecurity: Principal = { ...SECURITY_ADMIN, roles: ['super_admin'] };
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ family_id: 'fam-1', user_id: 'usr-2' }],
+    });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'admin' }] });
+    mocks.clientScript([], 1);
+    const res = await adminRevokeSession(mocks.deps, superSecurity, { sessionId: 'tok-1' });
+    expect(res.sessionId).toBe('tok-1');
+  });
+
   it('rejects without admin.security.manage', async () => {
     await expect(
       adminRevokeSession(mocks.deps, PRINCIPAL, { sessionId: 'tok-1' })
@@ -279,6 +305,7 @@ describe('adminRevokeSession', () => {
     mocks.poolMock.query.mockResolvedValueOnce({
       rows: [{ family_id: 'fam-1', user_id: 'usr-2', is_revoked: false }],
     });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
     mocks.clientScript([]);
 
     const res = await adminRevokeSession(mocks.deps, SECURITY_ADMIN, { sessionId: 'tok-1' });
@@ -295,6 +322,7 @@ describe('adminRevokeSession', () => {
     mocks.poolMock.query.mockResolvedValueOnce({
       rows: [{ family_id: 'fam-1', user_id: 'usr-2' }],
     });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
     // Family-wide revoke flips the surviving live head → rowCount 1.
     mocks.clientScript([], 1);
 
@@ -308,6 +336,7 @@ describe('adminRevokeSession', () => {
     mocks.poolMock.query.mockResolvedValueOnce({
       rows: [{ family_id: 'fam-1', user_id: 'usr-2' }],
     });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
     mocks.clientScript([], 0); // family-revoke UPDATE affects 0 rows
     const res = await adminRevokeSession(mocks.deps, SECURITY_ADMIN, { sessionId: 'tok-1' });
     expect(res.sessionId).toBe('tok-1');
@@ -321,6 +350,26 @@ describe('adminRevokeAllUserSessions', () => {
     mocks = makeMocks();
   });
 
+  it.each(['admin', 'moderator', 'super_admin'])(
+    'refuses a plain admin revoking all sessions of a %s account',
+    async userType => {
+      mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: userType }] });
+      await expect(
+        adminRevokeAllUserSessions(mocks.deps, SECURITY_ADMIN, { userId: 'usr-2' })
+      ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+      expect(mocks.clientMock.query).not.toHaveBeenCalled();
+      expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+    }
+  );
+
+  it('lets a super_admin revoke all sessions of an admin account', async () => {
+    const superSecurity: Principal = { ...SECURITY_ADMIN, roles: ['super_admin'] };
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'admin' }] });
+    mocks.clientScript([{ family_id: 'fam-1' }]);
+    const res = await adminRevokeAllUserSessions(mocks.deps, superSecurity, { userId: 'usr-2' });
+    expect(res.revokedCount).toBe(1);
+  });
+
   it('rejects without admin.security.manage', async () => {
     await expect(
       adminRevokeAllUserSessions(mocks.deps, PRINCIPAL, { userId: 'usr-2' })
@@ -328,6 +377,7 @@ describe('adminRevokeAllUserSessions', () => {
   });
 
   it('returns revoked_count 0 and skips the update when there are no active chains', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
     mocks.clientScript([]);
     const res = await adminRevokeAllUserSessions(mocks.deps, SECURITY_ADMIN, { userId: 'usr-2' });
     expect(res.revokedCount).toBe(0);
@@ -335,6 +385,7 @@ describe('adminRevokeAllUserSessions', () => {
   });
 
   it('revokes every active chain and publishes auth.allSessionsRevokedByAdmin', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
     mocks.clientScript([{ family_id: 'fam-1' }, { family_id: 'fam-2' }]);
 
     const res = await adminRevokeAllUserSessions(mocks.deps, SECURITY_ADMIN, { userId: 'usr-2' });
