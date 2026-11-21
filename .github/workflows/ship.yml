@@ -97,11 +97,11 @@ jobs:
       contents: read
       checks: read
       deployments: read
-    uses: ideaSquared/shipper/.github/workflows/gate.yml@d0c19f9e3b3eb634f17ffd7cfec610d30883b1ec # v1 (shipper#10)
+    uses: ideaSquared/shipper/.github/workflows/gate.yml@faf1fd936bcba4dd2f1a60ce33f18298ca1cb19c # v1
     with:
       environment: ${{ needs.target.outputs.environment }}
       # Same commit as the uses: line (ADS pins every action to a SHA, see workflows/README.md).
-      shipper-ref: d0c19f9e3b3eb634f17ffd7cfec610d30883b1ec
+      shipper-ref: faf1fd936bcba4dd2f1a60ce33f18298ca1cb19c
     secrets: inherit
 
   deploy:
@@ -125,9 +125,9 @@ jobs:
     permissions:
       contents: read
       deployments: read
-    uses: ideaSquared/shipper/.github/workflows/report.yml@d0c19f9e3b3eb634f17ffd7cfec610d30883b1ec # v1 (shipper#10)
+    uses: ideaSquared/shipper/.github/workflows/report.yml@faf1fd936bcba4dd2f1a60ce33f18298ca1cb19c # v1
     with:
       environment: ${{ needs.target.outputs.environment }}
       outcome: ${{ needs.deploy.result }}
-      shipper-ref: d0c19f9e3b3eb634f17ffd7cfec610d30883b1ec
+      shipper-ref: faf1fd936bcba4dd2f1a60ce33f18298ca1cb19c
     secrets: inherit
