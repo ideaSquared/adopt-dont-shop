@@ -595,7 +595,7 @@ describe('a status change by an admin overrides any timed suspension', () => {
   });
 
   it('a bulk status change clears suspended_until', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter', extra_roles: [] }] }); // assertMayActOnTarget (locked)
     mocks.clientScript.push({ rows: [{ user_id: 'usr-1' }] });
     await bulkUpdateUsers(
       mocks.deps,
@@ -865,6 +865,15 @@ describe('adminUnlockAccount', () => {
       expect(mocks.natsMock.publish).not.toHaveBeenCalled();
     }
   );
+
+  it('refuses a plain admin unlocking an adopter holding an elevated additional role', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ user_type: 'adopter', extra_roles: ['admin'] }],
+    });
+    await expect(
+      adminUnlockAccount(mocks.deps, SECURITY_ADMIN, { userId: 'usr-1' })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
 
   it('lets a super_admin unlock an admin account', async () => {
     const superSecurity: Principal = { ...SECURITY_ADMIN, roles: ['super_admin'] };
@@ -1260,6 +1269,11 @@ describe('getUserPermissions — permission grants (ADS-1141)', () => {
 
 // --- bulkUpdateUsers -------------------------------------------------
 
+const updateStatements = (m: ReturnType<typeof makeMocks>) =>
+  (m.clientMock.query.mock.calls as Array<[string]>).filter(([sql]) =>
+    sql.includes('UPDATE auth.users')
+  );
+
 describe('bulkUpdateUsers', () => {
   let mocks: ReturnType<typeof makeMocks>;
   beforeEach(() => {
@@ -1380,7 +1394,7 @@ describe('bulkUpdateUsers', () => {
   });
 
   it('allows a super_admin to bulk-assign admin/moderator/super_admin', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter', extra_roles: [] }] }); // assertMayActOnTarget (locked)
     mocks.clientScript.push({ rows: [{ user_id: 'usr-2' }] });
 
     const res = await bulkUpdateUsers(
@@ -1399,9 +1413,9 @@ describe('bulkUpdateUsers', () => {
     ['status', { status: AuthV1.UserStatus.USER_STATUS_DEACTIVATED }],
     ['user_type', { userType: AuthV1.UserRole.USER_ROLE_ADOPTER }],
   ])('refuses a plain admin changing %s of an elevated account', async (_label, change) => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'super_admin' }] });
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'admin' }] });
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'moderator' }] });
+    mocks.clientScript.push({ rows: [{ user_type: 'super_admin', extra_roles: [] }] });
+    mocks.clientScript.push({ rows: [{ user_type: 'admin', extra_roles: [] }] });
+    mocks.clientScript.push({ rows: [{ user_type: 'moderator', extra_roles: [] }] });
 
     const res = await bulkUpdateUsers(
       mocks.deps,
@@ -1412,13 +1426,49 @@ describe('bulkUpdateUsers', () => {
     expect(res.successCount).toBe(0);
     expect(res.failedCount).toBe(3);
     expect(res.results.every(r => !r.success && r.error?.includes('super_admin'))).toBe(true);
-    expect(mocks.poolMock.connect).not.toHaveBeenCalled();
+    expect(updateStatements(mocks)).toHaveLength(0);
     expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 
+  it('refuses a plain admin acting on an adopter holding an elevated additional role', async () => {
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter', extra_roles: ['moderator'] }] });
+
+    const res = await bulkUpdateUsers(
+      mocks.deps,
+      ADMIN,
+      AuthV1.BulkUpdateUsersRequest.fromPartial({
+        userIds: ['usr-1'],
+        status: AuthV1.UserStatus.USER_STATUS_DEACTIVATED,
+      })
+    );
+
+    expect(res.failedCount).toBe(1);
+    expect(updateStatements(mocks)).toHaveLength(0);
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('locks the target row before checking its roles', async () => {
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter', extra_roles: [] }] });
+    mocks.clientScript.push({ rows: [{ user_id: 'usr-1' }] });
+
+    await bulkUpdateUsers(
+      mocks.deps,
+      ADMIN,
+      AuthV1.BulkUpdateUsersRequest.fromPartial({
+        userIds: ['usr-1'],
+        status: AuthV1.UserStatus.USER_STATUS_DEACTIVATED,
+      })
+    );
+
+    const guard = (mocks.clientMock.query.mock.calls as Array<[string]>)
+      .map(([sql]) => sql)
+      .find(sql => sql.includes('SELECT user_type'));
+    expect(guard).toMatch(/FOR UPDATE/);
+  });
+
   it('updates only the non-elevated targets of a mixed bulk request', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'admin' }] });
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] });
+    mocks.clientScript.push({ rows: [{ user_type: 'admin', extra_roles: [] }] });
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter', extra_roles: [] }] });
     mocks.clientScript.push({ rows: [{ user_id: 'usr-2' }] });
 
     const res = await bulkUpdateUsers(
@@ -1435,7 +1485,7 @@ describe('bulkUpdateUsers', () => {
   });
 
   it('lets a super_admin bulk-deactivate an admin account', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'admin' }] });
+    mocks.clientScript.push({ rows: [{ user_type: 'admin', extra_roles: [] }] });
     mocks.clientScript.push({ rows: [{ user_id: 'usr-1' }] });
 
     const res = await bulkUpdateUsers(
@@ -1451,7 +1501,7 @@ describe('bulkUpdateUsers', () => {
   });
 
   it('allows a plain admin to bulk-assign a non-elevated role', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter', extra_roles: [] }] }); // assertMayActOnTarget (locked)
     mocks.clientScript.push({ rows: [{ user_id: 'usr-2' }] });
 
     const res = await bulkUpdateUsers(
@@ -1468,12 +1518,9 @@ describe('bulkUpdateUsers', () => {
 
   it('returns per-id results — one success, one not-found', async () => {
     // First id updates. Second id does not exist, so the target check fails.
-    mocks.poolMock.query.mockImplementation(async (sql: string, params?: unknown[]) =>
-      sql.includes('SELECT user_type') && params?.[0] === 'usr-1'
-        ? { rows: [{ user_type: 'adopter' }] }
-        : { rows: [] }
-    );
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter', extra_roles: [] }] });
     mocks.clientScript.push({ rows: [{ user_id: 'usr-1' }] });
+    mocks.clientScript.push({ rows: [] });
 
     const res = await bulkUpdateUsers(
       mocks.deps,
@@ -1860,11 +1907,9 @@ describe('admin user actions publish auth.actionTaken for the audit log', () => 
   });
 
   it('records each id of a bulk status change', async () => {
-    // Per-id guard lookups; the pool is also read after each commit, so key on the SQL.
-    mocks.poolMock.query.mockImplementation(async (sql: string) =>
-      sql.includes('SELECT user_type') ? { rows: [{ user_type: 'adopter' }] } : { rows: [] }
-    );
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter', extra_roles: [] }] }); // assertMayActOnTarget (locked)
     mocks.clientScript.push({ rows: [{ user_id: 'usr-1' }] });
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter', extra_roles: [] }] }); // assertMayActOnTarget (locked)
     mocks.clientScript.push({ rows: [{ user_id: 'usr-2' }] });
 
     await bulkUpdateUsers(
@@ -1934,7 +1979,7 @@ describe('admin user actions publish auth.actionTaken for the audit log', () => 
   });
 
   it('records the previous status and role of each id of a bulk change', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter', extra_roles: [] }] });
     mocks.clientScript.push({
       rows: [{ user_id: 'usr-1', prev_status: 'active', prev_user_type: 'adopter' }],
     });
