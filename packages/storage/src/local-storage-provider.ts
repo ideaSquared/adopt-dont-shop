@@ -52,7 +52,7 @@ export class LocalStorageProvider implements StorageProvider {
       // Process images only — non-image content (e.g. application/pdf) passes
       // through untouched.
       if (contentType.startsWith('image/')) {
-        processedBuffer = await this.processImage(file, contentType);
+        processedBuffer = await this.processImage(file);
       }
 
       await fs.writeFile(fullPath, processedBuffer);
@@ -77,7 +77,7 @@ export class LocalStorageProvider implements StorageProvider {
   }
 
   // Fails closed: an image sharp cannot process is rejected, never stored as-is.
-  private async processImage(buffer: Buffer, contentType: string): Promise<Buffer> {
+  private async processImage(buffer: Buffer): Promise<Buffer> {
     const image = sharp(buffer, { limitInputPixels: MAX_IMAGE_PIXELS });
     const metadata = await image.metadata();
 
@@ -92,12 +92,10 @@ export class LocalStorageProvider implements StorageProvider {
         .toBuffer();
     }
 
-    // Convert to JPEG for consistency and smaller size
-    if (contentType !== 'image/jpeg') {
-      return await image.jpeg({ quality: 90 }).toBuffer();
-    }
-
-    return buffer;
+    // Always re-encode (JPEG stays JPEG): metadata() only parses the header, so
+    // returning the original bytes would keep EXIF/GPS data and accept corrupt
+    // pixel data. sharp drops metadata on output by default.
+    return await image.jpeg({ quality: 90 }).toBuffer();
   }
 
   async deleteFile(filename: string, category: string = 'documents'): Promise<void> {

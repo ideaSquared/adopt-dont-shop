@@ -1,6 +1,7 @@
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import sharp from 'sharp';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { StorageCategory } from './base-provider.js';
 import { LocalStorageProvider } from './local-storage-provider.js';
@@ -18,16 +19,21 @@ const ONE_BY_ONE_PNG = Buffer.from(
 );
 
 describe('LocalStorageProvider', () => {
+  // The upload dir lives inside a private temp root so tests only ever inspect
+  // their own tree, never the shared system temp dir.
+  let root: string;
   let dir: string;
   let provider: LocalStorageProvider;
 
   beforeEach(async () => {
-    dir = await mkdtemp(path.join(tmpdir(), 'storage-local-'));
+    root = await mkdtemp(path.join(tmpdir(), 'storage-local-'));
+    dir = path.join(root, 'uploads');
+    await mkdir(dir);
     provider = new LocalStorageProvider(makeConfig(dir));
   });
 
   afterEach(async () => {
-    await rm(dir, { recursive: true, force: true });
+    await rm(root, { recursive: true, force: true });
   });
 
   it('writes an uploaded file and returns url, filename and size with the public path', async () => {
@@ -85,9 +91,6 @@ describe('LocalStorageProvider', () => {
   it.each(['../escape', 'a/b', 'a\\b', '..', ''])(
     'rejects an unsafe upload category %j and writes nothing outside the upload dir',
     async category => {
-      const parent = path.dirname(dir);
-      const before = await readdir(parent);
-
       await expect(
         // Deliberately bypasses the StorageCategory union to model a future caller forwarding user input.
         provider.uploadFile(
@@ -99,7 +102,7 @@ describe('LocalStorageProvider', () => {
         )
       ).rejects.toThrow(/unsafe/);
 
-      expect(await readdir(parent)).toEqual(before);
+      expect(await readdir(root)).toEqual(['uploads']);
       expect(await readdir(dir)).toEqual([]);
     }
   );
@@ -108,6 +111,43 @@ describe('LocalStorageProvider', () => {
     const notAnImage = Buffer.from('not really an image');
 
     await expect(provider.uploadFile(notAnImage, 'bad.png', 'image/png', 'pets')).rejects.toThrow();
+
+    expect(await readdir(path.join(dir, 'pets')).catch(() => [])).toEqual([]);
+  });
+
+  it('re-encodes a small JPEG so embedded EXIF metadata is stripped', async () => {
+    const withExif = await sharp({
+      create: { width: 64, height: 64, channels: 3, background: '#ff0000' },
+    })
+      .jpeg()
+      .withExif({ IFD0: { Copyright: 'private-gps-owner' } })
+      .toBuffer();
+    expect((await sharp(withExif).metadata()).exif).toBeDefined();
+
+    const result = await provider.uploadFile(withExif, 'photo.jpg', 'image/jpeg', 'pets');
+
+    const stored = await readFile(path.join(dir, 'pets', result.filename));
+    const metadata = await sharp(stored).metadata();
+    expect(metadata.format).toBe('jpeg');
+    expect(metadata.exif).toBeUndefined();
+  });
+
+  it('rejects a small JPEG with a readable header but corrupt pixel data', async () => {
+    const valid = await sharp({
+      create: {
+        width: 800,
+        height: 800,
+        channels: 3,
+        background: '#000000',
+        noise: { type: 'gaussian', mean: 128, sigma: 60 },
+      },
+    })
+      .jpeg()
+      .toBuffer();
+    const corrupt = Buffer.from(valid.subarray(0, valid.length >> 1));
+    expect((await sharp(corrupt).metadata()).width).toBe(800);
+
+    await expect(provider.uploadFile(corrupt, 'bad.jpg', 'image/jpeg', 'pets')).rejects.toThrow();
 
     expect(await readdir(path.join(dir, 'pets')).catch(() => [])).toEqual([]);
   });
