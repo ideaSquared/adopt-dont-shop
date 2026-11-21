@@ -48,6 +48,14 @@ services:
       - SETGID
     security_opt:
       - no-new-privileges:true
+    # Read-only rootfs like every other nginx container. Writable: the pid
+    # file (/var/run, which the healthcheck and `nginx -s reload` use) and the
+    # temp dirs. /var/log/nginx stays on the rootfs: the image symlinks its
+    # log files to /dev/stdout, which a tmpfs would hide.
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
     healthcheck:
       test: ['CMD-SHELL', 'nginx -t 2>/dev/null && test -f /var/run/nginx.pid']
       interval: 30s
@@ -76,6 +84,12 @@ services:
       - certbot_webroot:/var/www/certbot
       - letsencrypt:/etc/letsencrypt
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done'"
+    # Renews as root (it writes the TLS key volume) but needs no capabilities:
+    # root owns the files it rewrites.
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       - nginx
     deploy:
