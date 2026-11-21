@@ -237,7 +237,9 @@ describe('POST /api/v1/rescues/register', () => {
 
   it('logs a failed rollback through the gateway logger, without the owner email', async () => {
     m.registerRescueOwner.mockResolvedValueOnce({ user: { userId: 'usr-owner' } });
-    m.registerRescue.mockRejectedValueOnce(new Error('rescue unreachable'));
+    m.registerRescue.mockRejectedValueOnce(
+      Object.assign(new Error('bad postcode'), { code: 3 /* INVALID_ARGUMENT */ })
+    );
     m.deleteUnverifiedRescueOwner.mockRejectedValueOnce(new Error('auth unreachable'));
 
     await post(FORM_BODY);
@@ -247,6 +249,32 @@ describe('POST /api/v1/rescues/register', () => {
     );
     expect(event).toBeDefined();
     expect(JSON.stringify(event)).not.toContain(FORM_BODY.email);
+  });
+
+  it.each([
+    ['DEADLINE_EXCEEDED', 4],
+    ['UNAVAILABLE', 14],
+    ['INTERNAL', 13],
+  ])(
+    'keeps the owner account when rescue creation fails with %s, since the rescue may already exist',
+    async (_name, code) => {
+      m.registerRescueOwner.mockResolvedValueOnce({ user: { userId: 'usr-owner' } });
+      m.registerRescue.mockRejectedValueOnce(Object.assign(new Error('no answer'), { code }));
+
+      const res = await post(FORM_BODY);
+
+      expect(res.statusCode).toBeGreaterThanOrEqual(500);
+      expect(m.deleteUnverifiedRescueOwner).not.toHaveBeenCalled();
+    }
+  );
+
+  it('keeps the owner account when rescue creation throws a non-gRPC error', async () => {
+    m.registerRescueOwner.mockResolvedValueOnce({ user: { userId: 'usr-owner' } });
+    m.registerRescue.mockRejectedValueOnce(new Error('socket hang up'));
+
+    await post(FORM_BODY);
+
+    expect(m.deleteUnverifiedRescueOwner).not.toHaveBeenCalled();
   });
 
   it('does not attempt a rollback when the owner email already existed (nothing new was created)', async () => {
