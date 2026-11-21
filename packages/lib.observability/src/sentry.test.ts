@@ -70,6 +70,34 @@ describe('redactSentryContext', () => {
     });
   });
 
+  it('keeps null and blank PII values, and drops non-string PII values wholesale', () => {
+    const event = {
+      extra: {
+        email: null,
+        phone: '   ',
+        address: { line1: '1 High Street' },
+        postcode: undefined,
+      },
+    };
+
+    const result = redactSentryContext(event);
+
+    expect(result.extra).toEqual({
+      email: null,
+      phone: '   ',
+      address: '[REDACTED]',
+      postcode: undefined,
+    });
+  });
+
+  it('keeps breadcrumbs without data as they are', () => {
+    const event = { breadcrumbs: [{ category: 'navigation', data: undefined }] };
+
+    expect(redactSentryContext(event).breadcrumbs).toEqual([
+      { category: 'navigation', data: undefined },
+    ]);
+  });
+
   it('applies the same scrub to breadcrumb data', () => {
     const event = {
       breadcrumbs: [{ category: 'xhr', data: { password: 'pw', email: 'x@y.com', url: '/pets' } }],
