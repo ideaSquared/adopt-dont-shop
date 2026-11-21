@@ -202,14 +202,36 @@ describe('requestAccountDeletion', () => {
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
+  it.each(['admin', 'moderator', 'super_admin'])(
+    'refuses a plain admin scheduling deletion of a %s account',
+    async userType => {
+      mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: userType }] });
+      await expect(
+        requestAccountDeletion(mocks.deps, DELETE_ADMIN, { userId: 'usr-1' })
+      ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+      expect(mocks.clientMock.query).not.toHaveBeenCalled();
+      expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+    }
+  );
+
+  it('lets a super_admin schedule deletion of an admin account', async () => {
+    const superDeleter: Principal = { ...DELETE_ADMIN, roles: ['super_admin'] };
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'admin' }] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ deletion_scheduled_at: null }] });
+    mocks.clientScript.push({ rows: [] });
+    await requestAccountDeletion(mocks.deps, superDeleter, { userId: 'usr-1' });
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.accountDeletionRequested');
+  });
+
   it('returns NOT_FOUND when the user does not exist', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // current select
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // target lookup
     await expect(
       requestAccountDeletion(mocks.deps, DELETE_ADMIN, { userId: 'ghost' })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
   it('is idempotent when deletion is already scheduled (no re-deactivate / publish)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
     const scheduled = new Date('2026-12-01T00:00:00Z');
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ deletion_scheduled_at: scheduled }] });
 
@@ -221,6 +243,7 @@ describe('requestAccountDeletion', () => {
   });
 
   it('deactivates, stamps the grace deadline, and publishes the deletion event', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ deletion_scheduled_at: null }] });
     mocks.clientScript.push({ rows: [] }); // UPDATE
 

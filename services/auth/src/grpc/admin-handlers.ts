@@ -219,14 +219,15 @@ export const ELEVATED_ROLES: ReadonlySet<string> = new Set(['admin', 'moderator'
 // Invitation tokens are short-lived; the invitee must redeem within a week.
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-// Shared by adminResetPassword, adminUpdateUser, adminLockAccount, and
-// deactivateUser: a non-super-admin admin holds the underlying admin.*
-// permission for each of these actions, but must never be able to use it
-// against an admin/moderator/super_admin account — reset its password,
-// edit its fields, lock it, or deactivate it. Only a super_admin may act
-// on an elevated target (ADS-1291, ADS-1293).
-async function assertMayActOnTarget(
-  deps: HandlerDeps,
+// Shared by every handler that acts on another user's account: a
+// non-super-admin admin holds the underlying admin.* permission for each of
+// these actions, but must never be able to use it against an
+// admin/moderator/super_admin account — reset its password, edit, lock,
+// unlock, (de)activate, bulk-update, revoke sessions, or schedule deletion.
+// Only a super_admin may act on an elevated target (ADS-1291, ADS-1293,
+// ENG-1498).
+export async function assertMayActOnTarget(
+  deps: Pick<HandlerDeps, 'pool'>,
   principal: Principal,
   targetUserId: string
 ): Promise<void> {
@@ -578,6 +579,7 @@ export async function reactivateUser(
   if (!hasPermission(principal, ADMIN_USERS_REACTIVATE)) {
     throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_USERS_REACTIVATE}' required`);
   }
+  await assertMayActOnTarget(deps, principal, req.userId);
   return setStatus(deps, principal, req.userId, 'active', null);
 }
 
@@ -933,6 +935,7 @@ export async function adminUnlockAccount(
   if (!hasPermission(principal, ADMIN_SECURITY_MANAGE)) {
     throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_SECURITY_MANAGE}' required`);
   }
+  await assertMayActOnTarget(deps, principal, req.userId);
 
   const current = await deps.pool.query<{ locked_until: Date | null }>(
     `SELECT locked_until FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
@@ -1239,6 +1242,7 @@ export async function bulkUpdateUsers(
   const results: BulkUpdateUsersResponse['results'] = [];
   for (const userId of req.userIds) {
     try {
+      await assertMayActOnTarget(deps, principal, userId);
       await withTransaction(deps, async ({ client, publish }) => {
         // Lock the row and return its previous status/role for the audit
         // before-state.

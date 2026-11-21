@@ -20,6 +20,7 @@ import {
   type RequestAccountDeletionResponse,
 } from '@adopt-dont-shop/proto';
 
+import { assertMayActOnTarget } from './admin-handlers.js';
 import { HandlerError, rowToProtoUser, type HandlerDeps, type UserRow } from './handlers.js';
 import { privacyPrefsRowToProto, type PrivacyPrefsRow } from './privacy-prefs-handlers.js';
 
@@ -127,6 +128,7 @@ export async function requestAccountDeletion(
   if (req.userId === principal.userId) {
     throw new HandlerError('INVALID_ARGUMENT', 'cannot schedule deletion of your own account');
   }
+  await assertMayActOnTarget(deps, principal, req.userId);
 
   const current = await deps.pool.query<{ deletion_scheduled_at: Date | null }>(
     `SELECT deletion_scheduled_at FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
