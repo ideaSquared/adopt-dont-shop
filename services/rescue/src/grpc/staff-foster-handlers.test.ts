@@ -245,13 +245,13 @@ describe('createStaffMember', () => {
 
   it('rejects missing rescue_id', async () => {
     await expect(
-      createStaffMember(mocks.deps, STAFF_MANAGER, { ...baseReq, rescueId: '' })
+      createStaffMember(mocks.deps, ADMIN, { ...baseReq, rescueId: '' })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
   it('rejects missing user_id', async () => {
     await expect(
-      createStaffMember(mocks.deps, STAFF_MANAGER, { ...baseReq, userId: '' })
+      createStaffMember(mocks.deps, ADMIN, { ...baseReq, userId: '' })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
@@ -261,18 +261,39 @@ describe('createStaffMember', () => {
     });
   });
 
+  it('rejects rescue staff holding staff.create adding another user without consent', async () => {
+    await expect(createStaffMember(mocks.deps, STAFF_MANAGER, baseReq)).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+  });
+
+  it('rejects a user who is already staff of another rescue', async () => {
+    mocks.clientScript([]); // not yet in this rescue
+    mocks.clientScript([staffRow({ user_id: 'usr-new', rescue_id: 'rsc-other' })]);
+    await expect(createStaffMember(mocks.deps, ADMIN, baseReq)).rejects.toMatchObject({
+      code: 'ALREADY_EXISTS',
+    });
+    expect(
+      mocks.clientMock.query.mock.calls.some(([sql]) =>
+        /INSERT INTO rescue\.staff_members/.test(String(sql))
+      )
+    ).toBe(false);
+  });
+
   it('rejects a user who is already a staff member of the rescue', async () => {
     mocks.clientScript([staffRow({ user_id: 'usr-new' })]);
-    await expect(createStaffMember(mocks.deps, STAFF_MANAGER, baseReq)).rejects.toMatchObject({
+    await expect(createStaffMember(mocks.deps, ADMIN, baseReq)).rejects.toMatchObject({
       code: 'ALREADY_EXISTS',
     });
   });
 
   it('inserts a verified staff member + publishes rescue.staffMemberCreated', async () => {
     mocks.clientScript([]); // existing membership check → none
+    mocks.clientScript([]); // other-rescue membership check → none
     mocks.clientScript([staffRow({ user_id: 'usr-new', title: 'Volunteer' })]); // insert
 
-    const res = await createStaffMember(mocks.deps, STAFF_MANAGER, baseReq);
+    const res = await createStaffMember(mocks.deps, ADMIN, baseReq);
 
     expect(res.staffMember?.userId).toBe('usr-new');
     expect(res.staffMember?.isVerified).toBe(true);
@@ -281,9 +302,10 @@ describe('createStaffMember', () => {
 
   it('audits the addition as rescue.actionTaken', async () => {
     mocks.clientScript([]);
+    mocks.clientScript([]);
     mocks.clientScript([staffRow({ user_id: 'usr-new' })]);
 
-    await createStaffMember(mocks.deps, STAFF_MANAGER, baseReq);
+    await createStaffMember(mocks.deps, ADMIN, baseReq);
 
     const [event] = publishedOn(mocks, 'rescue.actionTaken');
     expect(event.payload).toMatchObject({
@@ -293,7 +315,7 @@ describe('createStaffMember', () => {
       service: 'service.rescue',
       subject: 'rescue.actionTaken',
       aggregateType: 'staff_member',
-      actorUserId: STAFF_MANAGER.userId,
+      actorUserId: ADMIN.userId,
       action: 'create',
       outcome: 'success',
       payload: { rescueId: RESCUE_ID, userId: baseReq.userId },
@@ -302,6 +324,7 @@ describe('createStaffMember', () => {
 
   it('does not audit when the insert fails', async () => {
     mocks.clientScript([]);
+    mocks.clientScript([]);
     mocks.clientMock.query.mockImplementation(async (sql: string) => {
       if (/INSERT INTO rescue\.staff_members/.test(sql)) {
         throw new Error('boom');
@@ -309,7 +332,7 @@ describe('createStaffMember', () => {
       return { rows: [] };
     });
 
-    await expect(createStaffMember(mocks.deps, STAFF_MANAGER, baseReq)).rejects.toThrow('boom');
+    await expect(createStaffMember(mocks.deps, ADMIN, baseReq)).rejects.toThrow('boom');
     expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 });
