@@ -1465,6 +1465,15 @@ describe('refreshToken', () => {
       familyId: 'fam-reuse-event',
       jti: 'stolen-jti',
     });
+
+    // The user row is locked before any token row is touched, the order the
+    // admin paths use, so reuse handling cannot deadlock against them.
+    const sqls = mocks.clientMock.query.mock.calls
+      .map(c => String(c[0]).trim())
+      .filter(sql => !/^(BEGIN|COMMIT|ROLLBACK)/.test(sql) && !sql.includes('event_outbox'));
+    expect(sqls[0]).toContain('FROM auth.users');
+    expect(sqls[0]).toContain('FOR NO KEY UPDATE');
+    expect(sqls[1]).toContain('UPDATE auth.refresh_tokens');
   });
 
   describe('replay of a rotated token (idempotent reuse handling)', () => {
@@ -1987,7 +1996,7 @@ describe('assignRole', () => {
     // concurrent promotion is serialised against assertMayActOnTarget.
     expect(callOrder).toEqual(['BEGIN', 'SELECT', 'INSERT', 'COMMIT', 'NATS_PUBLISH']);
     expect(lockSql).toHaveLength(1);
-    expect(lockSql[0]).toContain('FOR UPDATE');
+    expect(lockSql[0]).toContain('FOR NO KEY UPDATE');
   });
 
   it('NOT_FOUND, writing nothing, when the target is deleted before the row lock is taken', async () => {

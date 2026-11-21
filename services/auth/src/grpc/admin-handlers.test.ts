@@ -75,6 +75,8 @@ const SECURITY_READER: Principal = {
 
 // --- Mocks ------------------------------------------------------------
 
+const LOCK_SQL = /^\s*SELECT user_id FROM auth\.users[\s\S]*FOR NO KEY UPDATE/;
+
 function makeMocks() {
   const clientScript: Array<{ rows: unknown[]; rowCount?: number }> = [];
   const client = {
@@ -89,6 +91,11 @@ function makeMocks() {
       // up with the handler's own business queries.
       if (sql.includes('event_outbox')) {
         return { rows: [] };
+      }
+      // The guard's row lock is its own statement; answer it without
+      // consuming a scripted response so scripts stay about the handler's reads.
+      if (LOCK_SQL.test(sql)) {
+        return { rows: [{ user_id: 'usr-1' }] };
       }
       const next = clientScript.shift();
       if (!next) {
@@ -529,9 +536,11 @@ describe('adminUpdateUser', () => {
     expect(
       mocks.poolMock.query.mock.calls.filter(c => String(c[0]).includes('auth.user_roles'))
     ).toEqual([]);
-    const [first] = clientSqls(mocks);
-    expect(first).toContain('auth.user_roles');
-    expect(first).toContain('FOR UPDATE');
+    // Lock in its own statement, then read the roles in a fresh one.
+    const [lock, read] = clientSqls(mocks);
+    expect(lock).toContain('FOR NO KEY UPDATE');
+    expect(read).toContain('auth.user_roles');
+    expect(read).not.toMatch(/FOR (NO KEY )?UPDATE/);
   });
 });
 
@@ -601,9 +610,11 @@ describe('deactivateUser', () => {
     expect(
       mocks.poolMock.query.mock.calls.filter(c => String(c[0]).includes('auth.user_roles'))
     ).toEqual([]);
-    const [first] = clientSqls(mocks);
-    expect(first).toContain('auth.user_roles');
-    expect(first).toContain('FOR UPDATE');
+    // Lock in its own statement, then read the roles in a fresh one.
+    const [lock, read] = clientSqls(mocks);
+    expect(lock).toContain('FOR NO KEY UPDATE');
+    expect(read).toContain('auth.user_roles');
+    expect(read).not.toMatch(/FOR (NO KEY )?UPDATE/);
     expect(writeSqls(mocks)).toHaveLength(1);
   });
 });
@@ -723,9 +734,11 @@ describe('reactivateUser', () => {
     expect(
       mocks.poolMock.query.mock.calls.filter(c => String(c[0]).includes('auth.user_roles'))
     ).toEqual([]);
-    const [first] = clientSqls(mocks);
-    expect(first).toContain('auth.user_roles');
-    expect(first).toContain('FOR UPDATE');
+    // Lock in its own statement, then read the roles in a fresh one.
+    const [lock, read] = clientSqls(mocks);
+    expect(lock).toContain('FOR NO KEY UPDATE');
+    expect(read).toContain('auth.user_roles');
+    expect(read).not.toMatch(/FOR (NO KEY )?UPDATE/);
     expect(writeSqls(mocks)).toHaveLength(1);
   });
 });
@@ -827,7 +840,7 @@ describe('adminResetPassword', () => {
     const updateCall = mocks.clientMock.query.mock.calls.find(
       call => typeof call[0] === 'string' && call[0].includes('UPDATE auth.users')
     );
-    expect(String(updateCall?.[0])).toContain('tokens_valid_from = now()');
+    expect(String(updateCall?.[0])).toContain('tokens_valid_from = clock_timestamp()');
   });
 
   it('runs the elevated-target guard first inside the transaction, locking the target row', async () => {
@@ -840,9 +853,11 @@ describe('adminResetPassword', () => {
     expect(
       mocks.poolMock.query.mock.calls.filter(c => String(c[0]).includes('auth.user_roles'))
     ).toEqual([]);
-    const [first] = clientSqls(mocks);
-    expect(first).toContain('auth.user_roles');
-    expect(first).toContain('FOR UPDATE');
+    // Lock in its own statement, then read the roles in a fresh one.
+    const [lock, read] = clientSqls(mocks);
+    expect(lock).toContain('FOR NO KEY UPDATE');
+    expect(read).toContain('auth.user_roles');
+    expect(read).not.toMatch(/FOR (NO KEY )?UPDATE/);
   });
 });
 
@@ -937,9 +952,11 @@ describe('adminLockAccount', () => {
     expect(
       mocks.poolMock.query.mock.calls.filter(c => String(c[0]).includes('auth.user_roles'))
     ).toEqual([]);
-    const [first] = clientSqls(mocks);
-    expect(first).toContain('auth.user_roles');
-    expect(first).toContain('FOR UPDATE');
+    // Lock in its own statement, then read the roles in a fresh one.
+    const [lock, read] = clientSqls(mocks);
+    expect(lock).toContain('FOR NO KEY UPDATE');
+    expect(read).toContain('auth.user_roles');
+    expect(read).not.toMatch(/FOR (NO KEY )?UPDATE/);
   });
 });
 
@@ -1037,9 +1054,11 @@ describe('adminUnlockAccount', () => {
     expect(
       mocks.poolMock.query.mock.calls.filter(c => String(c[0]).includes('auth.user_roles'))
     ).toEqual([]);
-    const [first] = clientSqls(mocks);
-    expect(first).toContain('auth.user_roles');
-    expect(first).toContain('FOR UPDATE');
+    // Lock in its own statement, then read the roles in a fresh one.
+    const [lock, read] = clientSqls(mocks);
+    expect(lock).toContain('FOR NO KEY UPDATE');
+    expect(read).toContain('auth.user_roles');
+    expect(read).not.toMatch(/FOR (NO KEY )?UPDATE/);
     expect(writeSqls(mocks)).toHaveLength(1);
   });
 });
@@ -1570,10 +1589,10 @@ describe('bulkUpdateUsers', () => {
       })
     );
 
-    const guard = (mocks.clientMock.query.mock.calls as Array<[string]>)
-      .map(([sql]) => sql)
-      .find(sql => sql.includes('SELECT user_type'));
-    expect(guard).toMatch(/FOR UPDATE/);
+    // The row lock is its own statement, issued before the role read.
+    const [lock, read] = clientSqls(mocks);
+    expect(lock).toContain('FOR NO KEY UPDATE');
+    expect(read).toContain('SELECT user_type');
   });
 
   it('updates only the non-elevated targets of a mixed bulk request', async () => {
@@ -2058,9 +2077,9 @@ describe('admin user actions publish auth.actionTaken for the audit log', () => 
 
     // The guard's FOR UPDATE is the lock; the before-state read does not
     // lock the row a second time.
-    const locking = clientSqls(mocks).filter(sql => sql.includes('FOR UPDATE'));
+    const locking = clientSqls(mocks).filter(sql => sql.includes('FOR NO KEY UPDATE'));
     expect(locking).toHaveLength(1);
-    expect(locking[0]).toContain('auth.user_roles');
+    expect(locking[0]).toContain('SELECT user_id FROM auth.users');
   });
 
   it('records an email-verified change and which name fields changed, without the names', async () => {

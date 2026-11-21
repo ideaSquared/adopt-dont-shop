@@ -31,7 +31,7 @@ import type {
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
 import { ADMIN_SECURITY_MANAGE, ADMIN_SECURITY_READ } from '@adopt-dont-shop/lib.types';
 
-import { assertMayActOnTarget } from './admin-handlers.js';
+import { assertMayActOnTarget, lockUserRow } from './admin-handlers.js';
 import { HandlerError } from './handlers.js';
 
 export type SessionHandlerDeps = WithTransactionDeps;
@@ -131,6 +131,10 @@ export async function revokeSession(
   const { family_id } = found.rows[0];
 
   await withTransaction(deps, async ({ client, publish }) => {
+    // User row before token rows, the order every admin path uses, so a
+    // concurrent admin action cannot deadlock against this revoke.
+    await lockUserRow(client, principal.userId);
+
     // Revoke EVERY still-active row in the family — a leaked rotated token
     // from the middle of the chain must also stop working. We must NOT
     // short-circuit on the passed row's own is_revoked flag: refresh

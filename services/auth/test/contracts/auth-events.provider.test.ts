@@ -62,9 +62,17 @@ function userRow() {
 }
 
 // The pool answers the handler's own reads in order (then empty rows); the
-// transaction client answers every write and outbox query with no rows.
+// transaction client answers every write and outbox query with no rows, except
+// the target-row lock (SELECT ... FOR NO KEY UPDATE), which finds the user.
 function makeDeps(poolRows: ReadonlyArray<ReadonlyArray<unknown>>) {
-  const client = { query: vi.fn().mockResolvedValue({ rows: [], rowCount: 1 }), release: vi.fn() };
+  const client = {
+    query: vi.fn(async (sql: string) =>
+      /FROM auth\.users[\s\S]*FOR NO KEY UPDATE/.test(sql)
+        ? { rows: [{ user_id: 'usr-001' }], rowCount: 1 }
+        : { rows: [], rowCount: 1 }
+    ),
+    release: vi.fn(),
+  };
   const poolQuery = vi.fn().mockResolvedValue({ rows: [] });
   poolRows.forEach(rows => poolQuery.mockResolvedValueOnce({ rows }));
   const pool = { connect: vi.fn().mockResolvedValue(client), query: poolQuery };

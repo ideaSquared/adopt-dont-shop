@@ -26,6 +26,8 @@ const SECURITY_ADMIN: Principal = {
   permissions: ['admin.security.read' as Permission, 'admin.security.manage' as Permission],
 };
 
+const LOCK_SQL = /^\s*SELECT user_id FROM auth\.users[\s\S]*FOR NO KEY UPDATE/;
+
 function makeClientQuery(): {
   fn: ReturnType<typeof vi.fn>;
   script: (rows: unknown[], rowCount?: number) => void;
@@ -34,6 +36,11 @@ function makeClientQuery(): {
   const fn = vi.fn().mockImplementation(async (sql: string) => {
     if (sql === 'BEGIN' || sql === 'COMMIT' || sql === 'ROLLBACK') {
       return { rows: [] };
+    }
+    // The guard's row lock is its own statement; answer it without consuming a
+    // scripted response so scripts stay about the handler's reads and writes.
+    if (LOCK_SQL.test(sql)) {
+      return { rows: [{ user_id: 'usr-2' }] };
     }
     return queue.shift() ?? { rows: [] };
   });
@@ -186,9 +193,11 @@ describe('revokeSession', () => {
 
     const res = await revokeSession(mocks.deps, PRINCIPAL, { sessionId: 'tok-1' });
     expect(res.sessionId).toBe('tok-1');
-    // Two UPDATEs: the refresh-token family, plus the user's access-token
-    // revocation watermark.
-    expect(realQueries(mocks.clientMock.query)).toEqual(['UPDATE', 'UPDATE']);
+    // The user row is locked before any token row is touched (the order the
+    // admin paths use, so the two cannot deadlock), then the refresh-token
+    // family and the user's access-token revocation watermark are updated.
+    expect(realQueries(mocks.clientMock.query)).toEqual(['SELECT', 'UPDATE', 'UPDATE']);
+    expect(clientSqlList(mocks.clientMock.query)[0]).toContain('FOR NO KEY UPDATE');
     expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.sessionRevoked');
     // UPDATE targets the family, not just the single token.
@@ -204,7 +213,7 @@ describe('revokeSession', () => {
     // Stamps the access-token watermark on the user.
     const watermarkCall = mocks.clientMock.query.mock.calls.find(c => {
       const sql = String(c[0]);
-      return sql.includes('UPDATE') && sql.includes('auth.users');
+      return sql.includes('UPDATE auth.users');
     });
     expect(watermarkCall?.[1]).toEqual(['usr-1']);
     expect(String(watermarkCall?.[0])).toMatch(/tokens_valid_from = now\(\)/);
@@ -320,7 +329,7 @@ describe('adminRevokeSession', () => {
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.sessionRevokedByAdmin');
     const watermarkCall = mocks.clientMock.query.mock.calls.find(c => {
       const sql = String(c[0]);
-      return sql.includes('UPDATE') && sql.includes('auth.users');
+      return sql.includes('UPDATE auth.users');
     });
     expect(watermarkCall?.[1]).toEqual(['usr-2']);
   });
@@ -364,9 +373,11 @@ describe('adminRevokeSession', () => {
     expect(
       mocks.poolMock.query.mock.calls.filter(c => String(c[0]).includes('auth.user_roles'))
     ).toEqual([]);
-    const [first] = clientSqlList(mocks.clientMock.query);
-    expect(first).toContain('auth.user_roles');
-    expect(first).toContain('FOR UPDATE');
+    // Lock in its own statement, then read the roles in a fresh one.
+    const [lock, read] = clientSqlList(mocks.clientMock.query);
+    expect(lock).toContain('FOR NO KEY UPDATE');
+    expect(read).toContain('auth.user_roles');
+    expect(read).not.toMatch(/FOR (NO KEY )?UPDATE/);
   });
 });
 
@@ -430,8 +441,10 @@ describe('adminRevokeAllUserSessions', () => {
     expect(
       mocks.poolMock.query.mock.calls.filter(c => String(c[0]).includes('auth.user_roles'))
     ).toEqual([]);
-    const [first] = clientSqlList(mocks.clientMock.query);
-    expect(first).toContain('auth.user_roles');
-    expect(first).toContain('FOR UPDATE');
+    // Lock in its own statement, then read the roles in a fresh one.
+    const [lock, read] = clientSqlList(mocks.clientMock.query);
+    expect(lock).toContain('FOR NO KEY UPDATE');
+    expect(read).toContain('auth.user_roles');
+    expect(read).not.toMatch(/FOR (NO KEY )?UPDATE/);
   });
 });

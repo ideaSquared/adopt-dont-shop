@@ -36,6 +36,8 @@ const writeSqls = (m: ReturnType<typeof makeMocks>) =>
 
 // --- Mocks ------------------------------------------------------------
 
+const LOCK_SQL = /^\s*SELECT user_id FROM auth\.users[\s\S]*FOR NO KEY UPDATE/;
+
 function makeMocks() {
   const clientScript: Array<{ rows: unknown[] }> = [];
   const client = {
@@ -50,6 +52,11 @@ function makeMocks() {
       // up with the handler's own business queries.
       if (sql.includes('event_outbox')) {
         return { rows: [] };
+      }
+      // The guard's row lock is its own statement; answer it without
+      // consuming a scripted response so scripts stay about the handler's reads.
+      if (LOCK_SQL.test(sql)) {
+        return { rows: [{ user_id: 'usr-1' }] };
       }
       const next = clientScript.shift();
       if (!next) {
@@ -286,10 +293,12 @@ describe('requestAccountDeletion', () => {
     expect(
       mocks.poolMock.query.mock.calls.filter(c => String(c[0]).includes('auth.user_roles'))
     ).toEqual([]);
-    const [first] = (mocks.clientMock.query.mock.calls as Array<[string]>)
+    const [lock, read] = (mocks.clientMock.query.mock.calls as Array<[string]>)
       .map(([sql]) => sql.trim())
       .filter(sql => !/^(BEGIN|COMMIT|ROLLBACK)/i.test(sql) && !sql.includes('event_outbox'));
-    expect(first).toContain('auth.user_roles');
-    expect(first).toContain('FOR UPDATE');
+    // Lock in its own statement, then read the roles in a fresh one.
+    expect(lock).toContain('FOR NO KEY UPDATE');
+    expect(read).toContain('auth.user_roles');
+    expect(read).not.toMatch(/FOR (NO KEY )?UPDATE/);
   });
 });

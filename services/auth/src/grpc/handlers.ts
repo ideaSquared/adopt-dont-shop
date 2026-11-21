@@ -59,7 +59,7 @@ import {
 import { findMatchingBackupCodeHash } from './backup-codes.js';
 import { createAuthMetrics } from './auth-metrics.js';
 import { verifyAndConsumeTotp } from './totp-verification.js';
-import { ELEVATED_ROLES } from './admin-handlers.js';
+import { ELEVATED_ROLES, lockUserRow } from './admin-handlers.js';
 import { liftSuspensionIfExpired } from './suspension-expiry.js';
 
 // --- Errors ----------------------------------------------------------
@@ -873,6 +873,9 @@ export async function refreshToken(
     if (stored.rows.length > 0) {
       const reuseFamily = stored.rows[0].family_id;
       const revokedActiveTokens = await withTransaction(deps, async ({ client, publish }) => {
+        // User row before token rows, the order every admin path uses, so a
+        // concurrent admin action cannot deadlock against this revoke.
+        await lockUserRow(client, claims.sub);
         const familyRevoke = await client.query(
           `UPDATE auth.refresh_tokens
            SET is_revoked = true, revoked_at = now(), updated_at = now()
@@ -1126,11 +1129,7 @@ export async function assignRole(
   await withTransaction(deps, async ({ client, publish }) => {
     // Lock the target row before writing so this promotion is serialised
     // against assertMayActOnTarget, which locks the same row (ENG-1498).
-    const locked = await client.query(
-      `SELECT user_id FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL FOR UPDATE`,
-      [req.targetUserId]
-    );
-    if (locked.rows.length === 0) {
+    if (!(await lockUserRow(client, req.targetUserId))) {
       throw new HandlerError('NOT_FOUND', `user ${req.targetUserId} not found`);
     }
 
