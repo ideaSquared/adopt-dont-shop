@@ -62,7 +62,23 @@ describe('deploy-ci-gate.sh', () => {
     });
 
     expect(result.status).toBe(1);
-    expect(result.stdout).toContain('still in_progress');
+    expect(result.stdout).toContain('still running');
+    expect(result.stdout).toContain('its result is not known yet');
+    expect(result.stdout).toContain('Re-run the deploy');
+  });
+
+  it('says a failed check failed, and links to it', () => {
+    const result = runGate({
+      runsJson: ciRuns({
+        id: 1,
+        status: 'completed',
+        conclusion: 'failure',
+        html_url: 'https://example.test/run/1',
+      }),
+    });
+
+    expect(result.stdout).toContain("CI failed::CI finished with 'failure'");
+    expect(result.stdout).toContain('https://example.test/run/1');
   });
 
   it('blocks the deploy when CI never ran on the commit', () => {
@@ -132,7 +148,8 @@ describe('deploy-ci-gate.sh with the production smoke check', () => {
     });
 
     expect(result.status).toBe(1);
-    expect(result.stdout).toContain(`${SMOKE} is still in_progress`);
+    expect(result.stdout).toContain(`${SMOKE} is still running`);
+    expect(result.stdout).toContain('status: in_progress');
   });
 
   it('blocks the deploy when the smoke test never ran on the commit', () => {
