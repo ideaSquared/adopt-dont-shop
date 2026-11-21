@@ -21,7 +21,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const WORKFLOWS_DIR = join(ROOT, '.github', 'workflows');
 
 const SHIPPER_PIN =
-  /uses:\s*ideaSquared\/shipper\/\.github\/workflows\/[\w.-]+@([0-9a-f]{40})|shipper-ref:\s*['"]?([0-9a-f]{40})/g;
+  /uses:\s*['"]?ideaSquared\/shipper\/\.github\/workflows\/[\w.-]+@([0-9a-f]{40})|shipper-ref:\s*['"]?([0-9a-f]{40})/g;
 
 const isComment = line => /^\s*#/.test(line);
 const stripInlineComment = line => line.replace(/\s+#.*$/, '');

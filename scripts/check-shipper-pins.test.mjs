@@ -85,6 +85,20 @@ describe('findShipperPins', () => {
     expect(findShipperPins(root)).toEqual([NEW_SHA]);
   });
 
+  it('reads quoted uses: values', () => {
+    writeFileSync(
+      join(root, 'ship.yml'),
+      [
+        `    uses: "ideaSquared/shipper/.github/workflows/gate.yml@${NEW_SHA}"`,
+        `    uses: 'ideaSquared/shipper/.github/workflows/report.yml@${NEW_SHA}'`,
+        `      shipper-ref: ${OLD_SHA}`,
+        '',
+      ].join('\n')
+    );
+
+    expect(findShipperPins(root)).toEqual([NEW_SHA, OLD_SHA].sort());
+  });
+
   it('ignores prose that mentions shipper-ref without a SHA', () => {
     writeFileSync(
       join(root, 'ship.yml'),
