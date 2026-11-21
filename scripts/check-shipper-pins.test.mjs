@@ -76,6 +76,15 @@ describe('findShipperPins', () => {
     expect(findShipperPins(root)).toEqual([NEW_SHA]);
   });
 
+  it('ignores old pins in inline comments', () => {
+    writeFileSync(
+      join(root, 'ship.yml'),
+      shipWorkflow(NEW_SHA, `${NEW_SHA} # was shipper-ref: "${OLD_SHA}"`)
+    );
+
+    expect(findShipperPins(root)).toEqual([NEW_SHA]);
+  });
+
   it('ignores prose that mentions shipper-ref without a SHA', () => {
     writeFileSync(
       join(root, 'ship.yml'),
