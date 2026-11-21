@@ -86,6 +86,7 @@ the repo root with `pnpm <script>`.
 | `pnpm check:renovate` | `npx --package renovate -- renovate-config-validator renovate.json` |
 | `pnpm check:runtime-require` | `node scripts/check-runtime-require.mjs apps/admin/dist apps/client/dist apps/rescue/dist` |
 | `pnpm check:scheduled-workflow-environments` | `node scripts/check-scheduled-workflow-environments.mjs` |
+| `pnpm check:shipper-pins` | `node scripts/check-shipper-pins.mjs` |
 | `pnpm check:stale-overrides` | `node scripts/check-stale-overrides.mjs` |
 | `pnpm check:stop-grace-period` | `node scripts/check-stop-grace-period.mjs` |
 | `pnpm check:stories` | `node scripts/check-storybook-coverage.mjs` |
@@ -129,7 +130,7 @@ the repo root with `pnpm <script>`.
 
 | Script | Command |
 | --- | --- |
-| `pnpm ci:local` | `pnpm format:check && turbo run lint type-check test:coverage && pnpm check:lib-tests && pnpm check:workspaces && pnpm check:env-example && pnpm check:workflow-paths && pnpm check:scheduled-workflow-environments && pnpm check:docker-pinning && pnpm check:observability-mounts && pnpm check:workflow-pinning && pnpm check:migration-backcompat && pnpm check:stop-grace-period && pnpm check:gateway-upload-dir && pnpm check:gateway-hardening && pnpm check:docs-index && pnpm check:docs-links && pnpm check:docs-script-refs && pnpm check:proto-fresh && pnpm check:csp && pnpm check:nginx-upload-precedence && pnpm check:gateway-staging-access && pnpm check:readmes && pnpm check:no-only && pnpm check:forms && pnpm check:tokens && pnpm check:renovate && pnpm check:overrides-docs && pnpm check:commit-messages && pnpm check:dev-auth-guard && pnpm check:permission-casts && pnpm check:stories && pnpm --filter @adopt-dont-shop/e2e run lint && pnpm --filter @adopt-dont-shop/e2e run type-check && pnpm --filter @adopt-dont-shop/e2e run format:check && pnpm run tasks:write && git diff --exit-code docs/tasks.md && pnpm test:scripts && pnpm build:apps && pnpm check:bundle-size && pnpm check:runtime-require && pnpm check:css-vars` |
+| `pnpm ci:local` | `pnpm format:check && turbo run lint type-check test:coverage && pnpm check:lib-tests && pnpm check:workspaces && pnpm check:env-example && pnpm check:workflow-paths && pnpm check:scheduled-workflow-environments && pnpm check:docker-pinning && pnpm check:observability-mounts && pnpm check:workflow-pinning && pnpm check:shipper-pins && pnpm check:migration-backcompat && pnpm check:stop-grace-period && pnpm check:gateway-upload-dir && pnpm check:gateway-hardening && pnpm check:docs-index && pnpm check:docs-links && pnpm check:docs-script-refs && pnpm check:proto-fresh && pnpm check:csp && pnpm check:nginx-upload-precedence && pnpm check:gateway-staging-access && pnpm check:readmes && pnpm check:no-only && pnpm check:forms && pnpm check:tokens && pnpm check:renovate && pnpm check:overrides-docs && pnpm check:commit-messages && pnpm check:dev-auth-guard && pnpm check:permission-casts && pnpm check:stories && pnpm --filter @adopt-dont-shop/e2e run lint && pnpm --filter @adopt-dont-shop/e2e run type-check && pnpm --filter @adopt-dont-shop/e2e run format:check && pnpm run tasks:write && git diff --exit-code docs/tasks.md && pnpm test:scripts && pnpm build:apps && pnpm check:bundle-size && pnpm check:runtime-require && pnpm check:css-vars` |
 | `pnpm ci:local:quick` | `pnpm format:check && turbo run lint type-check` |
 
 ### Hooks

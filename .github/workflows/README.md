@@ -280,7 +280,8 @@ Deploys go through [ideaSquared/shipper](https://github.com/ideaSquared/shipper)
 - Install the command with `pnpm add -g github:ideaSquared/shipper`.
 
 `ship.yml` pins shipper's reusable workflows to a commit SHA, like every other action here; bump
-the SHA and `shipper-ref` together to take a newer shipper.
+the SHA and `shipper-ref` together to take a newer shipper (`pnpm check:shipper-pins` fails CI
+when they disagree).
 
 The emergency bypasses (`skip_ci_check`, `skip_cosign_verify`, `allow_blind_deploy`) are only on
 `deploy.yml`'s own Run workflow form, where they are audited; `ship.yml` cannot pass them.
