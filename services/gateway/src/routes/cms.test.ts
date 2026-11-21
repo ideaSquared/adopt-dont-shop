@@ -124,6 +124,20 @@ describe('cms gateway routes', () => {
     expect(mocks.listPublicContent).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['/api/v1/cms/public/content', 120],
+    ['/api/v1/cms/public/content/hello', 240],
+  ])('GET %s is rate limited per route and 429s past %i/min (ENG-1406)', async (url, cap) => {
+    mocks.listPublicContent.mockResolvedValue({ items: [], page: 1, total: 0, totalPages: 0 });
+    mocks.getPublicContentBySlug.mockResolvedValue({ content: CONTENT_FIXTURE });
+    const statuses: number[] = [];
+    for (let i = 0; i <= cap; i += 1) {
+      statuses.push((await app.inject({ method: 'GET', url })).statusCode);
+    }
+    expect(statuses.slice(0, cap).every(s => s === 200)).toBe(true);
+    expect(statuses[cap]).toBe(429);
+  });
+
   it('GET /public/content/:slug returns the content view', async () => {
     mocks.getPublicContentBySlug.mockResolvedValue({ content: CONTENT_FIXTURE });
     const res = await app.inject({ method: 'GET', url: '/api/v1/cms/public/content/hello' });
