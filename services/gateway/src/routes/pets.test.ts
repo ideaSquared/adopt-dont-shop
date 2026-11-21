@@ -620,6 +620,92 @@ describe('pet mutation body bounds (ENG-1406)', () => {
     }
   );
 
+  const overCapAliases: Array<[string, Record<string, unknown>]> = [
+    ['camelCase shortDescription over 500 chars', { shortDescription: 's'.repeat(501) }],
+    ['camelCase longDescription over 10000 chars', { longDescription: 'l'.repeat(10_001) }],
+    ['ageGroup over 100 chars', { ageGroup: 'a'.repeat(101) }],
+    ['breed_id over 100 chars', { breed_id: 'b'.repeat(101) }],
+    ['breedId over 100 chars', { breedId: 'b'.repeat(101) }],
+    ['secondary_breed_id over 100 chars', { secondary_breed_id: 'b'.repeat(101) }],
+    ['secondaryBreedId over 100 chars', { secondaryBreedId: 'b'.repeat(101) }],
+    ['breed over 200 chars', { breed: 'b'.repeat(201) }],
+    ['secondary_breed over 200 chars', { secondary_breed: 'b'.repeat(201) }],
+    ['secondaryBreed over 200 chars', { secondaryBreed: 'b'.repeat(201) }],
+    ['adoptionFee over 32 chars', { adoptionFee: '1'.repeat(33) }],
+    ['adoption_fee_minor over 32 chars', { adoption_fee_minor: '1'.repeat(33) }],
+    ['adoption_fee_currency over 100 chars', { adoption_fee_currency: 'c'.repeat(101) }],
+  ];
+
+  it.each([...overCapAliases, ['rescueId over 100 chars', { rescueId: 'r'.repeat(101) }]])(
+    'POST rejects %s with 400 and never calls the service',
+    async (_label, extra) => {
+      const { client, createMock } = makeClient();
+      const app = await makeApp(client);
+      try {
+        const res = await app.inject({
+          method: 'POST',
+          url: '/api/v1/pets',
+          headers: { 'x-user-id': 'usr-staff', 'x-user-roles': 'rescue_staff' },
+          payload: { name: 'Rex', rescue_id: 'rsc-1', type: 'dog', ...extra },
+        });
+        expect(res.statusCode).toBe(400);
+        expect(createMock).not.toHaveBeenCalled();
+      } finally {
+        await app.close();
+      }
+    }
+  );
+
+  it.each(overCapAliases)(
+    'PATCH rejects %s with 400 and never calls the service',
+    async (_label, extra) => {
+      const { client, updateMock } = makeClient();
+      const app = await makeApp(client);
+      try {
+        const res = await app.inject({
+          method: 'PATCH',
+          url: '/api/v1/pets/pet-1',
+          payload: extra,
+        });
+        expect(res.statusCode).toBe(400);
+        expect(updateMock).not.toHaveBeenCalled();
+      } finally {
+        await app.close();
+      }
+    }
+  );
+
+  it('POST and PATCH still accept numeric fee inputs and unrelated extra fields', async () => {
+    const { client, createMock, updateMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      createMock.mockResolvedValueOnce({ pet: PET_FIXTURE } satisfies CreatePetResponse);
+      updateMock.mockResolvedValueOnce({ pet: PET_FIXTURE } satisfies UpdatePetResponse);
+      const created = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets',
+        headers: { 'x-user-id': 'usr-staff', 'x-user-roles': 'rescue_staff' },
+        payload: {
+          name: 'Rex',
+          rescue_id: 'rsc-1',
+          adoption_fee_minor: 12500,
+          adoptionFee: 125,
+          good_with_children: true,
+          notes: 'n'.repeat(5000),
+        },
+      });
+      expect(created.statusCode).toBe(201);
+      const updated = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/pets/pet-1',
+        payload: { adoption_fee_minor: 12500, adoptionFee: 125, good_with_children: false },
+      });
+      expect(updated.statusCode).toBe(200);
+    } finally {
+      await app.close();
+    }
+  });
+
   it('POST still accepts fields exactly at the caps', async () => {
     const { client, createMock } = makeClient();
     const app = await makeApp(client);

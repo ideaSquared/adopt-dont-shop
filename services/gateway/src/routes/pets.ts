@@ -146,8 +146,28 @@ const PET_FIELD_BOUNDS = {
   name: { type: 'string', maxLength: 200 },
   shortDescription: { type: 'string', maxLength: 500 },
   longDescription: { type: 'string', maxLength: 10_000 },
+  breedName: { type: 'string', maxLength: 200 },
   fee: { type: 'string', maxLength: 32 },
+  feeInput: { type: ['string', 'number'], maxLength: 32 },
   list: { type: 'array', maxItems: 50, items: { type: 'string', maxLength: 100 } },
+} as const;
+
+// Alias keys the pets-view adapter also reads. Without bounds on them an
+// over-cap value sent under the camelCase / fallback spelling skips the caps.
+const PET_ALIAS_BOUNDS = {
+  shortDescription: PET_FIELD_BOUNDS.shortDescription,
+  longDescription: PET_FIELD_BOUNDS.longDescription,
+  ageGroup: PET_FIELD_BOUNDS.token,
+  breed_id: PET_FIELD_BOUNDS.token,
+  breedId: PET_FIELD_BOUNDS.token,
+  secondary_breed_id: PET_FIELD_BOUNDS.token,
+  secondaryBreedId: PET_FIELD_BOUNDS.token,
+  breed: PET_FIELD_BOUNDS.breedName,
+  secondary_breed: PET_FIELD_BOUNDS.breedName,
+  secondaryBreed: PET_FIELD_BOUNDS.breedName,
+  adoptionFee: PET_FIELD_BOUNDS.feeInput,
+  adoption_fee_minor: PET_FIELD_BOUNDS.feeInput,
+  adoption_fee_currency: PET_FIELD_BOUNDS.token,
 } as const;
 
 // The status route still takes a small bespoke body (the create/update
@@ -695,6 +715,8 @@ export const registerPetsRoutes = async (
             priority_listing: { type: 'boolean' },
             temperament: PET_FIELD_BOUNDS.list,
             tags: PET_FIELD_BOUNDS.list,
+            ...PET_ALIAS_BOUNDS,
+            rescueId: PET_FIELD_BOUNDS.token,
           },
         },
         response: {
@@ -770,6 +792,7 @@ export const registerPetsRoutes = async (
             priority_listing: { type: 'boolean' },
             temperament: PET_FIELD_BOUNDS.list,
             tags: PET_FIELD_BOUNDS.list,
+            ...PET_ALIAS_BOUNDS,
           },
         },
         response: {
