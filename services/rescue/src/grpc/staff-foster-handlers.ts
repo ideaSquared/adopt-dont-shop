@@ -60,6 +60,7 @@ import {
 
 import { rescueActionTaken } from './audit.js';
 import { HandlerError, type HandlerDeps } from './handlers.js';
+import { lockUserMembership } from './membership-lock.js';
 import type { PetsClient } from './pets-client.js';
 import { principalToMetadata } from './principal.js';
 
@@ -294,7 +295,7 @@ export async function createStaffMember(
   const staffMember = await withTransaction(deps, async ({ client, publish }) => {
     // Serialise per user so two concurrent adds cannot both pass the
     // cross-rescue check below (plain BEGIN, no unique constraint).
-    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [req.userId]);
+    await lockUserMembership(client, req.userId);
 
     const existing = await client.query<StaffMemberRow>(
       `SELECT ${STAFF_SELECT} FROM rescue.staff_members
@@ -918,6 +919,9 @@ export async function acceptInvitation(
   }
 
   const staffMember = await withTransaction(deps, async ({ client, publish }) => {
+    // Same per-user lock as addStaffMember, so an accept cannot race an add.
+    await lockUserMembership(client, req.userId);
+
     // Lock the invitation row so two concurrent accepts can't both pass
     // the validity check and double-insert a membership.
     const invRes = await client.query<InvitationRow>(

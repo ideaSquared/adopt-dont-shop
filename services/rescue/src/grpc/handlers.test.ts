@@ -255,13 +255,27 @@ describe('registerRescue', () => {
     const res = await registerRescue(mocks.deps, null, REGISTER);
 
     expect(res.rescue?.status).toBe(RescueV1.RescueStatus.RESCUE_STATUS_PENDING);
-    expect(order).toEqual(['BEGIN', 'INSERT', 'INSERT', 'COMMIT', 'NATS_PUBLISH']);
-    expect(sqls[1]).toContain("'pending'");
-    expect(sqls[2]).toContain('rescue.staff_members');
+    expect(order).toEqual(['BEGIN', 'SELECT', 'INSERT', 'INSERT', 'COMMIT', 'NATS_PUBLISH']);
+    expect(sqls[2]).toContain("'pending'");
+    expect(sqls[3]).toContain('rescue.staff_members');
     const staffParams = mocks.clientMock.query.mock.calls.find(([sql]) =>
       String(sql).includes('rescue.staff_members')
     )?.[1] as unknown[];
     expect(staffParams).toContain('owner-1');
+  });
+
+  it('takes the per-user staff lock before inserting the rescue and its owner', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow()] });
+
+    await registerRescue(mocks.deps, null, REGISTER);
+
+    const calls = mocks.clientMock.query.mock.calls
+      .map(([sql, params]) => ({ sql: String(sql), params }))
+      .filter(({ sql }) => sql !== 'BEGIN' && !sql.includes('event_outbox'));
+    expect(calls[0].sql).toMatch(/pg_advisory_xact_lock\(hashtext\(\$1\)\)/);
+    expect(calls[0].params).toEqual(['owner-1']);
+    expect(calls[1].sql).toContain('INSERT INTO rescue.rescues');
   });
 
   it('is idempotent on owner_user_id: a retry that already has a rescue gets it back, no duplicate created', async () => {
