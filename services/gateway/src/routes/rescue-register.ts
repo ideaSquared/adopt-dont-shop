@@ -17,9 +17,11 @@
 //      on the owner: if they already have a rescue (the resumed-account case
 //      above, when a rescue was in fact already created), the existing one
 //      is returned rather than creating a second.
-//      If this step fails after step 1 just committed a brand-new owner
-//      account, that account is rolled back (auth.DeleteUnverifiedRescueOwner)
-//      so the failure never leaves an orphan the user can't retry with
+//      If this step is definitely rejected (INVALID_ARGUMENT or
+//      ALREADY_EXISTS) after step 1 just committed a brand-new owner account,
+//      that account is rolled back (auth.DeleteUnverifiedRescueOwner). Any
+//      other failure (a timeout, an unreachable service) may still have
+//      created the rescue, so the account is kept and a retry resumes it
 //      (ADS-1474).
 //
 // No login tokens are issued: the owner verifies their email, then signs in
@@ -28,6 +30,7 @@
 // Public — an anonymous visitor is the intended caller; abuse is bounded by
 // the per-IP cap below (same cap as POST /api/v1/auth/register).
 
+import { status } from '@grpc/grpc-js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
@@ -119,6 +122,21 @@ const toRescueRequest = (b: RegisterRescueBody): CreateRescueRequest => ({
 // response cannot be used to probe whether an account exists.
 const NEUTRAL_RESPONSE = { success: true } as const;
 
+// Only these codes prove the rescue service committed nothing. A timeout or
+// an unreachable service may still have created the rescue, and deleting its
+// owner then would orphan it; leaving the account lets the retry resume.
+const DEFINITE_REJECTIONS: ReadonlySet<number> = new Set([
+  status.INVALID_ARGUMENT,
+  status.ALREADY_EXISTS,
+]);
+
+const isDefiniteRejection = (err: unknown): boolean =>
+  typeof err === 'object' &&
+  err !== null &&
+  'code' in err &&
+  typeof err.code === 'number' &&
+  DEFINITE_REJECTIONS.has(err.code);
+
 export const registerRescueRegisterRoutes = async (
   app: FastifyInstance,
   opts: RescueRegisterRoutesOptions
@@ -192,7 +210,9 @@ export const registerRescueRegisterRoutes = async (
           }
           return reply.code(201).send(NEUTRAL_RESPONSE);
         } catch (rescueErr) {
-          await compensate(ownerUserId);
+          if (isDefiniteRejection(rescueErr)) {
+            await compensate(ownerUserId);
+          }
           throw rescueErr;
         }
       } catch (err) {

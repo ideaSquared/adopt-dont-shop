@@ -418,7 +418,9 @@ export async function registerRescueOwner(
 // an orphan account the user can't retry with (ADS-1474). Hard-deletes —
 // nothing meaningful was ever created on an unverified row — but only when
 // it still matches exactly what RegisterRescueOwner just produced, so a row
-// that got verified or attached to a rescue in the meantime is left alone.
+// that got verified in the meantime is left alone. It cannot see whether a
+// rescue is attached (that lives in the rescue schema), so the gateway only
+// calls it when the rescue service definitely created nothing.
 export async function deleteUnverifiedRescueOwner(
   deps: HandlerDeps,
   _principal: Principal | null,

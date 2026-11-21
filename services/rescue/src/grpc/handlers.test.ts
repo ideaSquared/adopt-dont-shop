@@ -275,6 +275,36 @@ describe('registerRescue', () => {
     expect(mocks.clientMock.query).not.toHaveBeenCalled();
     expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
+
+  it('answers ALREADY_EXISTS when another rescue holds these details (unique violation)', async () => {
+    mocks.poolMock.query.mockResolvedValue({ rows: [] });
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (String(sql).includes('INSERT INTO rescue.rescues')) {
+        throw Object.assign(new Error('duplicate key'), { code: '23505' });
+      }
+      return { rows: [] };
+    });
+
+    await expect(registerRescue(mocks.deps, null, REGISTER)).rejects.toMatchObject({
+      code: 'ALREADY_EXISTS',
+    });
+  });
+
+  it('returns the rescue a concurrent call for the same owner just created, on a unique violation', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [rescueRow({ rescue_id: 'rsc-winner' })] });
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (String(sql).includes('INSERT INTO rescue.rescues')) {
+        throw Object.assign(new Error('duplicate key'), { code: '23505' });
+      }
+      return { rows: [] };
+    });
+
+    const res = await registerRescue(mocks.deps, null, REGISTER);
+
+    expect(res.rescue?.rescueId).toBe('rsc-winner');
+  });
 });
 
 // --- rescue coordinates ----------------------------------------------

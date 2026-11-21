@@ -372,7 +372,33 @@ export async function registerRescue(
     throw new HandlerError('INVALID_ARGUMENT', 'owner_user_id is required');
   }
 
-  const existing = await deps.pool.query<RescueRow>(
+  const existing = await findOwnersRescue(deps, req.ownerUserId);
+  if (existing) {
+    return { rescue: rowToProto(existing) };
+  }
+
+  try {
+    return await insertPendingRescue(deps, req.rescue, req.ownerUserId, req.ownerUserId);
+  } catch (err) {
+    if ((err as { code?: string }).code !== '23505') {
+      throw err;
+    }
+    // A concurrent call for the same owner won the insert: answer with its rescue.
+    const winner = await findOwnersRescue(deps, req.ownerUserId);
+    if (winner) {
+      return { rescue: rowToProto(winner) };
+    }
+    // Another rescue already holds this name, email or registration number.
+    // ALREADY_EXISTS tells the gateway nothing was created for this owner.
+    throw new HandlerError('ALREADY_EXISTS', 'a rescue with these details already exists');
+  }
+}
+
+async function findOwnersRescue(
+  deps: HandlerDeps,
+  ownerUserId: string
+): Promise<RescueRow | undefined> {
+  const { rows } = await deps.pool.query<RescueRow>(
     `
     SELECT ${RESCUES_SELECT}
     FROM rescue.rescues
@@ -384,13 +410,9 @@ export async function registerRescue(
         LIMIT 1
       )
     `,
-    [req.ownerUserId]
+    [ownerUserId]
   );
-  if (existing.rows[0]) {
-    return { rescue: rowToProto(existing.rows[0]) };
-  }
-
-  return insertPendingRescue(deps, req.rescue, req.ownerUserId, req.ownerUserId);
+  return rows[0];
 }
 
 // Inserts the rescue as 'pending' and, when an owner is given, attaches them
