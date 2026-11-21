@@ -36,6 +36,7 @@ import type { NotificationsClient } from '../grpc-clients/notifications-client.j
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 import { buildPaginationEnvelope, parsePagination } from '../middleware/pagination.js';
+import { BODY_BOUNDS } from './body-bounds.js';
 import { userToApiJson } from './auth-user-json.js';
 
 export type UsersRoutesOptions = {
@@ -220,17 +221,23 @@ export const registerUsersRoutes = async (
         body: {
           type: 'object',
           properties: {
-            firstName: { type: 'string' },
-            lastName: { type: 'string' },
-            phoneNumber: { type: 'string' },
-            bio: { type: 'string' },
-            timezone: { type: 'string' },
-            language: { type: 'string' },
-            country: { type: 'string' },
-            city: { type: 'string' },
-            addressLine1: { type: 'string' },
-            addressLine2: { type: 'string' },
-            postalCode: { type: 'string' },
+            firstName: BODY_BOUNDS.name,
+            first_name: BODY_BOUNDS.name,
+            lastName: BODY_BOUNDS.name,
+            last_name: BODY_BOUNDS.name,
+            phoneNumber: BODY_BOUNDS.phone,
+            phone_number: BODY_BOUNDS.phone,
+            bio: BODY_BOUNDS.longText,
+            timezone: BODY_BOUNDS.token,
+            language: BODY_BOUNDS.token,
+            country: BODY_BOUNDS.token,
+            city: BODY_BOUNDS.name,
+            addressLine1: BODY_BOUNDS.name,
+            address_line_1: BODY_BOUNDS.name,
+            addressLine2: BODY_BOUNDS.name,
+            address_line_2: BODY_BOUNDS.name,
+            postalCode: BODY_BOUNDS.token,
+            postal_code: BODY_BOUNDS.token,
           },
         },
         response: {
@@ -342,7 +349,7 @@ export const registerUsersRoutes = async (
             privacySettings: {
               type: 'object',
               properties: {
-                profileVisibility: { type: 'string' },
+                profileVisibility: BODY_BOUNDS.token,
                 showLocation: { type: 'boolean' },
               },
             },
@@ -628,12 +635,12 @@ export const registerUsersRoutes = async (
         body: {
           type: 'object',
           properties: {
-            status: { type: 'string' },
-            userType: { type: 'string' },
-            user_type: { type: 'string' },
+            status: BODY_BOUNDS.token,
+            userType: BODY_BOUNDS.token,
+            user_type: BODY_BOUNDS.token,
             emailVerified: { type: 'boolean' },
-            firstName: { type: 'string' },
-            lastName: { type: 'string' },
+            firstName: BODY_BOUNDS.name,
+            lastName: BODY_BOUNDS.name,
           },
         },
         response: {
@@ -697,7 +704,7 @@ export const registerUsersRoutes = async (
         body: {
           type: 'object',
           properties: {
-            reason: { type: 'string' },
+            reason: BODY_BOUNDS.longText,
           },
         },
         response: {
@@ -900,14 +907,14 @@ export const registerUsersRoutes = async (
         body: {
           type: 'object',
           properties: {
-            email: { type: 'string' },
-            firstName: { type: 'string' },
-            first_name: { type: 'string' },
-            lastName: { type: 'string' },
-            last_name: { type: 'string' },
-            role: { type: 'string' },
-            userType: { type: 'string' },
-            user_type: { type: 'string' },
+            email: BODY_BOUNDS.email,
+            firstName: BODY_BOUNDS.name,
+            first_name: BODY_BOUNDS.name,
+            lastName: BODY_BOUNDS.name,
+            last_name: BODY_BOUNDS.name,
+            role: BODY_BOUNDS.token,
+            userType: BODY_BOUNDS.token,
+            user_type: BODY_BOUNDS.token,
             sendInvitation: { type: 'boolean' },
             send_invitation: { type: 'boolean' },
           },
@@ -1035,12 +1042,12 @@ export const registerUsersRoutes = async (
         body: {
           type: 'object',
           properties: {
-            status: { type: 'string' },
-            userType: { type: 'string' },
-            user_type: { type: 'string' },
+            status: BODY_BOUNDS.token,
+            userType: BODY_BOUNDS.token,
+            user_type: BODY_BOUNDS.token,
             emailVerified: { type: 'boolean' },
-            firstName: { type: 'string' },
-            lastName: { type: 'string' },
+            firstName: BODY_BOUNDS.name,
+            lastName: BODY_BOUNDS.name,
           },
         },
         response: {
@@ -1213,24 +1220,24 @@ export const registerUsersRoutes = async (
           properties: {
             userIds: {
               type: 'array',
-              items: { type: 'string' },
+              items: BODY_BOUNDS.token,
               maxItems: MAX_BULK_USER_IDS,
             },
             user_ids: {
               type: 'array',
-              items: { type: 'string' },
+              items: BODY_BOUNDS.token,
               maxItems: MAX_BULK_USER_IDS,
             },
-            status: { type: 'string' },
+            status: BODY_BOUNDS.token,
             // The shared BulkUserUpdateRequestSchema (lib.validation) nests
             // the change under `updateData`; the admin app sends that shape.
             updateData: {
               type: 'object',
-              properties: { status: { type: 'string' } },
+              properties: { status: BODY_BOUNDS.token },
             },
-            userType: { type: 'string' },
-            user_type: { type: 'string' },
-            reason: { type: 'string' },
+            userType: BODY_BOUNDS.token,
+            user_type: BODY_BOUNDS.token,
+            reason: BODY_BOUNDS.longText,
           },
         },
         response: {
@@ -1418,9 +1425,9 @@ export const registerUsersRoutes = async (
         body: {
           type: 'object',
           properties: {
-            role: { type: 'string' },
-            userType: { type: 'string' },
-            user_type: { type: 'string' },
+            role: BODY_BOUNDS.token,
+            userType: BODY_BOUNDS.token,
+            user_type: BODY_BOUNDS.token,
           },
         },
         response: {

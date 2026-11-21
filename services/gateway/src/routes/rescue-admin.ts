@@ -54,6 +54,7 @@ import type { RescueClient } from '../grpc-clients/rescue-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 import { buildPaginationEnvelope, parsePagination } from '../middleware/pagination.js';
+import { BODY_BOUNDS } from './body-bounds.js';
 import { mapWithConcurrency } from './reports.js';
 import { rescueToView } from './rescue-view.js';
 
@@ -254,7 +255,7 @@ export const registerRescueAdminRoutes = async (
         },
         body: {
           type: 'object',
-          properties: { plan: { type: 'string' }, planExpiresAt: { type: 'string' } },
+          properties: { plan: BODY_BOUNDS.token, planExpiresAt: BODY_BOUNDS.token },
         },
         response: {
           200: {
@@ -365,9 +366,9 @@ export const registerRescueAdminRoutes = async (
         body: {
           type: 'object',
           properties: {
-            templateId: { type: 'string' },
-            subject: { type: 'string' },
-            body: { type: 'string' },
+            templateId: BODY_BOUNDS.token,
+            subject: BODY_BOUNDS.name,
+            body: BODY_BOUNDS.longText,
           },
         },
         response: {
@@ -417,11 +418,11 @@ export const registerRescueAdminRoutes = async (
           properties: {
             rescueIds: {
               type: 'array',
-              items: { type: 'string' },
+              items: BODY_BOUNDS.token,
               maxItems: MAX_BULK_RESCUE_IDS,
             },
-            action: { type: 'string' },
-            reason: { type: 'string' },
+            action: BODY_BOUNDS.token,
+            reason: BODY_BOUNDS.longText,
           },
         },
         response: {
@@ -549,7 +550,7 @@ export const registerRescueAdminRoutes = async (
           properties: { rescueId: { type: 'string' } },
           required: ['rescueId'],
         },
-        body: { type: 'object', properties: { reason: { type: 'string' } } },
+        body: { type: 'object', properties: { reason: BODY_BOUNDS.longText } },
         response: {
           200: {
             type: 'object',
@@ -619,6 +620,15 @@ export const registerRescueAdminRoutes = async (
       },
     },
     async (req, reply) => {
+      // The body is optional on DELETE (the SPA omits it without a reason), and
+      // a body schema would reject a request that has none, so the cap is
+      // checked here instead of in the schema.
+      if ((req.body?.reason?.length ?? 0) > BODY_BOUNDS.longText.maxLength) {
+        return reply.code(400).send({
+          success: false,
+          error: `reason exceeds the maximum of ${BODY_BOUNDS.longText.maxLength} characters`,
+        });
+      }
       const grpcReq: DeleteRescueRequest = {
         rescueId: req.params.rescueId,
         reason: req.body?.reason,
@@ -712,7 +722,7 @@ export const registerRescueAdminRoutes = async (
         },
         body: {
           type: 'object',
-          properties: { userId: { type: 'string' }, title: { type: 'string' } },
+          properties: { userId: BODY_BOUNDS.token, title: BODY_BOUNDS.name },
           required: ['userId'],
         },
         response: {
@@ -778,7 +788,7 @@ export const registerRescueAdminRoutes = async (
         },
         body: {
           type: 'object',
-          properties: { title: { type: 'string' } },
+          properties: { title: BODY_BOUNDS.name },
         },
         response: {
           200: {
@@ -904,7 +914,7 @@ export const registerRescueAdminRoutes = async (
         },
         body: {
           type: 'object',
-          properties: { email: { type: 'string' }, title: { type: 'string' } },
+          properties: { email: BODY_BOUNDS.email, title: BODY_BOUNDS.name },
         },
         response: {
           201: {

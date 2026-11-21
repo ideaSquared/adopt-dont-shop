@@ -77,6 +77,7 @@ import { buildPaginationEnvelope, parsePagination } from '../middleware/paginati
 
 import { lookupById } from '../utils/entity-names.js';
 
+import { BODY_BOUNDS } from './body-bounds.js';
 import { mapWithConcurrency } from './reports.js';
 import { petToView } from './pets-view.js';
 
@@ -170,7 +171,7 @@ export const registerApplicationsRoutes = async (
         body: {
           type: 'object',
           properties: {
-            petId: { type: 'string' },
+            petId: BODY_BOUNDS.token,
           },
           required: ['petId'],
         },
@@ -244,7 +245,7 @@ export const registerApplicationsRoutes = async (
           type: 'object',
           properties: {
             status: { type: 'string', enum: ['approved', 'rejected', 'withdrawn'] },
-            notes: { type: 'string' },
+            notes: BODY_BOUNDS.longText,
           },
           required: ['status'],
         },
@@ -309,7 +310,7 @@ export const registerApplicationsRoutes = async (
         body: {
           type: 'object',
           properties: {
-            reason: { type: 'string' },
+            reason: BODY_BOUNDS.longText,
           },
         },
         response: {
@@ -421,8 +422,8 @@ export const registerApplicationsRoutes = async (
           type: 'object',
           properties: {
             expectedVersion: { type: 'number' },
-            answersPatchJson: { type: 'string' },
-            referencesJson: { type: 'string' },
+            answersPatchJson: BODY_BOUNDS.jsonBlob,
+            referencesJson: BODY_BOUNDS.jsonBlob,
           },
           required: ['expectedVersion', 'answersPatchJson'],
         },
@@ -528,19 +529,20 @@ export const registerApplicationsRoutes = async (
           properties: {
             applicationIds: {
               type: 'array',
-              items: { type: 'string' },
+              items: BODY_BOUNDS.token,
               maxItems: MAX_BULK_APPLICATION_IDS,
             },
             updates: {
               type: 'object',
               properties: {
-                status: { type: 'string' },
-                stage: { type: 'string' },
-                notes: { type: 'string' },
-                rejectionReason: { type: 'string' },
-                withdrawalReason: { type: 'string' },
-                scheduledAt: { type: 'string' },
-                outcome: { type: 'string' },
+                status: BODY_BOUNDS.token,
+                stage: BODY_BOUNDS.token,
+                notes: BODY_BOUNDS.longText,
+                rejectionReason: BODY_BOUNDS.longText,
+                withdrawalReason: BODY_BOUNDS.longText,
+                scheduledAt: BODY_BOUNDS.token,
+                scheduledDate: BODY_BOUNDS.token,
+                outcome: BODY_BOUNDS.token,
               },
             },
           },
@@ -644,7 +646,7 @@ export const registerApplicationsRoutes = async (
         body: {
           type: 'object',
           properties: {
-            note: { type: 'string' },
+            note: BODY_BOUNDS.longText,
           },
         },
         response: {
@@ -693,8 +695,8 @@ export const registerApplicationsRoutes = async (
         body: {
           type: 'object',
           properties: {
-            scheduledAt: { type: 'string' },
-            note: { type: 'string' },
+            scheduledAt: BODY_BOUNDS.token,
+            note: BODY_BOUNDS.longText,
           },
           required: ['scheduledAt'],
         },
@@ -745,8 +747,8 @@ export const registerApplicationsRoutes = async (
         body: {
           type: 'object',
           properties: {
-            outcome: { type: 'string' },
-            notes: { type: 'string' },
+            outcome: BODY_BOUNDS.token,
+            notes: BODY_BOUNDS.longText,
           },
           required: ['outcome'],
         },
@@ -797,7 +799,7 @@ export const registerApplicationsRoutes = async (
         body: {
           type: 'object',
           properties: {
-            notes: { type: 'string' },
+            notes: BODY_BOUNDS.longText,
           },
         },
         response: {
@@ -846,7 +848,7 @@ export const registerApplicationsRoutes = async (
         body: {
           type: 'object',
           properties: {
-            reason: { type: 'string' },
+            reason: BODY_BOUNDS.longText,
           },
           required: ['reason'],
         },
@@ -896,7 +898,7 @@ export const registerApplicationsRoutes = async (
         body: {
           type: 'object',
           properties: {
-            reason: { type: 'string' },
+            reason: BODY_BOUNDS.longText,
           },
         },
         response: {
@@ -1480,17 +1482,17 @@ export const registerApplicationsRoutes = async (
         body: {
           type: 'object',
           properties: {
-            status: { type: 'string' },
-            scheduled_date: { type: 'string' },
-            scheduled_time: { type: 'string' },
-            assigned_staff: { type: 'string' },
-            notes: { type: 'string' },
-            outcome: { type: 'string' },
-            conditions: { type: 'string' },
-            reschedule_reason: { type: 'string' },
-            cancelled_reason: { type: 'string' },
-            cancelled_at: { type: 'string' },
-            completed_at: { type: 'string' },
+            status: BODY_BOUNDS.token,
+            scheduled_date: BODY_BOUNDS.token,
+            scheduled_time: BODY_BOUNDS.token,
+            assigned_staff: BODY_BOUNDS.name,
+            notes: BODY_BOUNDS.longText,
+            outcome: BODY_BOUNDS.token,
+            conditions: BODY_BOUNDS.longText,
+            reschedule_reason: BODY_BOUNDS.longText,
+            cancelled_reason: BODY_BOUNDS.longText,
+            cancelled_at: BODY_BOUNDS.token,
+            completed_at: BODY_BOUNDS.token,
           },
         },
       },
@@ -1541,10 +1543,10 @@ export const registerApplicationsRoutes = async (
         body: {
           type: 'object',
           properties: {
-            referenceId: { type: 'string' },
-            status: { type: 'string' },
-            notes: { type: 'string' },
-            contacted_at: { type: 'string' },
+            referenceId: BODY_BOUNDS.token,
+            status: BODY_BOUNDS.token,
+            notes: BODY_BOUNDS.longText,
+            contacted_at: BODY_BOUNDS.token,
           },
           required: ['referenceId'],
         },
@@ -1646,15 +1648,28 @@ export const registerApplicationsRoutes = async (
     }
   };
 
+  const addTimelineNoteSchema = {
+    tags: ['applications'],
+    body: {
+      type: 'object',
+      properties: {
+        title: BODY_BOUNDS.name,
+        description: BODY_BOUNDS.longText,
+        event_type: BODY_BOUNDS.token,
+        note_type: BODY_BOUNDS.token,
+      },
+    },
+  } as const;
+
   app.post<{ Params: { id: string } }>(
     '/api/v1/applications/:id/timeline/notes',
-    { config: { rateLimit: RL_WRITE }, schema: { tags: ['applications'] } },
+    { config: { rateLimit: RL_WRITE }, schema: addTimelineNoteSchema },
     addTimelineNoteHandler
   );
 
   app.post<{ Params: { id: string } }>(
     '/api/v1/applications/:id/timeline/events',
-    { config: { rateLimit: RL_WRITE }, schema: { tags: ['applications'] } },
+    { config: { rateLimit: RL_WRITE }, schema: addTimelineNoteSchema },
     addTimelineNoteHandler
   );
 
@@ -1754,7 +1769,7 @@ export const registerApplicationsRoutes = async (
         tags: ['applications'],
         body: {
           type: 'object',
-          properties: { petId: { type: 'string' } },
+          properties: { petId: BODY_BOUNDS.token },
           required: ['petId'],
         },
       },
