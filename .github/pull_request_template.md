@@ -34,6 +34,6 @@
 
 <!-- For UI changes, attach a screenshot or recording. Delete if not applicable. -->
 
-## Related
+## Linked issue
 
 <!-- Link to Linear ticket, related PRs, or issues. -->
