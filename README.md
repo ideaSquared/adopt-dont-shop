@@ -216,6 +216,8 @@ All API endpoints live under `/api/v1/` (e.g. `/api/v1/auth/login`) and are serv
 
 Deploys are driven by the `Makefile` at the repo root. Each `make` target shells out to `gh workflow run …`, which dispatches a GitHub Actions workflow and **returns immediately** — it does not wait for the run to finish. Use `make watch` (or `gh run watch`) to follow it.
 
+> **Production does not exist yet.** Only staging can be deployed: `ship.yaml`, `ship.yml`, `deploy.yml` and `rollback.yml` offer no `production` choice, and `make prod` is unavailable. Add it back to those when production exists.
+>
 > **Deploy prerequisites** — before your first deploy:
 >
 > - **GitHub CLI installed and authenticated.** Install [`gh`](https://cli.github.com/) and run `gh auth login`. On a fresh Codespace / devcontainer `gh` is pre-installed but **not** authenticated, so an unauthenticated `make staging` silently does nothing useful.

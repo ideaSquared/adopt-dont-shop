@@ -1,5 +1,7 @@
 # Production Deploy Runbook
 
+> **Note:** there is no production environment yet. Only `staging` is offered by `ship.yaml`, `ship.yml`, `deploy.yml` and `rollback.yml`, and `make prod` is unavailable. Add `production` back to those four (and `requires: [staging]` in `ship.yaml`) when it exists; the production steps below describe that future state.
+
 Authoritative procedure for cutting a normal production/staging release (audience: operators). One-time server, DNS, cert and GitHub environment/secret provisioning lives in [DEPLOYMENT-PLAN.md](../infrastructure/DEPLOYMENT-PLAN.md); an in-progress deploy that has gone wrong (health-gate failure, incident rollback) is handled by [runbooks/deploy-rollback.md](../runbooks/deploy-rollback.md). This document is the happy-path release procedure.
 
 ## Prerequisites

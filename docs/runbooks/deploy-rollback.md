@@ -1,5 +1,8 @@
 # Deploy Rollback
 
+> **Note:** there is no production environment yet. `production` is not offered by `ship.yaml`, `ship.yml`, `deploy.yml`
+> or `rollback.yml` until it exists; the production steps below apply once it is added back.
+>
 > **Audience:** on-call, shell access on the prod host, no context.
 > **Last reviewed:** 2026-09-03
 > **Related alerts:** usually accompanies `HighErrorRate` / `HighGrpcErrorRate`
