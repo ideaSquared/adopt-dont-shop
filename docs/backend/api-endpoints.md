@@ -140,12 +140,16 @@ There is no server-side typing indicator.
 
 ## Health
 
-`GET /health/simple` is the liveness probe: it returns `{ status, service, environment }`.
+`GET /health` is the liveness probe (VPS-28): `200 { status: 'ok' }`, no dependency calls, no auth. The
+external uptime check (`.github/workflows/uptime.yml`) may switch to it once it is deployed. `GET /health/simple` is the same
+liveness probe with `{ status, service, environment }`, kept for the compose and CI callers that use it.
 `GET /health/ready` is the dependency-aware readiness probe (ADS-1327): it actively probes the
 gateway's backing dependencies and returns `200 { status: 'ok', service, environment, checks }`
 when every hard dependency is reachable, or `503 { status: 'degraded', … }` with a per-dependency
 breakdown when a hard dependency is down. NATS is a hard dependency; the rate-limit Redis is
 degraded-tolerant (wired as `redisOptional`) and never gates `ok` — a failed `PING` shows as
-`checks.redis: 'error'` but the route still returns 200. Both routes are registered in `services/gateway/src/server.ts`; every backing service
-exposes the same pair on its own container port. There is no aggregated `/health` or
-`/api/v1/health` route.
+`checks.redis: 'error'` but the route still returns 200. Each probe has a 2 second timeout. The gateway's
+gRPC upstreams are not probed: a single down service must not pull the whole edge out of rotation, and
+the per-route 503/504 mapping already reports it. The routes are registered in
+`services/gateway/src/server.ts`; every backing service exposes `/health/simple` and `/health/ready` on its
+own container port. There is no `/api/v1/health` route.

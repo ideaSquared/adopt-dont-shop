@@ -11,7 +11,7 @@
 // and answers 503 when any of them is unreachable, so an orchestrator or load
 // balancer can stop routing to (or restart) a service that can't serve.
 
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifySchema } from 'fastify';
 
 import type { BaseLogger } from '@adopt-dont-shop/observability';
 
@@ -148,6 +148,8 @@ export type RegisterReadinessRouteOptions = {
   deps: ReadinessDeps;
   logger?: BaseLogger;
   timeoutMs?: number;
+  // Route schema, for a host that documents its routes (the gateway's OpenAPI document).
+  routeSchema?: FastifySchema;
 };
 
 // Register GET /health/ready on a Fastify instance. Answers 200 when every
@@ -157,7 +159,7 @@ export const registerReadinessRoute = (
   server: FastifyInstance,
   opts: RegisterReadinessRouteOptions
 ): void => {
-  server.get('/health/ready', async (_req, reply) => {
+  server.get('/health/ready', { schema: opts.routeSchema }, async (_req, reply) => {
     const result = await checkReadiness(opts.deps, {
       timeoutMs: opts.timeoutMs,
       logger: opts.logger,

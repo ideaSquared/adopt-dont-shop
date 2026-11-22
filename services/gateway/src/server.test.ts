@@ -88,6 +88,24 @@ describe('createServer — health endpoint', () => {
     });
   });
 
+  it('responds to GET /health with status ok', async () => {
+    const res = await server.inject({ method: 'GET', url: '/health' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ status: 'ok' });
+  });
+
+  it('keeps answering GET /health when a dependency is down (liveness only)', async () => {
+    const nats = { isClosed: () => true } as unknown as import('nats').NatsConnection;
+    const degraded = await createServer({ config: baseConfig, logger: quietLogger, nats });
+    try {
+      const res = await degraded.inject({ method: 'GET', url: '/health' });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toEqual({ status: 'ok' });
+    } finally {
+      await degraded.close();
+    }
+  });
+
   it('surfaces the configured environment in the health payload', async () => {
     const stagingServer = await createServer({
       config: { ...baseConfig, environment: 'staging' },
