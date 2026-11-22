@@ -119,6 +119,11 @@ jobs:
           git fetch origin main:refs/remotes/origin/main || true
           node scripts/check-migration-backcompat.mjs
 
+      # VPS-23: a migration already on main is never edited, deleted or renamed.
+      - name: Shipped migrations are unchanged
+        if: github.event_name == 'pull_request'
+        run: node scripts/check-migration-immutable.mjs
+
       - name: Build shared libraries
         run: pnpm build:libs
 

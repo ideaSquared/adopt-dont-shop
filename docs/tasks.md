@@ -76,6 +76,7 @@ the repo root with `pnpm <script>`.
 | `pnpm check:gateway-upload-dir` | `node scripts/check-gateway-upload-dir.mjs` |
 | `pnpm check:lib-tests` | `node scripts/check-lib-tests.mjs` |
 | `pnpm check:migration-backcompat` | `node scripts/check-migration-backcompat.mjs` |
+| `pnpm check:migration-immutable` | `node scripts/check-migration-immutable.mjs` |
 | `pnpm check:nginx-upload-precedence` | `node scripts/check-nginx-upload-precedence.mjs` |
 | `pnpm check:no-only` | `node scripts/check-no-test-only.mjs` |
 | `pnpm check:observability-mounts` | `node scripts/check-observability-mounts.mjs` |

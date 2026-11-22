@@ -79,6 +79,7 @@
     "check:workflow-pinning": "node scripts/check-workflow-image-pinning.mjs",
     "check:shipper-pins": "node scripts/check-shipper-pins.mjs",
     "check:migration-backcompat": "node scripts/check-migration-backcompat.mjs",
+    "check:migration-immutable": "node scripts/check-migration-immutable.mjs",
     "check:stop-grace-period": "node scripts/check-stop-grace-period.mjs",
     "check:gateway-upload-dir": "node scripts/check-gateway-upload-dir.mjs",
     "check:gateway-hardening": "node scripts/check-gateway-hardening.mjs",

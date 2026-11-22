@@ -72,6 +72,7 @@
   "check:workflow-pinning": "Guard: fail if a GitHub Actions workflow's `image:` key or `docker run` invocation references a container image by mutable tag instead of a pinned @sha256 digest.",
   "check:shipper-pins": "Guard: fail if the shipper commit SHAs in .github/workflows disagree (a uses: line bumped without its shipper-ref input).",
   "check:migration-backcompat": "Guard: fail if a newly added migration contracts the schema (drop/rename, unmarked NOT NULL, type narrowing) without a backcompat marker comment (ADR 0008).",
+  "check:migration-immutable": "Guard: fail if a branch modifies, deletes or renames a migration already on main (VPS-23).",
   "check:gateway-upload-dir": "Guard: fail if service-gateway UPLOAD_DIR in the prod/staging compose files does not match its uploads volume mount.",
   "check:gateway-hardening": "Guard: fail if the edge nginx in deploy/gateway/docker-compose.gateway.yml loses its read-only rootfs/tmpfs mounts, gains a /var/log/nginx tmpfs, or certbot loses cap_drop ALL / no-new-privileges.",
   "check:stop-grace-period": "Guard: fail if a service-* entry in docker-compose.prod.yml lacks stop_grace_period (ADS-1309).",
