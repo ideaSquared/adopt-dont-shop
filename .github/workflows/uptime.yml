@@ -10,9 +10,14 @@ name: Uptime
 # URLs: the three production frontends (docs/infrastructure/PRODUCTION-SETUP.md, "Check it works")
 # and the gateway's public liveness route, /health, served through api.adoptdontshop.app.
 
+# Off until production launches: there is no production environment yet, and staging is behind an
+# IP allowlist / basic auth (deploy/gateway/snippets/staging-access.conf) that a GitHub runner does not
+# pass, so a scheduled run would fail and alert Discord every time. Add the schedule back, and run the
+# workflow once to check it is green, when production exists:
+#
+#   schedule:
+#     - cron: '*/10 * * * *'
 on:
-  schedule:
-    - cron: '*/10 * * * *'
   workflow_dispatch:
 
 permissions:
