@@ -350,13 +350,36 @@ export default defineConfig({
       testDir: './tests/gateway-limits',
     },
     {
-      // ADS-1326: axe-core smoke coverage. Runs logged-out against
-      // app.client, which also serves the public login route.
+      // ADS-1326: axe-core smoke coverage, one project per app. app.client runs
+      // logged out (its spec signs in for the adopter's own pages); rescue and
+      // admin start signed in as their seeded role. Tolerated violations are
+      // listed per rule and per page in tests/a11y/known-violations.ts.
       name: 'a11y',
       testDir: './tests/a11y',
+      testMatch: '**/axe-smoke.spec.ts',
       use: {
         ...devices['Desktop Chrome'],
         baseURL: URLS.client,
+      },
+    },
+    {
+      name: 'a11y-rescue',
+      testDir: './tests/a11y',
+      testMatch: '**/axe-rescue.spec.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: URLS.rescue,
+        storageState: AUTH_FILES.rescue,
+      },
+    },
+    {
+      name: 'a11y-admin',
+      testDir: './tests/a11y',
+      testMatch: '**/axe-admin.spec.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: URLS.admin,
+        storageState: AUTH_FILES.admin,
       },
     },
     // Each project runs only its UNPARKED specs (see above); the rest stay

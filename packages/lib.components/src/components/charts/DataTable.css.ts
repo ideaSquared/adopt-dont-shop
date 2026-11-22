@@ -170,7 +170,7 @@ export const headerLabel = style({
 export const emptyFrameless = style({
   padding: vars.spacing['4'],
   textAlign: 'center',
-  color: vars.text.muted,
+  color: vars.text.tertiary,
   fontSize: vars.typography.size.sm,
 });
 

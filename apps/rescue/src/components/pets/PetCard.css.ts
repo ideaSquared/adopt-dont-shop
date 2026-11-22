@@ -178,7 +178,8 @@ export const modalActions = style({
 });
 
 export const dangerText = style({
-  color: '#ef4444',
+  // text.danger, not #ef4444: that measured ~3.8:1 on the white card.
+  color: vars.text.danger,
 });
 
 export const deleteWarning = style({

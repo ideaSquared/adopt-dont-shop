@@ -2,6 +2,7 @@ import type { ChangeEvent, JSX } from 'react';
 import { Input } from '../../ui/Input';
 import { CheckboxInput } from '../CheckboxInput';
 import { DateInput } from '../DateInput';
+import { FormField } from '../FormField';
 import { SelectInput } from '../SelectInput';
 
 import * as styles from './FilterPanel.css';
@@ -60,11 +61,15 @@ const GenericFilters = <T extends FilterRecord>({
               />
             )}
             {type === 'date' && (
-              <DateInput
-                id={inputId}
-                value={typeof value === 'string' || typeof value === 'number' ? String(value) : ''}
-                onChange={handleChange(name, type)}
-              />
+              <FormField label={label} htmlFor={inputId}>
+                <DateInput
+                  id={inputId}
+                  value={
+                    typeof value === 'string' || typeof value === 'number' ? String(value) : ''
+                  }
+                  onChange={handleChange(name, type)}
+                />
+              </FormField>
             )}
             {type === 'select' && options && (
               <SelectInput
@@ -75,7 +80,12 @@ const GenericFilters = <T extends FilterRecord>({
               />
             )}
             {type === 'checkbox' && (
-              <CheckboxInput id={inputId} checked={!!value} onChange={handleChange(name, type)} />
+              <CheckboxInput
+                id={inputId}
+                label={label}
+                checked={!!value}
+                onChange={handleChange(name, type)}
+              />
             )}
           </div>
         );

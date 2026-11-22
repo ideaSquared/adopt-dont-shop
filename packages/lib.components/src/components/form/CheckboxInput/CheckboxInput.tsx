@@ -81,22 +81,12 @@ export const CheckboxInput = ({
     }
   };
 
-  const handleContainerKeyDown = (event: React.KeyboardEvent) => {
-    if ((event.key === 'Enter' || event.key === ' ') && !disabled) {
-      event.preventDefault();
-      inputRef.current?.click();
-    }
-  };
-
   return (
     <div className={clsx(container, className)}>
-      <div
-        className={checkboxContainer}
-        onClick={handleContainerClick}
-        onKeyDown={handleContainerKeyDown}
-        role='button'
-        tabIndex={disabled ? -1 : 0}
-      >
+      {/* A mouse convenience only: the native checkbox inside is the single keyboard and
+          screen-reader target, so the wrapper must not be a second, nameless control. */}
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+      <div className={checkboxContainer} onClick={handleContainerClick}>
         <input
           type='checkbox'
           ref={setInputRef}
