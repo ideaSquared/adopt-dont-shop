@@ -7,9 +7,9 @@ on:
         description: 'Target environment'
         required: true
         type: choice
+        # Add `production` back when the production environment exists (see ship.yaml).
         options:
           - staging
-          - production
       sha:
         description: 'Full 40-char git SHA to roll back to (its signed images must already exist in GHCR)'
         required: true

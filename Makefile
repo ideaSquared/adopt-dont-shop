@@ -15,7 +15,7 @@ help: ## Show this help (deploy targets only — local dev uses pnpm)
 staging: ## Deploy main to staging (runs immediately)
 	gh workflow run deploy.yml -f environment=staging
 
-prod: ## DISPATCHES A REAL PRODUCTION DEPLOY — a reviewer must approve it in the GitHub Actions UI
+prod: ## NOT AVAILABLE YET (no production environment); will dispatch a real production deploy once `production` is offered by deploy.yml
 	gh workflow run deploy.yml -f environment=production
 
 rollback: ## Roll an env back to a SHA — usage: make rollback env=production sha=abc1234

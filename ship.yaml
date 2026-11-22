@@ -22,8 +22,10 @@ dispatch:
   rollbackWorkflow: rollback.yml
 environments:
   staging: {}
-  production:
-    requires: [staging]
+  # There is no production environment yet. When it exists, add it back as:
+  #   production:
+  #     requires: [staging]
+  # and restore `production` in the environment choices of ship.yml, deploy.yml and rollback.yml.
 components:
   stack:
     type: external

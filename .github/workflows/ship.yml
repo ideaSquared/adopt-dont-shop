@@ -4,8 +4,9 @@
 #
 # - Staging: automatically once both CI and Docker (whose production image smoke test deploy.yml
 #   also requires) pass on a push to main, or `ship deploy ads staging`.
-# - Production: `ship deploy ads production` (or Actions → Ship → Run workflow → production). Shipper's
-#   gate only accepts a commit that is already live on staging; deploy.yml then runs its own CI and
+# - Production: not offered yet, because there is no production environment (ship.yaml). When it exists:
+#   `ship deploy ads production` (or Actions → Ship → Run workflow → production). Shipper's gate only
+#   accepts a commit that is already live on staging; deploy.yml then runs its own CI and
 #   production-smoke gates and the production approval, as before.
 #
 # Emergency bypasses (skip_ci_check, skip_cosign_verify, allow_blind_deploy) stay on deploy.yml's
@@ -24,7 +25,8 @@ on:
       environment:
         description: Environment to deploy main to
         type: choice
-        options: [staging, production]
+        # Add `production` back when the production environment exists (see ship.yaml).
+        options: [staging]
         default: staging
 
 permissions:
