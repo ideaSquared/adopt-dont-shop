@@ -9,7 +9,7 @@
 # ──────────────────────────────────────────────
 # Global fallback — catches anything not matched below
 # ──────────────────────────────────────────────
-*  @ideaSquared/adoptdontshop
+* @ideaSquared/adoptdontshop
 
 # ──────────────────────────────────────────────
 # Frontend apps

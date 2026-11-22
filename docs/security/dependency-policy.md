@@ -1,9 +1,9 @@
 # Dependency update & vulnerability policy
 
-How CI treats dependency risk vs. staleness, and how Renovate keeps updates
+How CI treats dependency risk vs. staleness, and how Dependabot keeps updates
 moving. Audience: anyone triaging a red dependency check or an update PR.
 
-`Last reviewed: 2026-10-31`
+`Last reviewed: 2026-11-22`
 
 Four CI surfaces watch the dependency graph. Two block merges on real risk
 (one on the npm advisory data, one on the built image), one fails when a
@@ -49,7 +49,7 @@ Today both lists are empty.
 Most advisories in transitive packages are fixed by resolving again, not by
 forcing a version:
 
-1. **Refresh the lockfile** (Renovate's weekly lock-file maintenance does this).
+1. **Refresh the lockfile** (`pnpm update <package>`; Dependabot security updates do the same for flagged packages).
    pnpm resolves the highest version each consumer's range allows, so if the
    parent's range already includes the patched release, this is the whole fix.
 2. **Bump the parent** when its range excludes the patched release but a newer
@@ -88,7 +88,7 @@ with no change in this repo. A red scheduled run is the prompt to remove it.
 ## Advisory: `quality.yml` (Dependency Check)
 
 `pnpm outdated -r` never fails the job. Falling behind on non-security
-version bumps is a maintenance cost, not an incident, and Renovate already
+version bumps is a maintenance cost, not an incident, and Dependabot already
 opens PRs for routine updates (see [CONTRIBUTING.md](../../CONTRIBUTING.md#dependency-updates)).
 Its output is written to the run's job summary (`GITHUB_STEP_SUMMARY`) so
 it's visible on the workflow run page without needing to expand a log —
@@ -105,21 +105,21 @@ noisy to trust (blocking on routine minor bumps) or too quiet to act on
 (everything green regardless of a real CVE). Splitting them means:
 
 - A red check always means something a reviewer must act on.
-- Staleness is visible without being a merge gate — Renovate's automerge for
-  minor/patch devDependencies (`renovate.json`) keeps most of it moving
-  without human intervention anyway.
+- Staleness is visible without being a merge gate — Dependabot's grouped
+  weekly PRs (`.github/dependabot.yml`) keep most of it moving.
 
-## Renovate
+## Dependabot
 
-`renovate.json` configures the routine-update bot:
+`.github/dependabot.yml` configures the routine-update bot:
 
-- Runs on the `schedule:earlyMondays` schedule with a 3-day `minimumReleaseAge`
-  (skip a release that was just yanked), capped at 5 concurrent / 2 hourly PRs.
-- Groups related updates into single PRs (non-major devDependencies,
-  `typescript-eslint`, Vitest, the React types + `react`/`react-dom` — the last
-  also updates the matching `pnpm.overrides` pins via a custom manager).
-- **Automerges** minor/patch devDependency updates once CI is green; everything
-  else opens a PR for human review.
+- Runs weekly (Monday 03:00 Europe/London) for npm, GitHub Actions, Docker and
+  docker-compose, with a 3-day `cooldown` (skip a release that was just yanked)
+  and at most 5 open PRs per ecosystem.
+- Groups related updates into single PRs (`react`, `typescript-eslint`,
+  `vitest`, and one `minor-and-patch` group per ecosystem). The `pnpm.overrides`
+  pins for React are bumped by hand alongside the `react` group.
+- Nothing automerges; every PR is reviewed.
 
-Renovate handles staleness; it does not decide vulnerability policy — a CVE is
-gated by the two blocking surfaces above, not by waiting for a Renovate PR.
+Dependabot handles staleness; it does not decide vulnerability policy — a CVE is
+gated by the two blocking surfaces above, not by waiting for a Dependabot PR.
+See [dependency-updates.md](../operations/dependency-updates.md).

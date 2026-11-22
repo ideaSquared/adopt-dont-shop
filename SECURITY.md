@@ -4,7 +4,7 @@ How to report a vulnerability in Adopt Don't Shop, and what to expect back.
 
 ## Reporting a vulnerability
 
-Email **privacy@adoptdontshop.app** with:
+Email **[privacy@adoptdontshop.app](mailto:privacy@adoptdontshop.app)** with:
 
 - a description of the issue and its impact,
 - the steps or proof-of-concept to reproduce it,

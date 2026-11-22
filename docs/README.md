@@ -123,7 +123,7 @@ Documentation for the adopt-don't-shop monorepo, organised by audience: **Start 
 
 ### Routine ops
 
-- [Operations — dependency updates (Renovate)](./operations/dependency-updates.md) — automated dependency upgrades
+- [Operations — dependency updates (Dependabot)](./operations/dependency-updates.md) — automated dependency upgrades
 - [Operations — pet CSV import](./operations/pet-csv-import.md) — bulk-loading pet records
 - [Operations — dev seed data](./operations/dev-seed-data.md) — seeding the dev database
 - [Dependency policy](./security/dependency-policy.md) — blocking vs advisory dependency/vulnerability checks

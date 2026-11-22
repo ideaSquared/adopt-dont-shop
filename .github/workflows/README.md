@@ -26,6 +26,7 @@ Reference for the GitHub Actions workflows in this directory: what each one does
 | `backup-restore-drill.yml` | Automated restore-verification drill (Postgres + uploads) against the latest backup (ADS-1240 / ADS-1325 / ADR 0007). Also runs in the `backups` environment (ADS-1305) so it reads the same secrets — **the maintainer must additionally copy the `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` read-only S3 secrets into `backups`** (this job runs on a GitHub-hosted runner with no host to borrow the SSH-based credentials from). Both this workflow and `backup.yml` send a signed alert to ideasquared-bot's `/alert` endpoint (optional `ALERT_SECRET` secret, via `scripts/send-alert.sh`) and open/update a `backup-failure`-labelled GitHub issue on failure (ADS-1324) — the alert is skipped quietly if `ALERT_SECRET` is unset. |
 | `dependency-graph.yml`     | Publishes `docs/dependency-graph.html` and the per-`lib.*` consumer docs on push to `main` (ADS-957).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `docs-freshness.yml`       | Nightly docs-freshness report — broken internal links and docs untouched for 12+ months (ADS-954).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `uptime.yml`               | Every 10 minutes, requests the production frontends and the gateway's `/health/simple` from a GitHub runner; a URL that does not return 200 fails the job and sends a critical Discord alert through ideasquared-bot (`ALERT_SECRET`) (VPS-28).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `stale-overrides.yml`      | Fails when a security entry in `pnpm.overrides` is no longer needed: every consumer's own range already resolves a patched version (ADS-1112). Runs on dependency PRs/pushes and weekly.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 ## Workflow Overview
@@ -336,7 +337,7 @@ GitHub Actions tags are mutable. A malicious force-push to a third-party
 tag — or upstream account compromise (tj-actions/changed-files, 2025) —
 immediately exfiltrates every secret available to the job. SHA pinning
 makes the action contents tamper-evident and surfaces upstream changes
-through Renovate rather than via silent re-resolution at run time.
+through Dependabot rather than via silent re-resolution at run time.
 
 ### Highest-risk actions
 
@@ -352,10 +353,10 @@ carefully on every bump:
 
 ### Updating an action
 
-Dependency PRs are raised by [Renovate](../../renovate.json) — this repo has no
-Dependabot config (ADS-891). To review an action bump:
+Dependency PRs are raised by [Dependabot](../dependabot.yml). To review an
+action bump:
 
-1. Open the Renovate PR for the action bump.
+1. Open the Dependabot PR for the action bump.
 2. Verify the proposed SHA matches the tag on
    `https://github.com/<owner>/<repo>/releases/tag/v<version>`.
 3. If the action is on the highest-risk table above, also read the

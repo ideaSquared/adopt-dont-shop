@@ -2,7 +2,7 @@
 /**
  * Workflow container-image digest-pinning guard (ADS-1341).
  *
- * renovate.json (`pinDigests: true`) and scripts/check-docker-pinning.mjs
+ * scripts/check-docker-pinning.mjs
  * already require every third-party image in the prod/staging compose files
  * and every Dockerfile `FROM` to be pinned to an immutable `@sha256:` digest.
  * `.github/workflows/**` was not covered by either, and a workflow can pull a

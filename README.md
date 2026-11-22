@@ -1,8 +1,8 @@
 # Adopt Don't Shop — Pet Adoption Platform
 
-This README is the reference: **what** the project is, **how** to run it, and **where** to find things. For a linear, ordered Day-1 path, start at [docs/GETTING-STARTED.md](./docs/GETTING-STARTED.md).
-
 A monorepo containing three React frontends, a Fastify API gateway fronting a fleet of Node.js gRPC microservices, and shared libraries for connecting rescue organizations with potential adopters.
+
+This README is the reference: **what** the project is, **how** to run it, and **where** to find things. For a linear, ordered Day-1 path, start at [docs/GETTING-STARTED.md](./docs/GETTING-STARTED.md).
 
 ## Quick Start
 

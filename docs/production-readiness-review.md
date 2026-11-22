@@ -17,7 +17,7 @@ ticket/ADR for it; "new" means this review surfaced it.
 ## Executive summary
 
 **This is a mature, unusually well-engineered codebase.** It actively patches
-CVEs, ships contract tests, release-please, Renovate, cosign-signed images,
+CVEs, ships contract tests, release-please, Dependabot, cosign-signed images,
 digest-pinned CI, runbooks, SLO-mapped alert rules, graceful shutdown, circuit
 breakers, JetStream DLQs, and hardened non-root containers. Genuine code debt is
 tiny — **6 `TODO`/`FIXME` markers in all production source**, no skipped/focused
@@ -258,7 +258,7 @@ readiness-probe-unused gap (P0) and no Redis health signal for the WS adapter.
 ### Infrastructure & deployment
 
 Build/ship/run security is excellent: multi-stage non-root images with
-read-only rootfs + `cap_drop: ALL`, digest pinning enforced in CI + Renovate, no
+read-only rootfs + `cap_drop: ALL`, digest pinning enforced in CI + Dependabot, no
 `:latest` in prod, cosign keyless sign→verify→deploy gate, file-mounted
 uncommitted secrets, a locked-down TLS edge (TLS1.2/1.3, HSTS preload, tight
 CSP, XFF anti-spoofing), governed deploys with approval gates and a working

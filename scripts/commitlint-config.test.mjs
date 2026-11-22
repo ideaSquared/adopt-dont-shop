@@ -32,6 +32,20 @@ describe('commitlint config', () => {
     expect(result.valid).toBe(true);
   });
 
+  it('accepts a lowercase Dependabot group bump signed off by the Dependabot bot', () => {
+    const result = lintMessage(
+      `chore(deps): bump the minor-and-patch group with 3 updates\n\n${DEPENDABOT_BODY}`
+    );
+    expect(result.valid).toBe(true);
+  });
+
+  it('accepts a lowercase Dependabot single bump signed off by the Dependabot bot', () => {
+    const result = lintMessage(
+      `chore(deps): bump sanitize-html from 2.18.0 to 2.18.1\n\n${DEPENDABOT_BODY}`
+    );
+    expect(result.valid).toBe(true);
+  });
+
   it('still rejects a sentence-case bump subject without the Dependabot sign-off', () => {
     const result = lintMessage('build(deps): Bump fastify from 5.12.5 to 5.12.6');
     expect(result.valid).toBe(false);
