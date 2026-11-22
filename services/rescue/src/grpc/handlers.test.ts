@@ -208,6 +208,39 @@ describe('createRescue', () => {
     expect(res.rescue?.status).toBe(RescueV1.RescueStatus.RESCUE_STATUS_PENDING);
     expect(order).toEqual(['BEGIN', 'INSERT', 'COMMIT', 'NATS_PUBLISH']);
   });
+
+  it.each([
+    ['rescues_name_key', /name/],
+    ['rescues_email_key', /email/],
+    ['rescues_companies_house_number_key', /companies house number/],
+    ['rescues_charity_registration_number_key', /charity registration number/],
+  ])('answers ALREADY_EXISTS naming the field when %s is violated', async (constraint, field) => {
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (String(sql).includes('INSERT INTO rescue.rescues')) {
+        throw Object.assign(new Error('duplicate key'), { code: '23505', constraint });
+      }
+      return { rows: [] };
+    });
+
+    await expect(createRescue(mocks.deps, ADMIN, BASE_CREATE)).rejects.toMatchObject({
+      code: 'ALREADY_EXISTS',
+      message: expect.stringMatching(field),
+    });
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('answers ALREADY_EXISTS for a unique violation on an unrecognised constraint', async () => {
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (String(sql).includes('INSERT INTO rescue.rescues')) {
+        throw Object.assign(new Error('duplicate key'), { code: '23505' });
+      }
+      return { rows: [] };
+    });
+
+    await expect(createRescue(mocks.deps, ADMIN, BASE_CREATE)).rejects.toMatchObject({
+      code: 'ALREADY_EXISTS',
+    });
+  });
 });
 
 // --- registerRescue (public sign-up) ----------------------------------
@@ -301,6 +334,24 @@ describe('registerRescue', () => {
 
     await expect(registerRescue(mocks.deps, null, REGISTER)).rejects.toMatchObject({
       code: 'ALREADY_EXISTS',
+    });
+  });
+
+  it('names the taken field when another rescue already uses this email', async () => {
+    mocks.poolMock.query.mockResolvedValue({ rows: [] });
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (String(sql).includes('INSERT INTO rescue.rescues')) {
+        throw Object.assign(new Error('duplicate key'), {
+          code: '23505',
+          constraint: 'rescues_email_key',
+        });
+      }
+      return { rows: [] };
+    });
+
+    await expect(registerRescue(mocks.deps, null, REGISTER)).rejects.toMatchObject({
+      code: 'ALREADY_EXISTS',
+      message: expect.stringMatching(/email/),
     });
   });
 
