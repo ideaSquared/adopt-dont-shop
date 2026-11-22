@@ -8,7 +8,7 @@ name: Uptime
 # Discord message is sent.
 #
 # URLs: the three production frontends (docs/infrastructure/PRODUCTION-SETUP.md, "Check it works")
-# and the gateway's public liveness route, /health/simple, served through api.adoptdontshop.app.
+# and the gateway's public liveness route, /health, served through api.adoptdontshop.app.
 
 on:
   schedule:
@@ -45,7 +45,7 @@ jobs:
             https://adoptdontshop.app/
             https://admin.adoptdontshop.app/
             https://rescue.adoptdontshop.app/
-            https://api.adoptdontshop.app/health/simple
+            https://api.adoptdontshop.app/health
           )
           down=()
           for url in "${urls[@]}"; do
