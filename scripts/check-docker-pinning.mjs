@@ -14,7 +14,7 @@
  * are also skipped — they reference an earlier stage in the same file, not a
  * registry image.
  *
- * Renovate keeps the digests current (renovate.json `pinDigests` for docker).
+ * Dependabot (.github/dependabot.yml) keeps the digests current.
  * This guard fails CI if a third-party image in the prod/staging compose
  * files, or a third-party `FROM` in a Dockerfile, is introduced or edited
  * without an `@sha256:` digest.

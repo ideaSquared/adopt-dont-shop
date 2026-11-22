@@ -79,7 +79,6 @@
   "check:docs-links": "Guard: fail if a docs/**/*.md or root markdown file has a broken internal link or anchor (ADS-1336).",
   "check:docs-script-refs": "Guard: fail if a doc references a `pnpm run <script>` that doesn't exist.",
   "check:proto-fresh": "Guard: fail if packages/proto committed codegen is out of sync with `buf generate` (run `pnpm generate` in packages/proto and commit).",
-  "check:renovate": "Guard: fail if renovate.json has invalid keys or deprecated matchers (runs the official renovate-config-validator).",
   "check:overrides-docs": "Guard: fail if a CVE-style pnpm.overrides entry has no matching overridesDocumentation note (ADS-1113).",
   "check:stale-overrides": "Guard: fail if a security pnpm.overrides entry is no longer needed, because every consumer's own range resolves a patched version (ADS-1112).",
   "check:csp": "Guard: fail if any nginx config's Content-Security-Policy allows unsafe-inline/unsafe-eval, or a prod SPA vhost is missing its CSP header.",

@@ -336,7 +336,7 @@ GitHub Actions tags are mutable. A malicious force-push to a third-party
 tag — or upstream account compromise (tj-actions/changed-files, 2025) —
 immediately exfiltrates every secret available to the job. SHA pinning
 makes the action contents tamper-evident and surfaces upstream changes
-through Renovate rather than via silent re-resolution at run time.
+through Dependabot rather than via silent re-resolution at run time.
 
 ### Highest-risk actions
 
@@ -352,10 +352,10 @@ carefully on every bump:
 
 ### Updating an action
 
-Dependency PRs are raised by [Renovate](../../renovate.json) — this repo has no
-Dependabot config (ADS-891). To review an action bump:
+Dependency PRs are raised by [Dependabot](../dependabot.yml). To review an
+action bump:
 
-1. Open the Renovate PR for the action bump.
+1. Open the Dependabot PR for the action bump.
 2. Verify the proposed SHA matches the tag on
    `https://github.com/<owner>/<repo>/releases/tag/v<version>`.
 3. If the action is on the highest-risk table above, also read the

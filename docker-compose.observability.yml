@@ -20,7 +20,7 @@
 # Config lives under ./observability/ and MUST be provisioned onto the host at
 # /opt/ads/<env>/observability/ alongside the compose file (the host holds no
 # repo checkout — deploy.yml:517). Images are tag-pinned to match the dev
-# `observability` profile; Renovate digest-pins them (ADS-1053).
+# `observability` profile; Dependabot (.github/dependabot.yml) watches them (ADS-1053).
 # ============================================================================
 
 x-obs-logging: &obs-logging

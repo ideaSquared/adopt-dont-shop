@@ -4,8 +4,8 @@
  *
  * ship.yml pins shipper's reusable workflows to a commit SHA in each `uses:`
  * line and passes the same SHA as the `shipper-ref` input, which is the ref
- * shipper checks out to run its gate and report scripts. Renovate's
- * github-actions manager bumps the `uses:` SHA but not `shipper-ref`, so an
+ * shipper checks out to run its gate and report scripts. Dependabot's
+ * github-actions ecosystem bumps the `uses:` SHA but not `shipper-ref`, so an
  * accepted bump would run the new workflow with the old scripts. Every shipper
  * pin across .github/workflows must therefore be the same SHA. Quoted
  * shipper-ref values count; full-line and inline comments do not.

@@ -331,7 +331,7 @@ Code ownership is defined in [`.github/CODEOWNERS`](./.github/CODEOWNERS). All P
 
 ## Dependency updates
 
-[Renovate](./renovate.json) is the single source of truth for dependency PRs (npm workspace, GitHub Actions, Docker image digests) — there is no separate Dependabot config (ADS-891). Don't re-add `.github/dependabot.yml`; adjust grouping/scheduling in `renovate.json` instead.
+[Dependabot](./.github/dependabot.yml) is the single source of truth for dependency PRs (npm workspace, GitHub Actions, Docker image digests and compose images). Adjust grouping and scheduling there; do not add a second update bot.
 
 To fix an advisory in a transitive dependency, refresh the lockfile or bump the parent package first. Use `pnpm.overrides` only when no released parent allows the patched version; the Stale Overrides check fails once an override stops being needed. See [docs/security/dependency-policy.md](docs/security/dependency-policy.md#fixing-a-transitive-advisory-and-when-to-use-pnpmoverrides).
 

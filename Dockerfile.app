@@ -14,9 +14,9 @@
 
 ARG NODE_VERSION=24.22.2
 # Pinned by digest (matches node:24.22.2-slim at the time of pinning) so a
-# rebuild can't silently pull a different image. Renovate's docker manager
-# (pinDigests: true in renovate.json) keeps this current — bump NODE_VERSION
-# and the digest together when it opens a PR. If NODE_VERSION is overridden
+# rebuild can't silently pull a different image. Dependabot's docker ecosystem
+# (.github/dependabot.yml) watches this pin; because the tag comes from the
+# NODE_VERSION build arg, bump NODE_VERSION and the digest together. If NODE_VERSION is overridden
 # without updating the digest, the build fails closed on a manifest mismatch
 # rather than silently resolving an unpinned image. [ADS-960]
 FROM node:${NODE_VERSION}-slim@sha256:c86ecead9e55a5210ac1727de38a4ca840bf03dcaf34dc9749addbf383b1920c AS base

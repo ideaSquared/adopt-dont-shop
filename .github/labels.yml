@@ -37,7 +37,7 @@
   color: "16a34a"
   description: "Run the production smoke test (full production stack) on this PR"
 
-# Applied by Renovate (renovate.json `labels` / `vulnerabilityAlerts.labels`).
+# Applied by Dependabot (.github/dependabot.yml `labels`).
 # `dependencies` keeps the colour and description GitHub already gives it, so
 # the sync is a no-op for that label.
 - name: "dependencies"
