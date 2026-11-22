@@ -470,6 +470,11 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // /documentation/json URL.
   server.get('/openapi.json', async () => server.swagger());
 
+  // Liveness (VPS-28): the process is up. No dependency calls, no auth (the
+  // infra '/health' prefix in middleware/authenticate.ts), so it stays cheap
+  // enough for an external uptime check. Readiness is /health/ready below.
+  server.get('/health', async () => ({ status: 'ok' }));
+
   // Health endpoint — matches service.backend's `/health/simple` path
   // so the Docker compose healthcheck (already wired in the broader
   // stack) Just Works once the gateway is added.

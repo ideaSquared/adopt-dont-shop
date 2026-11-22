@@ -55,6 +55,7 @@ async function makeApp(
   // header-strip ran).
   app.get('/api/public-echo', { config: { public: true } }, echoHandler);
   app.get('/health/simple', async () => ({ ok: true }));
+  app.get('/health', async () => ({ ok: true }));
   // Infra endpoints reachable via the INFRA_PUBLIC_PREFIXES exception (they're
   // registered by shared packages in production, so they carry no config.public
   // and must pass on prefix alone).
@@ -453,7 +454,7 @@ describe('registerAuthenticate — public paths', () => {
   });
 
   it('lets tokenless requests through to the infra endpoints via the prefix exception', async () => {
-    for (const url of ['/health/simple', '/metrics', '/openapi.json']) {
+    for (const url of ['/health', '/health/simple', '/metrics', '/openapi.json']) {
       const res = await app.inject({ method: 'GET', url });
       expect(res.statusCode).toBe(200);
     }
