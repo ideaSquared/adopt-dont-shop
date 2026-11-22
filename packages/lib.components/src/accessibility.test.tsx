@@ -8,8 +8,12 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   Alert,
+  Avatar,
+  Badge,
   Breadcrumbs,
   Button,
+  Card,
+  ChartFrame,
   CheckboxInput,
   ConfirmDialog,
   DataTable,
@@ -96,6 +100,31 @@ const SELECT_OPTIONS = [
 
 const STATIC_CASES: ReadonlyArray<[string, () => React.ReactElement]> = [
   ['Button', () => <Button>Save changes</Button>],
+  [
+    'Card (clickable)',
+    () => (
+      <Card clickable onClick={noop} aria-label='Open Biscuit'>
+        Biscuit
+      </Card>
+    ),
+  ],
+  ['Avatar (clickable)', () => <Avatar clickable onClick={noop} name='Sam Example' />],
+  [
+    'Badge (removable)',
+    () => (
+      <Badge removable onRemove={noop}>
+        Dog
+      </Badge>
+    ),
+  ],
+  [
+    'ChartFrame (drill-down, with actions)',
+    () => (
+      <ChartFrame title='Adoptions' onClick={noop} actions={<Button>Export</Button>}>
+        <p>Chart</p>
+      </ChartFrame>
+    ),
+  ],
   ['Button (loading)', () => <Button isLoading>Save changes</Button>],
   [
     'Tabs',

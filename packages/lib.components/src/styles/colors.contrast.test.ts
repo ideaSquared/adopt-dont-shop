@@ -226,3 +226,33 @@ describe('text tokens the page-level axe gate caught under-contrast', () => {
     }
   );
 });
+
+describe('pairings the PR review of the axe gate flagged', () => {
+  const themes = [
+    ['light', lightTheme, white],
+    ['normal', normalTheme, warmCream],
+    ['dark', darkTheme, darkTheme.background.body],
+  ] as const;
+
+  // Rescue PetCard's Delete (an outline Button) keeps the card surface behind
+  // its text.danger label on hover and press: on the outline variant's
+  // colors.primaryBgSubtle tint it measured ~4.02:1.
+  it.each(themes)(
+    'text.danger meets AA on background.surface in the %s theme (PetCard Delete hover/pressed)',
+    (_name, theme) => {
+      expect(contrastRatio(theme.text.danger, theme.background.surface)).toBeGreaterThanOrEqual(
+        AA_NORMAL_TEXT
+      );
+    }
+  );
+
+  // CheckboxInput draws the hidden input's keyboard focus as a
+  // colors.primaryActive outline offset onto the page body. WCAG 1.4.11 asks
+  // 3:1 for a focus indicator.
+  it.each(themes)(
+    'the CheckboxInput focus ring (colors.primaryActive) meets 3:1 on the %s theme body',
+    (_name, theme, body) => {
+      expect(contrastRatio(theme.colors.primaryActive, body)).toBeGreaterThanOrEqual(3);
+    }
+  );
+});

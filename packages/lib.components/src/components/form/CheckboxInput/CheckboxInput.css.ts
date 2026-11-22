@@ -46,6 +46,14 @@ export const styledCheckbox = recipe({
       [`${checkboxContainer}:hover input:not(:disabled) + &`]: {
         borderColor: vars.colors.primary,
       },
+      // The native input is visually hidden, so its keyboard focus is drawn on
+      // this box. An outline, not a border change, so it still shows when the
+      // box is checked (the checked border is already colors.primary).
+      // colors.primaryActive clears 3:1 against every theme body.
+      'input:focus-visible + &': {
+        outline: `2px solid ${vars.colors.primaryActive}`,
+        outlineOffset: '2px',
+      },
     },
   },
   variants: {
@@ -55,11 +63,9 @@ export const styledCheckbox = recipe({
         selectors: {
           'input:focus + &': {
             borderColor: vars.colors.primary,
-            boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}40`,
           },
           'input:focus-visible + &': {
             borderColor: vars.colors.primary,
-            boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}40`,
           },
         },
       },
@@ -68,11 +74,9 @@ export const styledCheckbox = recipe({
         selectors: {
           'input:focus + &': {
             borderColor: vars.colors.danger,
-            boxShadow: `0 0 0 3px ${vars.colors.dangerBgSubtle}40`,
           },
           'input:focus-visible + &': {
             borderColor: vars.colors.danger,
-            boxShadow: `0 0 0 3px ${vars.colors.dangerBgSubtle}40`,
           },
         },
       },
@@ -81,11 +85,9 @@ export const styledCheckbox = recipe({
         selectors: {
           'input:focus + &': {
             borderColor: vars.colors.success,
-            boxShadow: `0 0 0 3px ${vars.colors.successBgSubtle}40`,
           },
           'input:focus-visible + &': {
             borderColor: vars.colors.success,
-            boxShadow: `0 0 0 3px ${vars.colors.successBgSubtle}40`,
           },
         },
       },
@@ -94,11 +96,9 @@ export const styledCheckbox = recipe({
         selectors: {
           'input:focus + &': {
             borderColor: vars.colors.warning,
-            boxShadow: `0 0 0 3px ${vars.colors.warningBgSubtle}40`,
           },
           'input:focus-visible + &': {
             borderColor: vars.colors.warning,
-            boxShadow: `0 0 0 3px ${vars.colors.warningBgSubtle}40`,
           },
         },
       },
