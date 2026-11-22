@@ -175,10 +175,19 @@ screen.getByLabelText(/email/i); // exercises input label
 
 If `getByRole` can't find your control, it's probably not accessible.
 
-There is currently **no** automated axe coverage in this repo — no `@axe-core/react` or `vitest-axe`
-dependency, and the Playwright e2e suite does not run axe. Accessibility is enforced by role-based
-RTL queries (above) and the manual [`docs/runbooks/screen-reader-smoke.md`](../../../docs/runbooks/screen-reader-smoke.md)
-runbook. Adding `vitest-axe` is an open item — don't cite axe coverage that doesn't exist.
+Axe runs in CI at two levels, both against the WCAG 2.2 AA tags (see `docs/ACCESSIBILITY.md`):
+
+- `packages/lib.components/src/accessibility.test.tsx` (`vitest-axe`) checks every exported
+  interactive component. Adding an interactive component to `lib.components`? Add a case there,
+  open state included if it has one (menu, dialog, popover).
+- `e2e/tests/a11y/` (`@axe-core/playwright`, `@smoke`) checks the main pages of all three apps.
+  A new violation fails the required E2E Smoke job. Fix it; only a violation you cannot fix in
+  the change goes in `e2e/tests/a11y/known-violations.ts`, for that rule on that page, with a
+  reason. Never disable a rule globally.
+
+Axe catches roughly a third of WCAG issues. Role-based queries and the manual
+[`docs/runbooks/screen-reader-smoke.md`](../../../docs/runbooks/screen-reader-smoke.md) runbook
+still cover keyboard flow, focus order and announcements.
 
 ## Common mistakes
 

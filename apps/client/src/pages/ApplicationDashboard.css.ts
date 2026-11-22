@@ -45,7 +45,7 @@ export const petThumbnailPlaceholder = style([
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    color: vars.text.muted,
+    color: vars.text.tertiary,
     fontSize: vars.typography.size.xs,
   },
 ]);

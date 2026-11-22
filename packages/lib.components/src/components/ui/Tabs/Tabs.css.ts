@@ -23,7 +23,7 @@ export const tab = style({
   bottom: '-2px',
   selectors: {
     '&:hover': {
-      color: vars.colors.info,
+      color: vars.text.info,
     },
   },
   '@media': {
@@ -33,8 +33,11 @@ export const tab = style({
   },
 });
 
+// Text uses text.info: colors.info (#3B82F6) is ~3.7:1 on white and ~3.4:1 on
+// warm-cream, under the 4.5:1 AA floor. The underline is not text, so it keeps
+// colors.info (3:1 is enough for a non-text indicator).
 export const tabActive = style({
-  color: vars.colors.info,
+  color: vars.text.info,
   borderBottomColor: vars.colors.info,
 });
 

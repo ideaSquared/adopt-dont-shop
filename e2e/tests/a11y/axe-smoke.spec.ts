@@ -1,50 +1,38 @@
-import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
 
 import { test, expect } from '../../fixtures';
+import { expectNoAxeViolations } from '../../helpers/axe';
 import { findAvailablePetId } from '../../helpers/pet';
+import { AUTH_FILES } from '../../playwright.config';
 
 /**
- * ADS-1326: axe-core smoke gate for app.client.
+ * ADS-1326: axe-core gate (WCAG 2.2 AA) for the main pages of app.client.
  *
  * Runs on the `a11y` Playwright project (see playwright.config.ts), which is
- * logged out by default — the right state for the public home page and the
- * login page, and adequate for a pet detail page (detail pages are public).
- *
- * Allowed rule exclusions (documented, not blanket-disabled):
- *
- * - `label`: axe's form-label rule. `docs/ACCESSIBILITY.md` already tracks
- *   188 `jsx-a11y/label-has-for` + 128 `jsx-a11y/control-has-associated-label`
- *   lint warnings across the codebase — real, known gaps in label
- *   association that need a dedicated pass through the shared form
- *   primitives (see the "next ratchet step" note there), not a silent skip
- *   here. Excluding it keeps this smoke spec green as a *regression* gate
- *   (new pages don't get new axe violations) while that dedicated pass is
- *   still pending; remove this exclusion once that pass lands.
+ * logged out by default: the public pages are checked as a visitor sees them,
+ * the adopter's own pages as the seeded adopter. Tolerated violations live in
+ * known-violations.ts, per rule and per page; there are no global exclusions.
  */
-const ALLOWED_RULE_EXCLUSIONS = ['label'];
 
-async function assertNoAxeViolations(page: Page): Promise<void> {
-  const results = await new AxeBuilder({ page })
-    .withTags(['wcag2a', 'wcag2aa'])
-    .disableRules(ALLOWED_RULE_EXCLUSIONS)
-    .analyze();
-
-  const summary = results.violations.map(v => ({
-    id: v.id,
-    impact: v.impact,
-    help: v.help,
-    targets: v.nodes.map(n => n.target),
-  }));
-
-  expect(summary, JSON.stringify(summary, null, 2)).toEqual([]);
+async function settle(page: Page): Promise<void> {
+  await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 15_000 });
+  await page.waitForLoadState('networkidle');
 }
 
-test.describe('axe accessibility smoke @smoke', () => {
+test.describe('axe accessibility smoke: app.client @smoke', () => {
   test('the client home page has no axe violations', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 15_000 });
-    await assertNoAxeViolations(page);
+    await settle(page);
+    await expectNoAxeViolations(page, 'client /');
+  });
+
+  test('the search page has no axe violations', async ({ page }) => {
+    await page.goto('/search');
+    await expect(page.getByRole('heading', { level: 2, name: /Pets? Found/ })).toBeVisible({
+      timeout: 15_000,
+    });
+    await page.waitForLoadState('networkidle');
+    await expectNoAxeViolations(page, 'client /search');
   });
 
   test('a pet detail page has no axe violations', async ({ page }) => {
@@ -52,12 +40,38 @@ test.describe('axe accessibility smoke @smoke', () => {
     test.skip(!petId, 'no available pets in the seed set');
     await page.goto(`/pets/${petId}`);
     await expect(page).toHaveURL(/\/pets\//, { timeout: 15_000 });
-    await assertNoAxeViolations(page);
+    await settle(page);
+    await expectNoAxeViolations(page, 'client /pets/:id');
   });
 
   test('the login page has no axe violations', async ({ page }) => {
     await page.goto('/login');
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 15_000 });
-    await assertNoAxeViolations(page);
+    await settle(page);
+    await expectNoAxeViolations(page, 'client /login');
+  });
+
+  test('the register page has no axe violations', async ({ page }) => {
+    await page.goto('/register');
+    await settle(page);
+    await expectNoAxeViolations(page, 'client /register');
+  });
+
+  test.describe('signed in as an adopter', () => {
+    test.use({ storageState: AUTH_FILES.adopter });
+
+    test('the applications dashboard has no axe violations', async ({ page }) => {
+      await page.goto('/applications');
+      await expect(page.getByRole('heading', { level: 1, name: /my applications/i })).toBeVisible({
+        timeout: 15_000,
+      });
+      await page.waitForLoadState('networkidle');
+      await expectNoAxeViolations(page, 'client /applications');
+    });
+
+    test('the favourites page has no axe violations', async ({ page }) => {
+      await page.goto('/favorites');
+      await settle(page);
+      await expectNoAxeViolations(page, 'client /favorites');
+    });
   });
 });

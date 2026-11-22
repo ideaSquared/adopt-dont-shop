@@ -200,3 +200,29 @@ describe('dark theme primary pairings used by components', () => {
     expect(contrastRatio(ink, paper)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
   });
 });
+
+describe('text tokens the page-level axe gate caught under-contrast', () => {
+  // e2e/tests/a11y caught Tabs' active label (colors.info), the rescue PetCard
+  // Delete button (#ef4444) and DataTable's empty message (text.muted) under
+  // 4.5:1. They now use text.info, text.danger and text.tertiary.
+  const bodies = [
+    ['light', lightTheme, white],
+    ['normal', normalTheme, warmCream],
+    ['dark', darkTheme, darkTheme.background.body],
+  ] as const;
+
+  it.each(bodies)('text.info meets AA on the %s theme body (Tabs)', (_name, theme, body) => {
+    expect(contrastRatio(theme.text.info, body)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+  });
+
+  it.each(bodies)('text.danger meets AA on the %s theme body (PetCard)', (_name, theme, body) => {
+    expect(contrastRatio(theme.text.danger, body)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+  });
+
+  it.each(bodies)(
+    'text.tertiary meets AA on the %s theme body (DataTable empty state)',
+    (_name, theme, body) => {
+      expect(contrastRatio(theme.text.tertiary, body)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+    }
+  );
+});

@@ -105,10 +105,7 @@ describe('GenericFilters Component', () => {
       />
     );
 
-    // FilterPanel renders CheckboxInput without a visible label, so the
-    // accessible name lookup used in the original test never matched. Find
-    // the underlying <input type="checkbox"> directly.
-    const checkboxInput = screen.getByRole('checkbox');
+    const checkboxInput = screen.getByRole('checkbox', { name: 'Verified' });
 
     fireEvent.click(checkboxInput);
     expect(mockOnFilterChange).toHaveBeenCalledWith('verified', true);
@@ -124,6 +121,19 @@ describe('GenericFilters Component', () => {
     );
 
     expect(screen.getByRole('combobox', { name: 'Category' })).toBeInTheDocument();
+  });
+
+  it('names the date and checkbox filters after their labels', () => {
+    renderWithTheme(
+      <GenericFilters
+        filters={initialFilters}
+        onFilterChange={mockOnFilterChange}
+        filterConfig={filterConfig}
+      />
+    );
+
+    expect(screen.getByLabelText('Date')).toHaveAttribute('type', 'date');
+    expect(screen.getByRole('checkbox', { name: 'Verified' })).toBeInTheDocument();
   });
 
   it('renders options for select input', () => {

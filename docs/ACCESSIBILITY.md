@@ -68,14 +68,22 @@ Accessibility is enforced by:
 
 - **Role-based RTL queries** in the app test suites (`getByRole`, `getByLabelText`) — tests assert on
   the accessible tree rather than DOM structure, which catches missing labels and roles.
-- **An axe smoke test** (`@axe-core/playwright`, ADS-1326): `e2e/tests/a11y/axe-smoke.spec.ts` runs
-  axe against the client home page, a pet detail page, and the login page, tagged `@smoke`. See the
-  spec file for the documented set of allowed rule exclusions and why each is excluded.
+- **Component axe checks** (`vitest-axe`): `packages/lib.components/src/accessibility.test.tsx`
+  renders every exported `lib.components` component that has interactive UI (closed and open:
+  menus, selects, dialogs, tooltips, toasts) and runs axe against the WCAG 2.2 AA tags
+  (`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, `wcag22aa`). It runs with the package's Vitest
+  suite on every PR. jsdom does no layout, so axe skips colour contrast and target size there;
+  the page-level pass below covers them. A new interactive component gets a case in that file.
+- **Page-level axe smoke** (`@axe-core/playwright`, ADS-1326): `e2e/tests/a11y/` runs axe with the
+  same tags against the main pages of all three apps, tagged `@smoke`, so the required
+  `E2E Smoke (Playwright)` CI job fails on any new violation: app.client (home, search, a pet
+  detail page, login, register, and the adopter's applications and favourites), app.rescue
+  (dashboard, pets, applications, communication, settings, login) and app.admin (dashboard,
+  users, rescues, pets, applications, moderation, support, login). There are no global rule
+  exclusions. Violations that exist today and cannot be fixed yet are listed per rule and per page,
+  each with its reason, in `e2e/tests/a11y/known-violations.ts`: burn that list down, never add
+  to it to get a PR green when the fix is in reach.
 - **The manual screen-reader smoke runbook**: [`docs/runbooks/screen-reader-smoke.md`](./runbooks/screen-reader-smoke.md).
-
-There is no equivalent axe pass wired into the Vitest unit suites (no `vitest-axe` dependency) — the
-Playwright smoke spec above is the only automated axe coverage. Adding component-level `vitest-axe`
-assertions remains an open item.
 
 ## jsx-a11y lint ratchet (ADS-1326)
 

@@ -92,7 +92,8 @@ export const termsCheckboxLabel = style({
 });
 
 globalStyle(`${termsCheckboxLabel} a`, {
-  color: '#667eea',
+  // Same fix as LoginForm's forgotPasswordLink: #667eea is ~3.7:1 on white.
+  color: vars.colors.primaryActive,
   textDecoration: 'none',
 });
 

@@ -113,13 +113,16 @@ describe('CheckboxInput', () => {
       expect(screen.getByRole('checkbox')).toBeChecked();
     });
 
-    it('toggles with Enter and Space on its focusable wrapper', async () => {
+    it('is a single tab stop, toggled with Space on the checkbox itself', async () => {
       const user = userEvent.setup();
       const handleChange = vi.fn();
       renderWithTheme(<CheckboxInput label='Required field' onChange={handleChange} />);
 
-      screen.getByRole('button').focus();
-      await user.keyboard('{Enter}');
+      await user.tab();
+      expect(screen.getByRole('checkbox', { name: 'Required field' })).toHaveFocus();
+      expect(screen.queryByRole('button')).not.toBeInTheDocument();
+
+      await user.keyboard(' ');
       await user.keyboard(' ');
 
       expect(handleChange).toHaveBeenCalledTimes(2);

@@ -68,7 +68,8 @@ export const credentialValue = style({
 });
 
 export const etherealButton = style({
-  background: '#0ea5e9',
+  // White text needs a darker sky than #0ea5e9 (~2.8:1) to reach 4.5:1.
+  background: '#0369a1',
   color: 'white',
   border: 'none',
   padding: '0.5rem 1rem',
@@ -80,7 +81,7 @@ export const etherealButton = style({
   transition: 'background-color 0.2s ease',
   selectors: {
     '&:hover': {
-      background: '#0284c7',
+      background: '#075985',
     },
     '&:disabled': {
       background: '#94a3b8',

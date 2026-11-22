@@ -9,7 +9,7 @@ The suite exercises real user journeys across the three React apps (`app.client`
 > **Un-parked so far:**
 >
 > - `gateway-smoke` — gateway health + seeded-persona login (always on).
-> - `a11y` — axe-core `@smoke` accessibility gate against app.client (home, a pet detail page, login; always on, logged out). See `docs/ACCESSIBILITY.md` for the documented rule exclusion.
+> - `a11y`, `a11y-rescue`, `a11y-admin` — axe-core `@smoke` accessibility gate (WCAG 2.2 AA tags) against the main pages of app.client, app.rescue and app.admin (always on). Tolerated violations are listed per rule and per page in `tests/a11y/known-violations.ts`; see `docs/ACCESSIBILITY.md`.
 > - `client/registration-and-login.spec.ts` — the `@smoke` public-registration + failed-login journey (runs unauthenticated).
 > - `client/adoption-application.spec.ts` — the `@smoke` full adoption journey (submit → rescue approves → adopter sees approval). The `apiAs` fixture and `seeds.ts` mutation helpers now authenticate with Bearer tokens (no CSRF), matching the gateway.
 >
