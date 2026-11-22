@@ -1,0 +1,110 @@
+# Routine dependency updates (COMMON-24, VPS-11). Dependabot replaced Renovate; the grouping and
+# 3-day release delay below carry over its intent. Dependabot security updates ignore `cooldown`
+# and `ignore`, and open their own PRs outside these groups. See docs/operations/dependency-updates.md.
+version: 2
+
+updates:
+  # Covers the whole pnpm workspace through the root pnpm-lock.yaml. It does not touch the exact
+  # pins under package.json `pnpm.overrides`: bump those by hand when the react group moves.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '03:00'
+      timezone: Europe/London
+    open-pull-requests-limit: 5
+    labels: [dependencies, DevEx]
+    commit-message:
+      prefix: chore(deps)
+    cooldown:
+      default-days: 3
+    # Node 24 is the pinned runtime; a new Node major is a deliberate change, not a routine PR.
+    ignore:
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+    # The first matching group wins, so the specific groups come before the catch-all.
+    groups:
+      react:
+        patterns: ['react', 'react-dom', '@types/react', '@types/react-dom']
+      typescript-eslint:
+        patterns: ['typescript-eslint', '@typescript-eslint/*']
+      vitest:
+        patterns: ['vitest', '@vitest/*']
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '03:00'
+      timezone: Europe/London
+    open-pull-requests-limit: 5
+    labels: [dependencies, DevEx]
+    commit-message:
+      prefix: chore(deps)
+    cooldown:
+      default-days: 3
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  # Digest pins in the Dockerfiles. Majors of the node image are ignored for the same reason as
+  # @types/node above.
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '03:00'
+      timezone: Europe/London
+    open-pull-requests-limit: 5
+    labels: [dependencies, DevEx]
+    commit-message:
+      prefix: chore(deps)
+    cooldown:
+      default-days: 3
+    ignore:
+      - dependency-name: node
+        update-types: ['version-update:semver-major']
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  # Digest pins on the `image:` lines of the compose files in the repo root.
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '03:00'
+      timezone: Europe/London
+    open-pull-requests-limit: 5
+    labels: [dependencies, DevEx]
+    commit-message:
+      prefix: chore(deps)
+    cooldown:
+      default-days: 3
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  # nginx and certbot images of the gateway host.
+  - package-ecosystem: docker-compose
+    directory: /deploy/gateway
+    schedule:
+      interval: weekly
+      day: monday
+      time: '03:00'
+      timezone: Europe/London
+    open-pull-requests-limit: 5
+    labels: [dependencies, DevEx]
+    commit-message:
+      prefix: chore(deps)
+    cooldown:
+      default-days: 3
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
