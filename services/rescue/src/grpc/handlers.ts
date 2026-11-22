@@ -381,7 +381,7 @@ export async function registerRescue(
   try {
     return await insertPendingRescue(deps, req.rescue, req.ownerUserId, req.ownerUserId);
   } catch (err) {
-    if ((err as { code?: string }).code !== '23505') {
+    if (!(err instanceof HandlerError && err.code === 'ALREADY_EXISTS')) {
       throw err;
     }
     // A concurrent call for the same owner won the insert: answer with its rescue.
@@ -391,8 +391,33 @@ export async function registerRescue(
     }
     // Another rescue already holds this name, email or registration number.
     // ALREADY_EXISTS tells the gateway nothing was created for this owner.
-    throw new HandlerError('ALREADY_EXISTS', 'a rescue with these details already exists');
+    throw err;
   }
+}
+
+// Postgres' default names for the UNIQUE columns in migration 001.
+const RESCUE_UNIQUE_FIELDS: Readonly<Record<string, string>> = {
+  rescues_name_key: 'name',
+  rescues_email_key: 'email',
+  rescues_companies_house_number_key: 'companies house number',
+  rescues_charity_registration_number_key: 'charity registration number',
+};
+
+// A duplicate name, email or registration number is a caller mistake, not a
+// server fault: answer ALREADY_EXISTS (409) naming the taken field.
+function toRescueConflict(err: unknown): unknown {
+  // pg's DatabaseError carries the SQLSTATE and constraint name as plain fields.
+  const { code, constraint } = err as { code?: string; constraint?: string };
+  if (code !== '23505') {
+    return err;
+  }
+  const field = constraint ? RESCUE_UNIQUE_FIELDS[constraint] : undefined;
+  return new HandlerError(
+    'ALREADY_EXISTS',
+    field
+      ? `a rescue with this ${field} already exists`
+      : 'a rescue with these details already exists'
+  );
 }
 
 async function findOwnersRescue(
@@ -496,6 +521,8 @@ async function insertPendingRescue(
       id: `rescue.created.${rescueId}`,
       payload: { rescueId, name: req.name, createdBy },
     });
+  }).catch((err: unknown) => {
+    throw toRescueConflict(err);
   });
 
   if (!inserted) {
