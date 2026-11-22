@@ -119,6 +119,16 @@ describe('createServer — OpenAPI spec endpoint', () => {
     expect(body.paths).toHaveProperty('/api/v1/pets');
   });
 
+  it('documents the health routes as needing no bearer token', async () => {
+    const res = await server.inject({ method: 'GET', url: '/openapi.json' });
+    const body = res.json() as {
+      paths: Record<string, { get?: { security?: unknown[] } }>;
+    };
+    for (const path of ['/health', '/health/simple', '/health/ready']) {
+      expect(body.paths[path]?.get?.security, path).toEqual([]);
+    }
+  });
+
   it('declares the bearerAuth security scheme', async () => {
     const res = await server.inject({ method: 'GET', url: '/openapi.json' });
     const body = res.json() as {

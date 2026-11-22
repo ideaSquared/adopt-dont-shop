@@ -473,12 +473,12 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // Liveness (VPS-28): the process is up. No dependency calls, no auth (the
   // infra '/health' prefix in middleware/authenticate.ts), so it stays cheap
   // enough for an external uptime check. Readiness is /health/ready below.
-  server.get('/health', async () => ({ status: 'ok' }));
+  server.get('/health', { schema: { security: [] } }, async () => ({ status: 'ok' }));
 
   // Health endpoint — matches service.backend's `/health/simple` path
   // so the Docker compose healthcheck (already wired in the broader
   // stack) Just Works once the gateway is added.
-  server.get('/health/simple', async () => ({
+  server.get('/health/simple', { schema: { security: [] } }, async () => ({
     status: 'ok',
     service: 'service.gateway',
     environment: config.environment,
@@ -493,6 +493,7 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   registerReadinessRoute(server, {
     serviceName: 'service.gateway',
     environment: config.environment,
+    routeSchema: { security: [] },
     deps: { nats: opts.nats, ...(rateLimitRedis ? { redisOptional: rateLimitRedis } : {}) },
     logger,
   });
