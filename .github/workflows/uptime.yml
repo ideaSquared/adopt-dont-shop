@@ -1,0 +1,66 @@
+name: Uptime
+
+# External uptime check for production (VPS-28). Every 10 minutes it requests the public production
+# URLs below from a GitHub runner, outside the VPS. A URL that does not answer with an expected status
+# fails the job (so it shows red) and sends a critical alert to Discord through ideasquared-bot's
+# /alert endpoint, the same path backup.yml and docker.yml use. Scheduled runs only start from the
+# default branch. Needs the ALERT_SECRET repository secret; without it the job still fails but no
+# Discord message is sent.
+#
+# URLs: the three production frontends (docs/infrastructure/PRODUCTION-SETUP.md, "Check it works")
+# and the gateway's public liveness route, /health/simple, served through api.adoptdontshop.app.
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Production URLs answer
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      ALERT_URL: https://ideasquared-bot.idea-squared.workers.dev/alert
+      ALERT_SECRET: ${{ secrets.ALERT_SECRET }}
+    steps:
+      - name: Check out the alert script
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          sparse-checkout: scripts/send-alert.sh
+          persist-credentials: false
+
+      - name: Request each production URL
+        run: |
+          urls=(
+            https://adoptdontshop.app/
+            https://admin.adoptdontshop.app/
+            https://rescue.adoptdontshop.app/
+            https://api.adoptdontshop.app/health/simple
+          )
+          down=()
+          for url in "${urls[@]}"; do
+            status=000
+            for attempt in 1 2 3; do
+              status=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$url") || status=000
+              [ "$status" = 200 ] && break
+              sleep 5
+            done
+            echo "$url -> HTTP $status"
+            [ "$status" = 200 ] || down+=("$url (HTTP $status)")
+          done
+          [ "${#down[@]}" -eq 0 ] && exit 0
+          details="$(printf '%s\n' "${down[@]}")"
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          ./scripts/send-alert.sh critical "Production is down" "${details}"$'\n'"${RUN_URL}" "github-actions"
+          echo "::error::${#down[@]} production URL(s) did not answer 200."
+          exit 1
