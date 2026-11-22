@@ -149,15 +149,19 @@ jobs:
         if: steps.changed-code.outputs.code == 'true' || github.event_name != 'pull_request'
         run: node scripts/check-docker-pinning.mjs
 
-      # VPS-12: each production and staging compose combination must
-      # still resolve. Required variables (`${VAR:?}`) get a throwaway
-      # placeholder, so this checks structure only; no real value is read.
+      # VPS-12: deploy.yml runs each environment file on its own, plus the
+      # observability and GlitchTip overlays when enabled in the host .env. Every
+      # such combination must still resolve. Required variables (`${VAR:?}`) get
+      # a throwaway placeholder, so this checks structure only; no real value is read.
       - name: Validate staging and production compose files
         if: steps.changed-code.outputs.code == 'true' || github.event_name != 'pull_request'
         run: |
-          grep -ohE '\$\{[A-Z0-9_]+:\?' docker-compose*.yml | sed 's/\${//;s/:?//' | sort -u | sed 's/$/=ci-placeholder/' > "$RUNNER_TEMP/compose.env"
-          for overlay in staging prod; do
-            docker compose --env-file "$RUNNER_TEMP/compose.env" -f docker-compose.yml -f "docker-compose.$overlay.yml" config --quiet
+          grep -ohE '\$\{[A-Z0-9_]+:\?' docker-compose.staging.yml docker-compose.prod.yml docker-compose.observability.yml docker-compose.glitchtip.yml | sed 's/\${//;s/:?//' | sort -u | sed 's/$/=ci-placeholder/' > "$RUNNER_TEMP/compose.env"
+          for env in staging prod; do
+            for overlays in "" "-f docker-compose.observability.yml" "-f docker-compose.glitchtip.yml" "-f docker-compose.observability.yml -f docker-compose.glitchtip.yml"; do
+              # shellcheck disable=SC2086
+              docker compose --env-file "$RUNNER_TEMP/compose.env" -f "docker-compose.$env.yml" $overlays config --quiet
+            done
           done
 
       # ADS-1309/ADS-1347: every `service-*` in docker-compose.prod.yml must
