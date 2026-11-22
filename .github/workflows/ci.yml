@@ -149,6 +149,17 @@ jobs:
         if: steps.changed-code.outputs.code == 'true' || github.event_name != 'pull_request'
         run: node scripts/check-docker-pinning.mjs
 
+      # VPS-12: each production and staging compose combination must
+      # still resolve. Required variables (`${VAR:?}`) get a throwaway
+      # placeholder, so this checks structure only; no real value is read.
+      - name: Validate staging and production compose files
+        if: steps.changed-code.outputs.code == 'true' || github.event_name != 'pull_request'
+        run: |
+          grep -ohE '\$\{[A-Z0-9_]+:\?' docker-compose*.yml | sed 's/\${//;s/:?//' | sort -u | sed 's/$/=ci-placeholder/' > "$RUNNER_TEMP/compose.env"
+          for overlay in staging prod; do
+            docker compose --env-file "$RUNNER_TEMP/compose.env" -f docker-compose.yml -f "docker-compose.$overlay.yml" config --quiet
+          done
+
       # ADS-1309/ADS-1347: every `service-*` in docker-compose.prod.yml must
       # set stop_grace_period >= the graceful-drain budget, or Docker's 10s
       # default SIGKILLs a container mid-drain on every deploy.
