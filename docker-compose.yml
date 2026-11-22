@@ -168,7 +168,7 @@ services:
 
   # Redis for caching and sessions
   redis:
-    image: redis:7.4-alpine
+    image: redis:8.10-alpine
     restart: always
     ports:
       - '127.0.0.1:6379:6379'
