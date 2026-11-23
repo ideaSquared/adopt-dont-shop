@@ -725,7 +725,7 @@ describe('sendMessage', () => {
     const res = await sendMessage(mocks.deps, ADOPTER_PRINCIPAL, {
       chatId: 'chat-1',
       body: '',
-      attachments: [{ url: 'https://cdn/x.png', contentType: 'image/png' }],
+      attachments: [{ url: '/uploads/images/x.png', contentType: 'image/png' }],
     });
 
     expect(res.message?.attachments).toEqual([
@@ -737,7 +737,7 @@ describe('sendMessage', () => {
       String(q).includes('INSERT INTO messages')
     ) as [string, unknown[]];
     expect(JSON.parse(insert[1][4] as string)).toEqual([
-      { url: 'https://cdn/x.png', contentType: 'image/png' },
+      { url: '/uploads/images/x.png', contentType: 'image/png' },
     ]);
   });
 
@@ -750,6 +750,20 @@ describe('sendMessage', () => {
 
     const res = await sendMessage(mocks.deps, ADOPTER_PRINCIPAL, BASE_SEND);
     expect(res.message?.attachments).toEqual([]);
+  });
+
+  it.each([
+    ['an external https host', 'https://elsewhere.example/x.png'],
+    ['a protocol-relative host', '//elsewhere.example/x.png'],
+  ])('rejects an attachment hosted on %s and stores nothing', async (_label, url) => {
+    await expect(
+      sendMessage(mocks.deps, ADOPTER_PRINCIPAL, {
+        chatId: 'chat-1',
+        body: 'hi',
+        attachments: [{ url, contentType: 'image/png' }],
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
   });
 
   it('rejects an attachment with no url', async () => {
