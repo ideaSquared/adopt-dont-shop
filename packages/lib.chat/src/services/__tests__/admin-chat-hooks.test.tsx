@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import {
   useAdminChatById,
   useAdminChatMessages,
@@ -110,6 +110,67 @@ describe('useAdminChats', () => {
 
     await result.current.refetch();
     expect(get).toHaveBeenCalledWith('/api/v1/admin/chats', {});
+  });
+
+  it('keeps the latest search result when an earlier search answers last', async () => {
+    const pending = new Map<string, (value: unknown) => void>();
+    get.mockImplementation(
+      (_url: string, filters: { search?: string }) =>
+        new Promise((resolve) => {
+          pending.set(filters.search ?? '', resolve);
+        })
+    );
+    const listFor = (chatId: string) => ({
+      ...gatewayChatList,
+      data: [{ ...gatewayChat, chatId }],
+    });
+
+    const { result, rerender } = renderHook(
+      ({ search }: { search: string }) => useAdminChats({ search }),
+      { initialProps: { search: 'hel' } }
+    );
+    rerender({ search: 'hello' });
+    await waitFor(() => expect(pending.size).toBe(2));
+
+    await act(async () => {
+      pending.get('hello')?.(listFor('chat-hello'));
+    });
+    await act(async () => {
+      pending.get('hel')?.(listFor('chat-hel'));
+    });
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.data?.data.map((c) => c.id)).toEqual(['chat-hello']);
+  });
+
+  it('ignores an error from a superseded search', async () => {
+    const pending = new Map<
+      string,
+      { resolve: (v: unknown) => void; reject: (e: Error) => void }
+    >();
+    get.mockImplementation(
+      (_url: string, filters: { search?: string }) =>
+        new Promise((resolve, reject) => {
+          pending.set(filters.search ?? '', { resolve, reject });
+        })
+    );
+
+    const { result, rerender } = renderHook(
+      ({ search }: { search: string }) => useAdminChats({ search }),
+      { initialProps: { search: 'hel' } }
+    );
+    rerender({ search: 'hello' });
+    await waitFor(() => expect(pending.size).toBe(2));
+
+    await act(async () => {
+      pending.get('hello')?.resolve(gatewayChatList);
+    });
+    await act(async () => {
+      pending.get('hel')?.reject(new Error('timeout'));
+    });
+
+    expect(result.current.error).toBeNull();
+    expect(result.current.data?.data).toHaveLength(1);
   });
 });
 

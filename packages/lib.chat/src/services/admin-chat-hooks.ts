@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiService } from '@adopt-dont-shop/lib.api';
 import type { Conversation, Message } from '../types';
 import {
@@ -73,8 +73,14 @@ export const useAdminChats = (filters: ChatFilters = {}): UseQueryState<ChatList
   const [error, setError] = useState<Error | null>(null);
 
   const filtersKey = JSON.stringify(filters);
+  // Requests can resolve out of order (a fast typist fires several searches);
+  // only the most recently started one may write state.
+  const latestRequestRef = useRef(0);
 
   const fetchChats = useCallback(async () => {
+    const requestId = latestRequestRef.current + 1;
+    latestRequestRef.current = requestId;
+    const isLatest = () => latestRequestRef.current === requestId;
     try {
       setIsLoading(true);
       setError(null);
@@ -84,15 +90,22 @@ export const useAdminChats = (filters: ChatFilters = {}): UseQueryState<ChatList
         data: unknown;
         pagination: ChatListResponse['pagination'];
       }>('/api/v1/admin/chats', filters);
+      if (!isLatest()) {
+        return;
+      }
       setData({
         success: response.success,
         data: GatewayChatSchema.array().parse(response.data).map(toConversation),
         pagination: response.pagination,
       });
     } catch (err) {
-      setError(err as Error);
+      if (isLatest()) {
+        setError(err as Error);
+      }
     } finally {
-      setIsLoading(false);
+      if (isLatest()) {
+        setIsLoading(false);
+      }
     }
   }, [filtersKey]);
 
