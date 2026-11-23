@@ -182,6 +182,18 @@ export const dangerText = style({
   color: vars.text.danger,
 });
 
+// The outline Button tints its hover/pressed background with
+// colors.primaryBgSubtle, where text.danger is only ~4.0:1. Keep the card's
+// own surface behind the label instead; the border, shadow and lift still show
+// the state. The doubled class outranks the Button recipe's selector.
+globalStyle(
+  `${dangerText}${dangerText}:hover:not(:disabled), ${dangerText}${dangerText}:active:not(:disabled)`,
+  {
+    background: vars.background.surface,
+    color: vars.text.danger,
+  }
+);
+
 export const deleteWarning = style({
   marginBottom: vars.spacing['3'],
   color: '#666',

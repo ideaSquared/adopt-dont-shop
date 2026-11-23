@@ -35,26 +35,25 @@ export const ChartFrame: React.FC<ChartFrameProps> = ({
   children,
   onClick,
 }) => {
-  const clickableTabIndex = onClick ? 0 : undefined;
+  // The drill-down target is the body, not the whole frame: the header's action
+  // slot holds its own buttons, which must not sit inside another control.
+  const drillDownProps = onClick
+    ? {
+        onClick,
+        onKeyDown: (e: React.KeyboardEvent) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onClick();
+          }
+        },
+        role: 'button',
+        tabIndex: 0,
+        'aria-label': `View details for ${title}`,
+      }
+    : {};
 
   return (
-    <div
-      className={styles.frame}
-      onClick={onClick}
-      onKeyDown={
-        onClick
-          ? e => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onClick();
-              }
-            }
-          : undefined
-      }
-      role={onClick ? 'button' : undefined}
-      tabIndex={clickableTabIndex}
-      data-testid='chart-frame'
-    >
+    <div className={styles.frame} data-testid='chart-frame'>
       <div className={styles.header}>
         <div>
           <h4 className={styles.title}>{title}</h4>
@@ -62,7 +61,7 @@ export const ChartFrame: React.FC<ChartFrameProps> = ({
         </div>
         {actions ? <div>{actions}</div> : null}
       </div>
-      <div className={styles.body}>
+      <div className={styles.body} {...drillDownProps}>
         {isLoading ? (
           <div className={styles.state} data-testid='chart-loading'>
             Loading…
