@@ -43,7 +43,7 @@ import {
   MESSAGES_SEND as CHAT_SEND,
   type RescueId,
 } from '@adopt-dont-shop/lib.types';
-import { principalToMetadata } from '@adopt-dont-shop/service-bootstrap';
+import { isSafeImageUrl, principalToMetadata } from '@adopt-dont-shop/service-bootstrap';
 import type { ApplicationsClient } from './applications-client.js';
 import type { RescueClient } from './rescue-client.js';
 import {
@@ -669,6 +669,11 @@ export async function sendMessage(
   }
   if (attachments.some(a => !a.url || a.url.trim().length === 0)) {
     throw new HandlerError('INVALID_ARGUMENT', 'each attachment requires a url');
+  }
+  // Attachments render in every participant's browser, so only platform-hosted
+  // URLs (same-origin upload paths or the platform's storage host) are stored.
+  if (attachments.some(a => !isSafeImageUrl(a.url))) {
+    throw new HandlerError('INVALID_ARGUMENT', 'attachment url must be a platform upload');
   }
   if (!hasPermission(principal, CHAT_SEND)) {
     throw new HandlerError('PERMISSION_DENIED', `'${CHAT_SEND}' required`);
