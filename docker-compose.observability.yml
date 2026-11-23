@@ -40,7 +40,7 @@ x-obs-hardening: &obs-hardening
 services:
   prometheus:
     <<: *obs-hardening
-    image: prom/prometheus:v3.1.0@sha256:6559acbd5d770b15bb3c954629ce190ac3cbbdb2b7f1c30f0385c4e05104e218
+    image: prom/prometheus:v3.16.0@sha256:e04987641b57704f408e31f6373ba4138ecf27cb4a165d24aabb6c38fddd0f06
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       # 30d retention covers the 30-day SLO error-budget window (docs/slo.md).
@@ -71,7 +71,7 @@ services:
 
   loki:
     <<: *obs-hardening
-    image: grafana/loki:3.2.0@sha256:882e30c20683a48a8b7ca123e6c19988980b4bd13d2ff221dfcbef0fdc631694
+    image: grafana/loki:3.7.10@sha256:b43c257ccfc925d4a50b8717cac61a3b51df8c48d01847936057e5c4075a24a7
     command: -config.file=/etc/loki/loki-config.yaml
     volumes:
       - ./observability/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
@@ -120,7 +120,7 @@ services:
 
   alertmanager:
     <<: *obs-hardening
-    image: prom/alertmanager:v0.28.0@sha256:d5155cfac40a6d9250ffc97c19db2c5e190c7bc57c6b67125c94903358f8c7d8
+    image: prom/alertmanager:v0.35.0@sha256:e638797febd034838eca8b98cdbd46f951e9bf7f178777aa8669167406a9946c
     command:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
       - '--storage.path=/alertmanager'
@@ -212,7 +212,7 @@ services:
 
   node-exporter:
     <<: *obs-hardening
-    image: prom/node-exporter:v1.8.2@sha256:4032c6d5bfd752342c3e631c2f1de93ba6b86c41db6b167b9a35372c139e7706
+    image: prom/node-exporter:v1.13.1@sha256:7296504d4ada44b7d7ab4431e27e9f9900d8488f8d55842f4b12ae2704e16dfe
     # Host disk/memory/CPU visibility without `network_mode: host` / `pid:
     # host` (which would pull this container off the compose network
     # Prometheus scrapes it on) — mount /proc, /sys and / read-only and point
@@ -285,7 +285,7 @@ services:
   # run as root.
   docker-socket-proxy:
     <<: *obs-hardening
-    image: nginx:1.27-alpine@sha256:62223d644fa234c3a1cc785ee14242ec47a77364226f1c811d2f669f96dc2ac8
+    image: nginx:1.31-alpine@sha256:fb4658584bd9a916ffb6f6e365f97c25cfdb2923801f551ea08356e695f14ff7
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./observability/docker-socket-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
@@ -315,7 +315,7 @@ services:
 
   cadvisor:
     <<: *obs-hardening
-    image: gcr.io/cadvisor/cadvisor:v0.49.1@sha256:3cde6faf0791ebf7b41d6f8ae7145466fed712ea6f252c935294d2608b1af388
+    image: gcr.io/cadvisor/cadvisor:v0.55.1@sha256:3de2bd5203120b866d74a9b283b2ffb8ec382fbf9dc321814700c6ea6f44ec57
     # Per-container CPU/memory/restart signal (ContainerRestarting uses
     # container_start_time_seconds). Read-only mounts of the host's cgroup /
     # container metadata; no `privileged`, matching this stack's hardening —
@@ -372,7 +372,7 @@ services:
 
   postgres-exporter:
     <<: *obs-hardening
-    image: prometheuscommunity/postgres-exporter:v0.15.0@sha256:386b12d19eab2a37d7cd8ca8b4c7491cc7a830d9581f49af6c98a393da9605e6
+    image: prometheuscommunity/postgres-exporter:v0.21.1@sha256:3b8e05a84282cd1199ad2fb6c66f362738bf4c68c1547d8f4226a34a7dd6d8d7
     read_only: true
     # Reuses the same db_password + POSTGRES_USER/POSTGRES_DB the `database`
     # service already takes in docker-compose.prod.yml/.staging.yml — no new
@@ -411,7 +411,7 @@ services:
     # (same version) has /bin/sh, so the redis/nats-style
     # `sh -c '... "$$(cat /run/secrets/...)"'` file-secret wrapper works —
     # REDIS_PASSWORD never lands in `docker inspect`.
-    image: oliver006/redis_exporter:v1.62.0-alpine@sha256:28bbff2343589b76f3b7b171d0103e2603601b53f453e284c75b79eb438d6544
+    image: oliver006/redis_exporter:v1.97.0-alpine@sha256:ae30be386ab25600a8b222538a868d1b156b7e411073f7d2d5208fe79cc98d81
     read_only: true
     tmpfs:
       - /tmp:size=16m,mode=1777
@@ -444,7 +444,7 @@ services:
   # down, this container is down too and can't report anything).
   blackbox-exporter:
     <<: *obs-hardening
-    image: prom/blackbox-exporter:v0.25.0@sha256:b04a9fef4fa086a02fc7fcd8dcdbc4b7b35cc30cdee860fdc6a19dd8b208d63e
+    image: prom/blackbox-exporter:v0.29.1@sha256:ea1c7aa3ef3f307cd03e85f34abb604478ccb90b567fc690da0cd9776da76b13
     volumes:
       - ./observability/blackbox/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
     read_only: true
