@@ -14,6 +14,7 @@ import {
   Stack,
   toast,
   useConfirm,
+  useDebouncedValue,
   type DataTableColumn,
 } from '@adopt-dont-shop/lib.components';
 import { formatCustomDate } from '@adopt-dont-shop/lib.utils';
@@ -47,6 +48,8 @@ const Messages: React.FC = () => {
   // can navigate users straight to a specific chat thread.
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
+  // Each search runs a platform-wide full-text query, so wait for typing to pause.
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(() =>
@@ -79,14 +82,14 @@ const Messages: React.FC = () => {
     if (statusFilter !== 'all') {
       apiFilters.status = statusFilter;
     }
-    if (searchQuery) {
-      apiFilters.search = searchQuery;
+    if (debouncedSearchQuery) {
+      apiFilters.search = debouncedSearchQuery;
     }
     apiFilters.page = page;
     apiFilters.limit = PAGE_SIZE;
 
     return apiFilters;
-  }, [statusFilter, searchQuery, page]);
+  }, [statusFilter, debouncedSearchQuery, page]);
 
   const { data: chatsData, isLoading, error: chatsError, refetch } = useAdminChats(chatFilters);
   const { data: statsData } = useAdminChatStats();

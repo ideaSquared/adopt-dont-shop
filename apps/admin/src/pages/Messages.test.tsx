@@ -1,6 +1,6 @@
 import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, fireEvent, within } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { act, screen, fireEvent, within } from '@testing-library/react';
 import { renderWithProviders } from '../test-utils';
 import type { Conversation } from '@adopt-dont-shop/lib.chat';
 
@@ -144,14 +144,6 @@ describe('Messages page', () => {
       expect(useAdminChatsMock).toHaveBeenLastCalledWith({ status: 'locked', page: 1, limit: 20 });
     });
 
-    it('re-queries with the search term as the user types', () => {
-      renderWithProviders(<Messages />);
-
-      fireEvent.change(screen.getByLabelText('Search'), { target: { value: 'hello' } });
-
-      expect(useAdminChatsMock).toHaveBeenLastCalledWith({ search: 'hello', page: 1, limit: 20 });
-    });
-
     it('renders the conversations returned for the selected filter', () => {
       useAdminChatsMock.mockImplementation((f?: { status?: string }) => ({
         data: {
@@ -237,13 +229,66 @@ describe('Messages page', () => {
     });
 
     it('goes back to the first page when the search changes', () => {
-      useAdminChatsMock.mockReturnValue(pagedResult);
+      vi.useFakeTimers();
+      try {
+        useAdminChatsMock.mockReturnValue(pagedResult);
+        renderWithProviders(<Messages />);
+        fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+        fireEvent.change(screen.getByLabelText('Search'), { target: { value: 'vet' } });
+        act(() => {
+          vi.advanceTimersByTime(300);
+        });
+
+        expect(useAdminChatsMock).toHaveBeenLastCalledWith({ search: 'vet', page: 1, limit: 20 });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
+  describe('search', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    const searchesRequested = () =>
+      useAdminChatsMock.mock.calls
+        .map(([filters]: [{ search?: string }]) => filters.search)
+        .filter((search): search is string => search !== undefined);
+
+    it('re-queries with the search term once the user stops typing for 300ms', () => {
       renderWithProviders(<Messages />);
-      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
 
-      fireEvent.change(screen.getByLabelText('Search'), { target: { value: 'vet' } });
+      fireEvent.change(screen.getByLabelText('Search'), { target: { value: 'hello' } });
+      expect(useAdminChatsMock).toHaveBeenLastCalledWith({ page: 1, limit: 20 });
 
-      expect(useAdminChatsMock).toHaveBeenLastCalledWith({ search: 'vet', page: 1, limit: 20 });
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+
+      expect(useAdminChatsMock).toHaveBeenLastCalledWith({ search: 'hello', page: 1, limit: 20 });
+    });
+
+    it('asks for only the final term when the user types quickly', () => {
+      renderWithProviders(<Messages />);
+      const searchBox = screen.getByLabelText('Search');
+
+      ['h', 'he', 'hel', 'hell', 'hello'].forEach(value => {
+        fireEvent.change(searchBox, { target: { value } });
+        act(() => {
+          vi.advanceTimersByTime(100);
+        });
+      });
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+
+      expect(new Set(searchesRequested())).toEqual(new Set(['hello']));
     });
   });
 });
