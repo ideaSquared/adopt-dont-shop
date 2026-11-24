@@ -171,35 +171,31 @@ test.describe('staff lifecycle', () => {
     }
   });
 
-  // App bug: the Edit Staff Member form checks the user id against a legacy
-  // `user_0000xxxxxxxx` pattern, which no real (UUID) id matches, so saving is
-  // always refused with "Please enter a valid user ID" and no title can be
-  // changed from the page. Remove test.fail once the form accepts real ids.
-  test.fail(
-    "RES-042: a manager changes a staff member's role from the staff page",
-    async ({ browser, apiAs }) => {
-      const adminApi = await apiAs('admin');
-      const rescue = await createRescueWithOwner(adminApi, 'Retitle');
-      const staff = await inviteAndAcceptStaff(adminApi, rescue.rescueId, {
-        title: 'Volunteer',
-        label: 'res042-staff',
-      });
-      const { manager, managerContext } = await openAsManager(browser, rescue);
-      try {
-        await manager.goto('/staff');
-        const card = staffCard(manager, staff.email);
-        await expect(card.getByText('Volunteer')).toBeVisible({ timeout: 30_000 });
+  test("RES-042: a manager changes a staff member's role from the staff page", async ({
+    browser,
+    apiAs,
+  }) => {
+    const adminApi = await apiAs('admin');
+    const rescue = await createRescueWithOwner(adminApi, 'Retitle');
+    const staff = await inviteAndAcceptStaff(adminApi, rescue.rescueId, {
+      title: 'Volunteer',
+      label: 'res042-staff',
+    });
+    const { manager, managerContext } = await openAsManager(browser, rescue);
+    try {
+      await manager.goto('/staff');
+      const card = staffCard(manager, staff.email);
+      await expect(card.getByText('Volunteer')).toBeVisible({ timeout: 30_000 });
 
-        await card.getByRole('button', { name: 'Edit' }).click();
-        await manager.getByLabel('Title', { exact: true }).fill('Adoption Coordinator');
-        await manager.getByRole('button', { name: 'Update Staff Member' }).click();
-        await expect(manager.getByText('Staff member updated successfully!')).toBeVisible();
-        await expect(card.getByText('Adoption Coordinator')).toBeVisible();
-      } finally {
-        await managerContext.close();
-      }
+      await card.getByRole('button', { name: 'Edit' }).click();
+      await manager.getByLabel('Title', { exact: true }).fill('Adoption Coordinator');
+      await manager.getByRole('button', { name: 'Update Staff Member' }).click();
+      await expect(manager.getByText('Staff member updated successfully!')).toBeVisible();
+      await expect(card.getByText('Adoption Coordinator')).toBeVisible();
+    } finally {
+      await managerContext.close();
     }
-  );
+  });
 
   test("RES-042: a role the manager sets through the API is the staff member's role", async ({
     apiAs,
