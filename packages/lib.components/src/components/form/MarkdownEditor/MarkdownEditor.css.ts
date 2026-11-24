@@ -29,6 +29,10 @@ export const textarea = style({
       outline: 'none',
       borderColor: vars.border.color.focus,
     },
+    '&:focus-visible': {
+      outline: `${vars.border.width.base} solid ${vars.colors.primary}`,
+      outlineOffset: vars.border.width.base,
+    },
     '&:disabled': {
       backgroundColor: vars.background.disabled,
       cursor: 'not-allowed',

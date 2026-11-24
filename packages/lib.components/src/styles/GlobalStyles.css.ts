@@ -11,9 +11,24 @@ globalStyle('*, *::before, *::after', {
   padding: 0,
 });
 
+globalStyle('*, *::before, *::after', {
+  '@media': {
+    '(prefers-reduced-motion: reduce)': {
+      animationDuration: '0.01ms !important',
+      animationIterationCount: '1 !important',
+      transitionDuration: '0.01ms !important',
+    },
+  },
+});
+
 globalStyle('html', {
   fontSize: '16px',
   scrollBehavior: 'smooth',
+  '@media': {
+    '(prefers-reduced-motion: reduce)': {
+      scrollBehavior: 'auto',
+    },
+  },
   WebkitTextSizeAdjust: '100%',
   textSizeAdjust: '100%',
 });

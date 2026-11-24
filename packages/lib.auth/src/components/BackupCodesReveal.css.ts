@@ -17,6 +17,10 @@ export const heading = style({
     '&:focus': {
       outline: 'none',
     },
+    '&:focus-visible': {
+      outline: `${vars.border.width.base} solid ${vars.colors.primary}`,
+      outlineOffset: vars.border.width.base,
+    },
   },
 });
 

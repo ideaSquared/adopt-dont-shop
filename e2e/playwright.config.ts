@@ -356,7 +356,7 @@ export default defineConfig({
       // listed per rule and per page in tests/a11y/known-violations.ts.
       name: 'a11y',
       testDir: './tests/a11y',
-      testMatch: '**/axe-smoke.spec.ts',
+      testMatch: ['**/axe-smoke.spec.ts', '**/reflow-320.spec.ts'],
       use: {
         ...devices['Desktop Chrome'],
         baseURL: URLS.client,
@@ -365,7 +365,7 @@ export default defineConfig({
     {
       name: 'a11y-rescue',
       testDir: './tests/a11y',
-      testMatch: '**/axe-rescue.spec.ts',
+      testMatch: ['**/axe-rescue.spec.ts', '**/reflow-320.spec.ts'],
       use: {
         ...devices['Desktop Chrome'],
         baseURL: URLS.rescue,
@@ -375,7 +375,7 @@ export default defineConfig({
     {
       name: 'a11y-admin',
       testDir: './tests/a11y',
-      testMatch: '**/axe-admin.spec.ts',
+      testMatch: ['**/axe-admin.spec.ts', '**/reflow-320.spec.ts'],
       use: {
         ...devices['Desktop Chrome'],
         baseURL: URLS.admin,
