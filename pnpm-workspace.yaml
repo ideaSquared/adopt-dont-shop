@@ -5,6 +5,9 @@ packages:
   - 'e2e'
 
 allowBuilds:
+  # Not allowlisted under pnpm 10 either; pnpm 12 fails on unreviewed build scripts, so deny them explicitly.
+  '@firebase/util': false
+  '@scarf/scarf': false
   '@bufbuild/buf': true
   '@sentry/node-cpu-profiler': true
   'core-js': true
