@@ -274,7 +274,7 @@ jobs:
     outputs:
       sha: ${{ github.sha }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
       # Judges the CI workflow's push run for this commit only — see
       # scripts/deploy-ci-gate.sh for why the old all-check-suites gate was
@@ -314,7 +314,7 @@ jobs:
           scripts/deploy-ci-gate.sh
 
       - name: Log in to GHCR
-        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0  # v4.4.0
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550  # v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -325,7 +325,7 @@ jobs:
       # token (id-token: write) — no secrets required. SHA-pinned to match
       # the rest of this workflow's pinning strategy.
       - name: Install cosign
-        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6  # v4.1.2
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532  # v4.1.3
 
       # Build once, deploy many: docker.yml's publish-images job pushes (and
       # cosign-signs) the 12 service images as <sha> and the 3 frontend images
@@ -559,10 +559,10 @@ jobs:
       packages: read
     steps:
       - name: Install cosign
-        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6  # v4.1.2
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532  # v4.1.3
 
       - name: Log in to GHCR
-        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0  # v4.4.0
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550  # v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -656,7 +656,7 @@ jobs:
       deployments: write
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
       # ADS-1247: preflight the GitHub-managed deploy secrets on the runner,
       # before any host interaction. Each of these is written verbatim to
@@ -1247,7 +1247,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Check out the alert script
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           sparse-checkout: scripts/send-alert.sh
           persist-credentials: false

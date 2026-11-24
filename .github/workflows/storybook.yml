@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - name: Setup workspace (Node + pnpm)
         uses: ./.github/actions/setup-workspace
       - name: Run stories coverage report
@@ -45,7 +45,7 @@ jobs:
     timeout-minutes: 30
     if: github.event_name != 'schedule'
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - name: Setup workspace (Node + pnpm)
         uses: ./.github/actions/setup-workspace
       # ADS-909: cache the built output, keyed on every source file that can
@@ -89,7 +89,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
       # Restore the storybook-static directory built (or cache-hit) above.
       # Key MUST match build-storybook's exactly (source-only — see the note
