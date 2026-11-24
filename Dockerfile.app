@@ -12,14 +12,14 @@
 # the install-layer cache whenever ANY lib changed, even libs the app does
 # not depend on. Adding a new lib now requires zero Dockerfile edits.
 
-ARG NODE_VERSION=24.22.2
-# Pinned by digest (matches node:24.22.2-slim at the time of pinning) so a
+ARG NODE_VERSION=24.22.3
+# Pinned by digest (matches node:24.22.3-slim at the time of pinning) so a
 # rebuild can't silently pull a different image. Dependabot's docker ecosystem
 # (.github/dependabot.yml) watches this pin; because the tag comes from the
 # NODE_VERSION build arg, bump NODE_VERSION and the digest together. If NODE_VERSION is overridden
 # without updating the digest, the build fails closed on a manifest mismatch
 # rather than silently resolving an unpinned image. [ADS-960]
-FROM node:${NODE_VERSION}-slim@sha256:c86ecead9e55a5210ac1727de38a4ca840bf03dcaf34dc9749addbf383b1920c AS base
+FROM node:${NODE_VERSION}-slim@sha256:873f586f3794f52281bd039bf02c048a0be08fde619338f9941bad1eb6b34530 AS base
 
 WORKDIR /app
 

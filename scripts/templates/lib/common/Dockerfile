@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for lib.{{LIB_NAME}}
 
 # Development stage
-FROM node:24.22.2-alpine AS development
+FROM node:24.22.3-alpine AS development
 
 WORKDIR /app
 
@@ -29,7 +29,7 @@ VOLUME ["/app/dist"]
 CMD ["pnpm", "run", "dev"]
 
 # Production build stage
-FROM node:24.22.2-alpine AS build
+FROM node:24.22.3-alpine AS build
 
 WORKDIR /app
 
@@ -51,7 +51,7 @@ COPY src/ ./src/
 RUN pnpm run build && pnpm prune --prod
 
 # Production stage
-FROM node:24.22.2-alpine AS production
+FROM node:24.22.3-alpine AS production
 
 WORKDIR /app
 
