@@ -23,6 +23,7 @@
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { readPnpmSettings } from './pnpm-settings.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -96,9 +97,10 @@ export function findOrphanedDocumentation(
 // Package names resolved in pnpm-lock.yaml's `packages:` section, whose keys
 // look like `'@scope/name@1.2.3':` or `name@1.2.3:`. Peer-dependency suffixes
 // only appear in the `snapshots:` section, which this deliberately ignores.
+// pnpm 12 writes a leading document for its own binaries; the workspace lockfile is the last one.
 export function lockfilePackageNames(lockfileText) {
   const lines = lockfileText.split('\n');
-  const start = lines.indexOf('packages:');
+  const start = lines.lastIndexOf('packages:');
   if (start === -1) return new Set();
   const section = lines.slice(start + 1);
   const end = section.findIndex(line => /^\S/.test(line));
@@ -118,13 +120,14 @@ export function findStaleBuildAllowlistEntries(allowlist, resolvedNames) {
 
 function main() {
   const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
-  const overrides = pkg.pnpm?.overrides ?? {};
+  const pnpmSettings = readPnpmSettings(ROOT);
+  const overrides = pnpmSettings.overrides;
   const documentation = pkg.overridesDocumentation ?? {};
 
   const missing = findUndocumentedOverrides(overrides, documentation);
   const orphaned = findOrphanedDocumentation(overrides, documentation);
   const stale = findStaleBuildAllowlistEntries(
-    pkg.pnpm?.onlyBuiltDependencies ?? [],
+    pnpmSettings.onlyBuiltDependencies,
     lockfilePackageNames(readFileSync(join(ROOT, 'pnpm-lock.yaml'), 'utf8'))
   );
 
@@ -139,7 +142,7 @@ function main() {
     console.error('onlyBuiltDependencies allowlist check failed (ADS-1387):');
     for (const name of stale) {
       console.error(
-        `  - pnpm.onlyBuiltDependencies lists '${name}' but it resolves to no package in pnpm-lock.yaml.`
+        `  - allowBuilds lists '${name}' but it resolves to no package in pnpm-lock.yaml.`
       );
     }
     console.error('');

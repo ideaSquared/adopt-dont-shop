@@ -3,3 +3,24 @@ packages:
   - 'packages/*'
   - 'services/*'
   - 'e2e'
+
+allowBuilds:
+  '@bufbuild/buf': true
+  '@sentry/node-cpu-profiler': true
+  'core-js': true
+  'esbuild': true
+  'msw': true
+  'protobufjs': true
+  'sharp': true
+
+overrides:
+  'react': '19.2.7'
+  'react-dom': '19.2.7'
+  '@types/react': '19.2.16'
+  '@types/react-dom': '19.3.0'
+  '@types/express': '^5.0.0'
+  '@types/express-serve-static-core': '^5.0.0'
+  'eslint-plugin-react>eslint': '$eslint'
+  'react-zdog>react': '18.3.1'
+  'react-zdog>react-dom': '18.3.1'
+  'uuid@<11.1.1': '11.1.1'
