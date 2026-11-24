@@ -181,7 +181,6 @@ overrides:
   eslint-plugin-react>eslint: ^10.15.0
   react-zdog>react: 18.3.1
   react-zdog>react-dom: 18.3.1
-  uuid@<11.1.1: 11.1.1
 
 importers:
 
