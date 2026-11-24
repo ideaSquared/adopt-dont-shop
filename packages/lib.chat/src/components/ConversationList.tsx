@@ -139,9 +139,8 @@ export function ConversationList({
                 key={conversation.id}
                 className={itemStyle}
                 onClick={() => handleConversationClick(conversation)}
-                aria-label={`${rescueName}${hasUnread ? `, ${unreadCount} unread message${unreadCount === 1 ? '' : 's'}` : ''}`}
               >
-                <div className={hasUnread ? styles.avatarWithUnread : styles.avatar}>
+                <div className={hasUnread ? styles.avatarWithUnread : styles.avatar} aria-hidden>
                   {computeInitials(rescueName)}
                 </div>
                 <div className={styles.conversationBody}>
@@ -175,6 +174,11 @@ export function ConversationList({
                     <div className={styles.petInfo}>About {conversation.petName || 'a pet'}</div>
                   )}
                 </div>
+                {hasUnread && (
+                  <span className={styles.visuallyHidden}>
+                    {` ${unreadCount} unread message${unreadCount === 1 ? '' : 's'}`}
+                  </span>
+                )}
               </button>
             );
           })}
