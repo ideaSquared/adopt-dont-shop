@@ -47,7 +47,7 @@
   },
   "peerDependencies": {
     "node-pg-migrate": "^8.0.4",
-    "pg": "^8.22.0"
+    "pg": "^8.23.1"
   },
   "peerDependenciesMeta": {
     "node-pg-migrate": {
@@ -56,8 +56,8 @@
   },
   "devDependencies": {
     "@adopt-dont-shop/test-utils": "workspace:*",
-    "@types/pg": "^8.15.5",
+    "@types/pg": "^8.23.1",
     "node-pg-migrate": "^8.0.4",
-    "pg": "^8.22.0"
+    "pg": "^8.23.1"
   }
 }

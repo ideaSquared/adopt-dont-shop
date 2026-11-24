@@ -36,12 +36,12 @@
     "type-check": "tsc --noEmit -p tsconfig.typecheck.json"
   },
   "dependencies": {
-    "@faker-js/faker": "^10.5.0"
+    "@faker-js/faker": "^10.6.0"
   },
   "peerDependencies": {
     "pg": "^8.22.0"
   },
   "devDependencies": {
-    "@types/node": "^26.0.0"
+    "@types/node": "^26.6.6"
   }
 }

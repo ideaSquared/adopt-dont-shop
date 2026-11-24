@@ -38,9 +38,9 @@
   "dependencies": {
     "@adopt-dont-shop/observability": "workspace:*",
     "node-pg-migrate": "^8.0.4",
-    "pg": "^8.22.0"
+    "pg": "^8.23.1"
   },
   "devDependencies": {
-    "@types/pg": "^8.15.5"
+    "@types/pg": "^8.23.1"
   }
 }
