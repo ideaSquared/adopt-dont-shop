@@ -2,6 +2,7 @@ import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
+import { readPnpmSettings } from './pnpm-settings.mjs';
 import { describe, it, expect } from 'vitest';
 
 import {
@@ -87,7 +88,7 @@ describe('root package.json parity (ADS-1113)', () => {
 
   it('documents every CVE-style pnpm.overrides entry', () => {
     expect(
-      findUndocumentedOverrides(pkg.pnpm?.overrides ?? {}, pkg.overridesDocumentation ?? {})
+      findUndocumentedOverrides(readPnpmSettings(ROOT).overrides, pkg.overridesDocumentation ?? {})
     ).toEqual([]);
   });
 });
@@ -152,7 +153,7 @@ describe('root package.json onlyBuiltDependencies (ADS-1387)', () => {
   it('allowlists only packages that resolve in pnpm-lock.yaml', () => {
     expect(
       findStaleBuildAllowlistEntries(
-        pkg.pnpm?.onlyBuiltDependencies ?? [],
+        readPnpmSettings(ROOT).onlyBuiltDependencies,
         lockfilePackageNames(lockfile)
       )
     ).toEqual([]);

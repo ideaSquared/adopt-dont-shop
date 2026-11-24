@@ -4,7 +4,7 @@
   "license": "AGPL-3.0-only",
   "type": "module",
   "private": true,
-  "packageManager": "pnpm@10.34.3",
+  "packageManager": "pnpm@12.22.0",
   "scripts": {
     "bootstrap": "node scripts/bootstrap.mjs",
     "ops": "tsx packages/ops-cli/src/bin.ts",
@@ -150,29 +150,6 @@
     "@types/react": "Pinned to an exact version (not a `^19` range) so npm collapses the type package to a single copy. With a range, transitive consumers (e.g. @types/react-dom) can resolve a different 19.x patch, leaving two physically separate @types/react copies — which makes tsc treat React's `Ref`/element types as unrelated and fails the lib.components build (TS2322). Bump this exact version when intentionally updating React types.",
     "react": "react and react-dom are pinned to the same exact version (not a `^19.2.x` range) because npm's deduper can otherwise hoist a different react-dom patch to the root than react (e.g. react 19.2.7 / react-dom 19.2.6), which trips react-dom's `react`/`react-dom` exact-version-match guard and crashes every React test. The `react-zdog` nested override keeps that subtree on react 18, which it requires. Bump react and react-dom together when updating React. Dependabot does not touch override pins, so bump them by hand to match whenever the react group PR merges; otherwise the override keeps the old resolved version while the app ranges move (ADS-1111).",
     "uuid": "Force the transitive uuid copies up to 11.1.1 via the selector `uuid@<11.1.1` to patch the missing buffer-bounds check in v3()/v5()/v6() (GHSA-w5hq-g745-h8pq, CVE-2026-41907); everything below 11.1.1 is vulnerable. Reached transitively via service.notifications' firebase-admin -> @google-cloud/storage -> gaxios chain, which declares uuid ^9.0.1; no workspace package depends on uuid directly, so the major-version jump is safe. Do not downgrade below 11.1.1."
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@bufbuild/buf",
-      "@sentry/node-cpu-profiler",
-      "core-js",
-      "esbuild",
-      "msw",
-      "protobufjs",
-      "sharp"
-    ],
-    "overrides": {
-      "react": "19.2.7",
-      "react-dom": "19.2.7",
-      "@types/react": "19.2.16",
-      "@types/react-dom": "19.3.0",
-      "@types/express": "^5.0.0",
-      "@types/express-serve-static-core": "^5.0.0",
-      "eslint-plugin-react>eslint": "$eslint",
-      "react-zdog>react": "18.3.1",
-      "react-zdog>react-dom": "18.3.1",
-      "uuid@<11.1.1": "11.1.1"
-    }
   },
   "engines": {
     "node": ">=24.0.0 <25.0.0",

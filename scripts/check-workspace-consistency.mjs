@@ -81,6 +81,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'fs';
 import { join, dirname, relative } from 'path';
 import { fileURLToPath } from 'url';
 
+import { readPnpmSettings } from './pnpm-settings.mjs';
 import { discoverVitestProjectDirs } from './lib/discover-vitest-projects.mjs';
 import {
   extractThresholdsFromSource,
@@ -1239,7 +1240,10 @@ function main() {
   const apps = listApps();
   const services = listServices();
   const packages = listAllPackages();
-  const rootPkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+  const rootPkg = {
+    ...JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')),
+    pnpm: { overrides: readPnpmSettings(ROOT).overrides },
+  };
   const turboConfig = JSON.parse(readFileSync(join(ROOT, 'turbo.json'), 'utf8'));
 
   const failures = [];

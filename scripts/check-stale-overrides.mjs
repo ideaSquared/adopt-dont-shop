@@ -29,6 +29,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 import semver from 'semver';
+import { readPnpmSettings } from './pnpm-settings.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const REGISTRY = 'https://registry.npmjs.org';
@@ -261,8 +262,7 @@ async function fetchAll(names) {
 }
 
 async function main() {
-  const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
-  const entries = securityOverrides(pkg.pnpm?.overrides);
+  const entries = securityOverrides(readPnpmSettings(ROOT).overrides);
 
   if (entries.length === 0) {
     console.log('OK — pnpm.overrides holds no security overrides to check.');

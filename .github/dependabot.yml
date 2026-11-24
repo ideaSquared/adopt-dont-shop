@@ -5,7 +5,7 @@ version: 2
 
 updates:
   # Covers the whole pnpm workspace through the root pnpm-lock.yaml. It does not touch the exact
-  # pins under package.json `pnpm.overrides`: bump those by hand when the react group moves.
+  # pins under pnpm-workspace.yaml `overrides`: bump those by hand when the react group moves.
   - package-ecosystem: npm
     directory: /
     schedule:

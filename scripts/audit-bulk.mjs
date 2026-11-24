@@ -19,6 +19,7 @@
 // than letting an un-audited build pass.
 
 import { readFileSync, appendFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 import semver from 'semver';
 
@@ -48,8 +49,9 @@ const ghsaIdFromUrl = url => {
 
 // Extract name -> Set(versions) from the `packages:` section of the v9
 // lockfile. Keys look like `'@scope/name@1.2.3':` or `'name@1.2.3':`, with an
-// occasional `(peerdep@x)` suffix on the version that we strip.
-const parseLockfilePackages = lockfile => {
+// occasional `(peerdep@x)` suffix on the version that we strip. pnpm 12 writes a
+// leading document for its own binaries, so every `packages:` section is read.
+export const parseLockfilePackages = lockfile => {
   const byName = new Map();
   let inPackages = false;
   for (const rawLine of lockfile.split('\n')) {
@@ -59,7 +61,7 @@ const parseLockfilePackages = lockfile => {
     }
     // A new top-level key (no indentation) ends the packages section.
     if (inPackages && /^\S/.test(rawLine)) {
-      break;
+      inPackages = false;
     }
     if (!inPackages) {
       continue;
@@ -198,7 +200,9 @@ const main = async () => {
   }
 };
 
-main().catch(error => {
-  console.error(`::error::dependency audit failed: ${error.message}`);
-  process.exit(1);
-});
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main().catch(error => {
+    console.error(`::error::dependency audit failed: ${error.message}`);
+    process.exit(1);
+  });
+}
