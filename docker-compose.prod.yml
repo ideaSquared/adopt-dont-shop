@@ -47,9 +47,9 @@ x-service-common: &service-common
   read_only: true
   tmpfs:
     - /tmp:size=64m,mode=1777
-    # `pnpm run start` goes through corepack, which recreates its cache under
-    # $HOME at every start; the root FS is read-only, so without this every
-    # service exits at boot (`ENOENT: ... mkdir '/home/svcuser/.cache/node/corepack/v1'`).
+    # Writable $HOME cache for the read-only root FS. The image used to start
+    # services with `pnpm run start`, whose corepack cache lived here; the CMD now
+    # runs `node` directly (Dockerfile.service), so nothing in the image needs it.
     - /home/svcuser/.cache:mode=1777
   cap_drop:
     - ALL
