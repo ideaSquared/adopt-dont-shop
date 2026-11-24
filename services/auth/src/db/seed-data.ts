@@ -9,12 +9,7 @@
 // (e2e/fixtures/roles.ts) use the same email and SEED_PASSWORD.
 
 export type UserType =
-  | 'adopter'
-  | 'rescue_staff'
-  | 'admin'
-  | 'moderator'
-  | 'super_admin'
-  | 'support_agent';
+  'adopter' | 'rescue_staff' | 'admin' | 'moderator' | 'super_admin' | 'support_agent';
 
 export type SeedUser = {
   userId: string;

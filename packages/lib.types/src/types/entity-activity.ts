@@ -15,21 +15,10 @@
 // describe JSON responses. Convert at the edge if you need Date objects.
 
 export type EntityType =
-  | 'user'
-  | 'rescue'
-  | 'application'
-  | 'pet'
-  | 'report'
-  | 'chat'
-  | 'support_ticket';
+  'user' | 'rescue' | 'application' | 'pet' | 'report' | 'chat' | 'support_ticket';
 
 export type EntityActivityType =
-  | 'application'
-  | 'chat'
-  | 'favorite'
-  | 'profile_update'
-  | 'login'
-  | 'other';
+  'application' | 'chat' | 'favorite' | 'profile_update' | 'login' | 'other';
 
 export type EntityActivity = {
   activityId: string;

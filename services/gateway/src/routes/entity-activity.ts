@@ -30,12 +30,7 @@ export type EntityActivityRoutesOptions = {
 // duplicated locally rather than imported because the gateway
 // deliberately doesn't depend on lib.types (see middleware/authenticate.ts).
 type EntityActivityType =
-  | 'application'
-  | 'chat'
-  | 'favorite'
-  | 'profile_update'
-  | 'login'
-  | 'other';
+  'application' | 'chat' | 'favorite' | 'profile_update' | 'login' | 'other';
 
 type EntityActivity = {
   activityId: string;

@@ -107,17 +107,17 @@ per-app Dockerfile. Copy an existing app block (e.g. `app-rescue`) and parameter
 
 ```yaml
 app-{slug}:
-  profiles: ["{slug}", "full"]
+  profiles: ['{slug}', 'full']
   build:
-    <<: *app-build-defaults          # context: ., dockerfile: Dockerfile.app, target: development
+    <<: *app-build-defaults # context: ., dockerfile: Dockerfile.app, target: development
     args:
-      APP_NAME: {slug}
+      APP_NAME: { slug }
   ports:
-    - '127.0.0.1:300X:3000'          # pick a free host port; container port is always 3000
+    - '127.0.0.1:300X:3000' # pick a free host port; container port is always 3000
   volumes:
     - .:/app
     - /app/node_modules
-    - /app/apps/{slug}/node_modules  # anon volume re-exposing the baked node_modules
+    - /app/apps/{slug}/node_modules # anon volume re-exposing the baked node_modules
   environment:
     <<: *app-env
   <<: *app-common

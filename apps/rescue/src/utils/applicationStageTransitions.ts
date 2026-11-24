@@ -36,14 +36,10 @@ export const NEXT_STAGE: NextStageMap = {
 };
 
 export type BlockedReason =
-  | 'already-resolved'
-  | 'home-visit-not-completed'
-  | 'not-in-deciding-stage'
-  | 'no-next-stage';
+  'already-resolved' | 'home-visit-not-completed' | 'not-in-deciding-stage' | 'no-next-stage';
 
 export type ActionEligibility =
-  | { eligible: true }
-  | { eligible: false; reason: BlockedReason; message: string };
+  { eligible: true } | { eligible: false; reason: BlockedReason; message: string };
 
 const RESOLVED_STAGE: ApplicationStage = 'RESOLVED';
 

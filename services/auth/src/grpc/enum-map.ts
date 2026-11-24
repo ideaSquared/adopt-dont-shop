@@ -13,11 +13,7 @@ import type { UserRole } from '@adopt-dont-shop/lib.types';
 
 export type UserRoleDb = UserRole;
 export type UserStatusDb =
-  | 'active'
-  | 'inactive'
-  | 'suspended'
-  | 'pending_verification'
-  | 'deactivated';
+  'active' | 'inactive' | 'suspended' | 'pending_verification' | 'deactivated';
 
 const ROLE_TO_DB: Record<AuthV1.UserRole, UserRoleDb | null> = {
   [AuthV1.UserRole.USER_ROLE_UNSPECIFIED]: null,

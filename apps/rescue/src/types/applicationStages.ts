@@ -15,12 +15,7 @@ export type FinalOutcome =
 // Stage-specific actions and transitions
 export interface StageAction {
   type:
-    | 'START_REVIEW'
-    | 'SCHEDULE_VISIT'
-    | 'COMPLETE_VISIT'
-    | 'MAKE_DECISION'
-    | 'REJECT'
-    | 'WITHDRAW';
+    'START_REVIEW' | 'SCHEDULE_VISIT' | 'COMPLETE_VISIT' | 'MAKE_DECISION' | 'REJECT' | 'WITHDRAW';
   stage: ApplicationStage;
   nextStage?: ApplicationStage;
   requiresInput?: boolean;

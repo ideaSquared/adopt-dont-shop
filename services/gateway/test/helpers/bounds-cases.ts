@@ -50,9 +50,10 @@ const withValueAt = (
   const last = segments[segments.length - 1];
   const parent = segments
     .slice(0, -1)
-    .reduce<
-      Record<string, unknown>
-    >((node, segment) => (node[segment] ?? (node[segment] = {})) as Record<string, unknown>, copy);
+    .reduce<Record<string, unknown>>(
+      (node, segment) => (node[segment] ?? (node[segment] = {})) as Record<string, unknown>,
+      copy
+    );
   parent[last] = value;
   return copy;
 };

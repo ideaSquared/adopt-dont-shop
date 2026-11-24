@@ -20,12 +20,7 @@ export type BulkUserUpdateResult = {
 };
 
 export type AdminCreateRole =
-  | 'admin'
-  | 'moderator'
-  | 'super_admin'
-  | 'support_agent'
-  | 'rescue_staff'
-  | 'adopter';
+  'admin' | 'moderator' | 'super_admin' | 'support_agent' | 'rescue_staff' | 'adopter';
 
 export interface CreateUserRequest {
   email: string;

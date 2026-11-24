@@ -845,31 +845,29 @@ export class RescueApplicationService {
       }
 
       // Transform timeline data to expected format
-      return timelineArray.map(
-        (item: RawTimelineItem): ApplicationTimeline => ({
-          id: item.timeline_id || item.id || '',
-          applicationId: item.application_id || applicationId,
-          event: item.event_type || item.event || 'Timeline Event',
-          title: item.title || item.event || 'Timeline Event',
-          description: item.description || `Timeline event: ${item.event_type}`,
-          timestamp: item.created_at || item.timestamp || '',
-          userId: item.created_by || item.userId,
-          userName: item.created_by_system
-            ? 'System'
-            : item.CreatedBy
-              ? `${item.CreatedBy.firstName || ''} ${item.CreatedBy.lastName || ''}`.trim() ||
-                item.CreatedBy.email ||
-                'Unknown User'
-              : item.created_by_name || item.userName || 'Unknown',
-          data: item.metadata || item.data || {},
-          eventType: item.event_type,
-          isSystemGenerated: item.created_by_system || false,
-          previousStage: item.previous_stage,
-          newStage: item.new_stage,
-          previousStatus: item.previous_status,
-          newStatus: item.new_status,
-        })
-      );
+      return timelineArray.map((item: RawTimelineItem): ApplicationTimeline => ({
+        id: item.timeline_id || item.id || '',
+        applicationId: item.application_id || applicationId,
+        event: item.event_type || item.event || 'Timeline Event',
+        title: item.title || item.event || 'Timeline Event',
+        description: item.description || `Timeline event: ${item.event_type}`,
+        timestamp: item.created_at || item.timestamp || '',
+        userId: item.created_by || item.userId,
+        userName: item.created_by_system
+          ? 'System'
+          : item.CreatedBy
+            ? `${item.CreatedBy.firstName || ''} ${item.CreatedBy.lastName || ''}`.trim() ||
+              item.CreatedBy.email ||
+              'Unknown User'
+            : item.created_by_name || item.userName || 'Unknown',
+        data: item.metadata || item.data || {},
+        eventType: item.event_type,
+        isSystemGenerated: item.created_by_system || false,
+        previousStage: item.previous_stage,
+        newStage: item.new_stage,
+        previousStatus: item.previous_status,
+        newStatus: item.new_status,
+      }));
     } catch (error) {
       // UX P0/P1 #6: previously this returned `[]` on error, which was
       // indistinguishable from a genuine empty timeline. Re-throw so the

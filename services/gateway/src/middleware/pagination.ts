@@ -21,8 +21,7 @@ export type PaginationDefaults = {
 };
 
 export type PaginationResult =
-  | { ok: true; page: number; limit: number }
-  | { ok: false; error: string };
+  { ok: true; page: number; limit: number } | { ok: false; error: string };
 
 const INTEGER_PATTERN = /^-?\d+$/;
 

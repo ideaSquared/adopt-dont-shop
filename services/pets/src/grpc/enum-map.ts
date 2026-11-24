@@ -20,14 +20,7 @@ export type PetStatusDb =
   | 'deceased';
 
 export type PetTypeDb =
-  | 'dog'
-  | 'cat'
-  | 'rabbit'
-  | 'bird'
-  | 'reptile'
-  | 'small_mammal'
-  | 'fish'
-  | 'other';
+  'dog' | 'cat' | 'rabbit' | 'bird' | 'reptile' | 'small_mammal' | 'fish' | 'other';
 
 export type PetGenderDb = 'male' | 'female' | 'unknown';
 export type PetSizeDb = 'extra_small' | 'small' | 'medium' | 'large' | 'extra_large';

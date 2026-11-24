@@ -21,12 +21,7 @@ import { ModerationV1 } from '@adopt-dont-shop/proto';
 // ===== ReportEntityType (also moderator_action.target_entity_type) ===
 
 export type ReportEntityTypeDb =
-  | 'user'
-  | 'rescue'
-  | 'pet'
-  | 'application'
-  | 'message'
-  | 'conversation';
+  'user' | 'rescue' | 'pet' | 'application' | 'message' | 'conversation';
 
 const ENTITY_TYPE_TO_DB: Record<ModerationV1.ReportEntityType, ReportEntityTypeDb | null> = {
   [ModerationV1.ReportEntityType.REPORT_ENTITY_TYPE_UNSPECIFIED]: null,
@@ -425,12 +420,7 @@ export function sanctionReasonFromDb(db: string): ModerationV1.SanctionReason {
 // ===== SupportTicketStatus ===========================================
 
 export type SupportTicketStatusDb =
-  | 'open'
-  | 'in_progress'
-  | 'waiting_for_user'
-  | 'resolved'
-  | 'closed'
-  | 'escalated';
+  'open' | 'in_progress' | 'waiting_for_user' | 'resolved' | 'closed' | 'escalated';
 
 const TICKET_STATUS_TO_DB: Record<ModerationV1.SupportTicketStatus, SupportTicketStatusDb | null> =
   {

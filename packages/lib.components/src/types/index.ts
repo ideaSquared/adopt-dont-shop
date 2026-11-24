@@ -8,14 +8,7 @@
 // `./notifications`.
 
 export type ButtonVariant =
-  | 'primary'
-  | 'secondary'
-  | 'outline'
-  | 'ghost'
-  | 'success'
-  | 'danger'
-  | 'warning'
-  | 'info';
+  'primary' | 'secondary' | 'outline' | 'ghost' | 'success' | 'danger' | 'warning' | 'info';
 
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
