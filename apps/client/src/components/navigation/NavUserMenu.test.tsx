@@ -57,6 +57,14 @@ describe('NavUserMenu', () => {
     expect(trigger).toHaveTextContent('AR');
   });
 
+  it('names the trigger with its visible initials so the label contains the visible text (WCAG 2.5.3)', () => {
+    renderWithProviders(<NavUserMenu />);
+
+    expect(screen.getByRole('button', { name: /user menu/i })).toHaveAccessibleName(
+      'AR, user menu for Alex Rivera'
+    );
+  });
+
   it('opens the menu on click and shows user name and email', async () => {
     const user = userEvent.setup();
     renderWithProviders(<NavUserMenu />);
