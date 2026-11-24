@@ -36,6 +36,6 @@
     "type-check": "tsc --noEmit -p tsconfig.typecheck.json"
   },
   "devDependencies": {
-    "@types/node": "^26.0.0"
+    "@types/node": "^26.6.6"
   }
 }

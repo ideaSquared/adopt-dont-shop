@@ -247,7 +247,7 @@ services:
 
   # Redis - Production configuration
   redis:
-    image: redis:7.4-alpine@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
+    image: redis:8.10-alpine@sha256:7958cfbb9d152f87dadfbc89f1b0b15938f0b81ff8982feb327476f4911935c3
     container_name: ads_prod_redis
     restart: always
     ports: []  # Don't expose Redis port to host in production
@@ -296,7 +296,7 @@ services:
 
   # NATS JetStream — event backbone for the extracted services.
   nats:
-    image: nats:2.10-alpine@sha256:b83efabe3e7def1e0a4a31ec6e078999bb17c80363f881df35edc70fcb6bb927
+    image: nats:2.15-alpine@sha256:558394a23dd3c36f2d3a64b51865fd09908010e80a542cea5e75c2af543ed62a
     container_name: ads_prod_nats
     restart: always
     ports: []
@@ -724,7 +724,7 @@ services:
   # Public TLS is handled by the gateway stack — this nginx only listens on
   # the internal network and is reverse-proxied by the gateway.
   nginx:
-    image: nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
+    image: nginx:1.29-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de
     container_name: ads_prod_nginx
     restart: always
     volumes:

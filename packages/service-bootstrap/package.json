@@ -39,15 +39,15 @@
     "@adopt-dont-shop/config-secrets": "workspace:*",
     "@adopt-dont-shop/lib.types": "workspace:*",
     "@adopt-dont-shop/observability": "workspace:*",
-    "@grpc/grpc-js": "^1.14.5",
+    "@grpc/grpc-js": "^1.14.7",
     "fastify": "^5.12.6",
     "nats": "^2.29.3",
-    "pg": "^8.22.0",
+    "pg": "^8.23.1",
     "zod": "^4.6.6"
   },
   "peerDependencies": {
     "nats": "^2.29.3",
-    "pg": "^8.22.0"
+    "pg": "^8.23.1"
   },
   "peerDependenciesMeta": {
     "nats": {
@@ -58,6 +58,6 @@
     }
   },
   "devDependencies": {
-    "@types/pg": "^8.15.5"
+    "@types/pg": "^8.23.1"
   }
 }

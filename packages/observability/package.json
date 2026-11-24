@@ -36,14 +36,14 @@
     "type-check": "tsc --noEmit -p tsconfig.typecheck.json"
   },
   "dependencies": {
-    "@grpc/grpc-js": "^1.14.5",
+    "@grpc/grpc-js": "^1.14.7",
     "@ideasquared/log": "https://github.com/ideaSquared/agent-idea/releases/download/log-v0.1.1/ideasquared-log-0.1.1.tgz",
-    "@opentelemetry/api": "^1.9.1",
-    "@opentelemetry/auto-instrumentations-node": "^0.80.0",
-    "@opentelemetry/exporter-trace-otlp-http": "^0.221.0",
+    "@opentelemetry/api": "^1.10.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.83.1",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.301.2",
     "@opentelemetry/resources": "^2.10.0",
-    "@opentelemetry/sdk-node": "^0.221.0",
-    "@opentelemetry/semantic-conventions": "^1.41.1",
+    "@opentelemetry/sdk-node": "^0.301.2",
+    "@opentelemetry/semantic-conventions": "^1.45.0",
     "@sentry/node": "^10.59.0",
     "@sentry/profiling-node": "^10.59.0",
     "prom-client": "^15.1.3"

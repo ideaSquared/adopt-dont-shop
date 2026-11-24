@@ -136,16 +136,14 @@ export class DashboardService {
 
       const activities = response.data.recentActivity || [];
 
-      return activities.map(
-        (activity): RecentActivity => ({
-          id: activity.id,
-          timestamp: new Date(activity.timestamp),
-          type: activity.type as RecentActivity['type'],
-          message: activity.description || activity.title || '',
-          petId: activity.metadata?.petId,
-          applicationId: activity.metadata?.applicationId,
-        })
-      );
+      return activities.map((activity): RecentActivity => ({
+        id: activity.id,
+        timestamp: new Date(activity.timestamp),
+        type: activity.type as RecentActivity['type'],
+        message: activity.description || activity.title || '',
+        petId: activity.metadata?.petId,
+        applicationId: activity.metadata?.applicationId,
+      }));
     } catch (error) {
       console.error('Failed to fetch recent activities:', error);
       // Return empty array on error since this is not critical
@@ -174,17 +172,15 @@ export class DashboardService {
       });
 
       // Transform notifications to DashboardNotification format
-      return (response.data as RawNotification[]).map(
-        (notification): DashboardNotification => ({
-          id: notification.id,
-          title: notification.title || 'Notification',
-          message: notification.message || notification.body || '',
-          timestamp: new Date(notification.createdAt),
-          type: (notification.category || 'info') as DashboardNotification['type'],
-          read: notification.status === 'read',
-          actionUrl: notification.actionUrl,
-        })
-      );
+      return (response.data as RawNotification[]).map((notification): DashboardNotification => ({
+        id: notification.id,
+        title: notification.title || 'Notification',
+        message: notification.message || notification.body || '',
+        timestamp: new Date(notification.createdAt),
+        type: (notification.category || 'info') as DashboardNotification['type'],
+        read: notification.status === 'read',
+        actionUrl: notification.actionUrl,
+      }));
     } catch (error) {
       console.error('Failed to fetch dashboard notifications:', error);
       // Return empty array on error since this is not critical

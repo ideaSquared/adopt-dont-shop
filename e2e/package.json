@@ -25,9 +25,9 @@
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-base": "workspace:*",
     "@axe-core/playwright": "4.13.0",
-    "@playwright/test": "^1.61.0",
-    "@types/node": "^26.0.0",
-    "otplib": "^13.4.1",
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^26.6.6",
+    "otplib": "^13.6.0",
     "typescript": "^6.0.3"
   }
 }

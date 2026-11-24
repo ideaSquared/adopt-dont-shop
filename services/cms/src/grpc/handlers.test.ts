@@ -827,8 +827,7 @@ describe('event idempotency keys (Nats-Msg-Id)', () => {
   // type, like the pets/rescue services.
   const msgIdFor = (type: string): string | undefined => {
     const call = mocks.natsMock.jetstream().publish.mock.calls.find(c => c[0] === type) as
-      | [string, unknown, { msgID?: string }]
-      | undefined;
+      [string, unknown, { msgID?: string }] | undefined;
     return call?.[2]?.msgID;
   };
 

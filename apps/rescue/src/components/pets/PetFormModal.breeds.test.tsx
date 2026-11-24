@@ -47,7 +47,7 @@ const server = setupServer(
 
 beforeAll(() => {
   apiService.updateConfig({ apiUrl: API });
-  server.listen({ onUnhandledRequest: 'error' });
+  server.listen({ onUnhandledFrame: 'error' });
 });
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());

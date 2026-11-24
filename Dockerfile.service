@@ -164,6 +164,9 @@ ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 # production export condition in NODE_OPTIONS above) instead of the dev
 # `db:migrate` script, which uses tsx — keeping tsx/esbuild out of the image.
 # The `[ -f ]` guard skips services without a schema (the gateway has no
-# migrate.js), mirroring the old `--if-present`. `pnpm run start` then launches
-# the compiled service (its `start` is `node … dist/index.js`).
-CMD ["sh", "-c", "if [ -f dist/db/migrate.js ]; then node dist/db/migrate.js; fi && pnpm run start"]
+# migrate.js), mirroring the old `--if-present`. The service is then started
+# with node directly (the same command as every service's `start` script), not
+# `pnpm run start`: pnpm 12 is a native binary that corepack downloads into
+# $HOME/.cache at boot, and prod/staging mount that path as a noexec tmpfs, so
+# it cannot be executed there.
+CMD ["sh", "-c", "if [ -f dist/db/migrate.js ]; then node dist/db/migrate.js; fi && exec node --import ./dist/instrumentation.js ./dist/index.js"]

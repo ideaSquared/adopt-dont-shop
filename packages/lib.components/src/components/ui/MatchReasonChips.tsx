@@ -3,11 +3,7 @@ import React from 'react';
 import { Badge, BadgeVariant } from './Badge';
 
 export type MatchReasonChipKind =
-  | 'pref_match'
-  | 'lifestyle'
-  | 'distance'
-  | 'similar_to_liked'
-  | 'fresh';
+  'pref_match' | 'lifestyle' | 'distance' | 'similar_to_liked' | 'fresh';
 
 export type MatchReasonChip = {
   kind: MatchReasonChipKind;

@@ -48,8 +48,7 @@ export type GithubIdentity = { login: string; githubId: number; name: string | n
 // The verdict on a GitHub token presented directly (no device flow): who it belongs to and whether they are an
 // active member of the ops team. Same lookups, same rules as the device flow.
 export type TokenAccess =
-  | { outcome: 'unauthenticated' }
-  | { outcome: 'allowed' | 'denied'; identity: GithubIdentity };
+  { outcome: 'unauthenticated' } | { outcome: 'allowed' | 'denied'; identity: GithubIdentity };
 
 export type DevicePollResult =
   | { status: 'pending' }

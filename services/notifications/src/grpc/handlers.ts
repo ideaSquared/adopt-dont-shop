@@ -80,11 +80,7 @@ export type HandlerDeps = WithTransactionDeps & {
 };
 
 export type HandlerErrorCode =
-  | 'INVALID_ARGUMENT'
-  | 'UNAUTHENTICATED'
-  | 'PERMISSION_DENIED'
-  | 'NOT_FOUND'
-  | 'INTERNAL';
+  'INVALID_ARGUMENT' | 'UNAUTHENTICATED' | 'PERMISSION_DENIED' | 'NOT_FOUND' | 'INTERNAL';
 
 export class HandlerError extends Error {
   constructor(

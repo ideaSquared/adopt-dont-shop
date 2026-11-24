@@ -184,11 +184,7 @@ export const ApplicationTimeline: React.FC<ApplicationTimelineProps> = ({
               event.event as 'status_change' | 'reference_check' | 'home_visit' | 'note' | 'system'
             )
               ? (event.event as
-                  | 'status_change'
-                  | 'reference_check'
-                  | 'home_visit'
-                  | 'note'
-                  | 'system')
+                  'status_change' | 'reference_check' | 'home_visit' | 'note' | 'system')
               : 'default';
 
             const EventIcon = TIMELINE_ICONS[event.event] ?? Circle;

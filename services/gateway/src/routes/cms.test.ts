@@ -698,8 +698,7 @@ describe('cms content OpenAPI body schema (ADS-1366)', () => {
       >;
     };
     const schema = spec.paths[path]?.[method]?.requestBody?.content['application/json']?.schema as
-      | { properties?: Record<string, unknown> }
-      | undefined;
+      { properties?: Record<string, unknown> } | undefined;
     return Object.keys(schema?.properties ?? {});
   };
 

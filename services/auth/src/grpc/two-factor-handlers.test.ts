@@ -89,8 +89,7 @@ function findClientCall(
   substring: string
 ): [string, unknown[]] | undefined {
   return mocks.clientMock.query.mock.calls.find(call => String(call[0]).includes(substring)) as
-    | [string, unknown[]]
-    | undefined;
+    [string, unknown[]] | undefined;
 }
 
 function auditPayload(mocks: ReturnType<typeof makeMocks>): {

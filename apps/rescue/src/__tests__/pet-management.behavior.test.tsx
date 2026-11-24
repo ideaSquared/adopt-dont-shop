@@ -18,7 +18,7 @@ import { mswHandlers } from '../test-utils/msw-handlers';
 const server = setupServer(...mswHandlers);
 
 // Setup and teardown
-beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
+beforeAll(() => server.listen({ onUnhandledFrame: 'warn' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 

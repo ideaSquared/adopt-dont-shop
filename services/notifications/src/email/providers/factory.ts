@@ -14,9 +14,7 @@ import { createResendProvider, type ResendProviderConfig } from './resend.js';
 import { type ServiceLogger } from '../../logger.js';
 
 export type EmailProviderConfig =
-  | { kind: 'console' }
-  | { kind: 'ethereal' }
-  | { kind: 'resend'; resend: ResendProviderConfig };
+  { kind: 'console' } | { kind: 'ethereal' } | { kind: 'resend'; resend: ResendProviderConfig };
 
 export type ProviderFactoryDeps = {
   config: EmailProviderConfig;

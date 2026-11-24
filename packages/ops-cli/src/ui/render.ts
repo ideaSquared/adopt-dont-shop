@@ -276,9 +276,10 @@ export const renderMethodHelp = (
 export const groupHiddenPaths = (hidden: readonly string[]): readonly string[] => {
   const counts = hidden
     .map(p => p.replace(/\[\d+\]/g, '[]'))
-    .reduce<
-      ReadonlyMap<string, number>
-    >((acc, p) => new Map([...acc, [p, (acc.get(p) ?? 0) + 1]]), new Map());
+    .reduce<ReadonlyMap<string, number>>(
+      (acc, p) => new Map([...acc, [p, (acc.get(p) ?? 0) + 1]]),
+      new Map()
+    );
   return [...counts].map(([path, n]) => (n > 1 ? `${path} (x${n})` : path));
 };
 

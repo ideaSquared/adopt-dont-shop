@@ -10,14 +10,7 @@
  */
 
 export type Species =
-  | 'dog'
-  | 'cat'
-  | 'rabbit'
-  | 'bird'
-  | 'reptile'
-  | 'small_mammal'
-  | 'fish'
-  | 'other';
+  'dog' | 'cat' | 'rabbit' | 'bird' | 'reptile' | 'small_mammal' | 'fish' | 'other';
 
 export const SPECIES: readonly Species[] = [
   'dog',

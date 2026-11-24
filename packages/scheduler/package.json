@@ -39,10 +39,10 @@
     "@adopt-dont-shop/observability": "workspace:*"
   },
   "peerDependencies": {
-    "pg": "^8.22.0"
+    "pg": "^8.23.1"
   },
   "devDependencies": {
-    "@types/pg": "^8.15.5",
-    "pg": "^8.22.0"
+    "@types/pg": "^8.23.1",
+    "pg": "^8.23.1"
   }
 }

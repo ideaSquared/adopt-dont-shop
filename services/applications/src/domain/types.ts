@@ -294,10 +294,7 @@ export type ApplicationCommand =
 //                                          is the only command that
 //                                          works on a fresh aggregate)
 export type DomainErrorCode =
-  | 'ILLEGAL_TRANSITION'
-  | 'CONCURRENCY'
-  | 'INVALID_INPUT'
-  | 'MISSING_AGGREGATE';
+  'ILLEGAL_TRANSITION' | 'CONCURRENCY' | 'INVALID_INPUT' | 'MISSING_AGGREGATE';
 
 export class DomainError extends Error {
   constructor(

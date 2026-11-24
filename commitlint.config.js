@@ -5,7 +5,7 @@
 // like a Dependabot bump and signed off by the Dependabot bot; everything else,
 // including human commits on a Dependabot branch, is still linted.
 const DEPENDABOT_SUBJECT =
-  /^(build|chore)\(deps(-dev)?\): Bump (\S+ from \S+ to \S+|the \S+ group)/;
+  /^(build|chore)\(deps(-dev)?\): Bump (\S+ from \S+ to \S+|\S+$|the \S+ group)/m;
 const DEPENDABOT_SIGN_OFF = /^Signed-off-by: dependabot\[bot\] <support@github\.com>$/m;
 
 const isDependabotCommit = message =>
