@@ -32,6 +32,13 @@ describe('commitlint config', () => {
     expect(result.valid).toBe(true);
   });
 
+  it('accepts a sentence-case Dependabot group bump signed off by the Dependabot bot', () => {
+    const result = lintMessage(
+      `chore(deps): Bump the minor-and-patch group across 1 directory with 10 updates\n\n${DEPENDABOT_BODY}`
+    );
+    expect(result.valid).toBe(true);
+  });
+
   it('accepts a lowercase Dependabot group bump signed off by the Dependabot bot', () => {
     const result = lintMessage(
       `chore(deps): bump the minor-and-patch group with 3 updates\n\n${DEPENDABOT_BODY}`
