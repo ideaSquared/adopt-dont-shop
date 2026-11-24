@@ -30,7 +30,7 @@ jobs:
     timeout-minutes: 15
     steps:
       # Local composite actions can only load after the repo is checked out.
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-workspace
 
       # ADS-1105: gate the code-only guards below (each marked with the same
@@ -39,7 +39,7 @@ jobs:
       # (format:check, docs-index, docs-script-refs, e2e-lint, env-example, the
       # path-filter/lockfile/alignment checks) stay unfiltered and run on every
       # PR. Push / workflow_dispatch run every guard unconditionally.
-      - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: changed-code
         with:
           filters: |
@@ -336,7 +336,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -363,7 +363,7 @@ jobs:
       e2e: ${{ steps.affected.outputs.e2e }}
       apps: ${{ steps.affected.outputs.apps }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -400,7 +400,7 @@ jobs:
 
     steps:
       # Local composite actions can only load after the repo is checked out.
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/checkout-and-setup
         with:
           download-lib-dist: 'false'
@@ -449,7 +449,7 @@ jobs:
 
     steps:
       # Local composite actions can only load after the repo is checked out.
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/run-package-tests
         with:
           filter: '@adopt-dont-shop/app.${{ matrix.app }}'
@@ -480,7 +480,7 @@ jobs:
     timeout-minutes: 15
     steps:
       # Local composite actions can only load after the repo is checked out.
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/checkout-and-setup
 
       - name: Build apps
@@ -511,7 +511,7 @@ jobs:
 
     steps:
       # Local composite actions can only load after the repo is checked out.
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/run-package-tests
         with:
           filter: '@adopt-dont-shop/lib.*'
@@ -561,7 +561,7 @@ jobs:
 
     steps:
       # Local composite actions can only load after the repo is checked out.
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/run-package-tests
         with:
           filter: './packages/*'
@@ -623,7 +623,7 @@ jobs:
 
     steps:
       # Local composite actions can only load after the repo is checked out.
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/run-package-tests
         with:
           filter: '@adopt-dont-shop/service.*'
@@ -658,7 +658,7 @@ jobs:
 
     steps:
       # Local composite actions can only load after the repo is checked out.
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/checkout-and-setup
 
       # Phase 1 — consumers write pact files to pacts/
@@ -679,7 +679,7 @@ jobs:
           pnpm --filter @adopt-dont-shop/service.chat test:contracts:provider
           pnpm --filter @adopt-dont-shop/service.gateway test:contracts:provider
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: pact-files
@@ -700,7 +700,7 @@ jobs:
 
     steps:
       # Local composite actions can only load after the repo is checked out.
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/dev-auth-guard
 
   # ============================================================================
@@ -746,7 +746,7 @@ jobs:
 
     steps:
       # Local composite actions can only load after the repo is checked out.
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/e2e-suite
         with:
           shard-index: ${{ matrix.shard }}
@@ -767,7 +767,7 @@ jobs:
       # Local composite actions can only load after the repo is checked out.
       # Checkout and setup only serve the report, so they are best-effort too:
       # only "Verify every shard passed" decides this job's result.
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         continue-on-error: true
       - uses: ./.github/actions/setup-workspace
         continue-on-error: true
@@ -788,7 +788,7 @@ jobs:
           fi
           pnpm --filter @adopt-dont-shop/e2e exec playwright merge-reports --reporter html ./all-blob-reports
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         continue-on-error: true
         with:
           name: e2e-playwright-report-merged
@@ -848,7 +848,7 @@ jobs:
 
     steps:
       # Local composite actions can only load after the repo is checked out.
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/e2e-suite
         with:
           mode: smoke
@@ -874,7 +874,7 @@ jobs:
       pull-requests: write
     steps:
       # Local composite actions can only load after the repo is checked out.
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/coverage-report
         with:
           lib-dist-cache-hit: ${{ needs.build-libs.outputs.lib-dist-cache-hit }}
@@ -896,9 +896,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: changed
         with:
           filters: |
@@ -983,7 +983,7 @@ jobs:
     steps:
       # Local composite actions/scripts can only load after the repo is
       # checked out.
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Verify required jobs succeeded or skipped
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
