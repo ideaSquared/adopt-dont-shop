@@ -12,9 +12,9 @@ describe('getScrollBehavior', () => {
     expect(getScrollBehavior()).toBe('smooth');
   });
 
-  it('is auto when the visitor prefers reduced motion', () => {
+  it('is instant when the visitor prefers reduced motion', () => {
     mockMatchMedia(true);
-    expect(getScrollBehavior()).toBe('auto');
+    expect(getScrollBehavior()).toBe('instant');
   });
 
   it('is smooth when matchMedia is unavailable', () => {
