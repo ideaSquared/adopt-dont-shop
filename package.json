@@ -142,7 +142,7 @@
     "tsx": "^4.19.2",
     "turbo": "^2.9.16",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.61.1",
+    "typescript-eslint": "^8.73.0",
     "vitest": "^4.1.12"
   },
   "overridesDocumentation": {
