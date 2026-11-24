@@ -80,4 +80,5 @@ const makeVarsProxy = (): Record<string, unknown> => {
 
 export const vars = makeVarsProxy();
 export const lightThemeClass = '';
+export const getScrollBehavior = (): ScrollBehavior => 'smooth';
 export const darkThemeClass = '';
