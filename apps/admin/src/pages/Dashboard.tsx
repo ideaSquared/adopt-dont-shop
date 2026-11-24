@@ -148,12 +148,7 @@ const Dashboard: React.FC = () => {
               </div>
             ))
           : metrics.map(metric => (
-              <Link
-                key={metric.label}
-                to={metric.href}
-                className={styles.metricLink}
-                aria-label={`View ${metric.label}`}
-              >
+              <Link key={metric.label} to={metric.href} className={styles.metricLink}>
                 <MetricCard
                   icon={metric.icon}
                   label={metric.label}
