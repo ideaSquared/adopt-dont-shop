@@ -247,6 +247,10 @@ export const searchInput = style({
       borderColor: '#667eea',
       boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.18)',
     },
+    '&:focus-visible': {
+      outline: '2px solid currentColor',
+      outlineOffset: '2px',
+    },
   },
 });
 

@@ -98,6 +98,10 @@ export const tokenInput = style({
       borderColor: vars.colors.primary,
       boxShadow: `0 0 0 2px ${vars.colors.primaryBgSubtle}`,
     },
+    '&:focus-visible': {
+      outline: `2px solid ${vars.colors.primary}`,
+      outlineOffset: '2px',
+    },
   },
 });
 

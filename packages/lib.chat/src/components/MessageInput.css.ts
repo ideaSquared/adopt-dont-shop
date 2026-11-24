@@ -86,6 +86,11 @@ globalStyle(`${messageTextAreaWrapper} textarea:focus`, {
   transform: 'translateY(-1px)',
 });
 
+globalStyle(`${messageTextAreaWrapper} textarea:focus-visible`, {
+  outline: `2px solid ${vars.colors.primary}`,
+  outlineOffset: '2px',
+});
+
 globalStyle(`${messageTextAreaWrapper} textarea::placeholder`, {
   color: vars.text.secondary,
 });
