@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
 
 // JSDOM lacks the pointer-capture and scrolling APIs Radix Select (behind

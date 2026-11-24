@@ -59,9 +59,9 @@ import {
 declare module 'vitest' {
   // vitest-axe 0.1.0 ships its matcher types for the legacy `Vi` namespace;
   // this registers them on the current `Assertion` interface instead. The type
-  // parameter must keep vitest's name for the declarations to merge.
+  // parameters must keep vitest's names and constraints for the declarations to merge.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface Assertion<T> extends AxeMatchers {}
+  interface Assertion<R extends void | Promise<void>, T> extends AxeMatchers {}
 }
 
 expect.extend(axeMatchers);

@@ -38,7 +38,7 @@
     "nats": "^2.29.3",
     "pg": "^8.23.1",
     "tsx": "^4.23.15",
-    "vitest": "^4.1.12"
+    "vitest": "^5.1.1"
   },
   "devDependencies": {
     "@adopt-dont-shop/proto": "workspace:*",
@@ -47,6 +47,6 @@
     "typescript": "^6.0.0"
   },
   "peerDependencies": {
-    "vitest": "^4.1.12"
+    "vitest": "^5.1.1"
   }
 }

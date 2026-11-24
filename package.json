@@ -125,8 +125,8 @@
     "@commitlint/config-conventional": "^21.2.4",
     "@typescript-eslint/eslint-plugin": "^8.73.0",
     "@typescript-eslint/parser": "^8.73.0",
-    "@vitest/coverage-v8": "^4.1.12",
-    "@vitest/ui": "^4.1.12",
+    "@vitest/coverage-v8": "^5.1.1",
+    "@vitest/ui": "^5.1.1",
     "esbuild": "^0.28.2",
     "eslint": "^10.15.0",
     "eslint-config-prettier": "^10.0.0",
@@ -143,7 +143,7 @@
     "turbo": "^2.11.13",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.73.0",
-    "vitest": "^4.1.12"
+    "vitest": "^5.1.1"
   },
   "overridesDocumentation": {
     "eslint-plugin-react": "Override eslint-plugin-react's eslint peer range to accept eslint 10. As of 7.37.5 the plugin still declares `eslint: ^3 || ... || ^9.7`, which blocks `npm ci` under eslint 10 even though the plugin runs fine on flat config. TODO: remove this override once eslint-plugin-react publishes a release that lists eslint 10 in its peerDependencies.",

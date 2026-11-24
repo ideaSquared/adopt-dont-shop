@@ -168,7 +168,7 @@ describe('github device flow', () => {
       () => jsonResponse({ access_token: 't' }),
       () => jsonResponse({ state: 'pending' })
     );
-    expect(poll(h).then(r => r.json())).resolves.toMatchObject({ status: 'denied' });
+    await expect(poll(h).then(r => r.json())).resolves.toMatchObject({ status: 'denied' });
   });
 
   it('denies users missing from the team (404)', async () => {
