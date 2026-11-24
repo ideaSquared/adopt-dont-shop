@@ -18,8 +18,8 @@ export const heading = style({
       outline: 'none',
     },
     '&:focus-visible': {
-      outline: `2px solid ${vars.colors.primary}`,
-      outlineOffset: '2px',
+      outline: `${vars.border.width.base} solid ${vars.colors.primary}`,
+      outlineOffset: vars.border.width.base,
     },
   },
 });

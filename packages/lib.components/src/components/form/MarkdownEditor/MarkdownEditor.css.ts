@@ -30,8 +30,8 @@ export const textarea = style({
       borderColor: vars.border.color.focus,
     },
     '&:focus-visible': {
-      outline: `2px solid ${vars.colors.primary}`,
-      outlineOffset: '2px',
+      outline: `${vars.border.width.base} solid ${vars.colors.primary}`,
+      outlineOffset: vars.border.width.base,
     },
     '&:disabled': {
       backgroundColor: vars.background.disabled,
