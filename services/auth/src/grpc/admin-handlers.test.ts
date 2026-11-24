@@ -2366,6 +2366,73 @@ describe('applyUserSanction', () => {
     expect(updateCall(mocks)[1][2]).toBeNull();
   });
 
+  describe('a suspension while another is active never shortens it', () => {
+    const LATER = '2099-06-01T00:00:00.000Z';
+
+    const suspendWhile = async (current: Record<string, unknown>, expiresAt?: string) => {
+      mocks.clientScript.push({ rows: [userRow(current)] });
+      mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });
+      await applyUserSanction(mocks.deps, SANCTIONER, { ...SUSPEND, expiresAt });
+      return { stored: updateCall(mocks)[1][2], event: actionTaken(mocks)[0] };
+    };
+
+    it('keeps the later end when the new suspension is shorter', async () => {
+      const { stored, event } = await suspendWhile(
+        { status: 'suspended', suspended_until: new Date(LATER) },
+        FUTURE
+      );
+
+      expect(stored).toEqual(new Date(LATER));
+      expect(event.payload).toMatchObject({ expiresAt: LATER });
+    });
+
+    it('extends to the new end when the new suspension is longer', async () => {
+      const { stored } = await suspendWhile(
+        { status: 'suspended', suspended_until: new Date(FUTURE) },
+        LATER
+      );
+
+      expect(stored).toEqual(new Date(LATER));
+    });
+
+    it('keeps an active indefinite suspension indefinite when a timed one is applied', async () => {
+      const { stored, event } = await suspendWhile(
+        { status: 'suspended', suspended_until: null },
+        FUTURE
+      );
+
+      expect(stored).toBeNull();
+      expect(event.payload).toMatchObject({ expiresAt: null });
+    });
+
+    it('makes a timed suspension indefinite when an indefinite one is applied', async () => {
+      const { stored } = await suspendWhile({
+        status: 'suspended',
+        suspended_until: new Date(LATER),
+      });
+
+      expect(stored).toBeNull();
+    });
+
+    it('ignores a leftover end time on an account that is no longer suspended', async () => {
+      const { stored } = await suspendWhile(
+        { status: 'active', suspended_until: new Date(LATER) },
+        FUTURE
+      );
+
+      expect(stored).toEqual(new Date(FUTURE));
+    });
+
+    it('reads the current end time from the locked row', async () => {
+      await suspendWhile({ status: 'active' }, FUTURE);
+
+      const select = (mocks.clientMock.query.mock.calls as Array<[string]>)
+        .map(([sql]) => sql)
+        .find(sql => sql.includes('FOR UPDATE'));
+      expect(select).toContain('suspended_until');
+    });
+  });
+
   it('clears any end time on a ban', async () => {
     mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });
     mocks.clientScript.push({ rows: [userRow({ status: 'deactivated' })] });

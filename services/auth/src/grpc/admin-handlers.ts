@@ -719,6 +719,23 @@ const MODERATION_SERVICE_PRINCIPAL_ID = 'svc-moderation';
 // and offsetless strings, which are read in the server's local timezone.
 const RFC_3339 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
 
+// A new suspension never shortens one that is already in force: the later end
+// wins, and an indefinite suspension (no end) outlasts any timed one. A leftover
+// end time on an account that is no longer suspended is ignored.
+function effectiveSuspensionEnd(
+  currentStatus: string,
+  currentEnd: Date | null,
+  requestedEnd: Date | undefined
+): Date | null {
+  if (currentStatus !== 'suspended') {
+    return requestedEnd ?? null;
+  }
+  if (!currentEnd || !requestedEnd) {
+    return null;
+  }
+  return currentEnd.getTime() > requestedEnd.getTime() ? currentEnd : requestedEnd;
+}
+
 export async function applyUserSanction(
   deps: HandlerDeps,
   principal: Principal,
@@ -768,8 +785,10 @@ export async function applyUserSanction(
     // Locked read that also returns any additional roles (auth.user_roles):
     // an adopter who was assigned admin or moderator is just as elevated as
     // one whose primary role is.
-    const current = await client.query<UserRow & { extra_roles: string[] | null }>(
-      `SELECT ${USER_SELECT},
+    const current = await client.query<
+      UserRow & { extra_roles: string[] | null; suspended_until: Date | null }
+    >(
+      `SELECT ${USER_SELECT}, suspended_until,
               COALESCE(
                 (SELECT array_agg(r.role_name)
                    FROM auth.user_roles ur
@@ -801,6 +820,10 @@ export async function applyUserSanction(
       );
     }
 
+    const suspendedUntil = isBan
+      ? null
+      : effectiveSuspensionEnd(current.rows[0].status, current.rows[0].suspended_until, expiresAt);
+
     const res = await client.query<UserRow>(
       `
       UPDATE auth.users
@@ -811,7 +834,7 @@ export async function applyUserSanction(
       WHERE user_id = $2 AND deleted_at IS NULL
       RETURNING ${USER_SELECT}
       `,
-      isBan ? [newStatus, req.userId] : [newStatus, req.userId, expiresAt ?? null]
+      isBan ? [newStatus, req.userId] : [newStatus, req.userId, suspendedUntil]
     );
     if (res.rows.length === 0) {
       throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
@@ -835,7 +858,7 @@ export async function applyUserSanction(
         before: { status: current.rows[0].status },
         after: { status: newStatus },
         reason: req.reason,
-        expiresAt: expiresAt ? expiresAt.toISOString() : null,
+        expiresAt: suspendedUntil ? suspendedUntil.toISOString() : null,
       },
     });
   });
