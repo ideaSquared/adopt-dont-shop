@@ -4,7 +4,8 @@
 // subject-case or body-max-line-length. Skip only commits that are both shaped
 // like a Dependabot bump and signed off by the Dependabot bot; everything else,
 // including human commits on a Dependabot branch, is still linted.
-const DEPENDABOT_SUBJECT = /^(build|chore)\(deps(-dev)?\): Bump \S+ from \S+ to \S+/;
+const DEPENDABOT_SUBJECT =
+  /^(build|chore)\(deps(-dev)?\): Bump (\S+ from \S+ to \S+|the \S+ group)/;
 const DEPENDABOT_SIGN_OFF = /^Signed-off-by: dependabot\[bot\] <support@github\.com>$/m;
 
 const isDependabotCommit = message =>
