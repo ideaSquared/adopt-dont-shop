@@ -154,7 +154,7 @@ services:
   # unaffected. `pnpm bootstrap` / `pnpm secrets:generate` generate the token
   # into .env like every other secret.
   nats:
-    image: nats:2.10-alpine
+    image: nats:2.15-alpine
     restart: always
     ports:
       - '127.0.0.1:4222:4222'  # client protocol
@@ -214,7 +214,7 @@ services:
   # ============================================================================
 
   lib-types-watcher:
-    image: node:24.22.2-alpine@sha256:8a32c8cf649a49915a66e81e7a609223c708d0adabf288ee3f4077d765542f85
+    image: node:24.22.3-alpine@sha256:116b800c3754b440ee0aa3ed2f20f5bf3d99a554bfd9adeea09ea8017f6e85f5
     working_dir: /app
     environment:
       COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
@@ -303,7 +303,7 @@ services:
   # alongside a single frontend profile when they want subdomain routing.
   nginx:
     profiles: ['proxy', 'full']
-    image: nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
+    image: nginx:1.29-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de
     ports:
       - '127.0.0.1:80:80'
       - '127.0.0.1:443:443'
@@ -341,7 +341,7 @@ services:
 
   loki:
     profiles: ["observability", "full"]
-    image: grafana/loki:3.2.0
+    image: grafana/loki:3.7.10
     command: -config.file=/etc/loki/local-config.yaml
     ports:
       - '127.0.0.1:3100:3100'
@@ -354,7 +354,7 @@ services:
 
   prometheus:
     profiles: ["observability", "full"]
-    image: prom/prometheus:v3.1.0
+    image: prom/prometheus:v3.16.0
     ports:
       - '127.0.0.1:9090:9090'
     volumes:
@@ -426,7 +426,7 @@ services:
   # observability/alertmanager/alertmanager.yml.
   alertmanager:
     profiles: ["observability", "full"]
-    image: prom/alertmanager:v0.28.0
+    image: prom/alertmanager:v0.35.0
     command:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
       - '--storage.path=/alertmanager'
