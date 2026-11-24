@@ -1,4 +1,4 @@
-import { test, expect } from '../../fixtures';
+import { test, expect, type ApiClient } from '../../fixtures';
 import { dismissCookieBannerPatiently } from '../../helpers/cookie-banner-patient';
 import { petCardLocator } from '../../helpers/pet';
 import { uniquePetName } from '../../helpers/factories';
@@ -14,6 +14,15 @@ import { skipSwipeIntro } from '../../helpers/swipe-intro';
 
 const SEEDED_RESCUE = 'Paws Rescue';
 const STACK_TRACE = /(\bat \w+.*\(.*:\d+:\d+\)|TypeError|ReferenceError|SQLSTATE|stack trace)/i;
+
+// The discovery queue skips every pet the signed-in adopter has already swiped, and other specs
+// swipe as that same adopter, so the seeded pets can be used up by the time these specs run.
+// Fresh pets are listed first and have never been swiped.
+async function createUnswipedPets(rescueApi: ApiClient, count: number): Promise<void> {
+  for (let i = 0; i < count; i += 1) {
+    await createAvailablePet(rescueApi, 'Discover');
+  }
+}
 
 type PetView = {
   pet_id: string;
@@ -55,7 +64,9 @@ test.describe('client browsing journeys', () => {
   // CLI-030 / CLI-031 / CLI-032
   test('discover shows a pet card and Like and Pass advance the stack and the session counters', async ({
     page,
+    apiAs,
   }) => {
+    await createUnswipedPets(await apiAs('rescue'), 4);
     await page.goto('/discover');
     await expect(page.getByRole('heading', { name: 'Discover Pets' })).toBeVisible({
       timeout: 20_000,
@@ -91,7 +102,8 @@ test.describe('client browsing journeys', () => {
   });
 
   // CLI-031 (server side). Swipes were not persisted (swipe/action answered 500) until #1603.
-  test('a Like is persisted by the swipe API', async ({ page }) => {
+  test('a Like is persisted by the swipe API', async ({ page, apiAs }) => {
+    await createUnswipedPets(await apiAs('rescue'), 2);
     await page.goto('/discover');
     await expect(page.getByRole('button', { name: 'Like this pet', exact: true })).toBeVisible({
       timeout: 20_000,
