@@ -49,7 +49,7 @@
   },
   "peerDependencies": {
     "@tanstack/react-query": "^5.101.0",
-    "react": "^19.2.7",
+    "react": "^19.3.1",
     "typescript": "^6.0.3"
   },
   "peerDependenciesMeta": {
@@ -63,8 +63,8 @@
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-base": "workspace:*",
     "@types/node": "^26.0.0",
-    "@types/react": "^19.2.17",
-    "react": "^19.2.7"
+    "@types/react": "^19.3.0",
+    "react": "^19.3.1"
   },
   "repository": {
     "type": "git",
