@@ -77,7 +77,7 @@ services:
           memory: 64m
 
   certbot:
-    image: certbot/certbot:v3.1.0@sha256:fb978b4fef92dc5c85cc0b908836714c600e717b52a3f74c93276eb63a9d0af9
+    image: certbot/certbot:v5.10.0@sha256:c5698da859429ccee0fcc299a8000368198222d1f9e789ab6e388b491e8ce06d
     container_name: ads_certbot
     restart: unless-stopped
     volumes:
