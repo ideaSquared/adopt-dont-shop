@@ -63,7 +63,7 @@ Every microservice under `services/` is built from a single parameterised [`Dock
 **Infrastructure**
 
 - `database` — PostgreSQL 16 with PostGIS (`postgis/postgis:16-3.4`)
-- `redis` — Redis 7 for cache and sessions
+- `redis` — Redis 8 for cache and sessions
 - `nats` — JetStream event bus between microservices
 - `nginx` — Reverse proxy for subdomain routing. Profile-gated (`proxy` / `full`) in dev — it does **not** run under the default `dev` profile; bring it up with `pnpm docker:dev --profile full` (or `proxy`).
 
