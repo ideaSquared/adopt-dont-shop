@@ -39,6 +39,11 @@ describe('commitlint config', () => {
     expect(result.valid).toBe(true);
   });
 
+  it('accepts a Dependabot bump with no version range in the subject', () => {
+    const result = lintMessage(`chore(deps): Bump nginx\n\n${DEPENDABOT_BODY}`);
+    expect(result.valid).toBe(true);
+  });
+
   it('accepts a lowercase Dependabot group bump signed off by the Dependabot bot', () => {
     const result = lintMessage(
       `chore(deps): bump the minor-and-patch group with 3 updates\n\n${DEPENDABOT_BODY}`
