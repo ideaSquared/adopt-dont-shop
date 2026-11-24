@@ -1,4 +1,4 @@
-import { Button, Spinner } from '@adopt-dont-shop/lib.components';
+import { Button, Spinner, getScrollBehavior } from '@adopt-dont-shop/lib.components';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router';
@@ -44,7 +44,7 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
 
   useEffect(() => {
     if (autoScroll && messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current.scrollIntoView({ behavior: getScrollBehavior() });
     }
   }, [messages, activeConversation, autoScroll]);
 

@@ -10,6 +10,7 @@ export type { BreakpointName } from './styles/breakpoints';
 export { useConfirm } from './hooks/useConfirm';
 export type { ConfirmOptions, UseConfirmReturn } from './hooks/useConfirm';
 export { useToast } from './hooks/useToast';
+export { getScrollBehavior } from './hooks/scrollBehavior';
 export type { ToastMessage, UseToastReturn } from './hooks/useToast';
 export { useDebouncedValue } from './hooks/useDebouncedValue';
 export { useFilterParamSetter } from './hooks/useFilterParamSetter';

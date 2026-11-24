@@ -6,6 +6,7 @@ import {
   Button,
   ErrorState,
   PageHeader,
+  getScrollBehavior,
   Spinner,
   toast,
 } from '@adopt-dont-shop/lib.components';
@@ -322,7 +323,7 @@ export const ApplicationPage: React.FC = () => {
 
   useEffect(() => {
     if (loadError) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: getScrollBehavior() });
     }
   }, [loadError]);
 
@@ -353,7 +354,7 @@ export const ApplicationPage: React.FC = () => {
   // bottom of the previous form. Scroll back to the top so the new step's
   // heading is the first thing in view.
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: getScrollBehavior() });
   }, [currentStep]);
 
   const handleSubmit = async () => {
@@ -391,7 +392,7 @@ export const ApplicationPage: React.FC = () => {
 
       void clearDraft();
       setSubmittedApplicationId(result.data.id);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: getScrollBehavior() });
 
       // ADS-125: toast confirmation with a quick action to jump straight there.
       toast.success('Application submitted', {
@@ -415,7 +416,7 @@ export const ApplicationPage: React.FC = () => {
           message ?? 'Something went wrong sending your application. Mind giving it another go?'
         );
       }
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: getScrollBehavior() });
     } finally {
       setIsSubmitting(false);
     }

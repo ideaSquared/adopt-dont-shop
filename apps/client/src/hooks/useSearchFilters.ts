@@ -1,3 +1,4 @@
+import { getScrollBehavior } from '@adopt-dont-shop/lib.components';
 import { useState, useEffect, useRef } from 'react';
 import { type PetSearchFilters } from '@/services';
 import { isKnownSortBy, isKnownSortOrder } from '../pages/searchOptions';
@@ -115,7 +116,7 @@ export const useSearchFilters = (
 
   const handlePageChange = (page: number) => {
     setFilters(prev => ({ ...prev, page }));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: getScrollBehavior() });
   };
 
   const clearFilters = () => {

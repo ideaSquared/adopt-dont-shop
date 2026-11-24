@@ -194,6 +194,7 @@ const StubModal = ({
 };
 
 vi.mock('@adopt-dont-shop/lib.components', () => ({
+  getScrollBehavior: () => 'smooth',
   // Shared primitives added for the app migrations. Each stub mirrors the real
   // component's accessible output (roles, names, text) and drops styling props.
   PageHeader: ({

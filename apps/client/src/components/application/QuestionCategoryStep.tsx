@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Question, QuestionField } from './QuestionField';
 import { shouldShowQuestion } from './questionConditions';
+import { getScrollBehavior } from '@adopt-dont-shop/lib.components';
 import * as styles from './QuestionCategoryStep.css';
 
 type QuestionCategoryStepProps = {
@@ -101,7 +102,7 @@ export const QuestionCategoryStep: React.FC<QuestionCategoryStepProps> = ({
       setMissingFieldLabels(missing);
       const firstKey = Object.keys(newErrors)[0];
       const wrapper = document.getElementById(`field-${firstKey}`);
-      wrapper?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      wrapper?.scrollIntoView({ behavior: getScrollBehavior(), block: 'center' });
       const focusable = wrapper?.querySelector<HTMLElement>(
         'input, select, textarea, [role="radio"], [role="button"], button'
       );
