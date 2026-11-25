@@ -82,7 +82,7 @@ services:
   # postgis image (already on the host) rather than pulling a new one.
   glitchtip-postgres:
     <<: *gt-hardening
-    image: postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5
+    image: postgis/postgis:18-3.6@sha256:4a43e3c3e5d55b9208240fc71db543b79c638766280c625a425bd0a2390989c4
     environment:
       POSTGRES_USER: glitchtip
       # ADS-1342: read from the file-mounted secret, not the env var — mirrors

@@ -187,7 +187,7 @@ x-app-common: &app-common
 services:
   # Database - Production configuration
   database:
-    image: postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5
+    image: postgis/postgis:18-3.6@sha256:4a43e3c3e5d55b9208240fc71db543b79c638766280c625a425bd0a2390989c4
     container_name: ads_prod_db
     # ADS-1042: raise max_connections above the pooled connection budget so
     # services can scale past a single replica without `FATAL: too many
