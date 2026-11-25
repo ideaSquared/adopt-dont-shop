@@ -140,7 +140,7 @@ services:
   # One-shot schema migration — runs to completion before web/worker start.
   glitchtip-migrate:
     <<: *gt-hardening
-    image: glitchtip/glitchtip:v4.1@sha256:0803e1820215905c305cd0e7c497e5bbdbb2c2c65fcbe6bdc131f4538b8ed048
+    image: glitchtip/glitchtip:7.0@sha256:c245745b4179667da3aebd73fb8d4f1fd918f7d68ba07d1fd73ea688933b6e01
     entrypoint: *gt-entrypoint
     command: ./manage.py migrate
     environment:
@@ -156,7 +156,7 @@ services:
 
   glitchtip-web:
     <<: *gt-hardening
-    image: glitchtip/glitchtip:v4.1@sha256:0803e1820215905c305cd0e7c497e5bbdbb2c2c65fcbe6bdc131f4538b8ed048
+    image: glitchtip/glitchtip:7.0@sha256:c245745b4179667da3aebd73fb8d4f1fd918f7d68ba07d1fd73ea688933b6e01
     # No `command:` override — the entrypoint wrapper execs whatever the
     # image's own default CMD is (its Dockerfile sets no ENTRYPOINT, so this
     # is equivalent to running it directly, just with the env exported first).
@@ -195,7 +195,7 @@ services:
 
   glitchtip-worker:
     <<: *gt-hardening
-    image: glitchtip/glitchtip:v4.1@sha256:0803e1820215905c305cd0e7c497e5bbdbb2c2c65fcbe6bdc131f4538b8ed048
+    image: glitchtip/glitchtip:7.0@sha256:c245745b4179667da3aebd73fb8d4f1fd918f7d68ba07d1fd73ea688933b6e01
     entrypoint: *gt-entrypoint
     command: ./bin/run-celery-with-beat.sh
     environment:
