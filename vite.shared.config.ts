@@ -117,3 +117,23 @@ export function getAppAliases(appDir: string) {
     '@/pages': resolve(appDir, './src/pages'),
   };
 }
+
+/**
+ * Keeps a plugin's `transform` hook away from node_modules. Wrap `vanillaExtractPlugin()` with it:
+ * vanilla-extract claims every `*.css.js` file, and a dependency that ships plain modules under
+ * that name (@sentry/feedback 11 does) fails the build with "Invalid exports".
+ */
+export function skipNodeModules(plugins: Plugin[]): Plugin[] {
+  return plugins.map(plugin => {
+    const { transform } = plugin;
+    if (typeof transform !== 'function') {
+      return plugin;
+    }
+    return {
+      ...plugin,
+      transform(code, id, options) {
+        return id.includes('/node_modules/') ? null : transform.call(this, code, id, options);
+      },
+    };
+  });
+}

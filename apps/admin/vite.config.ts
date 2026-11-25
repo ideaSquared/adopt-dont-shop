@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
 
-import { getLibraryAliases } from '../../vite.shared.config';
+import { getLibraryAliases, skipNodeModules } from '../../vite.shared.config';
 
 export default defineConfig(({ mode }) => {
   // The gateway fronts /api, /health and /monitoring. In Docker it's reachable
@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => {
           plugins: [['babel-plugin-react-compiler', { compilationMode: 'annotation' }]],
         },
       }),
-      vanillaExtractPlugin(),
+      ...skipNodeModules(vanillaExtractPlugin()),
     ],
     envDir: resolve(__dirname, '../..'), // Load .env from monorepo root
     cacheDir: '/tmp/.vite-app-admin',

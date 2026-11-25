@@ -19,7 +19,7 @@ If anyone breaks a migration — bad SQL, a missing dependency, or a prefix coll
 
 ## How `compute` works
 
-1. Spins up Postgres 16 + PostGIS (`postgis/postgis:16-3.4`) as a service container with a fresh `ci` database.
+1. Spins up Postgres 16 + PostGIS (`postgis/postgis:16-3.6`) as a service container with a fresh `ci` database.
 2. Builds the shared libraries and `packages/{observability,db,events}` (each service's `migrate.ts` imports `@adopt-dont-shop/db` + `@adopt-dont-shop/observability`).
 3. Loops over every schema-owning service — `auth notifications pets rescue applications chat moderation matching cms audit` — running `cd services/<svc> && pnpm db:migrate` against the fresh DB, inside a `::group::services/<svc> db:migrate` log group.
 4. Collects failures and exits non-zero if any service's migrations failed, printing `::error::Migration failures: <list>`.
@@ -33,7 +33,7 @@ Dummy `JWT_SECRET` / `JWT_REFRESH_SECRET` / `ENCRYPTION_KEY` values are set only
 
    ```bash
    docker run --rm -d --name equiv-pg -e POSTGRES_USER=postgres \
-     -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=ci -p 5432:5432 postgis/postgis:16-3.4
+     -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=ci -p 5432:5432 postgis/postgis:16-3.6
    DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ci \
      bash -c 'cd services/<svc> && pnpm db:migrate'
    ```

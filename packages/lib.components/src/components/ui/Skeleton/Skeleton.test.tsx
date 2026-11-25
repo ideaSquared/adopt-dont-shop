@@ -13,13 +13,14 @@ describe('Skeleton primitives', () => {
     it('applies custom width and height', () => {
       const { container } = render(<Skeleton width='200px' height='2rem' />);
       const el = container.firstChild as HTMLElement;
-      expect(el).toHaveStyle({ width: '200px', height: '2rem' });
+      // jsdom 31 resolves rem to px in computed styles, as a browser does (1rem = 16px).
+      expect(el).toHaveStyle({ width: '200px', height: '32px' });
     });
 
     it('defaults to full width and 1rem height', () => {
       const { container } = render(<Skeleton />);
       const el = container.firstChild as HTMLElement;
-      expect(el).toHaveStyle({ width: '100%', height: '1rem' });
+      expect(el).toHaveStyle({ width: '100%', height: '16px' });
     });
 
     it('accepts custom className', () => {

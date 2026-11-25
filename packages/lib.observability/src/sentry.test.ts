@@ -171,6 +171,20 @@ describe('initSentry beforeSend wiring', () => {
     });
   });
 
+  it('opts out of the personal data Sentry 11 collects by default', () => {
+    sentryInitSpy.mockClear();
+
+    initSentry({
+      dsn: 'https://example@o0.ingest.sentry.io/0',
+      appName: 'rescue',
+      environment: 'staging',
+    });
+
+    expect(sentryInitSpy.mock.calls[0][0]).toMatchObject({
+      dataCollection: { userInfo: false, cookies: false, httpBodies: [] },
+    });
+  });
+
   it('defaults replay sample rates to zero so session content stays off until opt-in', () => {
     sentryInitSpy.mockClear();
 

@@ -30,7 +30,7 @@ enabled, or run self-hosted Postgres on an encrypted block device
 ## Production database provider
 
 Production runs **self-hosted Postgres in a single container on a single
-host** (`docker-compose.prod.yml`: the `postgis/postgis:16-3.4` service with the
+host** (`docker-compose.prod.yml`: the `postgis/postgis:16-3.6` service with the
 `postgres_data` named volume). Per [ADR 0011](../adr/0011-interim-availability-posture.md)
 this is a deliberate interim posture — one Postgres, one Redis, one NATS, one
 host — not a managed database service. There is **no provider-managed

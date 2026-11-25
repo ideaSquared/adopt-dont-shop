@@ -111,6 +111,24 @@ export type SentryInitOptions = {
   replaysOnErrorSampleRate?: number;
 };
 
+// Sentry 11 collects user info, cookies, request/response bodies, query strings and database
+// query data unless told otherwise. This is the pre-11 baseline from Sentry's migration guide,
+// tightened to drop queue arguments and stack-frame variables as well: no personal data leaves
+// the process by default.
+const HEADER_DENY_LIST = ['forwarded', '-ip', 'remote-', 'via', '-user'];
+const DATA_COLLECTION = {
+  userInfo: false,
+  cookies: false,
+  httpHeaders: { request: { deny: HEADER_DENY_LIST }, response: { deny: HEADER_DENY_LIST } },
+  httpBodies: [],
+  urlQueryParams: { deny: HEADER_DENY_LIST },
+  databaseQueryData: false,
+  queues: false,
+  stackFrameVariables: false,
+  graphQL: { document: false, variables: false },
+  genAI: { inputs: false, outputs: false },
+} satisfies NonNullable<Parameters<typeof Sentry.init>[0]>['dataCollection'];
+
 /**
  * Initialise Sentry for a frontend app. Safe to call when DSN is empty —
  * it just logs a warning and skips, so dev/local builds without a DSN
@@ -146,6 +164,7 @@ export const initSentry = (options: SentryInitOptions): void => {
 
   Sentry.init({
     dsn,
+    dataCollection: DATA_COLLECTION,
     environment,
     release,
     tracesSampleRate,

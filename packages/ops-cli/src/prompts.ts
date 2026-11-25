@@ -2,7 +2,7 @@ import * as clack from '@clack/prompts';
 import { CancelledError } from './errors.js';
 import type { Prompts } from './ctx.js';
 
-const unwrap = <T>(value: T | symbol): T => {
+const unwrap = <T>(value: T | typeof clack.CANCEL_SYMBOL): T => {
   if (clack.isCancel(value)) {
     clack.cancel('Cancelled.');
     throw new CancelledError();
