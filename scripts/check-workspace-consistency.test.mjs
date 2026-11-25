@@ -7,6 +7,7 @@ import {
   checkLintFormatScripts,
   checkMaximumConfigsDrift,
   checkNoEmitTaskOutputs,
+  checkScriptBodyDrift,
   checkTemplateDepDrift,
   checkTestingLibraryReactNeedsReactDom,
   checkToolVersionsDrift,
@@ -867,5 +868,38 @@ describe('.vscode/settings.json vitest.maximumConfigs guard (ADS-1348)', () => {
         "[.vscode/settings.json] could not find a numeric 'vitest.maximumConfigs' setting (ADS-1348).",
       ]);
     });
+  });
+});
+
+describe('checkScriptBodyDrift (#1740)', () => {
+  const canonical = {
+    test: 'vitest run',
+    lint: 'eslint .',
+  };
+
+  it('accepts the lib type-check body that runs tsconfig.typecheck.json', () => {
+    expect(
+      checkScriptBodyDrift('lib.api', {
+        ...canonical,
+        'type-check': 'tsc --noEmit -p tsconfig.typecheck.json',
+      })
+    ).toEqual([]);
+  });
+
+  it('accepts the plain app type-check body', () => {
+    expect(
+      checkScriptBodyDrift('app.admin', { ...canonical, 'type-check': 'tsc --noEmit' })
+    ).toEqual([]);
+  });
+
+  it('warns on a type-check body that is neither accepted form', () => {
+    expect(checkScriptBodyDrift('lib.bad', { ...canonical, 'type-check': 'tsc' })).toEqual([
+      {
+        workspace: 'lib.bad',
+        script: 'type-check',
+        actual: 'tsc',
+        expected: ['tsc --noEmit', 'tsc --noEmit -p tsconfig.typecheck.json'],
+      },
+    ]);
   });
 });
