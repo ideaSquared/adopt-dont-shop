@@ -121,8 +121,10 @@ const REQUIRED_APP_SCRIPTS = [
   'clean',
 ];
 
+// lib.* packages type-check through tsconfig.typecheck.json; apps use the
+// plain form. Accept both so the drift warning only fires on a real outlier.
 const EXPECTED_SCRIPT_BODIES = {
-  'type-check': ['tsc --noEmit'],
+  'type-check': ['tsc --noEmit', 'tsc --noEmit -p tsconfig.typecheck.json'],
   test: ['vitest run'],
 };
 
@@ -300,7 +302,7 @@ function checkRequiredScripts(workspace, required) {
   return { workspace, scripts, missing };
 }
 
-function checkScriptBodyDrift(workspace, scripts) {
+export function checkScriptBodyDrift(workspace, scripts) {
   const warnings = [];
   for (const [name, expectedBodies] of Object.entries(EXPECTED_SCRIPT_BODIES)) {
     const body = scripts[name];
