@@ -137,7 +137,9 @@ export function docsIndexLibraryListSection(map) {
       `- [${libShortName(scopedName)} consumers](./libraries/${fileName}) — ${consumers.length} consumer(s)`
     );
   }
-  lines.push(DOCS_INDEX_SECTION_END);
+  // The blank line is what prettier puts between a list and an HTML comment; without it the
+  // regenerated docs/README.md fails `format:check`.
+  lines.push('', DOCS_INDEX_SECTION_END);
   return lines.join('\n');
 }
 

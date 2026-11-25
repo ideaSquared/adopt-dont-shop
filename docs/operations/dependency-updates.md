@@ -37,6 +37,8 @@ group wins, so the specific groups sit ahead of the catch-all:
   only commits that are shaped like a bump and signed off by the Dependabot bot.
 - Majors of `@types/node` and of the `node` Docker image are ignored: Node 24 is the pinned runtime and a new
   Node major is a deliberate change.
+- Majors of the `postgis/postgis` image are ignored: a new Postgres major refuses to start on the old major's
+  data volume, so it is a planned `pg_upgrade` of every host.
 - Nothing automerges. CI must be green and a reviewer approves every PR.
 
 ## Things Dependabot does not do

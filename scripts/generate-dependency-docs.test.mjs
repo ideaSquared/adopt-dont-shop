@@ -1,3 +1,4 @@
+import * as prettier from 'prettier';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -101,6 +102,12 @@ describe('readmeConsumersSection / docsIndexLibraryListSection', () => {
     expect(utilsIndex).toBeGreaterThan(apiIndex);
     expect(section).toContain('./libraries/lib.api-consumers.md');
     expect(section).toContain('1 consumer(s)');
+  });
+
+  it('separates the list from the end marker with a blank line, as prettier formats it', async () => {
+    const map = new Map([['@adopt-dont-shop/lib.api', []]]);
+    const section = `${docsIndexLibraryListSection(map)}\n`;
+    expect(await prettier.format(section, { parser: 'markdown' })).toBe(section);
   });
 });
 
