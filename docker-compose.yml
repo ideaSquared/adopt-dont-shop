@@ -417,9 +417,10 @@ services:
       - ./observability/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
       - tempo_data:/var/tempo
     restart: unless-stopped
+    # Tempo 3.x is distroless (no shell/wget): use the binary's own -health.
     healthcheck:
       <<: *hc-observability-timing
-      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:3200/ready || exit 1']
+      test: ['CMD', '/tempo', '-health']
 
   # Alertmanager — routes the SLO alert rules by severity (ADS-1041/ADS-1052).
   # Ships inert (no notifier secrets); wire Slack/email per

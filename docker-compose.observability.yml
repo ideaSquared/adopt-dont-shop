@@ -103,8 +103,10 @@ services:
     expose:
       - "3200"   # Tempo query API (Grafana)
       - "4318"   # OTLP/HTTP ingest (services → OTEL_EXPORTER_OTLP_ENDPOINT)
+    # Tempo 3.x ships a distroless image (no shell, no wget); the binary's own
+    # -health flag hits /ready. Tempo 2.x was alpine, hence the old wget probe.
     healthcheck:
-      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:3200/ready || exit 1']
+      test: ['CMD', '/tempo', '-health']
       interval: 30s
       timeout: 5s
       retries: 3

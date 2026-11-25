@@ -17,13 +17,14 @@ distributor:
         grpc:
           endpoint: 0.0.0.0:4317
 
-ingester:
-  max_block_duration: 5m
-
-compactor:
+# Tempo 3.0 removed the `ingester` and `compactor` sections. Recent traces are
+# held by the live-store (defaults are fine for one host) and the backend
+# worker, which runs in the single binary, does compaction and retention.
+backend_worker:
   compaction:
     # 3-day trace retention — enough to investigate an incident, cheap on disk.
     # Traces are the highest-volume signal; keep the window short on one host.
+    # Unset, Tempo 3 keeps blocks for 14 days.
     block_retention: 72h
 
 storage:
