@@ -159,17 +159,15 @@ export const redactSentryEvent = <T extends Sentry.ErrorEvent>(event: T): T => {
   return event;
 };
 
-// Sentry 11 collects user info, cookies, request/response bodies, query strings and database
-// query data unless told otherwise. This is the pre-11 baseline from Sentry's migration guide,
-// tightened to drop queue arguments and stack-frame variables as well: no personal data leaves
-// the process by default.
-const HEADER_DENY_LIST = ['forwarded', '-ip', 'remote-', 'via', '-user'];
+// Sentry 11 collects user info, cookies, headers, query strings, request/response bodies and
+// database query data unless told otherwise. All of it is off: headers and query strings carry
+// the caller's coordinates (`x-client-location`, `lat`/`lng`), and spans bypass `beforeSend`.
 const DATA_COLLECTION = {
   userInfo: false,
   cookies: false,
-  httpHeaders: { request: { deny: HEADER_DENY_LIST }, response: { deny: HEADER_DENY_LIST } },
+  httpHeaders: false,
   httpBodies: [],
-  urlQueryParams: { deny: HEADER_DENY_LIST },
+  urlQueryParams: false,
   databaseQueryData: false,
   queues: false,
   stackFrameVariables: false,

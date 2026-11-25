@@ -181,7 +181,13 @@ describe('initSentry beforeSend wiring', () => {
     });
 
     expect(sentryInitSpy.mock.calls[0][0]).toMatchObject({
-      dataCollection: { userInfo: false, cookies: false, httpBodies: [] },
+      dataCollection: {
+        userInfo: false,
+        cookies: false,
+        httpHeaders: false,
+        urlQueryParams: false,
+        httpBodies: [],
+      },
     });
   });
 

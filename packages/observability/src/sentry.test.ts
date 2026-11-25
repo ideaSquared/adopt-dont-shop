@@ -277,6 +277,9 @@ describe('initializeSentry', () => {
     expect(vi.mocked(Sentry.init).mock.calls[0][0]!.dataCollection).toMatchObject({
       userInfo: false,
       cookies: false,
+      // The gateway takes the caller's coordinates in a header and in lat/lng query params.
+      httpHeaders: false,
+      urlQueryParams: false,
       httpBodies: [],
       databaseQueryData: false,
       queues: false,
