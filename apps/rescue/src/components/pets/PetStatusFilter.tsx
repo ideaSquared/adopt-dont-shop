@@ -42,12 +42,9 @@ const PetStatusFilter: React.FC<PetStatusFilterProps> = ({
             isRounded
             onClick={() => onStatusChange(option.value)}
             aria-pressed={isActive}
-            aria-label={`${option.label} (${count} pets)`}
           >
-            {option.label}
-            <span className={styles.statusCount({ active: isActive })} aria-hidden="true">
-              {count}
-            </span>
+            {option.label} <span className={styles.statusCount({ active: isActive })}>{count}</span>{' '}
+            <span className={styles.visuallyHidden}>pets</span>
           </Button>
         );
       })}

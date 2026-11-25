@@ -68,7 +68,35 @@ describe('ConversationList', () => {
     // Row-level badge: the "3" appears on the active-but-not-selected row.
     expect(screen.getByText('3')).toBeInTheDocument();
     // Header-level counter surfaces the total.
-    expect(screen.getByText(/3 unread/i)).toBeInTheDocument();
+    expect(screen.getByText('3 unread')).toBeInTheDocument();
+  });
+
+  it('names a conversation from its visible content and ends with its unread count (WCAG 2.5.3)', () => {
+    renderWithChatContext(<ConversationList />, {
+      value: buildChatContextValue({
+        conversations: [
+          buildTestConversation({
+            id: 'c1',
+            rescueName: 'Paws Rescue',
+            unreadCount: 1,
+            petId: 'p1',
+            petName: 'Rex',
+          }),
+          buildTestConversation({ id: 'c2', rescueName: 'Happy Tails', unreadCount: 3 }),
+          buildTestConversation({ id: 'c3', rescueName: 'Quiet Kennels', unreadCount: 0 }),
+        ],
+      }),
+    });
+
+    expect(screen.getByRole('button', { name: /Paws Rescue/ })).toHaveAccessibleName(
+      /Paws Rescue.*About Rex.* 1 unread message$/
+    );
+    expect(screen.getByRole('button', { name: /Happy Tails/ })).toHaveAccessibleName(
+      /Happy Tails.* 3 unread messages$/
+    );
+    expect(screen.getByRole('button', { name: /Quiet Kennels/ })).not.toHaveAccessibleName(
+      /unread/
+    );
   });
 
   it('caps the unread badge at 99+', () => {

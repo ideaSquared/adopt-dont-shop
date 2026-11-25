@@ -145,6 +145,18 @@ export const avatar = style({
   position: 'relative',
 });
 
+export const visuallyHidden = style({
+  position: 'absolute',
+  width: '1px',
+  height: '1px',
+  padding: 0,
+  margin: '-1px',
+  overflow: 'hidden',
+  whiteSpace: 'nowrap',
+  border: 0,
+  clip: 'rect(0, 0, 0, 0)',
+});
+
 export const avatarWithUnread = style({
   flex: '0 0 auto',
   width: '44px',

@@ -31,6 +31,10 @@ updates:
         patterns: ['typescript-eslint', '@typescript-eslint/*']
       vitest:
         patterns: ['vitest', '@vitest/*']
+      # A prettier bump can restyle files and fail `format:check`, so it gets its own PR: run
+      # `pnpm format` on that branch instead of untangling it from the 70-odd other bumps.
+      prettier:
+        patterns: ['prettier']
       minor-and-patch:
         update-types: [minor, patch]
 

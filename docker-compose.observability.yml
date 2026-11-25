@@ -95,7 +95,7 @@ services:
 
   tempo:
     <<: *obs-hardening
-    image: grafana/tempo:2.6.1@sha256:ef4384fce6e8ad22b95b243d8fc165628cda655376fd50e7850536ad89d71d50
+    image: grafana/tempo:3.1.1@sha256:64e2fbd56d9c2b3412a4b430a58ea59e91a670b1e75f920a0c702213ad145044
     command: -config.file=/etc/tempo/tempo.yaml
     volumes:
       - ./observability/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
@@ -103,8 +103,10 @@ services:
     expose:
       - "3200"   # Tempo query API (Grafana)
       - "4318"   # OTLP/HTTP ingest (services → OTEL_EXPORTER_OTLP_ENDPOINT)
+    # Tempo 3.x ships a distroless image (no shell, no wget); the binary's own
+    # -health flag hits /ready. Tempo 2.x was alpine, hence the old wget probe.
     healthcheck:
-      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:3200/ready || exit 1']
+      test: ['CMD', '/tempo', '-health']
       interval: 30s
       timeout: 5s
       retries: 3
@@ -153,7 +155,7 @@ services:
 
   grafana:
     <<: *obs-hardening
-    image: grafana/grafana:11.3.0@sha256:a0f881232a6fb71a0554a47d0fe2203b6888fe77f4cefb7ea62bed7eb54e13c3
+    image: grafana/grafana:13.3.1@sha256:0615ec4fbd4072004b7d86b46ded63013a74b7d6eb1119273dd89e8fa25c13cf
     # ADS-1376: GF_SECURITY_ADMIN_PASSWORD used to be passed as a plain env
     # var — visible verbatim in this container's `docker inspect` output
     # (Config.Env), which is exactly what cAdvisor's GET /containers/{id}/json

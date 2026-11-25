@@ -374,7 +374,7 @@ services:
 
   grafana:
     profiles: ["observability", "full"]
-    image: grafana/grafana:11.3.0
+    image: grafana/grafana:13.3.1
     ports:
       - '127.0.0.1:3030:3000'
     environment:
@@ -408,7 +408,7 @@ services:
   # mirrors the prod/staging stack (docker-compose.observability.yml).
   tempo:
     profiles: ["observability", "full"]
-    image: grafana/tempo:2.6.1
+    image: grafana/tempo:3.1.1
     command: -config.file=/etc/tempo/tempo.yaml
     ports:
       - '127.0.0.1:3200:3200'   # Tempo API (Grafana queries here)
@@ -417,9 +417,10 @@ services:
       - ./observability/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
       - tempo_data:/var/tempo
     restart: unless-stopped
+    # Tempo 3.x is distroless (no shell/wget): use the binary's own -health.
     healthcheck:
       <<: *hc-observability-timing
-      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:3200/ready || exit 1']
+      test: ['CMD', '/tempo', '-health']
 
   # Alertmanager — routes the SLO alert rules by severity (ADS-1041/ADS-1052).
   # Ships inert (no notifier secrets); wire Slack/email per

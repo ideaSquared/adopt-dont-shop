@@ -223,15 +223,19 @@ describe('Dashboard page', () => {
 
     it('links Total Users to /users', () => {
       renderWithProviders(<Dashboard />);
-      expect(screen.getByRole('link', { name: /view total users/i })).toHaveAttribute(
-        'href',
-        '/users'
-      );
+      expect(screen.getByRole('link', { name: /total users/i })).toHaveAttribute('href', '/users');
+    });
+
+    it('names each KPI link from its visible label, not a separate aria-label (WCAG 2.5.3)', () => {
+      renderWithProviders(<Dashboard />);
+      const link = screen.getByRole('link', { name: /total users/i });
+      expect(link).not.toHaveAttribute('aria-label');
+      expect(link).toHaveAccessibleName(expect.stringContaining('Total Users'));
     });
 
     it('links Active Rescues to /rescues filtered by verified status', () => {
       renderWithProviders(<Dashboard />);
-      expect(screen.getByRole('link', { name: /view active rescues/i })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: /active rescues/i })).toHaveAttribute(
         'href',
         '/rescues?status=verified'
       );
@@ -239,7 +243,7 @@ describe('Dashboard page', () => {
 
     it('links Pets Listed to /pets filtered by available status', () => {
       renderWithProviders(<Dashboard />);
-      expect(screen.getByRole('link', { name: /view pets listed/i })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: /pets listed/i })).toHaveAttribute(
         'href',
         '/pets?status=available'
       );
@@ -247,7 +251,7 @@ describe('Dashboard page', () => {
 
     it('links Adoptions (30d) to /pets filtered by adopted status', () => {
       renderWithProviders(<Dashboard />);
-      expect(screen.getByRole('link', { name: /view adoptions/i })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: /adoptions/i })).toHaveAttribute(
         'href',
         '/pets?status=adopted'
       );
@@ -255,7 +259,7 @@ describe('Dashboard page', () => {
 
     it('links Pending Applications to /applications filtered by submitted status', () => {
       renderWithProviders(<Dashboard />);
-      expect(screen.getByRole('link', { name: /view pending applications/i })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: /pending applications/i })).toHaveAttribute(
         'href',
         '/applications?status=submitted'
       );
@@ -263,10 +267,7 @@ describe('Dashboard page', () => {
 
     it('links New Users (30d) to /users', () => {
       renderWithProviders(<Dashboard />);
-      expect(screen.getByRole('link', { name: /view new users/i })).toHaveAttribute(
-        'href',
-        '/users'
-      );
+      expect(screen.getByRole('link', { name: /new users/i })).toHaveAttribute('href', '/users');
     });
   });
 
