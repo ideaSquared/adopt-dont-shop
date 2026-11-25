@@ -18,6 +18,13 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = ({ className }) => {
   }
 
   const fullName = `${user.firstName} ${user.lastName}`.trim();
+  // The Avatar shows these initials when there is no photo; the accessible name must contain
+  // the visible text (WCAG 2.5.3).
+  const initials = fullName
+    .split(/\s+/)
+    .slice(0, 2)
+    .map(part => part.charAt(0).toUpperCase())
+    .join('');
 
   const handleLogout = async () => {
     try {
@@ -29,7 +36,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = ({ className }) => {
 
   return (
     <DropdownMenu
-      triggerLabel={`User menu for ${fullName}`}
+      triggerLabel={`${initials}, user menu for ${fullName}`}
       align='end'
       trigger={
         <button

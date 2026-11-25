@@ -32,6 +32,10 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onMobileMenuOpen }) =>
     return user.userType.replace('_', ' ');
   };
 
+  const initials = getInitials(user?.firstName, user?.lastName);
+  // The accessible name must contain the trigger's visible text (WCAG 2.5.3).
+  const userMenuLabel = `${initials} ${user?.firstName} ${user?.lastName} ${getUserRole()}, user menu`;
+
   return (
     <header className={styles.headerContainer}>
       <div className={styles.mobileMenu}>
@@ -67,16 +71,16 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onMobileMenuOpen }) =>
             },
           ]}
           trigger={
-            <button type='button' className={styles.userButton}>
+            <button type='button' className={styles.userButton} aria-label={userMenuLabel}>
               <Avatar
                 size='sm'
                 name={`${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim()}
-                initials={getInitials(user?.firstName, user?.lastName)}
-              />
+                initials={initials}
+              />{' '}
               <div className={styles.userInfo}>
                 <span className={styles.userName}>
                   {user?.firstName} {user?.lastName}
-                </span>
+                </span>{' '}
                 <span className={styles.userRole}>{getUserRole()}</span>
               </div>
               <ChevronDown size='1em' />

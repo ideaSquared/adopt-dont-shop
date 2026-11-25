@@ -34,10 +34,18 @@ describe('AdminHeader', () => {
     expect(onMobileMenuOpen).toHaveBeenCalledTimes(1);
   });
 
+  it('names the user menu trigger with its visible initials, name and role (WCAG 2.5.3)', () => {
+    renderWithProviders(<AdminHeader />);
+
+    expect(screen.getByRole('button', { name: /user menu/i })).toHaveAccessibleName(
+      'AL Ada Lovelace super admin, user menu'
+    );
+  });
+
   it('offers profile, account settings and sign out from the user menu', async () => {
     renderWithProviders(<AdminHeader />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'User menu' }));
+    await userEvent.click(screen.getByRole('button', { name: /user menu/i }));
 
     expect(screen.getByRole('menuitem', { name: 'Profile' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Account Settings' })).toBeInTheDocument();
@@ -47,7 +55,7 @@ describe('AdminHeader', () => {
   it('navigates to the account page from the user menu', async () => {
     renderWithProviders(<AdminHeader />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'User menu' }));
+    await userEvent.click(screen.getByRole('button', { name: /user menu/i }));
     await userEvent.click(screen.getByRole('menuitem', { name: 'Account Settings' }));
 
     expect(mockNavigate).toHaveBeenCalledWith('/account');
@@ -56,7 +64,7 @@ describe('AdminHeader', () => {
   it('logs the user out from the user menu', async () => {
     renderWithProviders(<AdminHeader />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'User menu' }));
+    await userEvent.click(screen.getByRole('button', { name: /user menu/i }));
     await userEvent.click(screen.getByRole('menuitem', { name: 'Sign Out' }));
 
     expect(mockLogout).toHaveBeenCalledTimes(1);

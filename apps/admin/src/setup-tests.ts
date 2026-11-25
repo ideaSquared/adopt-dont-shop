@@ -60,22 +60,29 @@ type StubDropdownMenuProps = {
 
 // Test double for the shared DropdownMenu / DropdownButton: a trigger button
 // that toggles a role="menu" list of role="menuitem" entries, closing on select.
-const StubDropdownMenu = ({ triggerLabel, items, header, disabled }: StubDropdownMenuProps) => {
+const StubDropdownMenu = ({
+  triggerLabel,
+  items,
+  trigger,
+  header,
+  disabled,
+}: StubDropdownMenuProps) => {
   const [open, setOpen] = React.useState(false);
+  const triggerProps = {
+    'aria-haspopup': 'menu',
+    'aria-expanded': open,
+    disabled,
+    onClick: () => setOpen(current => !current),
+  };
   return React.createElement(
     'div',
     null,
-    React.createElement(
-      'button',
-      {
-        type: 'button',
-        'aria-haspopup': 'menu',
-        'aria-expanded': open,
-        disabled,
-        onClick: () => setOpen(current => !current),
-      },
-      triggerLabel
-    ),
+    trigger
+      ? React.cloneElement(trigger, {
+          ...triggerProps,
+          'aria-label': trigger.props['aria-label'] ?? triggerLabel,
+        })
+      : React.createElement('button', { type: 'button', ...triggerProps }, triggerLabel),
     open
       ? React.createElement(
           'div',
