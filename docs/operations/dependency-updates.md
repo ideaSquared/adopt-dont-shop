@@ -23,6 +23,8 @@ group wins, so the specific groups sit ahead of the catch-all:
 - **`react`** — `react`, `react-dom`, and their `@types/*` packages move together, any update type.
 - **`typescript-eslint`** — `typescript-eslint` and `@typescript-eslint/*` move together.
 - **`vitest`** — `vitest` and `@vitest/*` move together.
+- **`prettier`** — `prettier` alone, any update type. A new release can restyle files and fail
+  `format:check`; on its PR run `pnpm format` and commit the result.
 - **`minor-and-patch`** — every other minor and patch update of an ecosystem in one PR. Majors arrive as
   their own PRs for review.
 
