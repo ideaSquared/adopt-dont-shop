@@ -14,7 +14,7 @@ See [`README.md`](./README.md#preconditions): prod SSH,
 `cd /opt/ads/production`, `docker compose -f docker-compose.prod.yml`.
 
 **The `nats` CLI is not installed in any prod container** (the `nats` service
-runs `nats:2.10-alpine`, server only). The `nats …` commands below assume you
+runs `nats:2.15-alpine`, server only). The `nats …` commands below assume you
 have run a throwaway `natsio/nats-box` container attached to `ads-prod-network`,
 or replace them with the JetStream monitoring endpoint:
 

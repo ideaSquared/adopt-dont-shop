@@ -6,7 +6,7 @@
     // ADS-1116: pin Node to the exact .nvmrc patch (the base image tag only
     // tracks the 24 line). .nvmrc / .tool-versions remain the source of truth.
     "ghcr.io/devcontainers/features/node:1": {
-      "version": "24.22.2"
+      "version": "24.22.3"
     },
     "ghcr.io/devcontainers/features/docker-in-docker:2": {
       "moby": true,

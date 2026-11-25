@@ -54,7 +54,7 @@ runs:
     # build step below. max-parallelism=4 replaces the old
     # COMPOSE_PARALLEL_LIMIT=4: 12 concurrent `pnpm install` runs against the
     # registry was the ECONNRESET source ADS-792 describes.
-    - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+    - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       with:
         driver-opts: |
           image=moby/buildkit:v0.23.0
@@ -182,7 +182,7 @@ runs:
           echo "No retried tests detected in this run."
         fi
 
-    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       if: always()
       with:
         name: e2e-playwright-report${{ inputs.shard-index && format('-shard-{0}', inputs.shard-index) || '' }}
@@ -194,7 +194,7 @@ runs:
         if-no-files-found: ignore
 
     # Input for the merged HTML report ci.yml's test-e2e job builds.
-    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       if: always() && inputs.shard-index != ''
       with:
         name: e2e-blob-report-${{ inputs.shard-index }}

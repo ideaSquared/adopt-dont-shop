@@ -38,8 +38,12 @@ updates:
       minor-and-patch:
         update-types: [minor, patch]
 
+  # Composite actions under .github/actions/ are not scanned from `/`; list them so their pins move
+  # with the workflows.
   - package-ecosystem: github-actions
-    directory: /
+    directories:
+      - /
+      - /.github/actions/*
     schedule:
       interval: weekly
       day: monday
