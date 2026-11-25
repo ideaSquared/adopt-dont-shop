@@ -77,7 +77,7 @@ jobs:
 
     services:
       postgres:
-        image: postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5
+        image: postgis/postgis:16-3.6@sha256:d07ce3f06f657b6516c7511412232e97174d7e9dcf4c9fe520109b682b44a201
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres

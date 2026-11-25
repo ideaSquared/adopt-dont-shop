@@ -62,7 +62,7 @@ React 19 + TypeScript + Vite, built to static assets served by nginx in producti
 
 | Store      | Image                    | Role                                                                                           |
 | ---------- | ------------------------ | ---------------------------------------------------------------------------------------------- |
-| `database` | `postgis/postgis:16-3.4` | Primary DB; one schema per service, `search_path = <schema>, public`, no cross-schema FKs.     |
+| `database` | `postgis/postgis:16-3.6` | Primary DB; one schema per service, `search_path = <schema>, public`, no cross-schema FKs.     |
 | `redis`    | `redis:8.10-alpine`      | Cache, sessions, rate limiting.                                                                |
 | `nats`     | `nats:2.15-alpine`       | JetStream event backbone; transactional outbox → subscribers (audit persists `*.actionTaken`). |
 | `clamav`   | `clamav/clamav:1.4`      | AV/malware scan of uploaded bytes (gateway streams via INSTREAM).                              |

@@ -111,6 +111,22 @@ export type SentryInitOptions = {
   replaysOnErrorSampleRate?: number;
 };
 
+// Sentry 11 collects user info, cookies, headers, query strings, request/response bodies and
+// database query data unless told otherwise. All of it is off: headers and query strings carry
+// the caller's coordinates (`x-client-location`, `lat`/`lng`), and spans bypass `beforeSend`.
+const DATA_COLLECTION = {
+  userInfo: false,
+  cookies: false,
+  httpHeaders: false,
+  httpBodies: [],
+  urlQueryParams: false,
+  databaseQueryData: false,
+  queues: false,
+  stackFrameVariables: false,
+  graphQL: { document: false, variables: false },
+  genAI: { inputs: false, outputs: false },
+} satisfies NonNullable<Parameters<typeof Sentry.init>[0]>['dataCollection'];
+
 /**
  * Initialise Sentry for a frontend app. Safe to call when DSN is empty —
  * it just logs a warning and skips, so dev/local builds without a DSN
@@ -146,6 +162,7 @@ export const initSentry = (options: SentryInitOptions): void => {
 
   Sentry.init({
     dsn,
+    dataCollection: DATA_COLLECTION,
     environment,
     release,
     tracesSampleRate,

@@ -4,7 +4,7 @@ import { resolve } from 'path';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-import { getLibraryAliases } from '../../vite.shared.config';
+import { getLibraryAliases, skipNodeModules } from '../../vite.shared.config';
 
 export default defineConfig(({ mode }) => {
   // The gateway fronts /api, /health and /monitoring. In Docker it's reachable
@@ -31,7 +31,7 @@ export default defineConfig(({ mode }) => {
           plugins: [['babel-plugin-react-compiler', { compilationMode: 'annotation' }]],
         },
       }),
-      vanillaExtractPlugin(),
+      ...skipNodeModules(vanillaExtractPlugin()),
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['favicon.svg', 'favicon-16.png', 'favicon-32.png', 'apple-touch-icon.png'],

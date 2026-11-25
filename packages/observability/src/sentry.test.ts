@@ -263,8 +263,28 @@ describe('initializeSentry', () => {
     expect(callArg.dsn).toBe('https://example.ingest.sentry.io/123');
     expect(callArg.environment).toBe('production');
     expect(callArg.tracesSampleRate).toBe(0.1);
-    expect(callArg.profilesSampleRate).toBe(0.1);
+    expect(callArg.profileSessionSampleRate).toBe(0.1);
+    expect(callArg.profileLifecycle).toBe('trace');
     expect(callArg.serverName).toBe('svc.gateway');
+  });
+
+  it('opts out of the personal data Sentry 11 collects by default', () => {
+    process.env.SENTRY_DSN = 'https://example.ingest.sentry.io/123';
+    process.env.NODE_ENV = 'production';
+
+    initializeSentry({ serviceName: 'svc.gateway', logger: { info: vi.fn(), error: vi.fn() } });
+
+    expect(vi.mocked(Sentry.init).mock.calls[0][0]!.dataCollection).toMatchObject({
+      userInfo: false,
+      cookies: false,
+      // The gateway takes the caller's coordinates in a header and in lat/lng query params.
+      httpHeaders: false,
+      urlQueryParams: false,
+      httpBodies: [],
+      databaseQueryData: false,
+      queues: false,
+      stackFrameVariables: false,
+    });
   });
 
   it('uses HOSTNAME as serverName when it is set, overriding the serviceName fallback', () => {
@@ -301,6 +321,6 @@ describe('initializeSentry', () => {
 
     const callArg = vi.mocked(Sentry.init).mock.calls[0][0]!;
     expect(callArg.tracesSampleRate).toBe(1.0);
-    expect(callArg.profilesSampleRate).toBe(1.0);
+    expect(callArg.profileSessionSampleRate).toBe(1.0);
   });
 });

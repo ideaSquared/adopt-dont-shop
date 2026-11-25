@@ -41,7 +41,7 @@ type SentryConfig = {
   // The label events carry (DEPLOY_ENV when set); sampling and enablement stay on NODE_ENV.
   environment: string;
   tracesSampleRate: number;
-  profilesSampleRate: number;
+  profileSessionSampleRate: number;
   enabled: boolean;
 };
 
@@ -159,6 +159,22 @@ export const redactSentryEvent = <T extends Sentry.ErrorEvent>(event: T): T => {
   return event;
 };
 
+// Sentry 11 collects user info, cookies, headers, query strings, request/response bodies and
+// database query data unless told otherwise. All of it is off: headers and query strings carry
+// the caller's coordinates (`x-client-location`, `lat`/`lng`), and spans bypass `beforeSend`.
+const DATA_COLLECTION = {
+  userInfo: false,
+  cookies: false,
+  httpHeaders: false,
+  httpBodies: [],
+  urlQueryParams: false,
+  databaseQueryData: false,
+  queues: false,
+  stackFrameVariables: false,
+  graphQL: { document: false, variables: false },
+  genAI: { inputs: false, outputs: false },
+} satisfies NonNullable<Parameters<typeof Sentry.init>[0]>['dataCollection'];
+
 const getSentryConfig = (): SentryConfig => {
   const dsn = process.env.SENTRY_DSN || '';
   const nodeEnv = process.env.NODE_ENV || 'development';
@@ -169,7 +185,7 @@ const getSentryConfig = (): SentryConfig => {
     environment: deployEnvironment(),
     // 100% in dev for visibility; 10% in production to control volume.
     tracesSampleRate: nodeEnv === 'production' ? 0.1 : 1.0,
-    profilesSampleRate: nodeEnv === 'production' ? 0.1 : 1.0,
+    profileSessionSampleRate: nodeEnv === 'production' ? 0.1 : 1.0,
     enabled,
   };
 };
@@ -190,7 +206,11 @@ export const initializeSentry = (opts: SentryOptions): void => {
       environment: config.environment,
       integrations: [nodeProfilingIntegration()],
       tracesSampleRate: config.tracesSampleRate,
-      profilesSampleRate: config.profilesSampleRate,
+      dataCollection: DATA_COLLECTION,
+      // Sentry 11 dropped `profilesSampleRate`. `trace` keeps the old behaviour of profiling while
+      // a sampled root span is open; the rate is now decided once per process, not per trace.
+      profileSessionSampleRate: config.profileSessionSampleRate,
+      profileLifecycle: 'trace',
       debug: process.env.NODE_ENV === 'development',
       release: process.env.SENTRY_RELEASE,
       serverName: process.env.HOSTNAME || opts.serviceName,

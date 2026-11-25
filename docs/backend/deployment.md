@@ -13,7 +13,7 @@ targets at the repo root that dispatch GitHub Actions workflows (`deploy.yml`, `
 ### Runtime
 
 - **Node.js**: v24 (pinned in `.nvmrc` and `package.json` engines `>=24 <25`). All backend services share the top-level `Dockerfile.service` (parameterised via the `SERVICE` / `SERVICE_DIR` build args), built on `node:24-alpine`.
-- **PostgreSQL**: 16 with the **PostGIS** extension (`postgis/postgis:16-3.4` in `docker-compose.yml`). Location features depend on PostGIS — a plain Postgres install is not enough.
+- **PostgreSQL**: 16 with the **PostGIS** extension (`postgis/postgis:16-3.6` in `docker-compose.yml`). Location features depend on PostGIS — a plain Postgres install is not enough.
 - **Redis**: 8 (`redis:8.10-alpine`; digest-pinned in the prod/staging overlays) — used by the gateway for the shared rate-limit store and by services for idempotency keys.
 
 ### Storage and external services
