@@ -223,5 +223,4 @@ Documentation for the adopt-don't-shop monorepo, organised by audience: **Start 
 - [lib.types consumers](./libraries/lib.types-consumers.md) — 32 consumer(s)
 - [lib.utils consumers](./libraries/lib.utils-consumers.md) — 4 consumer(s)
 - [lib.validation consumers](./libraries/lib.validation-consumers.md) — 5 consumer(s)
-
 <!-- LIB-CONSUMER-LISTS:END -->
