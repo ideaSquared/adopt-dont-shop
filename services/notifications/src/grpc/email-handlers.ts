@@ -37,7 +37,7 @@ import { HandlerError, type HandlerDeps } from './handlers.js';
 
 // --- Defaults --------------------------------------------------------
 
-const DEFAULT_FROM_EMAIL = process.env.DEFAULT_FROM_EMAIL ?? 'noreply@adoptdontshop.com';
+const DEFAULT_FROM_EMAIL = process.env.DEFAULT_FROM_EMAIL ?? 'noreply@adoptdontshop.app';
 const DEFAULT_FROM_NAME = "Adopt Don't Shop";
 
 // --- Permissions -----------------------------------------------------

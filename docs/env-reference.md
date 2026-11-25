@@ -129,7 +129,7 @@ Verification and password-reset emails are sent by `services/notifications` (`sr
 # EMAIL_PROVIDER=resend            # the only provider permitted in production
 # RESEND_API_KEY=CHANGE_THIS_RESEND_API_KEY
 # DEFAULT_FROM_NAME="Adopt Don't Shop"
-# DEFAULT_REPLY_TO_EMAIL=support@adoptdontshop.com
+# DEFAULT_REPLY_TO_EMAIL=support@adoptdontshop.app
 
 # EMAIL_PROVIDER=ethereal           # fake SMTP catcher — test/dev only (not refused in production; do not set it there)
 ```
@@ -252,7 +252,7 @@ Backend error tracking uses the Sentry SDK (`packages/observability/src/sentry.t
 # GLITCHTIP_REDIS_PASSWORD=<random>         # required when enabled — glitchtip-redis --requirepass
 # GLITCHTIP_DOMAIN=https://errors.example.com   # default http://localhost:8000
 # GLITCHTIP_EMAIL_URL=smtp://user:pass@smtp.example.com:587   # default consolemail://
-# GLITCHTIP_FROM_EMAIL=alerts@adoptdontshop.com
+# GLITCHTIP_FROM_EMAIL=alerts@adoptdontshop.app
 ```
 
 ## Logging, tracing and metrics

@@ -28,7 +28,7 @@ const CONFIG = {
   frontendUrl: 'http://localhost:3000/',
   rescueAppUrl: 'http://localhost:3002/',
   adminAppUrl: 'http://localhost:3001/',
-  fromEmail: 'noreply@adoptdontshop.com',
+  fromEmail: 'noreply@adoptdontshop.app',
   fromName: "Adopt Don't Shop",
 };
 
@@ -136,7 +136,7 @@ describe('registerAuthEmailSubscribers', () => {
     expect(email).toMatchObject({
       toEmail: 'ada@example.com',
       toName: 'Ada',
-      fromEmail: 'noreply@adoptdontshop.com',
+      fromEmail: 'noreply@adoptdontshop.app',
       fromName: "Adopt Don't Shop",
       type: 'transactional',
       userId: 'usr-1',
