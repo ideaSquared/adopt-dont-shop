@@ -18,6 +18,7 @@ describe('loadConfig', () => {
     expect(config.databaseUrl).toBe(VALID_DB_URL);
     expect(config.schema).toBe('notifications');
     expect(config.natsUrl).toBe('nats://nats:4222');
+    expect(config.defaultFromEmail).toBe('noreply@adoptdontshop.app');
   });
 
   it('honours all env overrides when set', () => {

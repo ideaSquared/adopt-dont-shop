@@ -102,7 +102,7 @@ The provider creates a throwaway Ethereal account on boot and logs the preview U
 ```bash
 EMAIL_PROVIDER=resend
 RESEND_API_KEY=your_api_key
-DEFAULT_FROM_EMAIL=noreply@adoptdontshop.com
+DEFAULT_FROM_EMAIL=noreply@adoptdontshop.app
 ```
 
 `RESEND_API_KEY` and `DEFAULT_FROM_EMAIL` are both mandatory when `EMAIL_PROVIDER=resend`; the service refuses to boot otherwise.

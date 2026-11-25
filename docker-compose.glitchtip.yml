@@ -43,7 +43,7 @@ x-glitchtip-env: &gt-env
   # Base URL used to build links in emails / the UI. Reached via SSH tunnel by
   # default; set to your reverse-proxy URL if you front it.
   GLITCHTIP_DOMAIN: "${GLITCHTIP_DOMAIN:-http://localhost:8000}"
-  DEFAULT_FROM_EMAIL: "${GLITCHTIP_FROM_EMAIL:-alerts@adoptdontshop.com}"
+  DEFAULT_FROM_EMAIL: "${GLITCHTIP_FROM_EMAIL:-alerts@adoptdontshop.app}"
   EMAIL_URL: "${GLITCHTIP_EMAIL_URL:-consolemail://}"
   # Lock the instance down — no open sign-up; invite users from the admin.
   ENABLE_OPEN_USER_REGISTRATION: "false"

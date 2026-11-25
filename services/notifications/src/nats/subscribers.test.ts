@@ -544,7 +544,7 @@ describe('registerSubscribers', () => {
         frontendUrl: 'http://localhost:3000',
         rescueAppUrl: 'http://localhost:3002',
         adminAppUrl: 'http://localhost:3001',
-        fromEmail: 'noreply@adoptdontshop.com',
+        fromEmail: 'noreply@adoptdontshop.app',
         fromName: "Adopt Don't Shop",
       },
     });

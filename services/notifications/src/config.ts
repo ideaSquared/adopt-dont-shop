@@ -132,7 +132,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): NotificationsC
     emailProvider: loadEmailProviderConfig(env),
     emailWorkerEnabled: env.EMAIL_WORKER_ENABLED?.trim() !== 'false',
     emailChannelEnabled: env.EMAIL_CHANNEL_ENABLED?.trim() !== 'false',
-    defaultFromEmail: env.DEFAULT_FROM_EMAIL?.trim() || 'noreply@adoptdontshop.com',
+    defaultFromEmail: env.DEFAULT_FROM_EMAIL?.trim() || 'noreply@adoptdontshop.app',
     defaultFromName: env.DEFAULT_FROM_NAME?.trim() || "Adopt Don't Shop",
     pushProvider,
     pushWorkerEnabled: pushProvider.kind !== 'none' && env.PUSH_WORKER_ENABLED?.trim() !== 'false',
