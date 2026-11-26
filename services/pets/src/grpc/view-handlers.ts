@@ -101,8 +101,10 @@ export async function getViewsToday(
     return { counts: [] };
   }
 
+  // Distinct people over a rolling 24 hours: recordPetView keeps one row per
+  // viewer per hour, so COUNT(*) would count one returning viewer many times.
   const { rows } = await deps.pool.query<{ pet_id: string; views: string }>(
-    `SELECT pet_id, COUNT(*)::text AS views
+    `SELECT pet_id, COUNT(DISTINCT viewer_id)::text AS views
        FROM pets.pet_views
       WHERE pet_id = ANY($1::uuid[])
         AND viewed_at > now() - interval '24 hours'
