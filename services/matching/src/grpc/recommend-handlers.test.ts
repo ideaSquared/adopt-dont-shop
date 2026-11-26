@@ -189,7 +189,7 @@ describe('makeRecommend distance', () => {
       expect(res.candidates[0].distanceMiles).toBeGreaterThan(160);
       expect(res.candidates[0].activityLabel).toMatchObject({
         kind: 'views_today',
-        text: '12 views today',
+        text: '12 people viewed in the last 24 hours',
       });
     } finally {
       vi.useRealTimers();
@@ -240,12 +240,16 @@ describe('makeRecommend', () => {
       return { label: res.candidates[0].activityLabel };
     };
 
-    it('labels a pet with 5 or more views today', async () => {
+    it('labels a pet with 5 or more distinct viewers in the last 24 hours', async () => {
       const { label } = await recommendWithViews(
         makePet({ petId: 'p-1' }),
         vi.fn().mockResolvedValue({ counts: [{ petId: 'p-1', views: 5 }] })
       );
-      expect(label).toEqual({ kind: 'views_today', text: '5 views today', icon: VIEWS_ICON });
+      expect(label).toEqual({
+        kind: 'views_today',
+        text: '5 people viewed in the last 24 hours',
+        icon: VIEWS_ICON,
+      });
     });
 
     it('shows no views label below the minimum', async () => {
@@ -263,7 +267,10 @@ describe('makeRecommend', () => {
           makePet({ petId: 'p-1', availableSince: '2026-08-03T00:00:00.000Z' }),
           vi.fn().mockResolvedValue({ counts: [{ petId: 'p-1', views: 12 }] })
         );
-        expect(label).toMatchObject({ kind: 'views_today', text: '12 views today' });
+        expect(label).toMatchObject({
+          kind: 'views_today',
+          text: '12 people viewed in the last 24 hours',
+        });
       } finally {
         vi.useRealTimers();
       }

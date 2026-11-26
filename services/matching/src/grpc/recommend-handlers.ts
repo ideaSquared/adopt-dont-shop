@@ -415,7 +415,9 @@ function petToCandidate(pet: Pet, score: number): PetCandidate {
 // `similar_adopted_fast` come from lookups in makeRecommend. Under a week the
 // waiting number isn't a meaningful nudge, so no label.
 const MIN_WAITING_DAYS = 7;
-// "3 views today" is a weak nudge; only show the label from here up.
+// The count is distinct viewers over a rolling 24 hours (pets GetViewsToday),
+// so the text says "in the last 24 hours", not "today". Three people is a weak
+// nudge; only show the label from here up.
 const MIN_VIEWS_TODAY = 5;
 // Optional garnish, like the adoption stats: one short attempt, no retries, so a
 // stalled count query can not eat the Recommend deadline (fails open).
@@ -424,7 +426,7 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function viewsTodayLabel(views: number): ActivityLabel | undefined {
   return views >= MIN_VIEWS_TODAY
-    ? { kind: 'views_today', text: `${views} views today`, icon: '👀' }
+    ? { kind: 'views_today', text: `${views} people viewed in the last 24 hours`, icon: '👀' }
     : undefined;
 }
 

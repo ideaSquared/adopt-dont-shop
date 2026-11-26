@@ -40,7 +40,11 @@ describe('SwipeCard — activity label (ADS-632)', () => {
     renderWithProviders(
       <SwipeCard
         pet={makePet({
-          activityLabel: { kind: 'views_today', text: '47 views today', icon: '👀' },
+          activityLabel: {
+            kind: 'views_today',
+            text: '47 people viewed in the last 24 hours',
+            icon: '👀',
+          },
         })}
         onSwipe={vi.fn()}
         isTop
@@ -49,7 +53,7 @@ describe('SwipeCard — activity label (ADS-632)', () => {
     );
     const label = screen.getByTestId('activity-label');
     expect(label).toBeInTheDocument();
-    expect(label).toHaveTextContent('47 views today');
+    expect(label).toHaveTextContent('47 people viewed in the last 24 hours');
     expect(label).toHaveAttribute('data-label-kind', 'views_today');
   });
 

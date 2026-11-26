@@ -193,6 +193,29 @@ describe.skipIf(!process.env.DATABASE_URL)('pet views (real Postgres)', () => {
     });
   });
 
+  it('counts a viewer who came back in several different hours once', async () => {
+    await withTestDatabase(DB_OPTIONS, async pool => {
+      const deps: HandlerDeps = {
+        pool,
+        nats: makeNatsDouble().connection,
+        rescueClient: RESCUE_CLIENT,
+      };
+      const petId = await insertAvailablePet(pool);
+      const viewerId = randomUUID();
+      await pool.query(
+        `INSERT INTO pets.pet_views (view_id, pet_id, viewer_id, viewed_at)
+         VALUES ($1, $4, $5, now() - interval '1 hour'),
+                ($2, $4, $5, now() - interval '3 hours'),
+                ($3, $4, $5, now() - interval '5 hours')`,
+        [randomUUID(), randomUUID(), randomUUID(), petId, viewerId]
+      );
+
+      const res = await getViewsToday(deps, ADOPTER, { petIds: [petId] });
+
+      expect(res.counts).toEqual([{ petId, views: 1 }]);
+    });
+  });
+
   it('drops views older than the retention window and keeps recent ones', async () => {
     await withTestDatabase(DB_OPTIONS, async pool => {
       const petId = await insertAvailablePet(pool);
