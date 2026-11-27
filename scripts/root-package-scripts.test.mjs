@@ -21,6 +21,13 @@ describe('root `pnpm test` script (ADS-1282)', () => {
     expect(rootPkg.scripts.test).toContain('!@adopt-dont-shop/e2e');
   });
 
+  it('excludes the e2e package from `pnpm test:changed` too, so Playwright never gets `--changed`', () => {
+    const rootPkg = readPkg('.');
+    expect(rootPkg.scripts['test:changed']).toBe(
+      'turbo run test --filter=!@adopt-dont-shop/e2e -- --changed'
+    );
+  });
+
   it('keeps `pnpm test:e2e` targeting the e2e package', () => {
     const rootPkg = readPkg('.');
     expect(rootPkg.scripts['test:e2e']).toContain('@adopt-dont-shop/e2e');
