@@ -97,7 +97,7 @@ fail CI if it reappears.
 
 ## Before opening a PR
 
-CI spans `.github/workflows/ci.yml` (whose `ci-required` aggregator fans in thirteen jobs — see the [Full CI matrix](#full-ci-matrix-for-reference) below), plus the standalone required checks in `lib-test-guard.yml`, `schema-equivalence.yml`, and `docker.yml`'s `prod-image-smoke-gate`, plus the advisory `security.yml` and `quality.yml`. The four-command list previously documented here only covered a subset, so PRs that passed locally could still fail CI. Run the relevant tiers below before pushing.
+CI spans `.github/workflows/ci.yml` (whose `ci-required` aggregator fans in fourteen jobs — see the [Full CI matrix](#full-ci-matrix-for-reference) below), plus the standalone required checks in `lib-test-guard.yml`, `schema-equivalence.yml`, and `docker.yml`'s `prod-image-smoke-gate`, plus the advisory `security.yml` and `quality.yml`. The four-command list previously documented here only covered a subset, so PRs that passed locally could still fail CI. Run the relevant tiers below before pushing.
 
 The PR description includes a short "Before requesting review" checklist (see [`.github/pull_request_template.md`](./.github/pull_request_template.md)) that mirrors the most-failed CI checks — tick it off before requesting review.
 
@@ -181,7 +181,7 @@ pnpm test:e2e
 
 ### Full CI matrix (for reference)
 
-The `ci-required` aggregator job in `ci.yml` fans in these thirteen jobs (its `needs:` list, in order). For the authoritative branch-protection reference, see [`.github/workflows/README.md`](./.github/workflows/README.md#branch-protection):
+The `ci-required` aggregator job in `ci.yml` fans in these fourteen jobs (its `needs:` list, in order). For the authoritative branch-protection reference, see [`.github/workflows/README.md`](./.github/workflows/README.md#branch-protection):
 
 1. **Verify Workspace ↔ Filesystem Alignment** (`ci.yml` → `workspace-drift`) — catches a `lib.*` added to the `pnpm-workspace.yaml` globs with no matching directory (or vice-versa); also runs the repo-wide format/docs/env drift guards.
 2. **Verify Commit Messages** (`ci.yml` → `commit-lint`) — runs commitlint over every commit on the PR (ADS-1103); the local `commit-msg` hook that `--no-verify` bypasses is not enough.
@@ -193,19 +193,20 @@ The `ci-required` aggregator job in `ci.yml` fans in these thirteen jobs (its `n
 8. **Service Tests** (`ci.yml` → `test-services`) — lint + test:coverage + type-check across every `services/*` package. Added in ADS-822 so zero-test services no longer merge green. DB-backed integration tests (ADS-1315) run here too, against a real Postgres service container — see [docs/testing.md](./docs/testing.md#integration-tests-real-postgres--ads-1315).
 9. **Contract Tests (Pact)** (`ci.yml` → `test-contracts`) — two-phase consumer-driven Pact verification (consumers write pact files, providers verify them). Gated on the `backend` path filter — frontend-only PRs skip it (treated as success). See [ADR 0005](./docs/adr/0005-pact-contract-tests.md) (ADS-816).
 10. **Verify Dev Auth is Properly Gated** (`ci.yml` → `dev-auth-guard`) — production bundle scan ensuring dev-auth bypass code is properly gated (ADS-676).
-11. **E2E Tests (Playwright)** (`ci.yml` → `test-e2e`) — full Docker stack + browser suite. **Opt-in on PRs:** runs on `main` pushes and `workflow_dispatch`, or on a PR carrying the **`run-e2e`** label; otherwise skipped (treated as success). When it runs, a failure blocks the PR. Reworked for the post-monolith gateway stack in ADS-792.
-12. **E2E Smoke (Playwright)** (`ci.yml` → `test-e2e-smoke`) — the `@smoke` critical-path subset, running automatically on PRs touching app/service code (unless labelled `run-e2e`, where the full suite already covers it). **Required (ADS-1242 / ADS-1321)** — unlike the full suite, a smoke failure blocks merge.
-13. **Validate Observability Config** (`ci.yml` → `validate-observability-config`) — `promtool`/`amtool` syntax-check the committed Prometheus rules/config and Alertmanager config (ADS-1324). Path-filtered to `infra/prometheus/rules/**` and `observability/{prometheus,alertmanager}/**`.
+11. **E2E Tests (Playwright) shard N/4** (`ci.yml` → `test-e2e-shard` matrix, ×4) — the full Playwright suite split across four shards (`--shard=i/4`), each on its own runner and stack. Same opt-in gating as `test-e2e` below, which fans the shards in.
+12. **E2E Tests (Playwright)** (`ci.yml` → `test-e2e`) — full Docker stack + browser suite. **Opt-in on PRs:** runs on `main` pushes and `workflow_dispatch`, or on a PR carrying the **`run-e2e`** label; otherwise skipped (treated as success). When it runs, a failure blocks the PR. Reworked for the post-monolith gateway stack in ADS-792.
+13. **E2E Smoke (Playwright)** (`ci.yml` → `test-e2e-smoke`) — the `@smoke` critical-path subset, running automatically on PRs touching app/service code (unless labelled `run-e2e`, where the full suite already covers it). **Required (ADS-1242 / ADS-1321)** — unlike the full suite, a smoke failure blocks merge.
+14. **Validate Observability Config** (`ci.yml` → `validate-observability-config`) — `promtool`/`amtool` syntax-check the committed Prometheus rules/config and Alertmanager config (ADS-1324). Path-filtered to `infra/prometheus/rules/**` and `observability/{prometheus,alertmanager}/**`.
 
 Checks that run but are **not** part of `ci-required`:
 
 - **Verify every lib.\* package has tests** (`lib-test-guard.yml`) — runs `scripts/check-lib-tests.mjs`. A separate required check in branch protection.
-- **Schema Equivalence** (`schema-equivalence.yml`) — pg_dump diff of migrated vs synced schemas. A separate required check in branch protection, path-filtered to migrations.
+- **Schema Equivalence** (`schema-equivalence.yml`) — applies every service's migrations against a fresh Postgres and asserts they apply cleanly and idempotently, then replays new migrations against seeded data. A separate required check in branch protection, path-filtered to migrations.
 - **Production Image Smoke** (`docker.yml` → `prod-image-smoke-gate`, which always reports and wraps the `prod-image-smoke` boot job, ADS-1400) — a separate required check in branch protection (ADS-1314), not part of `ci-required` because it lives in a different workflow file — see [`.github/workflows/README.md`](./.github/workflows/README.md#docker-workflow-dockeryml). The boot job only runs on PRs that change deploy files or carry the `run-smoke` label (and on every push to `main`, where the deploy gate requires it); run `pnpm smoke:prod` locally for the same test.
 - **Dependency Audit** (`security.yml`) — one `dependency-audit` job running `node scripts/audit-bulk.mjs`; advisory.
 - **Dependency Check** (`quality.yml`) — one `dependency-check` job: `pnpm outdated -r` and `pnpm list -r --depth 0`, both advisory (`continue-on-error`).
 
-If you skip the slow tier locally, expect CI feedback within ~10 minutes — just be ready to fix and push again. PRs that fail any of the thirteen `ci-required` jobs above, or the `Production Image Smoke` / `Verify every lib.* package has tests` / `Schema Equivalence` checks, will not be merged.
+If you skip the slow tier locally, expect CI feedback within ~10 minutes — just be ready to fix and push again. PRs that fail any of the fourteen `ci-required` jobs above, or the `Production Image Smoke` / `Verify every lib.* package has tests` / `Schema Equivalence` checks, will not be merged.
 
 ## Code style
 
@@ -378,7 +379,7 @@ pnpm test:e2e:report
 
 - **E2E is opt-in on PRs.** The `test-e2e` job only runs automatically on pushes to `main` and via manual `workflow_dispatch`. On a pull request it is skipped (which `ci-required` treats as success) **unless** you add the **`run-e2e`** label — adding it re-triggers CI and runs the full Playwright suite. Add the label once your branch is ready (especially for user-facing, auth, or cross-app changes); leaving it off keeps in-progress PRs fast. See the `test-e2e` job in `.github/workflows/ci.yml`.
 - **A `@smoke` subset runs automatically and blocks merge.** On PRs touching app/service code, the `test-e2e-smoke` job runs the critical-path `@smoke` journeys without waiting for the `run-e2e` label (ADS-1242). It **is** in `ci-required`'s needs (ADS-1321 / P1-15) — a smoke failure blocks the PR, closing the gap where any of the headline journeys could regress and merge green; it is skipped when the PR carries `run-e2e` (the full suite already covers it). Reproduce it locally with `pnpm test:e2e:smoke`.
-- Playwright runs with `retries: 2` in CI. A test must fail 3 times in a row before it counts as a failure.
+- Playwright runs with `retries: 1` in CI (`retries: CI ? 1 : 0` in `e2e/playwright.config.ts`). A test must fail twice in a row before it counts as a failure.
 - Flaky retry counts are printed in the "Report E2E retry counts" CI step.
 - When E2E does run (labelled PR or `main` push) it is a blocking signal — a failure fails the PR check. The suite was reworked for the post-monolith gateway stack in ADS-792 (see the `ci-required` aggregator in `.github/workflows/ci.yml`).
 
