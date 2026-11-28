@@ -34,7 +34,7 @@ rate-limit counters, data or saved logins with a developer's environment. See
 ## Production smoke test
 
 `pnpm smoke:prod` (`scripts/smoke-prod.sh`) is the one test that runs the
-production configuration rather than the development stack. It builds the 14
+production configuration rather than the development stack. It builds the 15
 `production` images (`docker-bake.hcl`), lays out the host directories the
 way `deploy.yml` ships them, and boots `docker-compose.prod.yml` as shipped
 with the per-stack nginx and the TLS edge gateway (self-signed certificate

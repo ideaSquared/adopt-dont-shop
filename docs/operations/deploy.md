@@ -6,7 +6,7 @@ Authoritative procedure for cutting a normal production/staging release (audienc
 
 ## Prerequisites
 
-- One-time provisioning complete — see [DEPLOYMENT-PLAN.md](../infrastructure/DEPLOYMENT-PLAN.md): server + Docker, DNS, TLS, and the six GitHub Actions repo secrets `deploy.yml` validates (`JWT_SECRET`, `JWT_REFRESH_SECRET`, `ENCRYPTION_KEY`, `UPLOAD_SIGNING_SECRET`, `DB_PASSWORD`, `PRINCIPAL_SIGNING_KEY`).
+- One-time provisioning complete — see [DEPLOYMENT-PLAN.md](../infrastructure/DEPLOYMENT-PLAN.md): server + Docker, DNS, TLS, and the seven GitHub Actions repo secrets `deploy.yml` validates (`JWT_SECRET`, `JWT_REFRESH_SECRET`, `ENCRYPTION_KEY`, `UPLOAD_SIGNING_SECRET`, `DB_PASSWORD`, `PRINCIPAL_SIGNING_KEY`, `NATS_AUTH_TOKEN`).
 - `GHCR_TOKEN` repository secret set to a PAT scoped **`read:packages` only** — the deploy and rollback workflows `docker pull` images with it (they FAIL fast on `write:packages`/`repo` scope). See [`docs/SECRETS-MANAGEMENT.md`](../SECRETS-MANAGEMENT.md#github-actions-repository-secrets). [ADS-671]
 - `NATS_AUTH_TOKEN` repository secret set — required by both `deploy.yml` and `rollback.yml` to materialize `secrets/nats_auth_token` (ADS-1311).
 - `SENTRY_AUTH_TOKEN` repository secret set (optional but recommended) — without it, frontend builds skip the sourcemap upload and log a loud warning; production stack traces in GlitchTip stay unsymbolicated (ADS-1319).
@@ -48,7 +48,7 @@ Rotate application secrets before the first production deploy and whenever one m
 NODE_ENV=production pnpm validate:env -- --env-file=.env.prod   # non-zero exit = fix before deploying
 ```
 
-Note the two validators check **different** sets: the local `validate:env` script covers the five above (including `SESSION_SECRET`), while `deploy.yml`'s "Validate required deploy secrets" step gates on the six GitHub repo secrets listed under Prerequisites — which include `DB_PASSWORD` and `PRINCIPAL_SIGNING_KEY` (ADS-800) but **not** `SESSION_SECRET`. Provision both sets.
+Note the two validators check **different** sets: the local `validate:env` script covers the five above (including `SESSION_SECRET`), while `deploy.yml`'s "Validate required deploy secrets" step gates on the seven GitHub repo secrets listed under Prerequisites — which include `DB_PASSWORD` and `PRINCIPAL_SIGNING_KEY` (ADS-800) but **not** `SESSION_SECRET`. Provision both sets.
 
 | Trigger                        | Action                                                                      |
 | ------------------------------ | --------------------------------------------------------------------------- |
